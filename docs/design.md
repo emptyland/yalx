@@ -160,7 +160,6 @@ struct Foo<T>(
 
 val foo = Foo<string>("hello", 0)
 
-
 class Map<K, V> {
     class Entry<K, V>(
         val key: K,
