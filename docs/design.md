@@ -106,10 +106,31 @@ println(Foo.i, Foo.j)
 
 ```
 
+`interface`
+
+```kotlin
+interface Foo {
+    fun doIt(a: int, b: int): int
+    fun doThis(a: int): int
+    fun doThat(): string
+}
+
+class Bar {
+    fun doIt(a: int, b: int) -> a + b
+    fun doThis(a: int) -> a
+    fun doThat() -> 'hello'
+}
+
+// Ducking type
+val foo: Foo = Bar()
+foo.doIt(1,2)
+foo.doThis(1)
+foo.doThat()
+```
+
 ### Any
 
 Then any type can be any value👍.
-
 
 Definitions:
 
@@ -119,6 +140,7 @@ Definitions:
 class any {
     native fun hashCode(): u32
     native fun toString(): string
+    native fun isEmpty(): bool
 }
 
 ```
@@ -178,7 +200,102 @@ items.put("2st", 2)
 
 ```
 
+### No any nil/null value!
 
+```kotlin
 
+class Foo(
+    private val id: int,
+    private val name: string
+) {
+    override fun isEmpty() -> id == 0 && name == ""
+}
 
+// variable must has initialize value
+val foo = Foo(1, 'jack')
+assert(foo.isEmpty())
 
+// '' is empty string
+val bar = ''
+assert(bar.isEmpty())
+
+if (val foo = createFoo()) {
+    // if foo !isEmpty()
+} else {
+    // if foo isEmpty()
+}
+
+```
+
+## Source files
+
+```kotlin
+// Package declaration
+package main
+
+// Import statements
+import testing.foo.bar.baz
+import {
+    testing.foo as Foo
+    testing.bar as Bar
+    testing.baz as *
+}
+
+// optioal: main function
+fun main() {
+    // entry:
+    ...
+}
+```
+
+## Syntax
+
+### Literal Values
+
+```
+integral_literal ::= `-'? [0-9]+ (`L' | `l')?
+                   | `0x' [0-9a-fA-F]+ (`L' | `l')?
+```
+
+examples:
+
+``` 1  100l   -1   -100L   0x01  0xff
+```
+
+examples:
+
+```
+floating_literal ::= `-' [0-9]* `.' [0-9]+ (`F' | `f')
+                   | `-' [0-9]* `.' [0-9]+ (`E' | `e') ? [0-9]+
+                   | `NaN'
+```
+
+```
+.1   1.1   2.2220f   2.332e12   -3.14e12
+```
+
+```
+boolean_literal := `true' | `false'
+```
+
+### Variable Declaration
+
+```
+variable_declaration := (`val' | `var') identifer (`:' type_symbol)? `=' expression
+```
+
+examples:
+
+```kotlin
+val a: int = 0
+val b = 0
+val c: i8 = -127
+val d: u8 = 255
+val e = 0L // e's type: i64
+val f = ''
+```
+
+```kotlin
+var a: int = 0
+a = 1
+```
