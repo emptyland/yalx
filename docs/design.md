@@ -29,6 +29,10 @@ All primitive types are value type.
 | `f64` | 64 |
 | `char` | 32 |
 
+### Unit type
+
+`unit'
+
 ### Array Types
 
 `string`
@@ -149,7 +153,7 @@ class any {
 
 ```kotlin
 
-fun foo(a: int, b: int) = a + b
+fun foo(a: int, b: int) -> a + b
 val functionObject = (a:int, b:int)->a+b
 functionObject(1, 2)
 
@@ -253,35 +257,72 @@ fun main() {
 ### Literal Values
 
 ```
+literal ::= integral_literal | floating_literal | boolean_literal | array_initializer
 integral_literal ::= `-'? [0-9]+ (`L' | `l')?
                    | `0x' [0-9a-fA-F]+ (`L' | `l')?
-```
-
-examples:
-
-``` 1  100l   -1   -100L   0x01  0xff
-```
-
-examples:
-
-```
 floating_literal ::= `-' [0-9]* `.' [0-9]+ (`F' | `f')
                    | `-' [0-9]* `.' [0-9]+ (`E' | `e') ? [0-9]+
                    | `NaN'
-```
-
-```
-.1   1.1   2.2220f   2.332e12   -3.14e12
-```
-
-```
 boolean_literal := `true' | `false'
+array_initializer ::= array_type? array_dimension_initializer
+array_initializer_dimension ::= `{' `}'
+                              | `{' expression? ( `,' expression )+ `}'
+                              | `{' array_initializer_dimension? ( `,' array_initializer_dimension )+ `}'
+```
+
+examples:
+
+```
+1  100l   -1   -100L   0x01  0xff
+.1   1.1   2.2220f   2.332e12   -3.14e12
+
+{1,2,3}  int[]{1,2,3}  u8[]{1,2,3} i64[8]{1,2,3}
+
+int[2][2] {
+    {1, 2},
+    {3, 4}
+}
+
+int[2][2][2] {
+    {
+        {1, 2},
+        {3, 4}
+    }, {
+        {1, 2},
+        {3, 4}
+    }
+}
+```
+
+### Types
+
+```
+type_ref ::= `bool' | `i8' | `u8' | `i16' | `u16' | `i32' | `u32' | `i64' | `u64' | `f32' | `f64'
+           | `int' | `uint' | `char' | `string'
+           | symbol
+           | generic_type
+           | array_type
+generic_type ::= symbol `<' type_list `>'
+array_type ::= type_ref ( `[' ([0-9]+)? `]' ) +
+function_type ::= `(' type_list? `)' (`->' type_ref | `(' type_list `)' )
+symbol ::= identifier | identifier `.' identifier
+```
+
+examples:
+
+```kotlin
+int[] uint[2][2] string[1][2][3]
+
+var: (int, int)->int = (a:int, b:int)->a+b
+val: (string)->(int, int) = (a:string)->(1,2)
 ```
 
 ### Variable Declaration
 
 ```
-variable_declaration := (`val' | `var') identifer (`:' type_symbol)? `=' expression
+variable_declaration ::= (`val' | `var') variable_name_type `=' expression_list
+variable_name_type_list ::= variable_name_type ( `,' variable_name_type )*
+variable_name_type ::= identifer (`:' type_ref)?
 ```
 
 examples:
@@ -293,9 +334,199 @@ val c: i8 = -127
 val d: u8 = 255
 val e = 0L // e's type: i64
 val f = ''
+val g, h = 1, 2
 ```
 
 ```kotlin
 var a: int = 0
 a = 1
 ```
+
+### Class/Struct/Object Definition
+
+```
+class_definition ::= `class' identifer generic_declaration? constructor? super_declaration? udt_block
+struct_definition ::= `struct' identifer generic_declaration? constructor? super_declaration? udt_block
+object_definition ::= `object' identifer udt_block
+constructor ::= `(' constructor_member_definition* `)'
+constructor_member_definition ::= annotation_declaration? access_description? (`val' | `var') identifer `:' type_ref
+                                | argument
+super_declaration ::= `:' symbol ( `(' expression_list? `)' )?
+udt_block ::= `{' udt_item* `}'
+udt_item ::= member_definition | method_definition
+member_definition ::= annotation_declaration? access_description? variable_declaration
+method_definition ::= annotation_declaration? `override'?  access_description? ( function_definition | function_declaration)
+access_description ::= `public' | `private' | `protected'
+```
+
+```kotlin
+@Value(id=100, name='a')
+class Foo(val id: int, val name: string, tags: u32) {
+    @Json(name = 'flags')
+    private val tags = tags & ~1
+
+    fun getTags() -> this.tags
+
+    // override from any::hashCode()
+    override fun hashCode() -> this.tags
+}
+
+val foo = Foo(100, 'hello', 0xff)
+assert(foo.id == 100)
+assert(foo.name == 'hello')
+assert(foo.getTags() == 0xff & ~1)
+
+struct Bar(val x: int, val y: int)
+val bar = Bar(1, 2)
+val baz = bar // deep copy bar, bar is value type
+```
+
+
+### Interface Definition
+
+```
+interface_definition ::= `interface' identifer generic_declaration? udi_block
+udi_block ::= `{' udi_item+ `}'
+udi_item ::= identifier function_prototype
+```
+
+examples:
+
+```kotlin
+interface Foo {
+    doIt(a: int, b: int): int
+    doThat(a: string): (int, int)
+    doThis(fmt: string, ...): string
+}
+
+// Template version
+interface FooT<T> {
+    doIt(a: T, b: T): T
+}
+
+class Bar {
+    fun doIt(a: int, b: int) -> a + b
+    fun doThat(a: string) -> 1, 2
+    fun doThis(fmt: string, ...) -> 'hello'
+}
+
+val foo: Foo = Bar() // Duck typing
+assert(foo.doIt(1, 2) == 3)
+val a, b = foo.doThat('')
+assert(a == 1)
+assert(b == 2)
+assert(foo.doThis('') == 'hello')
+
+val fooT: FooT<int> = Bar() // Use template version
+```
+
+### Function Definition
+
+```
+function_definition ::= `fun' generic_declaration? identifier function_prototype block
+                      | `fun' generic_declaration? identifier `(' argument_list? `)' `->' expression
+function_declaration ::= `native' `fun' identifier function_prototype
+function_prototype ::= `(' argument_list? `)' ( `:'  return_types )?
+return_types ::= type_ref | `(' type_list `)'
+argument_list ::= argument+ ( `,' vargs )?
+                 | vargs
+argument ::= identifier `:' type_ref
+vargs ::= `...'
+
+generic_declaration ::= `<' generic_symbol_list `>'
+generic_symbol_list ::= identifer ( `,' identifer )*
+```
+
+examples:
+
+```kotlin
+fun foo(a: int, b:int) -> a + b
+fun bar(a: int, b:int): int {
+    return a + b
+}
+
+// Template version
+fun foo<T, P>(a: T, b: P) -> a + b
+assert(foo(1, 2), 3)    // call foo<int, int> version
+assert(foo(1L, 2L), 3L) // call foo<i64, i64> version
+
+// External implements function
+// No function body
+native fun boo(a: int, b: int): int
+
+// No return type aka. return type is unit
+fun baz(a: int, b:int) {
+    println("a=$a,b=$b")
+}
+// or
+fun baz(a: int, b:int)->println("a=$a,b=$b")
+
+// vargs
+fun format(fmt: string, ...): string {
+    // ...
+}
+
+```
+
+### Annotation Decalaration
+
+```
+annotation_definition ::= `annotation' identifier `{' annotation_field* `}'
+annotation_field ::= identifer `:' annotation_type ( `=' expression )
+annotation_type ::= primitive_type | array_type | `string'
+
+annotation_declaration ::= annotation_using+
+annotation_using ::= `@' symbol ( `(' annotation_value_list `)' )?
+annotation_value_list ::= annotation_value (`,' annotation_value)+
+annotation_value ::= literal | `(' annotation_value_list `)'
+```
+
+examples:
+
+```kotlin
+annotation Value {
+    id: int = 1 // defaults is `1'
+    name: string
+}
+
+@Value(id = 100, name='aName')
+var name: string = ''
+
+annotation Method {
+    id: int = 100
+    name: string
+    returnValue: Value
+}
+
+@Method(id=200, name='foo', returnValue=(id=100, name='unknown'))
+fun foo(a: int, b: int) -> a + b
+```
+
+### Statements
+
+```
+block ::= `{' statement* `}'
+statement ::= 
+            | for_statement
+            | while_statement
+            | `run` call
+            | `return' expression_list?
+            | `break'
+            | `continue'
+```
+
+While Statement
+
+```
+while_statement ::= `while' `(' condition `)' block
+```
+
+For Statement
+
+```
+for_statement ::= `for' `(' identifer `in' expression `)' block
+                | `for' `(' identifer `in' expression `until' expression `)' block
+                | `for' `(' identifer `in' expression `to' expression `)' block
+```
+
+### Expression
