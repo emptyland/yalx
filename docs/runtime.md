@@ -7,7 +7,7 @@ struct yalx_value_header {
     uintptr_t kclass;
     union {
         uint32_t tags[2];
-        struct yalx_value_fun **vtab;
+        struct yalx_value_fun **vft;
     } u;
 };
 
@@ -80,3 +80,19 @@ struct yalx_value_str {
     uint32_t len;
     uint8_t bytes[0];
 };
+
+
+## ABI
+
+
+## Runtime API
+
+```c
+yalx_value_t *rt_new_object(const struct yalx_class *clazz, uint32_t tags);
+
+struct yalx_value_str *rt_new_string(const char *z, uint32_t n);
+
+struct yalx_value_str *rt_new_string_from_raw(struct yalx_raw_str *s);
+```
+
+
