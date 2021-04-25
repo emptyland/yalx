@@ -15,7 +15,7 @@ All primitive types are value type.
 |*Name*|Bits|
 |------|----|
 | `bool` | 8 |
-| `int` | 32  |
+| `int` | 32  | 
 | `uint` | 32 |
 | `i8` | 8 |
 | `u8` | 8 |
@@ -29,6 +29,23 @@ All primitive types are value type.
 | `f64` | 64 |
 | `char` | 32 |
 
+Casting methods:
+
+| Types |  `int`  |  `uint`  |  `i8`  |  `u8`  |  `i16`  |  `u16`  |  `i32`  |  `u32`  |  `i64`  |  `u64`  |  `f32`  |  `f64`  |
+|-------|---------|----------|--------|--------|---------|---------|---------|---------|---------|---------|---------|---------|
+| `int` |         | `toUint` | `toI8` | `toU8` | `toI16` | `toU16` | `toI32` | `toU32` | `toI64` | `toU64` | `toF32` | `toF64` |
+| `uint`| `toInt` |          | `toI8` | `toU8` | `toI16` | `toU16` | `toI32` | `toU32` | `toI64` | `toU64` | `toF32` | `toF64` |
+| `i8`  | `toInt` | `toUint` |        | `toU8` | `toI16` | `toU16` | `toI32` | `toU32` | `toI64` | `toU64` | `toF32` | `toF64` |
+| `u8`  | `toInt` | `toUint` | `toI8` |        | `toI16` | `toU16` | `toI32` | `toU32` | `toI64` | `toU64` | `toF32` | `toF64` |
+| `i16` | `toInt` | `toUint` | `toI8` | `toU8` |         | `toU16` | `toI32` | `toU32` | `toI64` | `toU64` | `toF32` | `toF64` |
+| `u16` | `toInt` | `toUint` | `toI8` | `toU8` | `toI16` |         | `toI32` | `toU32` | `toI64` | `toU64` | `toF32` | `toF64` |
+| `i32` | `toInt` | `toUint` | `toI8` | `toU8` | `toI16` | `toU16` |         | `toU32` | `toI64` | `toU64` | `toF32` | `toF64` |
+| `u32` | `toInt` | `toUint` | `toI8` | `toU8` | `toI16` | `toU16` | `toI32` |         | `toI64` | `toU64` | `toF32` | `toF64` |
+| `i64` | `toInt` | `toUint` | `toI8` | `toU8` | `toI16` | `toU16` | `toI32` | `toU32` |         | `toU64` | `toF32` | `toF64` |
+| `u64` | `toInt` | `toUint` | `toI8` | `toU8` | `toI16` | `toU16` | `toI32` | `toU32` | `toI64` |         | `toF32` | `toF64` |
+| `f32` | `toInt` | `toUint` | `toI8` | `toU8` | `toI16` | `toU16` | `toI32` | `toU32` | `toI64` | `toU64` |         | `toF64` |
+| `f64` | `toInt` | `toUint` | `toI8` | `toU8` | `toI16` | `toU16` | `toI32` | `toU32` | `toI64` | `toU64` | `toF32` |         |
+
 ### Unit type
 
 `unit'
@@ -36,6 +53,15 @@ All primitive types are value type.
 ### Array Types
 
 `string`
+
+Builtin Fields/Methods:
+
+```
+val length: int
+toBytes(): u8[]
+toChars(): char[]
+charAt(i: int): char
+```
 
 Literal:
 
@@ -52,6 +78,12 @@ Literal:
 ```
 
 > Array can be value type or reference type
+
+`array` Builtin Fields/Methods:
+
+```
+val size: int
+```
 
 ### Annotation
 
@@ -142,6 +174,8 @@ Definitions:
 
 @Lang
 class any {
+    fun equals(other: any) -> any.id() == this.id()
+    native fun id(): int
     native fun hashCode(): u32
     native fun toString(): string
     native fun isEmpty(): bool
@@ -268,6 +302,8 @@ array_initializer ::= array_type? array_dimension_initializer
 array_initializer_dimension ::= `{' `}'
                               | `{' expression? ( `,' expression )+ `}'
                               | `{' array_initializer_dimension? ( `,' array_initializer_dimension )+ `}'
+
+lambda_literal ::= `(' argument_list `)' `->' expression
 ```
 
 examples:
@@ -292,6 +328,10 @@ int[2][2][2] {
         {3, 4}
     }
 }
+
+(a:int) -> a + 1
+val r = ((a:int, b:int) -> a + b)(1,2)
+assert(r == 3)
 ```
 
 ### Types
@@ -354,7 +394,7 @@ constructor_member_definition ::= annotation_declaration? access_description? (`
 super_declaration ::= `:' symbol ( `(' expression_list? `)' )?
 udt_block ::= `{' udt_item* `}'
 udt_item ::= member_definition | method_definition
-member_definition ::= annotation_declaration? access_description? variable_declaration
+member_definition ::= annotation_declaration? access_description? `override' variable_declaration
 method_definition ::= annotation_declaration? `override'?  access_description? ( function_definition | function_declaration)
 access_description ::= `public' | `private' | `protected'
 ```
@@ -402,6 +442,15 @@ interface Foo {
 // Template version
 interface FooT<T> {
     doIt(a: T, b: T): T
+}
+
+// Comparable
+interface Comparable<T> {
+    int compareTo(a: T)
+}
+
+fun <T: Comparable<T>> sort(a: T[]) {
+    ...
 }
 
 class Bar {
