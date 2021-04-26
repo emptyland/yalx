@@ -85,6 +85,14 @@ Literal:
 val size: int
 ```
 
+### Channel Type
+
+```kotlin
+val c = chan<int>(0)
+val n = <-c
+
+```
+
 ### Annotation
 
 ```
@@ -291,7 +299,7 @@ fun main() {
 ### Literal Values
 
 ```
-literal ::= integral_literal | floating_literal | boolean_literal | array_initializer
+literal ::= integral_literal | floating_literal | boolean_literal | array_initializer | lambda_literal
 integral_literal ::= `-'? [0-9]+ (`L' | `l')?
                    | `0x' [0-9a-fA-F]+ (`L' | `l')?
 floating_literal ::= `-' [0-9]* `.' [0-9]+ (`F' | `f')
@@ -342,7 +350,9 @@ type_ref ::= `bool' | `i8' | `u8' | `i16' | `u16' | `i32' | `u32' | `i64' | `u64
            | symbol
            | generic_type
            | array_type
+           | channel_type
 generic_type ::= symbol `<' type_list `>'
+channel_type ::= `chan' `<' type_ref `>'
 array_type ::= type_ref ( `[' ([0-9]+)? `]' ) +
 function_type ::= `(' type_list? `)' (`->' type_ref | `(' type_list `)' )
 symbol ::= identifier | identifier `.' identifier
@@ -495,7 +505,7 @@ fun bar(a: int, b:int): int {
 }
 
 // Template version
-fun foo<T, P>(a: T, b: P) -> a + b
+fun <T, P> foo(a: T, b: P) -> a + b
 assert(foo(1, 2), 3)    // call foo<int, int> version
 assert(foo(1L, 2L), 3L) // call foo<i64, i64> version
 
@@ -551,26 +561,157 @@ annotation Method {
 fun foo(a: int, b: int) -> a + b
 ```
 
+### Expression
+
+```
+expression ::= primary | suffix | unary | binary | statement | block
+
+block ::= `{' expression* `}'
+
+primary ::= identifer | literal | `(' expression `)'
+
+suffix ::= expression ( `[' expression `]' )+ 
+         | expression ( `.' identifer )
+         | expression `as' type_ref
+         | call
+
+call ::= expression `(' expression_list `)'
+
+unary ::= `~' expression | `!' expression | `-' expression
+
+binary ::= boolean_expression
+         | expression `+' expression
+         | expression `-' expression
+         | expression `*' expression
+         | expression `/' expression
+         | expression `|' expression
+         | expression `&' expression
+         | expression `^' expression
+         | expression `>>' expression
+         | expression `<<' expression
+
+boolean_expression ::= expression `&&' expression
+                     | expression `||' expression
+                     | condition
+
+condition ::= expression `==' expression
+            | expression `!=' expression
+            | expression `<' expression
+            | expression `<=' expression
+            | expression `>' expression
+            | expression `<=' expression
+
+lval ::= identifer | expression ( `.' identifer ) | expression ( `[' expression `]' )+
+```
+
+```kotlin
+// if expression
+val a = if (foo()) 'lt' else 'gt'
+
+// when expression
+val a = when(foo()) {
+    1 -> '1st'
+    2 -> '2nd'
+    3 -> '3th'
+    else -> '...'
+}
+
+val a = int[][2] {
+    {1, 2},
+    {3, 4}
+}
+assert(a[0][0] == 1)
+assert(a[0][1] == 2)
+```
+
 ### Statements
+
+statements' expression type maybe `unit`
 
 ```
 block ::= `{' statement* `}'
-statement ::= 
+statement ::= if_statement
+            | when_statement
             | for_statement
             | while_statement
             | `run` call
             | `return' expression_list?
+            | `throw' expression
             | `break'
             | `continue'
 ```
 
-While Statement
+_Assignemnt Statement_
+
+```
+assignment_statement ::= lval_list `=' expression_list
+```
+
+examples:
+
+```kotlin
+a.f = 1
+foo.Doom.f = 'hello'
+a, b, c = 1, 2, 3
+d, e, f = (()->1,2,3)()
+```
+
+_If Statement_
+
+```
+if_statement ::= `if' `(' condition_clause `)' statement else_if_clause* eles_clause?
+condition_clause ::= variable_declaration `;' expression
+                   | expression
+else_if_clause ::= `else' `if' `(' condition_clause `)' statement
+eles_clause ::= `else' statement
+```
+
+examples:
+
+```kotlin
+if (foo() == 'ok) {
+    // ...
+}
+
+if (val i, j, k = foo(); i > 0 && j > 0 && k > 0) {
+    println(i, j, k)
+}
+```
+
+_When Statement_
+
+```
+when_statement ::= `when' `{' when_condition_clause+ when_else_clause? `}'
+                 | `when' `(' expression `)' `{' when_casting_clause+ when_else_clause? `}'
+when_condition_clause ::= expression `->' expression
+when_casting_clause ::= identifer `:' type_ref `->' expression
+when_else_clause ::= `else' `->' expression
+```
+
+examples:
+
+```kotlin
+when {
+    a == 1 && b < 0 -> {}
+    a == 2 && b > 0 -> {}
+    else -> {}
+}
+
+when (maybe) {
+    a: int -> {/*is int type*/}
+    a: f32 -> {/*is f32 type*/}
+    100 -> {/*is equals to 100*/}
+    else -> {}
+}
+```
+
+_While Statement_
 
 ```
 while_statement ::= `while' `(' condition `)' block
 ```
 
-For Statement
+_For Statement_
 
 ```
 for_statement ::= `for' `(' identifer `in' expression `)' block
@@ -578,4 +719,40 @@ for_statement ::= `for' `(' identifer `in' expression `)' block
                 | `for' `(' identifer `in' expression `to' expression `)' block
 ```
 
-### Expression
+examples: 
+
+```kotlin
+val a = {1,2, 3}
+for (i in a) {
+    println(i)
+}
+
+for (i in 0 until 100) {
+    println(i)
+}
+
+for (i in 0 to 100) {
+    println(i)
+}
+
+```
+
+_Try-Catch Statement_
+
+```
+try_catch_statement ::= `try' block catch_clause+ finally_clause?
+catch_clause ::= `catch' `(' identifier `:' type_ref `)' block
+finally_clause ::= `finally' block
+```
+
+examples:
+
+```kotlin
+try {
+    // ...
+} catch (e: Exception) {
+    // ...
+} finally {
+    // ...
+}
+```
