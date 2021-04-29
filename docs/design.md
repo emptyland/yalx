@@ -90,6 +90,27 @@ val size: int
 ```kotlin
 val c = chan<int>(0)
 val n = <-c
+val value, ok = <-c
+
+c <- 100
+c <- 200
+
+val readonlyC: out chan<int> = chan<int>(1)
+val writableC: in chan<int> = chan<int>(1)
+
+fun foo(@Out c: out chan<int>) {
+    for (value in c) {
+        ... 
+    }
+}
+
+fun bar(@In c: in chan<int>) {
+    val a = {1, 2, 3, 4, 5}
+    for (value in a) {
+        c <- value
+    }
+    c.close()
+}
 
 ```
 
@@ -182,11 +203,11 @@ Definitions:
 
 @Lang
 class any {
-    fun equals(other: any) -> any.id() == this.id()
     native fun id(): int
     native fun hashCode(): u32
     native fun toString(): string
     native fun isEmpty(): bool
+    fun finalize() -> Unit
 }
 
 ```
@@ -296,10 +317,47 @@ fun main() {
 
 ## Syntax
 
+### Package Declaration
+
+```
+package_declaration ::= identifier
+```
+
+examples:
+
+```kotlin
+package main
+```
+
+### Import
+
+```
+import_statement := `import' identifier ( `.' identifier )* ( `as' alias )?
+import_statement := `import' `{' ( identifier ( `.' identifier )* ( `as' alias )? )+ `}'
+alias := `*' | identifier
+```
+
+examples:
+
+```kotlin
+import foo.bar.baz as fbb
+import {
+    yalx.lang.runtime as *
+    yalx.lang.waitgroup as wg
+}
+```
+
 ### Literal Values
 
 ```
-literal ::= integral_literal | floating_literal | boolean_literal | array_initializer | lambda_literal
+literal ::= integral_literal 
+          | floating_literal 
+          | boolean_literal 
+          | array_initializer 
+          | channel_initializer 
+          | lambda_literal
+          | `Unit'
+          | `Empty'
 integral_literal ::= `-'? [0-9]+ (`L' | `l')?
                    | `0x' [0-9a-fA-F]+ (`L' | `l')?
 floating_literal ::= `-' [0-9]* `.' [0-9]+ (`F' | `f')
@@ -310,6 +368,8 @@ array_initializer ::= array_type? array_dimension_initializer
 array_initializer_dimension ::= `{' `}'
                               | `{' expression? ( `,' expression )+ `}'
                               | `{' array_initializer_dimension? ( `,' array_initializer_dimension )+ `}'
+
+channel_initializer ::= channel_type `(' expression `)'
 
 lambda_literal ::= `(' argument_list `)' `->' expression
 ```
@@ -352,7 +412,7 @@ type_ref ::= `bool' | `i8' | `u8' | `i16' | `u16' | `i32' | `u32' | `i64' | `u64
            | array_type
            | channel_type
 generic_type ::= symbol `<' type_list `>'
-channel_type ::= `chan' `<' type_ref `>'
+channel_type ::= ( `in' | `out' ) `chan' `<' type_ref `>'
 array_type ::= type_ref ( `[' ([0-9]+)? `]' ) +
 function_type ::= `(' type_list? `)' (`->' type_ref | `(' type_list `)' )
 symbol ::= identifier | identifier `.' identifier
@@ -577,7 +637,7 @@ suffix ::= expression ( `[' expression `]' )+
 
 call ::= expression `(' expression_list `)'
 
-unary ::= `~' expression | `!' expression | `-' expression
+unary ::= `~' expression | `!' expression | `-' expression | `<-' expression
 
 binary ::= boolean_expression
          | expression `+' expression
@@ -639,6 +699,7 @@ statement ::= if_statement
             | `throw' expression
             | `break'
             | `continue'
+            | expression `<-' expression
 ```
 
 _Assignemnt Statement_

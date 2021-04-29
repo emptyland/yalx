@@ -102,3 +102,13 @@ struct yalx_value_str *rt_new_string_from_raw(struct yalx_raw_str *s);
 ```
 
 
+## Safepoint Mechanism
+
+Safepoint for
+
+1. GC stop world.
+2. Debug
+
+Implements: Like jvm, signal `SIGSEG` break the thread.
+
+
