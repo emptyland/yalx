@@ -17,6 +17,48 @@ class any {
 
 ```
 
+## Number
+
+```kotlin
+@Lang
+interface Numeric {
+    toI8(): i8
+    toU8(): u8
+    toI16(): i16
+    toU16(): u16
+    toI32(): i32
+    toU32(): u32
+    toInt(): int
+    toUInt(): uint
+    toI64(): i64
+    toU64(): u64
+    toF32(): f32
+    toF64(): f64
+}
+
+@Lang
+class Number<T: Numeric> {
+    native fun parse(s: string): T
+
+    equals(other: T) -> this.value == other
+
+    compareTo(other: T) -> when {
+        this.value < other -> -1
+        this.value > other -> 1
+        else -> 0
+    }
+}
+
+```
+
+examples:
+
+```kotlin
+val n = i8.parse('127')
+// native symbol is: int yalx_lang_i8_parse_s_i8(yalx_str_t *s)
+
+```
+
 ## Comparable
 
 ```kotlin

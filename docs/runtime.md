@@ -112,3 +112,79 @@ Safepoint for
 Implements: Like jvm, signal `SIGSEG` break the thread.
 
 
+## Garbage Collection
+
+### Allocator
+
+```c
+struct yalx_heap {
+    struct yalx_new_space   new_space;
+    struct yalx_old_space   old_space;
+    struct yalx_large_space large_space;
+};
+
+struct yalx_allocator {
+    struct allocation_result (*allocate)(size_t, uint32_t);
+};
+
+```
+
+### New Space
+
+```
+<After Minor GC>
+
+|<------used------>|
+still_survival     |
+|      |           |
++------------------------------------+------------------------------------+
+| ssss |           | xxxxxxxxxxxxxxx |                                    |
++------------------------------------+------------------------------------+
+^                  ^---- free        ^
+| origianl_space                     | survivor_space
+```
+
+New Space has 2 semi-spaces: `origianl_space` and `survivor_space`
+
+```
+<In GC>
+
+|<------used------>|
+still_survival     |                 | copy reached objects
+|      |           |                 v           v
++------------------------------------+------------------------------------+
+| ssss |           | xxxxxxxxxxxxxxx | ///////// |                        |
++------------------------------------+------------------------------------+
+^                  ^---- free        ^
+| origianl_space                     | survivor_space
+
+
+<Promote still_survival objects to Old Spaces>
+
++------------------------------------+------------------------------------+
+| pppp |           | xxxxxxxxxxxxxxx | ///////// |                        |
++------------------------------------+------------------------------------+
+^                                    ^           ^----- new free
+| origianl_space                     | survivor_space
+
+
+<Fliping: Exchange origianl_space and survivor_space pointer>
+
+                                                 v----- still_survival
++------------------------------------+------------------------------------+
+|                Clean               | ///////// | xxxxxxxxxxxxxxxxxxxxxx |
++------------------------------------+------------------------------------+
+^                                    ^           ^----- free
+| survivor_space                     | origianl_space
+
+```
+
+In minor-GC: 
+1. Copy all reachable objects from `origianl_space` to `survivor_space`.
+2. Promote `still_survival` objects to old spaces.
+3. Exchange `origianl_space` and `survivor_space` pointers.
+
+### Old Space
+
+### Large Space
+
