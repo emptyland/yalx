@@ -3,7 +3,7 @@
 #include <thread>
 #include <vector>
 
-namespace mai {
+namespace yalx {
     
 namespace base {
 
@@ -73,36 +73,36 @@ TEST(ReferenceCountTest, DynamicRefCount) {
     ASSERT_TRUE(has_deleted);
 }
 
-TEST(ReferenceCountTest, AsyncRefCount) {
-    bool has_deleted = false;
-    auto obj = new RefTestStub{&has_deleted};
-    obj->AddRef();
-    
-    std::vector<std::thread> add, rel;
-    for (int i = 0; i < 4; ++i) {
-        add.emplace_back([](ReferenceCounted<RefTestStub> *ref){
-            for (int i = 0; i < 1000; ++i) {
-                ref->AddRef();
-            }
-        }, obj);
-    }
-    for (int i = 0; i < 4; ++i) {
-        rel.emplace_back([](ReferenceCounted<RefTestStub> *ref){
-            for (int i = 0; i < 1000; ++i) {
-                ref->ReleaseRef();
-            }
-        }, obj);
-    }
-    
-    for (int i = 0; i < 4; ++i) {
-        add[i].join();
-        rel[i].join();
-    }
-    
-    ASSERT_EQ(1, obj->ref_count());
-    obj->ReleaseRef();
-}
+//TEST(ReferenceCountTest, AsyncRefCount) {
+//    bool has_deleted = false;
+//    auto obj = new RefTestStub{&has_deleted};
+//    obj->AddRef();
+//    
+//    std::vector<std::thread> add, rel;
+//    for (int i = 0; i < 4; ++i) {
+//        add.emplace_back([](ReferenceCounted<RefTestStub> *ref){
+//            for (int i = 0; i < 1000; ++i) {
+//                ref->AddRef();
+//            }
+//        }, obj);
+//    }
+//    for (int i = 0; i < 4; ++i) {
+//        rel.emplace_back([](ReferenceCounted<RefTestStub> *ref){
+//            for (int i = 0; i < 1000; ++i) {
+//                ref->ReleaseRef();
+//            }
+//        }, obj);
+//    }
+//    
+//    for (int i = 0; i < 4; ++i) {
+//        add[i].join();
+//        rel[i].join();
+//    }
+//    
+//    ASSERT_EQ(1, obj->ref_count());
+//    obj->ReleaseRef();
+//}
 
 } // namespace base
     
-} // namespace mai
+} // namespace yalx

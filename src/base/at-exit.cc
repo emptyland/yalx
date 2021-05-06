@@ -1,12 +1,11 @@
 #include "base/at-exit.h"
 #include "base/base.h"
-#include "glog/logging.h"
 
 namespace yalx {
 
 namespace {
 
-AtExit *top = nullptr;
+base::AtExit *top = nullptr;
 
 } // namespace
 
@@ -20,12 +19,12 @@ struct AtExit::Hook {
 
 AtExit::AtExit(Linker)
     : prev_(top) {
-    DCHECK_NE(top, this);
+    //DCHECK_NE(top, this);
     top = this;
 }
 
 AtExit::~AtExit() {
-    DCHECK_EQ(top, this);
+    //DCHECK_EQ(top, this);
     Hook *p = nullptr;
     while (hook_) {
         hook_->callback(hook_->params);
@@ -36,7 +35,7 @@ AtExit::~AtExit() {
     top = prev_;
 }
 
-/*static*/ AtExit *AtExit::This() { return DCHECK_NOTNULL(top); }
+/*static*/ AtExit *AtExit::This() { return top; }
 
 void AtExit::Register(Callback callback, void *params) {
     std::lock_guard<std::mutex> lock(mutex_);

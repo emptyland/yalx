@@ -8,19 +8,27 @@ namespace yalx {
     
 namespace base {
     
-class Arena : public Allocator {
+class Arena {
 public:
-    static const uint32_t kInitZag;
-    static const uint32_t kFreeZag;
+    static constexpr size_t kBlockSize = base::kMB;
     
-    Arena() {}
-    virtual ~Arena() override;
     
-    virtual void Purge(bool reinit) = 0;
+    Arena() = default;
     
-    virtual size_t granularity() override { return 4; }
+    ~Arena() { Purge(); }
     
-    virtual size_t memory_usage() const = 0;
+    void Purge() {
+        while (block_) {
+            auto block = block_;
+            block_ = block_->next;
+            ::free(block);
+        }
+        while (large_blocks_) {
+            auto block = large_blocks_;
+            large_blocks_ = large_blocks_->next;
+            ::free(block);
+        }
+    }
     
     template<class T> T *New() { return new (Allocate(sizeof(T))) T(); }
     
@@ -28,9 +36,58 @@ public:
         return static_cast<T *>(Allocate(sizeof(T) * n));
     }
     
+    void *Allocate(size_t n) {
+        n = RoundUp(n, 4);
+        if (ShouldUseLargeBlock(n)) {
+            return NewLargeBlock(n);
+        }
+        auto block = block_;
+        if (!block_ || block_->free_size() < n) {
+            block = NewBlock();
+        }
+        
+        void *chunk = block->free_address();
+        // TODO:
+        block->size += n;
+        return chunk;
+    }
+    
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arena);
 private:
-    virtual void Free(const void */*chunk*/, size_t /*size*/) override {}
+    struct BlockHeader {
+        BlockHeader *next;
+        int32_t      size;
+        
+        size_t free_size() const { return (kBlockSize - sizeof(BlockHeader)) - size; }
+
+        Address free_address() { return reinterpret_cast<Address>(this + 1 + size); }
+    };
+    
+    static constexpr size_t kUsefulSize = kBlockSize - sizeof(BlockHeader);
+    
+    bool ShouldUseLargeBlock(size_t n) { return n >= kUsefulSize / 2; }
+    
+    BlockHeader *NewLargeBlock(size_t n) {
+        size_t block_size = n + sizeof(BlockHeader);
+        void *memory = ::malloc(block_size);
+        // TODO:
+        BlockHeader *block = static_cast<BlockHeader *>(memory);
+        block->next = large_blocks_;
+        block->size = static_cast<uint32_t>(n);
+        large_blocks_ = block;
+        return block;
+    }
+    
+    BlockHeader *NewBlock() {
+        BlockHeader *block = static_cast<BlockHeader *>(::malloc(kBlockSize));
+        block->next = block_;
+        block->size = 0;
+        block_ = block;
+        return block;
+    }
+    
+    BlockHeader *block_ = nullptr;
+    BlockHeader *large_blocks_ = nullptr;
 }; // class Arena
 
 class ArenaObject {

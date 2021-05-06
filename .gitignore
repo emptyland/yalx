@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+.DS_Store
+xcode/yalx.xcodeproj/xcuserdata
+xcode/yalx.xcworkspace/xcuserdata

@@ -3,7 +3,6 @@
 #define YALX_BASE_REFERENCE_COUNT_H_
 
 #include "base/base.h"
-#include "glog/logging.h"
 #include <atomic>
 
 namespace yalx {
@@ -41,7 +40,8 @@ public:
     
     void operator = (T *naked) { reset(naked); }
     
-    T *operator -> () const { return DCHECK_NOTNULL(naked_); }
+    //T *operator -> () const { return DCHECK_NOTNULL(naked_); }
+    T *operator -> () const { return naked_; }
 
     bool operator ! () const { return !naked_; }
     
@@ -148,7 +148,7 @@ public:
     }
     
     void ReleaseRef() const {
-        DCHECK_GT(ref_count(), 0);
+        //DCHECK_GT(ref_count(), 0);
         if (ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             delete this;
         }
@@ -173,7 +173,7 @@ public:
     }
     
     void ReleaseRef() const {
-        DCHECK_GT(ref_count(), 0);
+        //DCHECK_GT(ref_count(), 0);
         if (ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             delete static_cast<const T*>(this);
         }
