@@ -1,4 +1,5 @@
 #include "base/at-exit.h"
+#include "base/checking.h"
 #include "base/base.h"
 
 namespace yalx {
@@ -19,12 +20,12 @@ struct AtExit::Hook {
 
 AtExit::AtExit(Linker)
     : prev_(top) {
-    //DCHECK_NE(top, this);
+    assert(top != this);
     top = this;
 }
 
 AtExit::~AtExit() {
-    //DCHECK_EQ(top, this);
+    assert(top == this);
     Hook *p = nullptr;
     while (hook_) {
         hook_->callback(hook_->params);
@@ -35,7 +36,7 @@ AtExit::~AtExit() {
     top = prev_;
 }
 
-/*static*/ AtExit *AtExit::This() { return top; }
+/*static*/ AtExit *AtExit::This() { return DCHECK_NOTNULL(top); }
 
 void AtExit::Register(Callback callback, void *params) {
     std::lock_guard<std::mutex> lock(mutex_);

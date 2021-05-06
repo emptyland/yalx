@@ -2,6 +2,7 @@
 #ifndef YALX_BASE_REFERENCE_COUNT_H_
 #define YALX_BASE_REFERENCE_COUNT_H_
 
+#include "base/checking.h"
 #include "base/base.h"
 #include <atomic>
 
@@ -40,8 +41,7 @@ public:
     
     void operator = (T *naked) { reset(naked); }
     
-    //T *operator -> () const { return DCHECK_NOTNULL(naked_); }
-    T *operator -> () const { return naked_; }
+    T *operator -> () const { return DCHECK_NOTNULL(naked_); }
 
     bool operator ! () const { return !naked_; }
     

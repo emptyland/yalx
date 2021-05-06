@@ -16,6 +16,7 @@
 		2354CD8326439E9500A2FAC3 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7726439E9500A2FAC3 /* sha256.c */; };
 		2354CD872643C8FD00A2FAC3 /* all-tests.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD862643C8FD00A2FAC3 /* all-tests.cc */; };
 		2354CD8A2643CC1900A2FAC3 /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD892643CC1900A2FAC3 /* gtest-all.cc */; };
+		2354CD8C2643D34B00A2FAC3 /* status-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD8B2643D34B00A2FAC3 /* status-test.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -55,6 +56,7 @@
 		2354CD862643C8FD00A2FAC3 /* all-tests.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "all-tests.cc"; path = "../src/test/all-tests.cc"; sourceTree = "<group>"; };
 		2354CD882643CA5000A2FAC3 /* checking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = checking.h; path = ../src/base/checking.h; sourceTree = "<group>"; };
 		2354CD892643CC1900A2FAC3 /* gtest-all.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "gtest-all.cc"; path = "../src/test/gtest-all.cc"; sourceTree = "<group>"; };
+		2354CD8B2643D34B00A2FAC3 /* status-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "status-test.cc"; path = "../src/base/status-test.cc"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,6 +117,7 @@
 				2354CD6626439E9500A2FAC3 /* sha256-test.cc */,
 				2354CD7726439E9500A2FAC3 /* sha256.c */,
 				2354CD6C26439E9500A2FAC3 /* sha256.h */,
+				2354CD8B2643D34B00A2FAC3 /* status-test.cc */,
 				2354CD6026439E9500A2FAC3 /* status.h */,
 				2354CD882643CA5000A2FAC3 /* checking.h */,
 			);
@@ -189,6 +192,7 @@
 				2354CD7F26439E9500A2FAC3 /* reference-count-test.cc in Sources */,
 				2354CD872643C8FD00A2FAC3 /* all-tests.cc in Sources */,
 				2354CD7C26439E9500A2FAC3 /* sha256-test.cc in Sources */,
+				2354CD8C2643D34B00A2FAC3 /* status-test.cc in Sources */,
 				2354CD7926439E9500A2FAC3 /* crc32.c in Sources */,
 				2354CD7D26439E9500A2FAC3 /* at-exit.cc in Sources */,
 				2354CD7B26439E9500A2FAC3 /* arena-utils.cc in Sources */,

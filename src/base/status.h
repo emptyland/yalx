@@ -21,11 +21,11 @@ public:
     };
 
     Status() : Status(nullptr, 0, kOk, "") {}
-    
+
     Status(const Status &other)
         : Status(other.file_name_, other.line_, other.code(), other.message()) {
     }
-    
+
     Status(Status &&other)
         : file_name_(other.file_name_)
         , line_(other.line_)

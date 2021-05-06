@@ -12,7 +12,6 @@ class Arena {
 public:
     static constexpr size_t kBlockSize = base::kMB;
     
-    
     Arena() = default;
     
     ~Arena() { Purge(); }
