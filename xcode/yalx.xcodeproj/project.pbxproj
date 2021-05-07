@@ -17,6 +17,11 @@
 		2354CD872643C8FD00A2FAC3 /* all-tests.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD862643C8FD00A2FAC3 /* all-tests.cc */; };
 		2354CD8A2643CC1900A2FAC3 /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD892643CC1900A2FAC3 /* gtest-all.cc */; };
 		2354CD8C2643D34B00A2FAC3 /* status-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD8B2643D34B00A2FAC3 /* status-test.cc */; };
+		2354CD8E2644D46C00A2FAC3 /* arena-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD8D2644D3F200A2FAC3 /* arena-test.cc */; };
+		2354CD922644D50B00A2FAC3 /* asm-x64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD902644D50B00A2FAC3 /* asm-x64.cc */; };
+		2354CD952644DDA400A2FAC3 /* format.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD942644DDA400A2FAC3 /* format.cc */; };
+		2354CD972644DE4700A2FAC3 /* status.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD962644DE4700A2FAC3 /* status.cc */; };
+		2354CD992644DF1600A2FAC3 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD982644DF1600A2FAC3 /* base.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -57,6 +62,13 @@
 		2354CD882643CA5000A2FAC3 /* checking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = checking.h; path = ../src/base/checking.h; sourceTree = "<group>"; };
 		2354CD892643CC1900A2FAC3 /* gtest-all.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "gtest-all.cc"; path = "../src/test/gtest-all.cc"; sourceTree = "<group>"; };
 		2354CD8B2643D34B00A2FAC3 /* status-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "status-test.cc"; path = "../src/base/status-test.cc"; sourceTree = "<group>"; };
+		2354CD8D2644D3F200A2FAC3 /* arena-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "arena-test.cc"; path = "../src/base/arena-test.cc"; sourceTree = "<group>"; };
+		2354CD902644D50B00A2FAC3 /* asm-x64.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-x64.cc"; path = "../src/x64/asm-x64.cc"; sourceTree = "<group>"; };
+		2354CD912644D50B00A2FAC3 /* asm-x64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "asm-x64.h"; path = "../src/x64/asm-x64.h"; sourceTree = "<group>"; };
+		2354CD932644DCF200A2FAC3 /* format.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = format.h; path = ../src/base/format.h; sourceTree = "<group>"; };
+		2354CD942644DDA400A2FAC3 /* format.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = format.cc; path = ../src/base/format.cc; sourceTree = "<group>"; };
+		2354CD962644DE4700A2FAC3 /* status.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = status.cc; path = ../src/base/status.cc; sourceTree = "<group>"; };
+		2354CD982644DF1600A2FAC3 /* base.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = base.cc; path = ../src/base/base.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +93,7 @@
 		2354CD3226439A1400A2FAC3 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				2354CD8F2644D4EE00A2FAC3 /* X64 */,
 				2354CD842643C8B100A2FAC3 /* Test */,
 				2354CD5F26439E8100A2FAC3 /* Base */,
 			);
@@ -100,10 +113,12 @@
 			children = (
 				2354CD6426439E9500A2FAC3 /* arena-utils.cc */,
 				2354CD6726439E9500A2FAC3 /* arena-utils.h */,
+				2354CD8D2644D3F200A2FAC3 /* arena-test.cc */,
 				2354CD7626439E9500A2FAC3 /* arena.h */,
 				2354CD6926439E9500A2FAC3 /* at-exit.cc */,
 				2354CD7426439E9500A2FAC3 /* at-exit.h */,
 				2354CD7826439E9500A2FAC3 /* base.h */,
+				2354CD982644DF1600A2FAC3 /* base.cc */,
 				2354CD7226439E9500A2FAC3 /* bit-ops.h */,
 				2354CD6226439E9500A2FAC3 /* crc32.c */,
 				2354CD6526439E9500A2FAC3 /* env.h */,
@@ -119,7 +134,10 @@
 				2354CD6C26439E9500A2FAC3 /* sha256.h */,
 				2354CD8B2643D34B00A2FAC3 /* status-test.cc */,
 				2354CD6026439E9500A2FAC3 /* status.h */,
+				2354CD962644DE4700A2FAC3 /* status.cc */,
 				2354CD882643CA5000A2FAC3 /* checking.h */,
+				2354CD932644DCF200A2FAC3 /* format.h */,
+				2354CD942644DDA400A2FAC3 /* format.cc */,
 			);
 			name = Base;
 			sourceTree = "<group>";
@@ -131,6 +149,15 @@
 				2354CD862643C8FD00A2FAC3 /* all-tests.cc */,
 			);
 			name = Test;
+			sourceTree = "<group>";
+		};
+		2354CD8F2644D4EE00A2FAC3 /* X64 */ = {
+			isa = PBXGroup;
+			children = (
+				2354CD902644D50B00A2FAC3 /* asm-x64.cc */,
+				2354CD912644D50B00A2FAC3 /* asm-x64.h */,
+			);
+			name = X64;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -189,8 +216,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2354CD992644DF1600A2FAC3 /* base.cc in Sources */,
+				2354CD8E2644D46C00A2FAC3 /* arena-test.cc in Sources */,
 				2354CD7F26439E9500A2FAC3 /* reference-count-test.cc in Sources */,
+				2354CD952644DDA400A2FAC3 /* format.cc in Sources */,
+				2354CD922644D50B00A2FAC3 /* asm-x64.cc in Sources */,
 				2354CD872643C8FD00A2FAC3 /* all-tests.cc in Sources */,
+				2354CD972644DE4700A2FAC3 /* status.cc in Sources */,
 				2354CD7C26439E9500A2FAC3 /* sha256-test.cc in Sources */,
 				2354CD8C2643D34B00A2FAC3 /* status-test.cc in Sources */,
 				2354CD7926439E9500A2FAC3 /* crc32.c in Sources */,

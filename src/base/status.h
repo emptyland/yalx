@@ -78,6 +78,8 @@ public:
     
     bool IsEof() const { return code() == kEOF; }
     
+    std::string ToString() const;
+    
 private:
     Status(const char *file_name, int line, Code code, std::string_view message)
         : file_name_(file_name)
@@ -103,7 +105,12 @@ private:
     const char *file_name_;
     int line_;
     const char *state_;
-};
+}; // class Status
+
+#define ERR_NOT_FOUND()           Status::NotFound(__FILE__, __LINE__)
+#define ERR_CORRUPTION(msg)       Status::Corruption(__FILE__, __LINE__, msg)
+#define ERR_NOT_SUPPORTED()       Status::NotSupported(__FILE__, __LINE__)
+#define ERR_INVALID_ARGUMENT(msg) Status::InvalidArgument(__FILE__, __LINE__, msg)
 
 } // namespace base
 

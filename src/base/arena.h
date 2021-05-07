@@ -29,7 +29,8 @@ public:
         }
     }
     
-    template<class T> T *New() { return new (Allocate(sizeof(T))) T(); }
+    template<class T, class... Args>
+    T *New(Args&&... args) { return new (Allocate(sizeof(T))) T(std::forward<Args>(args)...); }
     
     template<class T> T *NewArray(size_t n) {
         return static_cast<T *>(Allocate(sizeof(T) * n));
@@ -46,9 +47,24 @@ public:
         }
         
         void *chunk = block->free_address();
-        // TODO:
         block->size += n;
-        return chunk;
+        return DbgInitZag(chunk, n);
+    }
+    
+    int CountBlocks() const {
+        int n = 0;
+        for (auto i = block_; i != nullptr; i = i->next) {
+            n++;
+        }
+        return n;
+    }
+    
+    int CountLargeBlocks() const {
+        int n = 0;
+        for (auto i = large_blocks_; i != nullptr; i = i->next) {
+            n++;
+        }
+        return n;
     }
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arena);
@@ -59,7 +75,7 @@ private:
         
         size_t free_size() const { return (kBlockSize - sizeof(BlockHeader)) - size; }
 
-        Address free_address() { return reinterpret_cast<Address>(this + 1 + size); }
+        Address free_address() { return reinterpret_cast<Address>(this + 1) + size; }
     };
     
     static constexpr size_t kUsefulSize = kBlockSize - sizeof(BlockHeader);
@@ -69,7 +85,7 @@ private:
     BlockHeader *NewLargeBlock(size_t n) {
         size_t block_size = n + sizeof(BlockHeader);
         void *memory = ::malloc(block_size);
-        // TODO:
+        DbgInitZag(memory, block_size);
         BlockHeader *block = static_cast<BlockHeader *>(memory);
         block->next = large_blocks_;
         block->size = static_cast<uint32_t>(n);

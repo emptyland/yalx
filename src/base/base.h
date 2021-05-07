@@ -141,6 +141,31 @@ inline View<T> MakeView(T const *z, size_t n) { return View<T>{z, n}; }
 template<class T>
 inline MutView<T> MakeMutView(T *z, size_t n) { return MutView<T>{z, n}; }
 
+
+static constexpr uint32_t kInitZag = 0xcccccccc;
+static constexpr uint32_t kFreeZag = 0xfeedfeed;
+
+// Round bytes filling
+// For int16, 32, 64 filling:
+void *Round16BytesFill(const uint16_t zag, void *chunk, size_t n);
+void *Round32BytesFill(const uint32_t zag, void *chunk, size_t n);
+void *Round64BytesFill(const uint64_t zag, void *chunk, size_t n);
+
+#if defined(NDEBUG)
+
+template<class T> inline T *DbgInitZag(T *chunk, size_t) { return chunk; }
+template<class T> inline T *DbgFreeZag(T *chunk, size_t) { return chunk; }
+
+#else // !defined(NDEBUG)
+
+template<class T>
+inline T *DbgInitZag(T *chunk, size_t n) { return static_cast<T *>(Round32BytesFill(kInitZag, chunk, n)); }
+
+template<class T>
+inline T *DbgFreeZag(T *chunk, size_t n) { return static_cast<T *>(Round32BytesFill(kFreeZag, chunk, n)); }
+
+#endif // #if defined(NDEBUG)
+
 /**
  * define getter/mutable_getter/setter
  */
