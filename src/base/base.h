@@ -257,8 +257,7 @@ inline T *DbgFreeZag(T *chunk, size_t n) { return static_cast<T *>(Round32BytesF
 #   define YALX_ARCH_ARM64 1
 #endif
     
-#define NOREACHED() DLOG(FATAL) << "Noreached! "
-#define TODO()      DLOG(FATAL) << "TODO: "
+#define NOTHING(...)
 
 enum Initializer {
     LAZY_INSTANCE_INITIALIZER,

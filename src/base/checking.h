@@ -10,14 +10,17 @@ namespace base {
 
 #if defined(NDEBUG)
 
-#define UNREACHED()
+#ifdef assert
+    #undef  assert
+    #define assert(x)
+#endif
 
+#define UNREACHED()
 #define DCHECK_NOTNULL(p) (p)
 
 #else
 
-#define UNREACHED() assert(0 && "unreached")
-
+#define UNREACHABLE() assert(0 && "unreached")
 #define DCHECK_NOTNULL(p) (::yalx::base::CheckNotNull(p, __FILE__, __LINE__))
 
 template<class T>

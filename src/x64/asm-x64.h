@@ -1,3 +1,4 @@
+#pragma once
 #ifndef YALX_ASM_X64_H_
 #define YALX_ASM_X64_H_
 
@@ -352,7 +353,7 @@ public:
             return -pos_ - 1;
         if (pos_ > 0)
             return pos_ - 1;
-        UNREACHED();
+        UNREACHABLE();
         return 0;
     }
     

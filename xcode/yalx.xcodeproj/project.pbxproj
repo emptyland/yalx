@@ -22,6 +22,8 @@
 		2354CD952644DDA400A2FAC3 /* format.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD942644DDA400A2FAC3 /* format.cc */; };
 		2354CD972644DE4700A2FAC3 /* status.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD962644DE4700A2FAC3 /* status.cc */; };
 		2354CD992644DF1600A2FAC3 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD982644DF1600A2FAC3 /* base.cc */; };
+		23EFD488264624D2007222D6 /* asm-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD487264624D2007222D6 /* asm-arm64.cc */; };
+		23EFD48B26466D87007222D6 /* asm-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD48A26466D87007222D6 /* asm-arm64-test.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -69,6 +71,11 @@
 		2354CD942644DDA400A2FAC3 /* format.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = format.cc; path = ../src/base/format.cc; sourceTree = "<group>"; };
 		2354CD962644DE4700A2FAC3 /* status.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = status.cc; path = ../src/base/status.cc; sourceTree = "<group>"; };
 		2354CD982644DF1600A2FAC3 /* base.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = base.cc; path = ../src/base/base.cc; sourceTree = "<group>"; };
+		23EFD486264624BD007222D6 /* asm-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "asm-arm64.h"; path = "../src/arm64/asm-arm64.h"; sourceTree = "<group>"; };
+		23EFD487264624D2007222D6 /* asm-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-arm64.cc"; path = "../src/arm64/asm-arm64.cc"; sourceTree = "<group>"; };
+		23EFD48926463962007222D6 /* const-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "const-arm64.h"; path = "../src/arm64/const-arm64.h"; sourceTree = "<group>"; };
+		23EFD48A26466D87007222D6 /* asm-arm64-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-arm64-test.cc"; path = "../src/arm64/asm-arm64-test.cc"; sourceTree = "<group>"; };
+		23EFD48C26467FB5007222D6 /* utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = utils.h; path = ../src/base/utils.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +100,7 @@
 		2354CD3226439A1400A2FAC3 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				23EFD48526462489007222D6 /* Arm64 */,
 				2354CD8F2644D4EE00A2FAC3 /* X64 */,
 				2354CD842643C8B100A2FAC3 /* Test */,
 				2354CD5F26439E8100A2FAC3 /* Base */,
@@ -138,6 +146,7 @@
 				2354CD882643CA5000A2FAC3 /* checking.h */,
 				2354CD932644DCF200A2FAC3 /* format.h */,
 				2354CD942644DDA400A2FAC3 /* format.cc */,
+				23EFD48C26467FB5007222D6 /* utils.h */,
 			);
 			name = Base;
 			sourceTree = "<group>";
@@ -158,6 +167,17 @@
 				2354CD912644D50B00A2FAC3 /* asm-x64.h */,
 			);
 			name = X64;
+			sourceTree = "<group>";
+		};
+		23EFD48526462489007222D6 /* Arm64 */ = {
+			isa = PBXGroup;
+			children = (
+				23EFD48A26466D87007222D6 /* asm-arm64-test.cc */,
+				23EFD486264624BD007222D6 /* asm-arm64.h */,
+				23EFD487264624D2007222D6 /* asm-arm64.cc */,
+				23EFD48926463962007222D6 /* const-arm64.h */,
+			);
+			name = Arm64;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -224,12 +244,14 @@
 				2354CD872643C8FD00A2FAC3 /* all-tests.cc in Sources */,
 				2354CD972644DE4700A2FAC3 /* status.cc in Sources */,
 				2354CD7C26439E9500A2FAC3 /* sha256-test.cc in Sources */,
+				23EFD488264624D2007222D6 /* asm-arm64.cc in Sources */,
 				2354CD8C2643D34B00A2FAC3 /* status-test.cc in Sources */,
 				2354CD7926439E9500A2FAC3 /* crc32.c in Sources */,
 				2354CD7D26439E9500A2FAC3 /* at-exit.cc in Sources */,
 				2354CD7B26439E9500A2FAC3 /* arena-utils.cc in Sources */,
 				2354CD8326439E9500A2FAC3 /* sha256.c in Sources */,
 				2354CD8026439E9500A2FAC3 /* hash.cc in Sources */,
+				23EFD48B26466D87007222D6 /* asm-arm64-test.cc in Sources */,
 				2354CD8A2643CC1900A2FAC3 /* gtest-all.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
