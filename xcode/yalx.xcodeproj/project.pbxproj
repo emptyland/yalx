@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2340E6B62648234A006B37F3 /* env-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2340E6B52648234A006B37F3 /* env-test.cc */; };
 		2354CD7926439E9500A2FAC3 /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6226439E9500A2FAC3 /* crc32.c */; };
 		2354CD7B26439E9500A2FAC3 /* arena-utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6426439E9500A2FAC3 /* arena-utils.cc */; };
 		2354CD7C26439E9500A2FAC3 /* sha256-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6626439E9500A2FAC3 /* sha256-test.cc */; };
@@ -39,6 +40,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
 		2354CD5626439CB400A2FAC3 /* all-tests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "all-tests"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2354CD6026439E9500A2FAC3 /* status.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = status.h; path = ../src/base/status.h; sourceTree = "<group>"; };
 		2354CD6126439E9500A2FAC3 /* hash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hash.h; path = ../src/base/hash.h; sourceTree = "<group>"; };
@@ -129,6 +131,7 @@
 				2354CD982644DF1600A2FAC3 /* base.cc */,
 				2354CD7226439E9500A2FAC3 /* bit-ops.h */,
 				2354CD6226439E9500A2FAC3 /* crc32.c */,
+				2340E6B52648234A006B37F3 /* env-test.cc */,
 				2354CD6526439E9500A2FAC3 /* env.h */,
 				2354CD6F26439E9500A2FAC3 /* hash.cc */,
 				2354CD6126439E9500A2FAC3 /* hash.h */,
@@ -251,6 +254,7 @@
 				2354CD7B26439E9500A2FAC3 /* arena-utils.cc in Sources */,
 				2354CD8326439E9500A2FAC3 /* sha256.c in Sources */,
 				2354CD8026439E9500A2FAC3 /* hash.cc in Sources */,
+				2340E6B62648234A006B37F3 /* env-test.cc in Sources */,
 				23EFD48B26466D87007222D6 /* asm-arm64-test.cc in Sources */,
 				2354CD8A2643CC1900A2FAC3 /* gtest-all.cc in Sources */,
 			);
