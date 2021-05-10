@@ -626,6 +626,56 @@ bool Assembler::IsImmLogical(uint64_t value, unsigned width, unsigned* n, unsign
     return true;
 }
 
+void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr, LoadStoreOp op) {
+    uint32_t memop = op | Rt(rt) | RnSP(addr.base());
+
+    if (addr.IsImmediateOffset()) {
+        unsigned size = CalcLSDataSize(op);
+        if (IsImmLSScaled(addr.offset(), size)) {
+            int offset = static_cast<int>(addr.offset());
+            // Use the scaled addressing mode.
+            Emit(LoadStoreUnsignedOffsetFixed | memop | ImmLSUnsigned(offset >> size));
+        } else if (IsImmLSUnscaled(addr.offset())) {
+            int offset = static_cast<int>(addr.offset());
+            // Use the unscaled addressing mode.
+            Emit(LoadStoreUnscaledOffsetFixed | memop | ImmLS(offset));
+        } else {
+            // This case is handled in the macro assembler.
+            UNREACHABLE();
+        }
+    } else if (addr.IsRegisterOffset()) {
+        Extend ext = addr.extend();
+        Shift shift = addr.shift();
+        unsigned shift_amount = addr.shift_amount();
+
+        // LSL is encoded in the option field as UXTX.
+        if (shift == LSL) {
+            ext = UXTX;
+        }
+
+        // Shifts are encoded in one bit, indicating a left shift by the memory
+        // access size.
+        assert((shift_amount == 0) || (shift_amount == static_cast<unsigned>(CalcLSDataSize(op))));
+        Emit(LoadStoreRegisterOffsetFixed | memop | Rm(addr.regoffset()) | ExtendMode(ext) |
+             ImmShiftLS((shift_amount > 0) ? 1 : 0));
+    } else {
+        // Pre-index and post-index modes.
+        assert(rt != addr.base());
+        if (IsImmLSUnscaled(addr.offset())) {
+            int offset = static_cast<int>(addr.offset());
+            if (addr.IsPreIndex()) {
+                Emit(LoadStorePreIndexFixed | memop | ImmLS(offset));
+            } else {
+                assert(addr.IsPostIndex());
+                Emit(LoadStorePostIndexFixed | memop | ImmLS(offset));
+            }
+        } else {
+            // This case is handled in the macro assembler.
+            UNREACHABLE();
+        }
+    }
+}
+
 } // namespace arm64
 
 } // namespace yalx

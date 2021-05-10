@@ -136,6 +136,10 @@ public:
 
     bool IsW() const { return IsRegister() && Is32Bits(); }
     bool IsX() const { return IsRegister() && Is64Bits(); }
+    
+    bool IsSameSizeAndType(const CPURegister& other) const {
+        return (reg_size_ == other.reg_size_) && (type_ == other.type_);
+    }
 
     // These assertions ensure that the size and type of the register are as
     // described. They do not consider the number of lanes that make up a vector.
@@ -466,6 +470,22 @@ inline bool AreSameFormat(const VRegister& reg1, const VRegister& reg2, const VR
            (!reg4.is_valid() || reg4.IsSameFormat(reg1));
 }
 
+inline bool AreSameSizeAndType(const CPURegister& reg1, const CPURegister& reg2,
+                               const CPURegister& reg3 = NoVReg, const CPURegister& reg4 = NoVReg,
+                               const CPURegister& reg5 = NoVReg, const CPURegister& reg6 = NoVReg,
+                               const CPURegister& reg7 = NoVReg, const CPURegister& reg8 = NoVReg) {
+    assert(reg1.is_valid());
+    bool match = true;
+    match &= !reg2.is_valid() || reg2.IsSameSizeAndType(reg1);
+    match &= !reg3.is_valid() || reg3.IsSameSizeAndType(reg1);
+    match &= !reg4.is_valid() || reg4.IsSameSizeAndType(reg1);
+    match &= !reg5.is_valid() || reg5.IsSameSizeAndType(reg1);
+    match &= !reg6.is_valid() || reg6.IsSameSizeAndType(reg1);
+    match &= !reg7.is_valid() || reg7.IsSameSizeAndType(reg1);
+    match &= !reg8.is_valid() || reg8.IsSameSizeAndType(reg1);
+    return match;
+}
+
 inline Register Register::XRegFromCode(unsigned code) {
     if (code == kSPRegInternalCode) {
         return sp;
@@ -768,7 +788,6 @@ private:
 class Assembler {
 public:
     inline Assembler() = default;
-    
     
     
     // Instruction set functions ---------------------------------------------------------------------------------------
@@ -1253,103 +1272,151 @@ public:
 
     // Multiplication.
     // 32 x 32 -> 32-bit and 64 x 64 -> 64-bit multiply.
-    void mul(const Register& rd, const Register& rn, const Register& rm); // TODO:
+    void mul(const Register& rd, const Register& rn, const Register& rm) {
+        assert(AreSameSizeAndType(rd, rn, rm));
+        Register zr = AppropriateZeroRegFor(rn);
+        DataProcessing3Source(rd, rn, rm, zr, MADD);
+    }
 
     // 32 + 32 x 32 -> 32-bit and 64 + 64 x 64 -> 64-bit multiply accumulate.
-    void madd(const Register& rd, const Register& rn, const Register& rm,
-              const Register& ra);
+    void madd(const Register& rd, const Register& rn, const Register& rm, const Register& ra) {
+        assert(AreSameSizeAndType(rd, rn, rm, ra));
+        DataProcessing3Source(rd, rn, rm, ra, MADD);
+    }
 
     // -(32 x 32) -> 32-bit and -(64 x 64) -> 64-bit multiply.
-    void mneg(const Register& rd, const Register& rn, const Register& rm);
+    void mneg(const Register& rd, const Register& rn, const Register& rm) {
+        assert(AreSameSizeAndType(rd, rn, rm));
+        Register zr = AppropriateZeroRegFor(rn);
+        DataProcessing3Source(rd, rn, rm, zr, MSUB);
+    }
 
     // 32 - 32 x 32 -> 32-bit and 64 - 64 x 64 -> 64-bit multiply subtract.
-    void msub(const Register& rd, const Register& rn, const Register& rm,
-              const Register& ra);
+    void msub(const Register& rd, const Register& rn, const Register& rm, const Register& ra) {
+        assert(AreSameSizeAndType(rd, rn, rm, ra));
+        DataProcessing3Source(rd, rn, rm, ra, MSUB);
+    }
 
     // 32 x 32 -> 64-bit multiply.
-    void smull(const Register& rd, const Register& rn, const Register& rm);
+    void smull(const Register& rd, const Register& rn, const Register& rm) {
+        assert(rd.Is64Bits());
+        assert(rn.Is32Bits() && rm.Is32Bits());
+        DataProcessing3Source(rd, rn, rm, xzr, SMADDL_x);
+    }
 
     // Xd = bits<127:64> of Xn * Xm.
-    void smulh(const Register& rd, const Register& rn, const Register& rm);
+    void smulh(const Register& rd, const Register& rn, const Register& rm) {
+        assert(AreSameSizeAndType(rd, rn, rm));
+        DataProcessing3Source(rd, rn, rm, xzr, SMULH_x);
+    }
 
     // Signed 32 x 32 -> 64-bit multiply and accumulate.
     void smaddl(const Register& rd, const Register& rn, const Register& rm,
-                const Register& ra);
+                const Register& ra) {
+        assert(rd.Is64Bits() && ra.Is64Bits());
+        assert(rn.Is32Bits() && rm.Is32Bits());
+        DataProcessing3Source(rd, rn, rm, ra, SMADDL_x);
+    }
 
     // Unsigned 32 x 32 -> 64-bit multiply and accumulate.
     void umaddl(const Register& rd, const Register& rn, const Register& rm,
-                const Register& ra);
+                const Register& ra) {
+        assert(rd.Is64Bits() && ra.Is64Bits());
+        assert(rn.Is32Bits() && rm.Is32Bits());
+        DataProcessing3Source(rd, rn, rm, ra, UMADDL_x);
+    }
 
     // Signed 32 x 32 -> 64-bit multiply and subtract.
     void smsubl(const Register& rd, const Register& rn, const Register& rm,
-                const Register& ra);
+                const Register& ra) {
+        assert(rd.Is64Bits() && ra.Is64Bits());
+        assert(rn.Is32Bits() && rm.Is32Bits());
+        DataProcessing3Source(rd, rn, rm, ra, SMSUBL_x);
+    }
 
     // Unsigned 32 x 32 -> 64-bit multiply and subtract.
     void umsubl(const Register& rd, const Register& rn, const Register& rm,
-                const Register& ra);
+                const Register& ra) {
+        assert(rd.Is64Bits() && ra.Is64Bits());
+        assert(rn.Is32Bits() && rm.Is32Bits());
+        DataProcessing3Source(rd, rn, rm, ra, UMSUBL_x);
+    }
 
     // Signed integer divide.
-    void sdiv(const Register& rd, const Register& rn, const Register& rm);
+    void sdiv(const Register& rd, const Register& rn, const Register& rm) {
+        assert(rd.size_in_bits() == rn.size_in_bits());
+        assert(rd.size_in_bits() == rm.size_in_bits());
+        Emit(SF(rd) | SDIV | Rm(rm) | Rn(rn) | Rd(rd));
+    }
 
     // Unsigned integer divide.
-    void udiv(const Register& rd, const Register& rn, const Register& rm);
+    void udiv(const Register& rd, const Register& rn, const Register& rm) {
+        assert(rd.size_in_bits() == rn.size_in_bits());
+        assert(rd.size_in_bits() == rm.size_in_bits());
+        Emit(SF(rd) | UDIV | Rm(rm) | Rn(rn) | Rd(rd));
+    }
 
     // Bit count, bit reverse and endian reverse.
-    void rbit(const Register& rd, const Register& rn);
-    void rev16(const Register& rd, const Register& rn);
-    void rev32(const Register& rd, const Register& rn);
-    void rev(const Register& rd, const Register& rn);
-    void clz(const Register& rd, const Register& rn);
-    void cls(const Register& rd, const Register& rn);
+    void rbit(const Register& rd, const Register& rn) { DataProcessing1Source(rd, rn, RBIT); }
+    void rev16(const Register& rd, const Register& rn) { DataProcessing1Source(rd, rn, REV16); }
+    void rev32(const Register& rd, const Register& rn) {
+        assert(rd.Is64Bits());
+        DataProcessing1Source(rd, rn, REV);
+    }
+    void rev(const Register& rd, const Register& rn) { DataProcessing1Source(rd, rn, rd.Is64Bits() ? REV_x : REV_w); }
+    void clz(const Register& rd, const Register& rn) { DataProcessing1Source(rd, rn, CLZ); }
+    void cls(const Register& rd, const Register& rn) { DataProcessing1Source(rd, rn, CLS); }
 
     // Pointer Authentication Code for Instruction address, using key B, with
     // address in x17 and modifier in x16 [Armv8.3].
-    void pacib1716();
+    void pacib1716() { Emit(PACIB1716); }
 
     // Pointer Authentication Code for Instruction address, using key B, with
     // address in LR and modifier in SP [Armv8.3].
-    void pacibsp();
+    void pacibsp()  { Emit(PACIBSP); }
 
     // Authenticate Instruction address, using key B, with address in x17 and
     // modifier in x16 [Armv8.3].
-    void autib1716();
+    void autib1716() { Emit(AUTIB1716); }
 
     // Authenticate Instruction address, using key B, with address in LR and
     // modifier in SP [Armv8.3].
-    void autibsp();
+    void autibsp() { Emit(AUTIBSP); }
 
     // Memory instructions.
 
     // Load integer or FP register.
-    void ldr(const CPURegister& rt, const MemOperand& src);
+    void ldr(const CPURegister& rt, const MemOperand& src) { LoadStore(rt, src, LoadOpFor(rt)); }
 
     // Store integer or FP register.
-    void str(const CPURegister& rt, const MemOperand& dst);
+    void str(const CPURegister& rt, const MemOperand& dst) { LoadStore(rt, dst, StoreOpFor(rt)); }
 
     // Load word with sign extension.
-    void ldrsw(const Register& rt, const MemOperand& src);
+    void ldrsw(const Register& rt, const MemOperand& src) {
+        assert(rt.Is64Bits());
+        LoadStore(rt, src, LDRSW_x);
+    }
 
     // Load byte.
-    void ldrb(const Register& rt, const MemOperand& src);
+    void ldrb(const Register& rt, const MemOperand& src) { LoadStore(rt, src, LDRB_w); }
 
     // Store byte.
-    void strb(const Register& rt, const MemOperand& dst);
+    void strb(const Register& rt, const MemOperand& dst) { LoadStore(rt, dst, STRB_w); }
 
     // Load byte with sign extension.
-    void ldrsb(const Register& rt, const MemOperand& src);
+    void ldrsb(const Register& rt, const MemOperand& src) { LoadStore(rt, src, rt.Is64Bits() ? LDRSB_x : LDRSB_w); }
 
     // Load half-word.
-    void ldrh(const Register& rt, const MemOperand& src);
+    void ldrh(const Register& rt, const MemOperand& src) { LoadStore(rt, src, LDRH_w); }
 
     // Store half-word.
-    void strh(const Register& rt, const MemOperand& dst);
+    void strh(const Register& rt, const MemOperand& dst) { LoadStore(rt, dst, STRH_w); }
 
     // Load half-word with sign extension.
-    void ldrsh(const Register& rt, const MemOperand& src);
+    void ldrsh(const Register& rt, const MemOperand& src) { LoadStore(rt, src, rt.Is64Bits() ? LDRSH_x : LDRSH_w); }
 
     // Load integer or FP register pair.
-    void ldp(const CPURegister& rt, const CPURegister& rt2,
-             const MemOperand& src);
+    void ldp(const CPURegister& rt, const CPURegister& rt2, const MemOperand& src);
 
     // Store integer or FP register pair.
     void stp(const CPURegister& rt, const CPURegister& rt2,
@@ -1462,7 +1529,29 @@ public:
     void csdb();
 
     // Branch target identification.
-    void bti(BranchTargetIdentifier id);
+    void bti(BranchTargetIdentifier id) {
+        SystemHint op;
+        switch (id) {
+          case BranchTargetIdentifier::kBti:
+            op = BTI;
+            break;
+          case BranchTargetIdentifier::kBtiCall:
+            op = BTI_c;
+            break;
+          case BranchTargetIdentifier::kBtiJump:
+            op = BTI_j;
+            break;
+          case BranchTargetIdentifier::kBtiJumpCall:
+            op = BTI_jc;
+            break;
+          case BranchTargetIdentifier::kNone:
+          case BranchTargetIdentifier::kPacibsp:
+            // We always want to generate a BTI instruction here, so disallow
+            // skipping its generation or generating a PACIBSP instead.
+            UNREACHABLE();
+        }
+        hint(op);
+    }
 
     // No-op.
     void nop() { hint(NOP); }
@@ -2587,6 +2676,16 @@ private:
     
     static bool IsImmConditionalCompare(int64_t immediate) { return base::is_uint5(immediate); }
     
+    void DataProcessing3Source(const Register& rd, const Register& rn, const Register& rm, const Register& ra,
+                               DataProcessing3SourceOp op) {
+        Emit(SF(rd) | op | Rm(rm) | Ra(ra) | Rn(rn) | Rd(rd));
+    }
+    
+    void DataProcessing1Source(const Register& rd, const Register& rn, DataProcessing1SourceOp op) {
+        assert(rd.size_in_bits() == rn.size_in_bits());
+        Emit(SF(rn) | op | Rn(rn) | Rd(rd));
+    }
+    
     void DataProcShiftedRegister(const Register& rd, const Register& rn, const Operand& operand, FlagsUpdate S,
                                  uint32_t op) {
         assert(operand.IsShiftedRegister());
@@ -2602,6 +2701,88 @@ private:
              ImmExtendShift(operand.shift_amount()) | dest_reg | RnSP(rn));
     }
     
+    void LoadStore(const CPURegister& rt, const MemOperand& addr, LoadStoreOp op);
+    
+    unsigned CalcLSDataSize(LoadStoreOp op) {
+        assert((LSSize_offset + LSSize_width) == (kInstrSize * 8));
+        unsigned size = static_cast<uint32_t>(op >> LSSize_offset);
+        if ((op & LSVector_mask) != 0) {
+            // Vector register memory operations encode the access size in the "size"
+            // and "opc" fields.
+            if ((size == 0) && ((op & LSOpc_mask) >> LSOpc_offset) >= 2) {
+                size = kQRegSizeLog2;
+            }
+        }
+        return size;
+    }
+    
+    LoadStorePairOp LoadPairOpFor(const CPURegister& rt, const CPURegister& rt2) {
+      assert((STP_w | LoadStorePairLBit) == LDP_w);
+      return static_cast<LoadStorePairOp>(StorePairOpFor(rt, rt2) | LoadStorePairLBit);
+    }
+    
+    LoadStoreOp LoadOpFor(const CPURegister& rt) {
+        assert(rt.is_valid());
+        if (rt.IsRegister()) {
+            return rt.Is64Bits() ? LDR_x : LDR_w;
+        } else {
+            assert(rt.IsVRegister());
+            switch (rt.size_in_bits()) {
+                case kBRegSizeInBits:
+                    return LDR_b;
+                case kHRegSizeInBits:
+                    return LDR_h;
+                case kSRegSizeInBits:
+                    return LDR_s;
+                case kDRegSizeInBits:
+                    return LDR_d;
+                default:
+                    assert(rt.IsQ());
+                    return LDR_q;
+            }
+        }
+    }
+    
+    LoadStorePairOp StorePairOpFor(const CPURegister& rt, const CPURegister& rt2) {
+        assert(AreSameSizeAndType(rt, rt2));
+        if (rt.IsRegister()) {
+            return rt.Is64Bits() ? STP_x : STP_w;
+        } else {
+            assert(rt.IsVRegister());
+            switch (rt.size_in_bits()) {
+                case kSRegSizeInBits:
+                    return STP_s;
+                case kDRegSizeInBits:
+                    return STP_d;
+                default:
+                    assert(rt.IsQ());
+                    return STP_q;
+            }
+        }
+    }
+    
+    LoadStoreOp StoreOpFor(const CPURegister& rt) {
+        assert(rt.is_valid());
+        if (rt.IsRegister()) {
+            return rt.Is64Bits() ? STR_x : STR_w;
+        } else {
+            assert(rt.IsVRegister());
+            switch (rt.size_in_bits()) {
+                case kBRegSizeInBits:
+                    return STR_b;
+                case kHRegSizeInBits:
+                    return STR_h;
+                case kSRegSizeInBits:
+                    return STR_s;
+                case kDRegSizeInBits:
+                    return STR_d;
+                default:
+                    assert(rt.IsQ());
+                    return STR_q;
+            }
+        }
+    }
+
     void NEON3Same(const VRegister& vd, const VRegister& vn, const VRegister& vm, NEON3SameOp vop) {
         assert(AreSameFormat(vd, vn, vm));
         assert(vd.IsVector() || !vd.IsQ());
@@ -2828,6 +3009,92 @@ private:
     }
     
     static uint32_t Nzcv(StatusFlags nzcv) { return ((nzcv >> Flags_offset) & 0xf) << Nzcv_offset; }
+    
+    static uint32_t ImmLSUnsigned(int imm12) {
+        assert(base::is_uint12(imm12));
+        return imm12 << ImmLSUnsigned_offset;
+    }
+
+    static uint32_t ImmLS(int imm9) {
+        assert(base::is_int9(imm9));
+        return base::truncate_to_int9(imm9) << ImmLS_offset;
+    }
+
+    static uint32_t ImmLSPair(int imm7, unsigned size) {
+        assert(imm7 == static_cast<int>(static_cast<uint32_t>(imm7 >> size) << size));
+        int scaled_imm7 = imm7 >> size;
+        assert(base::is_int7(scaled_imm7));
+        return base::truncate_to_int7(scaled_imm7) << ImmLSPair_offset;
+    }
+
+    static uint32_t ImmShiftLS(unsigned shift_amount) {
+        assert(base::is_uint1(shift_amount));
+        return shift_amount << ImmShiftLS_offset;
+    }
+
+    static uint32_t ImmException(int imm16) {
+        assert(base::is_uint16(imm16));
+        return imm16 << ImmException_offset;
+    }
+
+    static uint32_t ImmSystemRegister(int imm15) {
+        assert(base::is_uint15(imm15));
+        return imm15 << ImmSystemRegister_offset;
+    }
+
+    static uint32_t ImmHint(int imm7) {
+        assert(base::is_uint7(imm7));
+        return imm7 << ImmHint_offset;
+    }
+
+    static uint32_t ImmBarrierDomain(int imm2) {
+        assert(base::is_uint2(imm2));
+        return imm2 << ImmBarrierDomain_offset;
+    }
+
+    static uint32_t ImmBarrierType(int imm2) {
+        assert(base::is_uint2(imm2));
+        return imm2 << ImmBarrierType_offset;
+    }
+
+    static uint32_t ImmMoveWide(int imm) {
+        assert(base::is_uint16(imm));
+        return imm << ImmMoveWide_offset;
+    }
+
+    static uint32_t ShiftMoveWide(int shift) {
+        assert(base::is_uint2(shift));
+        return shift << ShiftMoveWide_offset;
+    }
+    
+    static bool IsImmLSUnscaled(int64_t offset) { return base::is_int9(offset); }
+    static bool IsImmLSScaled(int64_t offset, unsigned size) {
+        bool offset_is_size_multiple = (static_cast<int64_t>(static_cast<uint64_t>(offset >> size) << size) == offset);
+        return offset_is_size_multiple && base::is_uint12(offset >> size);
+    }
+    static bool IsImmLLiteral(int64_t offset) {
+        int inst_size = static_cast<int>(kInstrSizeLog2);
+        bool offset_is_inst_multiple = (static_cast<int64_t>(static_cast<uint64_t>(offset >> inst_size)
+                                                             << inst_size) == offset);
+        assert(offset > 0);
+        offset >>= kLoadLiteralScaleLog2;
+        return offset_is_inst_multiple && base::is_intn(offset, ImmLLiteral_width);
+    }
+
+    // Move immediates encoding.
+    //inline static uint32_t ImmMoveWide(int imm);
+    //inline static uint32_t ShiftMoveWide(int shift);
+
+    // FP Immediates.
+//    static uint32_t ImmFP(double imm);
+//    static uint32_t ImmNEONFP(double imm);
+
+    static uint32_t FPType(VRegister fd) { return fd.Is64Bits() ? FP64 : FP32; }
+
+    static uint32_t FPScale(unsigned scale) {
+        assert(base::is_uint6(scale));
+        return scale << FPScale_offset;
+    }
 
     static bool IsImmAddSub(int64_t immediate) {
         return base::is_uint12(immediate) || (base::is_uint12(immediate >> 12) && ((immediate & 0xFFF) == 0));

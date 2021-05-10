@@ -10,11 +10,6 @@ namespace base {
 
 #if defined(NDEBUG)
 
-#ifdef assert
-    #undef  assert
-    #define assert(x)
-#endif
-
 #define UNREACHED()
 #define DCHECK_NOTNULL(p) (p)
 
