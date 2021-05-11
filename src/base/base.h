@@ -259,6 +259,8 @@ inline T *DbgFreeZag(T *chunk, size_t n) { return static_cast<T *>(Round32BytesF
     
 #define NOTHING(...)
 
+#define USE(x) ((void)(x))
+
 enum Initializer {
     LAZY_INSTANCE_INITIALIZER,
     ON_EXIT_SCOPE_INITIALIZER

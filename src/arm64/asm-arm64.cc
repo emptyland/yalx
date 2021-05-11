@@ -332,6 +332,31 @@ uint64_t MaxUintFromFormat(VectorFormat vform) {
 }
 
 
+bool AreConsecutive(const VRegister& reg1, const VRegister& reg2, const VRegister& reg3, const VRegister& reg4) {
+    assert(reg1.is_valid());
+    if (!reg2.is_valid()) {
+        assert(!reg3.is_valid() && !reg4.is_valid());
+        return true;
+    } else if (reg2.code() != ((reg1.code() + 1) % kNumberOfVRegisters)) {
+        return false;
+    }
+
+    if (!reg3.is_valid()) {
+        assert(!reg4.is_valid());
+        return true;
+    } else if (reg3.code() != ((reg2.code() + 1) % kNumberOfVRegisters)) {
+        return false;
+    }
+
+    if (!reg4.is_valid()) {
+        return true;
+    } else if (reg4.code() != ((reg3.code() + 1) % kNumberOfVRegisters)) {
+        return false;
+    }
+
+    return true;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 // MemOperand
 
@@ -378,6 +403,173 @@ MemOperand::MemOperand(Register base, const Operand& offset, AddrMode addrmode)
 
 //----------------------------------------------------------------------------------------------------------------------
 // Assembler
+void Assembler::movi(const VRegister& vd, const uint64_t imm, Shift shift, const int shift_amount) {
+    
+    assert((shift == LSL) || (shift == MSL));
+    if (vd.Is2D() || vd.Is1D()) {
+        assert(shift_amount == 0);
+        int imm8 = 0;
+        for (int i = 0; i < 8; ++i) {
+            int byte = (imm >> (i * 8)) & 0xFF;
+            assert((byte == 0) || (byte == 0xFF));
+            if (byte == 0xFF) {
+                imm8 |= (1 << i);
+            }
+        }
+        uint32_t q = vd.Is2D() ? NEON_Q : 0;
+        Emit(q | NEONModImmOp(1) | NEONModifiedImmediate_MOVI | ImmNEONabcdefgh(imm8) | NEONCmode(0xE) | Rd(vd));
+    } else if (shift == LSL) {
+        assert(base::is_uint8(imm));
+        NEONModifiedImmShiftLsl(vd, static_cast<int>(imm), shift_amount, NEONModifiedImmediate_MOVI);
+    } else {
+        assert(base::is_uint8(imm));
+        NEONModifiedImmShiftMsl(vd, static_cast<int>(imm), shift_amount, NEONModifiedImmediate_MOVI);
+    }
+}
+
+void Assembler::ins(const VRegister& vd, int vd_index, const Register& rn) {
+    // We support vd arguments of the form vd.VxT() or vd.T(), where x is the
+    // number of lanes, and T is b, h, s or d.
+    int lane_size = vd.LaneSizeInBytes();
+    NEONFormatField format;
+    switch (lane_size) {
+      case 1:
+          format = NEON_16B;
+          assert(rn.IsW());
+          break;
+      case 2:
+          format = NEON_8H;
+            assert(rn.IsW());
+          break;
+      case 4:
+          format = NEON_4S;
+          assert(rn.IsW());
+          break;
+      default:
+          assert(lane_size != 8);
+          assert(rn.IsX());
+          format = NEON_2D;
+          break;
+    }
+
+    assert((0 <= vd_index) && (vd_index < LaneCountFromFormat(static_cast<VectorFormat>(format))));
+    Emit(NEON_INS_GENERAL | ImmNEON5(format, vd_index) | Rn(rn) | Rd(vd));
+}
+
+void Assembler::smov(const Register& rd, const VRegister& vn, int vn_index) {
+    // We support vn arguments of the form vn.VxT() or vn.T(), where x is the
+    // number of lanes, and T is b, h, s.
+    int lane_size = vn.LaneSizeInBytes();
+    NEONFormatField format;
+    uint32_t q = 0;
+    switch (lane_size) {
+        case 1:
+            format = NEON_16B;
+            break;
+        case 2:
+            format = NEON_8H;
+            break;
+        default:
+            assert(lane_size == 4);
+            assert(rd.IsX());
+            format = NEON_4S;
+            break;
+    }
+    q = rd.IsW() ? 0 : NEON_Q;
+    assert((0 <= vn_index) && (vn_index < LaneCountFromFormat(static_cast<VectorFormat>(format))));
+    Emit(q | NEON_SMOV | ImmNEON5(format, vn_index) | Rn(vn) | Rd(rd));
+}
+
+void Assembler::umov(const Register& rd, const VRegister& vn, int vn_index) {
+    // We support vn arguments of the form vn.VxT() or vn.T(), where x is the
+    // number of lanes, and T is b, h, s or d.
+    int lane_size = vn.LaneSizeInBytes();
+    NEONFormatField format;
+    uint32_t q = 0;
+    switch (lane_size) {
+        case 1:
+            format = NEON_16B;
+            assert(rd.IsW());
+            break;
+        case 2:
+            format = NEON_8H;
+            assert(rd.IsW());
+            break;
+        case 4:
+            format = NEON_4S;
+            assert(rd.IsW());
+            break;
+        default:
+            assert(lane_size == 8);
+            assert(rd.IsX());
+            format = NEON_2D;
+            q = NEON_Q;
+            break;
+    }
+
+    assert((0 <= vn_index) && (vn_index < LaneCountFromFormat(static_cast<VectorFormat>(format))));
+    Emit(q | NEON_UMOV | ImmNEON5(format, vn_index) | Rn(vn) | Rd(rd));
+}
+
+void Assembler::dup(const VRegister& vd, const VRegister& vn, int vn_index) {
+    // We support vn arguments of the form vn.VxT() or vn.T(), where x is the
+    // number of lanes, and T is b, h, s or d.
+    int lane_size = vn.LaneSizeInBytes();
+    NEONFormatField format;
+    switch (lane_size) {
+        case 1:
+            format = NEON_16B;
+            break;
+        case 2:
+            format = NEON_8H;
+            break;
+        case 4:
+            format = NEON_4S;
+            break;
+        default:
+            assert(lane_size == 8);
+            format = NEON_2D;
+            break;
+    }
+
+    uint32_t q, scalar;
+    if (vd.IsScalar()) {
+        q = NEON_Q;
+        scalar = NEONScalar;
+    } else {
+        assert(!vd.Is1D());
+        q = vd.IsD() ? 0 : NEON_Q;
+        scalar = 0;
+    }
+    Emit(q | scalar | NEON_DUP_ELEMENT | ImmNEON5(format, vn_index) | Rn(vn) | Rd(vd));
+}
+
+void Assembler::NEONModifiedImmShiftLsl(const VRegister& vd, const int imm8, const int left_shift,
+                                        NEONModifiedImmediateOp op) {
+    assert(vd.Is8B() || vd.Is16B() || vd.Is4H() || vd.Is8H() || vd.Is2S() || vd.Is4S());
+    assert((left_shift == 0) || (left_shift == 8) || (left_shift == 16) || (left_shift == 24));
+    assert(base::is_uint8(imm8));
+
+    int cmode_1, cmode_2, cmode_3;
+    if (vd.Is8B() || vd.Is16B()) {
+        assert(op == NEONModifiedImmediate_MOVI);
+        cmode_1 = 1;
+        cmode_2 = 1;
+        cmode_3 = 1;
+    } else {
+        cmode_1 = (left_shift >> 3) & 1;
+        cmode_2 = left_shift >> 4;
+        cmode_3 = 0;
+        if (vd.Is4H() || vd.Is8H()) {
+            assert((left_shift == 0) || (left_shift == 8));
+            cmode_3 = 1;
+        }
+    }
+    int cmode = (cmode_3 << 3) | (cmode_2 << 2) | (cmode_1 << 1);
+
+    uint32_t q = vd.IsQ() ? NEON_Q : 0;
+    Emit(q | op | ImmNEONabcdefgh(imm8) | NEONCmode(cmode) | Rd(vd));
+}
 
 void Assembler::Logical(const Register& rd, const Register& rn, const Operand& operand, LogicalOp op) {
     assert(rd.size_in_bits() == rn.size_in_bits());

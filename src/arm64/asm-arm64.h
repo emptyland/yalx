@@ -486,6 +486,9 @@ inline bool AreSameSizeAndType(const CPURegister& reg1, const CPURegister& reg2,
     return match;
 }
 
+bool AreConsecutive(const VRegister& reg1, const VRegister& reg2, const VRegister& reg3 = NoVReg,
+                    const VRegister& reg4 = NoVReg);
+
 inline Register Register::XRegFromCode(unsigned code) {
     if (code == kSPRegInternalCode) {
         return sp;
@@ -971,7 +974,9 @@ public:
     void and_(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Bit clear immediate.
-    void bic(const VRegister& vd, const int imm8, const int left_shift = 0);
+    void bic(const VRegister& vd, const int imm8, const int left_shift = 0) {
+        NEONModifiedImmShiftLsl(vd, imm8, left_shift, NEONModifiedImmediate_BIC);
+    }
 
     // Bit clear.
     void bic(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -989,63 +994,118 @@ public:
     void pmul(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Vector move immediate.
-    void movi(const VRegister& vd, const uint64_t imm, Shift shift = LSL,
-              const int shift_amount = 0);
+    void movi(const VRegister& vd, const uint64_t imm, Shift shift = LSL, const int shift_amount = 0);
 
     // Bitwise not.
-    void mvn(const VRegister& vd, const VRegister& vn);
+    void mvn(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        if (vd.IsD()) {
+            not_(vd.V8B(), vn.V8B());
+        } else {
+            assert(vd.IsQ());
+            not_(vd.V16B(), vn.V16B());
+        }
+    }
 
     // Vector move inverted immediate.
-    void mvni(const VRegister& vd, const int imm8, Shift shift = LSL,
-              const int shift_amount = 0);
+    void mvni(const VRegister& vd, const int imm8, Shift shift = LSL, const int shift_amount = 0) {
+        assert((shift == LSL) || (shift == MSL));
+        if (shift == LSL) {
+            NEONModifiedImmShiftLsl(vd, imm8, shift_amount, NEONModifiedImmediate_MVNI);
+        } else {
+            NEONModifiedImmShiftMsl(vd, imm8, shift_amount, NEONModifiedImmediate_MVNI);
+        }
+    }
 
     // Signed saturating accumulate of unsigned value.
-    void suqadd(const VRegister& vd, const VRegister& vn);
+    void suqadd(const VRegister& vd, const VRegister& vn) { NEON2RegMisc(vd, vn, NEON_SUQADD); }
 
     // Unsigned saturating accumulate of signed value.
-    void usqadd(const VRegister& vd, const VRegister& vn);
+    void usqadd(const VRegister& vd, const VRegister& vn) { NEON2RegMisc(vd, vn, NEON_USQADD); }
 
     // Absolute value.
-    void abs(const VRegister& vd, const VRegister& vn);
+    void abs(const VRegister& vd, const VRegister& vn) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEON2RegMisc(vd, vn, NEON_ABS);
+    }
 
     // Signed saturating absolute value.
-    void sqabs(const VRegister& vd, const VRegister& vn);
+    void sqabs(const VRegister& vd, const VRegister& vn) { NEON2RegMisc(vd, vn, NEON_SQABS); }
 
     // Negate.
-    void neg(const VRegister& vd, const VRegister& vn);
+    void neg(const VRegister& vd, const VRegister& vn) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEON2RegMisc(vd, vn, NEON_NEG);
+    }
 
     // Signed saturating negate.
-    void sqneg(const VRegister& vd, const VRegister& vn);
+    void sqneg(const VRegister& vd, const VRegister& vn) { NEON2RegMisc(vd, vn, NEON_SQNEG); }
 
     // Bitwise not.
-    void not_(const VRegister& vd, const VRegister& vn);
+    void not_(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        assert(vd.Is8B() || vd.Is16B());
+        Emit(VFormat(vd) | NEON_RBIT_NOT | Rn(vn) | Rd(vd));
+    }
 
     // Extract narrow.
-    void xtn(const VRegister& vd, const VRegister& vn);
+    void xtn(const VRegister& vd, const VRegister& vn) {
+        assert(vd.IsVector() && vd.IsD());
+        NEONXtn(vd, vn, NEON_XTN);
+    }
 
     // Extract narrow (second part).
-    void xtn2(const VRegister& vd, const VRegister& vn);
+    void xtn2(const VRegister& vd, const VRegister& vn) {
+        assert(vd.IsVector() && vd.IsQ());
+        NEONXtn(vd, vn, NEON_XTN);
+    }
 
     // Signed saturating extract narrow.
-    void sqxtn(const VRegister& vd, const VRegister& vn);
+    void sqxtn(const VRegister& vd, const VRegister& vn) {
+        assert(vd.IsScalar() || vd.IsD());
+        NEONXtn(vd, vn, NEON_SQXTN);
+    }
 
     // Signed saturating extract narrow (second part).
-    void sqxtn2(const VRegister& vd, const VRegister& vn);
+    void sqxtn2(const VRegister& vd, const VRegister& vn) {
+        assert(vd.IsVector() && vd.IsQ());
+        NEONXtn(vd, vn, NEON_SQXTN);
+    }
 
     // Unsigned saturating extract narrow.
-    void uqxtn(const VRegister& vd, const VRegister& vn);
+    void uqxtn(const VRegister& vd, const VRegister& vn) {
+        assert(vd.IsScalar() || vd.IsD());
+        NEONXtn(vd, vn, NEON_UQXTN);
+    }
 
     // Unsigned saturating extract narrow (second part).
-    void uqxtn2(const VRegister& vd, const VRegister& vn);
+    void uqxtn2(const VRegister& vd, const VRegister& vn) {
+        assert(vd.IsVector() && vd.IsQ());
+        NEONXtn(vd, vn, NEON_UQXTN);
+    }
 
     // Signed saturating extract unsigned narrow.
-    void sqxtun(const VRegister& vd, const VRegister& vn);
+    void sqxtun(const VRegister& vd, const VRegister& vn) {
+        assert(vd.IsScalar() || vd.IsD());
+        NEONXtn(vd, vn, NEON_SQXTUN);
+    }
 
     // Signed saturating extract unsigned narrow (second part).
-    void sqxtun2(const VRegister& vd, const VRegister& vn);
+    void sqxtun2(const VRegister& vd, const VRegister& vn) {
+        assert(vd.IsVector() && vd.IsQ());
+        NEONXtn(vd, vn, NEON_SQXTUN);
+    }
 
     // Move register to register.
-    void mov(const VRegister& vd, const VRegister& vn);
+    void mov(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        if (vd.IsD()) {
+            orr(vd.V8B(), vn.V8B(), vn.V8B());
+        } else {
+            assert(vd.IsQ());
+            orr(vd.V16B(), vn.V16B(), vn.V16B());
+        }
+    }
 
     // Bitwise not or.
     void orn(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -1060,7 +1120,9 @@ public:
     void orr(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Bitwise or immediate.
-    void orr(const VRegister& vd, const int imm8, const int left_shift = 0);
+    void orr(const VRegister& vd, const int imm8, const int left_shift = 0) {
+        NEONModifiedImmShiftLsl(vd, imm8, left_shift, NEONModifiedImmediate_ORR);
+    }
     
     // Bitwise nor (A | ~B).
     void orn(const Register& rd, const Register& rn, const Operand& operand) { Logical(rd, rn, operand, ORN); }
@@ -1807,12 +1869,10 @@ public:
     void sqrdmulh(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Signed saturating doubling multiply element returning high half.
-    void sqdmulh(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-                 int vm_index);
+    void sqdmulh(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index);
 
     // Signed saturating rounding doubling multiply element returning high half.
-    void sqrdmulh(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-                  int vm_index);
+    void sqrdmulh(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index);
 
     // Unsigned long multiply long.
     void umull(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -1863,10 +1923,16 @@ public:
     void uaba(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Shift left by immediate and insert.
-    void sli(const VRegister& vd, const VRegister& vn, int shift);
+    void sli(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEONShiftLeftImmediate(vd, vn, shift, NEON_SLI);
+    }
 
     // Shift right by immediate and insert.
-    void sri(const VRegister& vd, const VRegister& vn, int shift);
+    void sri(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEONShiftRightImmediate(vd, vn, shift, NEON_SRI);
+    }
 
     // Signed maximum.
     void smax(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -1914,12 +1980,11 @@ public:
     void st1(const VRegister& vt, const VRegister& vt2, const MemOperand& src);
 
     // One-element structure store from three registers.
-    void st1(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             const MemOperand& src);
+    void st1(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const MemOperand& src);
 
     // One-element structure store from four registers.
-    void st1(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             const VRegister& vt4, const MemOperand& src);
+    void st1(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const VRegister& vt4,
+             const MemOperand& src);
 
     // One-element single structure store from one lane.
     void st1(const VRegister& vt, int lane, const MemOperand& src);
@@ -1928,24 +1993,21 @@ public:
     void st2(const VRegister& vt, const VRegister& vt2, const MemOperand& src);
 
     // Two-element single structure store from two lanes.
-    void st2(const VRegister& vt, const VRegister& vt2, int lane,
-             const MemOperand& src);
+    void st2(const VRegister& vt, const VRegister& vt2, int lane, const MemOperand& src);
 
     // Three-element structure store from three registers.
-    void st3(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             const MemOperand& src);
+    void st3(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const MemOperand& src);
 
     // Three-element single structure store from three lanes.
-    void st3(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             int lane, const MemOperand& src);
+    void st3(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, int lane, const MemOperand& src);
 
     // Four-element structure store from four registers.
-    void st4(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             const VRegister& vt4, const MemOperand& src);
+    void st4(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const VRegister& vt4,
+             const MemOperand& src);
 
     // Four-element single structure store from four lanes.
-    void st4(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             const VRegister& vt4, int lane, const MemOperand& src);
+    void st4(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const VRegister& vt4, int lane,
+             const MemOperand& src);
 
     // Unsigned add long.
     void uaddl(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -1954,10 +2016,16 @@ public:
     void uaddl2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Unsigned add wide.
-    void uaddw(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void uaddw(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
+        assert(vm.IsD());
+        NEON3DifferentW(vd, vn, vm, NEON_UADDW);
+    }
 
     // Unsigned add wide (second part).
-    void uaddw2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void uaddw2(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
+        assert(vm.IsQ());
+        NEON3DifferentW(vd, vn, vm, NEON_UADDW2);
+    }
 
     // Signed add long.
     void saddl(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -1966,10 +2034,16 @@ public:
     void saddl2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Signed add wide.
-    void saddw(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void saddw(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
+        assert(vm.IsD());
+        NEON3DifferentW(vd, vn, vm, NEON_SADDW);
+    }
 
     // Signed add wide (second part).
-    void saddw2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void saddw2(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
+        assert(vm.IsQ());
+        NEON3DifferentW(vd, vn, vm, NEON_SADDW2);
+    }
 
     // Unsigned subtract long.
     void usubl(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -1978,7 +2052,10 @@ public:
     void usubl2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Unsigned subtract wide.
-    void usubw(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void usubw(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
+        assert(vm.IsD());
+        NEON3DifferentW(vd, vn, vm, NEON_USUBW);
+    }
 
     // Signed subtract long.
     void ssubl(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -1987,13 +2064,22 @@ public:
     void ssubl2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Signed integer subtract wide.
-    void ssubw(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void ssubw(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
+        assert(vm.IsD());
+        NEON3DifferentW(vd, vn, vm, NEON_SSUBW);
+    }
 
     // Signed integer subtract wide (second part).
-    void ssubw2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void ssubw2(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
+        assert(vm.IsQ());
+        NEON3DifferentW(vd, vn, vm, NEON_SSUBW2);
+    }
 
     // Unsigned subtract wide (second part).
-    void usubw2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void usubw2(const VRegister& vd, const VRegister& vn, const VRegister& vm){
+        assert(vm.IsQ());
+        NEON3DifferentW(vd, vn, vm, NEON_USUBW2);
+    }
 
     // Unsigned maximum.
     void umax(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -2014,94 +2100,166 @@ public:
     void uminv(const VRegister& vd, const VRegister& vn);
 
     // Transpose vectors (primary).
-    void trn1(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void trn1(const VRegister& vd, const VRegister& vn, const VRegister& vm) { NEONPerm(vd, vn, vm, NEON_TRN1); }
 
     // Transpose vectors (secondary).
-    void trn2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void trn2(const VRegister& vd, const VRegister& vn, const VRegister& vm) { NEONPerm(vd, vn, vm, NEON_TRN2); }
 
     // Unzip vectors (primary).
-    void uzp1(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void uzp1(const VRegister& vd, const VRegister& vn, const VRegister& vm) { NEONPerm(vd, vn, vm, NEON_UZP1); }
 
     // Unzip vectors (secondary).
-    void uzp2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void uzp2(const VRegister& vd, const VRegister& vn, const VRegister& vm) { NEONPerm(vd, vn, vm, NEON_UZP2); }
 
     // Zip vectors (primary).
-    void zip1(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void zip1(const VRegister& vd, const VRegister& vn, const VRegister& vm) { NEONPerm(vd, vn, vm, NEON_ZIP1); }
 
     // Zip vectors (secondary).
-    void zip2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void zip2(const VRegister& vd, const VRegister& vn, const VRegister& vm) { NEONPerm(vd, vn, vm, NEON_ZIP2); }
 
     // Signed shift right by immediate.
-    void sshr(const VRegister& vd, const VRegister& vn, int shift);
+    void sshr(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEONShiftRightImmediate(vd, vn, shift, NEON_SSHR);
+    }
 
     // Unsigned shift right by immediate.
-    void ushr(const VRegister& vd, const VRegister& vn, int shift);
+    void ushr(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEONShiftRightImmediate(vd, vn, shift, NEON_USHR);
+    }
 
     // Signed rounding shift right by immediate.
-    void srshr(const VRegister& vd, const VRegister& vn, int shift);
+    void srshr(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEONShiftRightImmediate(vd, vn, shift, NEON_SRSHR);
+    }
 
     // Unsigned rounding shift right by immediate.
-    void urshr(const VRegister& vd, const VRegister& vn, int shift);
+    void urshr(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEONShiftRightImmediate(vd, vn, shift, NEON_URSHR);
+    }
 
     // Signed shift right by immediate and accumulate.
-    void ssra(const VRegister& vd, const VRegister& vn, int shift);
+    void ssra(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEONShiftRightImmediate(vd, vn, shift, NEON_SSRA);
+    }
 
     // Unsigned shift right by immediate and accumulate.
-    void usra(const VRegister& vd, const VRegister& vn, int shift);
+    void usra(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEONShiftRightImmediate(vd, vn, shift, NEON_USRA);
+    }
 
     // Signed rounding shift right by immediate and accumulate.
-    void srsra(const VRegister& vd, const VRegister& vn, int shift);
+    void srsra(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEONShiftRightImmediate(vd, vn, shift, NEON_SRSRA);
+    }
 
     // Unsigned rounding shift right by immediate and accumulate.
-    void ursra(const VRegister& vd, const VRegister& vn, int shift);
+    void ursra(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEONShiftRightImmediate(vd, vn, shift, NEON_URSRA);
+    }
 
     // Shift right narrow by immediate.
-    void shrn(const VRegister& vd, const VRegister& vn, int shift);
+    void shrn(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsVector() && vd.IsD());
+        NEONShiftImmediateN(vd, vn, shift, NEON_SHRN);
+    }
 
     // Shift right narrow by immediate (second part).
-    void shrn2(const VRegister& vd, const VRegister& vn, int shift);
+    void shrn2(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsVector() && vd.IsQ());
+        NEONShiftImmediateN(vd, vn, shift, NEON_SHRN);
+    }
 
     // Rounding shift right narrow by immediate.
-    void rshrn(const VRegister& vd, const VRegister& vn, int shift);
+    void rshrn(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsVector() && vd.IsD());
+        NEONShiftImmediateN(vd, vn, shift, NEON_RSHRN);
+    }
 
     // Rounding shift right narrow by immediate (second part).
-    void rshrn2(const VRegister& vd, const VRegister& vn, int shift);
+    void rshrn2(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsVector() && vd.IsQ());
+        NEONShiftImmediateN(vd, vn, shift, NEON_RSHRN);
+    }
 
     // Unsigned saturating shift right narrow by immediate.
-    void uqshrn(const VRegister& vd, const VRegister& vn, int shift);
+    void uqshrn(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsD() || (vn.IsScalar() && vd.IsScalar()));
+        NEONShiftImmediateN(vd, vn, shift, NEON_UQSHRN);
+    }
 
     // Unsigned saturating shift right narrow by immediate (second part).
-    void uqshrn2(const VRegister& vd, const VRegister& vn, int shift);
+    void uqshrn2(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsVector() && vd.IsQ());
+        NEONShiftImmediateN(vd, vn, shift, NEON_UQSHRN);
+    }
 
     // Unsigned saturating rounding shift right narrow by immediate.
-    void uqrshrn(const VRegister& vd, const VRegister& vn, int shift);
+    void uqrshrn(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsD() || (vn.IsScalar() && vd.IsScalar()));
+        NEONShiftImmediateN(vd, vn, shift, NEON_UQRSHRN);
+    }
 
     // Unsigned saturating rounding shift right narrow by immediate (second part).
-    void uqrshrn2(const VRegister& vd, const VRegister& vn, int shift);
+    void uqrshrn2(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsVector() && vd.IsQ());
+        NEONShiftImmediateN(vd, vn, shift, NEON_UQRSHRN);
+    }
 
     // Signed saturating shift right narrow by immediate.
-    void sqshrn(const VRegister& vd, const VRegister& vn, int shift);
+    void sqshrn(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsD() || (vn.IsScalar() && vd.IsScalar()));
+        NEONShiftImmediateN(vd, vn, shift, NEON_SQSHRN);
+    }
 
     // Signed saturating shift right narrow by immediate (second part).
-    void sqshrn2(const VRegister& vd, const VRegister& vn, int shift);
+    void sqshrn2(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsVector() && vd.IsQ());
+        NEONShiftImmediateN(vd, vn, shift, NEON_SQSHRN);
+    }
 
     // Signed saturating rounded shift right narrow by immediate.
-    void sqrshrn(const VRegister& vd, const VRegister& vn, int shift);
+    void sqrshrn(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsD() || (vn.IsScalar() && vd.IsScalar()));
+        NEONShiftImmediateN(vd, vn, shift, NEON_SQRSHRN);
+    }
 
     // Signed saturating rounded shift right narrow by immediate (second part).
-    void sqrshrn2(const VRegister& vd, const VRegister& vn, int shift);
+    void sqrshrn2(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsVector() && vd.IsQ());
+        NEONShiftImmediateN(vd, vn, shift, NEON_SQRSHRN);
+    }
 
     // Signed saturating shift right unsigned narrow by immediate.
-    void sqshrun(const VRegister& vd, const VRegister& vn, int shift);
+    void sqshrun(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsD() || (vn.IsScalar() && vd.IsScalar()));
+        NEONShiftImmediateN(vd, vn, shift, NEON_SQSHRUN);
+    }
 
     // Signed saturating shift right unsigned narrow by immediate (second part).
-    void sqshrun2(const VRegister& vd, const VRegister& vn, int shift);
+    void sqshrun2(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsVector() && vd.IsQ());
+        NEONShiftImmediateN(vd, vn, shift, NEON_SQSHRUN);
+    }
 
     // Signed sat rounded shift right unsigned narrow by immediate.
-    void sqrshrun(const VRegister& vd, const VRegister& vn, int shift);
+    void sqrshrun(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsD() || (vn.IsScalar() && vd.IsScalar()));
+        NEONShiftImmediateN(vd, vn, shift, NEON_SQRSHRUN);
+    }
 
     // Signed sat rounded shift right unsigned narrow by immediate (second part).
-    void sqrshrun2(const VRegister& vd, const VRegister& vn, int shift);
+    void sqrshrun2(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsVector() && vd.IsQ());
+        NEONShiftImmediateN(vd, vn, shift, NEON_SQRSHRUN);
+    }
 
     // FP reciprocal step.
     void frecps(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -2276,16 +2434,28 @@ public:
     void faddp(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // FP pairwise add scalar.
-    void faddp(const VRegister& vd, const VRegister& vn);
+    void faddp(const VRegister& vd, const VRegister& vn) {
+        assert((vd.Is1S() && vn.Is2S()) || (vd.Is1D() && vn.Is2D()));
+        Emit(FPFormat(vd) | NEON_FADDP_scalar | Rn(vn) | Rd(vd));
+    }
 
     // FP pairwise maximum scalar.
-    void fmaxp(const VRegister& vd, const VRegister& vn);
+    void fmaxp(const VRegister& vd, const VRegister& vn) {
+        assert((vd.Is1S() && vn.Is2S()) || (vd.Is1D() && vn.Is2D()));
+        Emit(FPFormat(vd) | NEON_FMAXP_scalar | Rn(vn) | Rd(vd));
+    }
 
     // FP pairwise maximum number scalar.
-    void fmaxnmp(const VRegister& vd, const VRegister& vn);
+    void fmaxnmp(const VRegister& vd, const VRegister& vn) {
+        assert((vd.Is1S() && vn.Is2S()) || (vd.Is1D() && vn.Is2D()));
+        Emit(FPFormat(vd) | NEON_FMAXNMP_scalar | Rn(vn) | Rd(vd));
+    }
 
     // FP pairwise minimum number scalar.
-    void fminnmp(const VRegister& vd, const VRegister& vn);
+    void fminnmp(const VRegister& vd, const VRegister& vn) {
+        assert((vd.Is1S() && vn.Is2S()) || (vd.Is1D() && vn.Is2D()));
+        Emit(FPFormat(vd) | NEON_FMINNMP_scalar | Rn(vn) | Rd(vd));
+    }
 
     // FP vector multiply accumulate.
     void fmla(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -2334,13 +2504,22 @@ public:
     void fminp(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // FP pairwise minimum scalar.
-    void fminp(const VRegister& vd, const VRegister& vn);
+    void fminp(const VRegister& vd, const VRegister& vn) {
+        assert((vd.Is1S() && vn.Is2S()) || (vd.Is1D() && vn.Is2D()));
+        Emit(FPFormat(vd) | NEON_FMINP_scalar | Rn(vn) | Rd(vd));
+    }
 
     // FP pairwise maximum number vector.
-    void fmaxnmp(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void fmaxnmp(const VRegister& vd, const VRegister& vn, const VRegister& vm); /*{
+        assert((vd.Is1S() && vn.Is2S()) || (vd.Is1D() && vn.Is2D()));
+        Emit(FPFormat(vd) | NEON_FMAXNMP_scalar | Rn(vn) | Rd(vd));
+    }*/
 
     // FP pairwise minimum number vector.
-    void fminnmp(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void fminnmp(const VRegister& vd, const VRegister& vn, const VRegister& vm); /*{
+        assert((vd.Is1S() && vn.Is2S()) || (vd.Is1D() && vn.Is2D()));
+        Emit(FPFormat(vd) | NEON_FMINNMP_scalar | Rn(vn) | Rd(vd));
+    }*/
 
     // FP fused multiply-add.
     void fmadd(const VRegister& fd, const VRegister& fn, const VRegister& fm, const VRegister& fa) {
@@ -2669,13 +2848,23 @@ public:
     }
 
     // Extract vector from pair of vectors.
-    void ext(const VRegister& vd, const VRegister& vn, const VRegister& vm, int index);
+    void ext(const VRegister& vd, const VRegister& vn, const VRegister& vm, int index) {
+        assert(AreSameFormat(vd, vn, vm));
+        assert(vd.Is8B() || vd.Is16B());
+        assert((0 <= index) && (index < vd.lane_count()));
+        Emit(VFormat(vd) | NEON_EXT | Rm(vm) | ImmNEONExt(index) | Rn(vn) | Rd(vd));
+    }
 
     // Duplicate vector element to vector or scalar.
     void dup(const VRegister& vd, const VRegister& vn, int vn_index);
 
     // Duplicate general-purpose register to vector.
-    void dup(const VRegister& vd, const Register& rn);
+    void dup(const VRegister& vd, const Register& rn) {
+        assert(!vd.Is1D());
+        assert(vd.Is2D() == rn.IsX());
+        uint32_t q = vd.IsD() ? 0 : NEON_Q;
+        Emit(q | NEON_DUP_GENERAL | ImmNEON5(VFormat(vd), 0) | Rn(rn) | Rd(vd));
+    }
 
     // Insert vector element from general-purpose register.
     void ins(const VRegister& vd, int vd_index, const Register& rn);
@@ -2687,18 +2876,22 @@ public:
     void umov(const Register& rd, const VRegister& vn, int vn_index);
 
     // Move vector element to general-purpose register.
-    void mov(const Register& rd, const VRegister& vn, int vn_index);
+    void mov(const Register& rd, const VRegister& vn, int vn_index) {
+        assert(vn.size_in_bytes() >= 4);
+        umov(rd, vn, vn_index);
+    }
 
     // Move vector element to scalar.
-    void mov(const VRegister& vd, const VRegister& vn, int vn_index);
+    void mov(const VRegister& vd, const VRegister& vn, int vn_index) {
+        assert(vd.IsScalar());
+        dup(vd, vn, vn_index);
+    }
 
     // Insert vector element from another vector element.
-    void ins(const VRegister& vd, int vd_index, const VRegister& vn,
-             int vn_index);
+    void ins(const VRegister& vd, int vd_index, const VRegister& vn, int vn_index);
 
     // Move vector element to another vector element.
-    void mov(const VRegister& vd, int vd_index, const VRegister& vn,
-             int vn_index);
+    void mov(const VRegister& vd, int vd_index, const VRegister& vn, int vn_index) { ins(vd, vd_index, vn, vn_index); }
 
     // Signed move vector element to general-purpose register.
     void smov(const Register& rd, const VRegister& vn, int vn_index);
@@ -2710,12 +2903,11 @@ public:
     void ld1(const VRegister& vt, const VRegister& vt2, const MemOperand& src);
 
     // One-element structure load to three registers.
-    void ld1(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             const MemOperand& src);
+    void ld1(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const MemOperand& src);
 
     // One-element structure load to four registers.
-    void ld1(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             const VRegister& vt4, const MemOperand& src);
+    void ld1(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const VRegister& vt4,
+             const MemOperand& src);
 
     // One-element single structure load to one lane.
     void ld1(const VRegister& vt, int lane, const MemOperand& src);
@@ -2727,104 +2919,157 @@ public:
     void ld2(const VRegister& vt, const VRegister& vt2, const MemOperand& src);
 
     // Two-element single structure load to one lane.
-    void ld2(const VRegister& vt, const VRegister& vt2, int lane,
-             const MemOperand& src);
+    void ld2(const VRegister& vt, const VRegister& vt2, int lane, const MemOperand& src);
 
     // Two-element single structure load to all lanes.
     void ld2r(const VRegister& vt, const VRegister& vt2, const MemOperand& src);
 
     // Three-element structure load.
-    void ld3(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             const MemOperand& src);
+    void ld3(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const MemOperand& src);
 
     // Three-element single structure load to one lane.
-    void ld3(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             int lane, const MemOperand& src);
+    void ld3(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, int lane, const MemOperand& src);
 
     // Three-element single structure load to all lanes.
-    void ld3r(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-              const MemOperand& src);
+    void ld3r(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const MemOperand& src);
 
     // Four-element structure load.
-    void ld4(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             const VRegister& vt4, const MemOperand& src);
+    void ld4(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const VRegister& vt4,
+             const MemOperand& src);
 
     // Four-element single structure load to one lane.
-    void ld4(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-             const VRegister& vt4, int lane, const MemOperand& src);
+    void ld4(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const VRegister& vt4, int lane,
+             const MemOperand& src);
 
     // Four-element single structure load to all lanes.
-    void ld4r(const VRegister& vt, const VRegister& vt2, const VRegister& vt3,
-              const VRegister& vt4, const MemOperand& src);
+    void ld4r(const VRegister& vt, const VRegister& vt2, const VRegister& vt3, const VRegister& vt4,
+              const MemOperand& src);
 
     // Count leading sign bits.
-    void cls(const VRegister& vd, const VRegister& vn);
+    void cls(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        assert(!vd.Is1D() && !vd.Is2D());
+        Emit(VFormat(vn) | NEON_CLS | Rn(vn) | Rd(vd));
+    }
 
     // Count leading zero bits (vector).
-    void clz(const VRegister& vd, const VRegister& vn);
+    void clz(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        assert(!vd.Is1D() && !vd.Is2D());
+        Emit(VFormat(vn) | NEON_CLZ | Rn(vn) | Rd(vd));
+    }
 
     // Population count per byte.
-    void cnt(const VRegister& vd, const VRegister& vn);
+    void cnt(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        assert(vd.Is8B() || vd.Is16B());
+        Emit(VFormat(vn) | NEON_CNT | Rn(vn) | Rd(vd));
+    }
 
     // Reverse bit order.
-    void rbit(const VRegister& vd, const VRegister& vn);
+    void rbit(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        assert(vd.Is8B() || vd.Is16B());
+        Emit(VFormat(vn) | (1 << NEONSize_offset) | NEON_RBIT_NOT | Rn(vn) | Rd(vd));
+    }
 
     // Reverse elements in 16-bit halfwords.
-    void rev16(const VRegister& vd, const VRegister& vn);
+    void rev16(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        assert(vd.Is8B() || vd.Is16B());
+        Emit(VFormat(vn) | NEON_REV16 | Rn(vn) | Rd(vd));
+    }
 
     // Reverse elements in 32-bit words.
-    void rev32(const VRegister& vd, const VRegister& vn);
+    void rev32(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        assert(vd.Is8B() || vd.Is16B() || vd.Is4H() || vd.Is8H());
+        Emit(VFormat(vn) | NEON_REV32 | Rn(vn) | Rd(vd));
+    }
 
     // Reverse elements in 64-bit doublewords.
-    void rev64(const VRegister& vd, const VRegister& vn);
+    void rev64(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        assert(!vd.Is1D() && !vd.Is2D());
+        Emit(VFormat(vn) | NEON_REV64 | Rn(vn) | Rd(vd));
+    }
 
     // Unsigned reciprocal square root estimate.
-    void ursqrte(const VRegister& vd, const VRegister& vn);
+    void ursqrte(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        assert(vd.Is2S() || vd.Is4S());
+        Emit(VFormat(vn) | NEON_URSQRTE | Rn(vn) | Rd(vd));
+    }
 
     // Unsigned reciprocal estimate.
-    void urecpe(const VRegister& vd, const VRegister& vn);
+    void urecpe(const VRegister& vd, const VRegister& vn) {
+        assert(AreSameFormat(vd, vn));
+        assert(vd.Is2S() || vd.Is4S());
+        Emit(VFormat(vn) | NEON_URECPE | Rn(vn) | Rd(vd));
+    }
 
     // Signed pairwise long add and accumulate.
-    void sadalp(const VRegister& vd, const VRegister& vn);
+    void sadalp(const VRegister& vd, const VRegister& vn) { NEONAddlp(vd, vn, NEON_SADALP); }
 
     // Signed pairwise long add.
-    void saddlp(const VRegister& vd, const VRegister& vn);
+    void saddlp(const VRegister& vd, const VRegister& vn) { NEONAddlp(vd, vn, NEON_SADDLP); }
 
     // Unsigned pairwise long add.
-    void uaddlp(const VRegister& vd, const VRegister& vn);
+    void uaddlp(const VRegister& vd, const VRegister& vn) { NEONAddlp(vd, vn, NEON_UADDLP); }
 
     // Unsigned pairwise long add and accumulate.
-    void uadalp(const VRegister& vd, const VRegister& vn);
+    void uadalp(const VRegister& vd, const VRegister& vn) { NEONAddlp(vd, vn, NEON_UADALP); }
 
     // Shift left by immediate.
-    void shl(const VRegister& vd, const VRegister& vn, int shift);
+    void shl(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEONShiftLeftImmediate(vd, vn, shift, NEON_SHL);
+    }
 
     // Signed saturating shift left by immediate.
-    void sqshl(const VRegister& vd, const VRegister& vn, int shift);
+    void sqshl(const VRegister& vd, const VRegister& vn, int shift) {
+        NEONShiftLeftImmediate(vd, vn, shift, NEON_SQSHL_imm);
+    }
 
     // Signed saturating shift left unsigned by immediate.
-    void sqshlu(const VRegister& vd, const VRegister& vn, int shift);
+    void sqshlu(const VRegister& vd, const VRegister& vn, int shift) {
+        NEONShiftLeftImmediate(vd, vn, shift, NEON_SQSHLU);
+    }
 
     // Unsigned saturating shift left by immediate.
-    void uqshl(const VRegister& vd, const VRegister& vn, int shift);
+    void uqshl(const VRegister& vd, const VRegister& vn, int shift) {
+        NEONShiftLeftImmediate(vd, vn, shift, NEON_UQSHL_imm);
+    }
 
     // Signed shift left long by immediate.
-    void sshll(const VRegister& vd, const VRegister& vn, int shift);
+    void sshll(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsD());
+        NEONShiftImmediateL(vd, vn, shift, NEON_SSHLL);
+    }
 
     // Signed shift left long by immediate (second part).
-    void sshll2(const VRegister& vd, const VRegister& vn, int shift);
+    void sshll2(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsQ());
+        NEONShiftImmediateL(vd, vn, shift, NEON_SSHLL);
+    }
 
     // Signed extend long.
-    void sxtl(const VRegister& vd, const VRegister& vn);
+    void sxtl(const VRegister& vd, const VRegister& vn) { sshll(vd, vn, 0); }
 
     // Signed extend long (second part).
-    void sxtl2(const VRegister& vd, const VRegister& vn);
+    void sxtl2(const VRegister& vd, const VRegister& vn) { sshll2(vd, vn, 0); }
 
     // Unsigned shift left long by immediate.
-    void ushll(const VRegister& vd, const VRegister& vn, int shift);
+    void ushll(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsD());
+        NEONShiftImmediateL(vd, vn, shift, NEON_USHLL);
+    }
 
     // Unsigned shift left long by immediate (second part).
-    void ushll2(const VRegister& vd, const VRegister& vn, int shift);
+    void ushll2(const VRegister& vd, const VRegister& vn, int shift) {
+        assert(vn.IsQ());
+        NEONShiftImmediateL(vd, vn, shift, NEON_USHLL);
+    }
 
     // Shift left long by element size.
     void shll(const VRegister& vd, const VRegister& vn, int shift) {
@@ -2843,10 +3088,10 @@ public:
     }
 
     // Unsigned extend long.
-    void uxtl(const VRegister& vd, const VRegister& vn);
+    void uxtl(const VRegister& vd, const VRegister& vn) { ushll(vd, vn, 0); }
 
     // Unsigned extend long (second part).
-    void uxtl2(const VRegister& vd, const VRegister& vn);
+    void uxtl2(const VRegister& vd, const VRegister& vn) { ushll2(vd, vn, 0); }
 
     // Signed rounding halving add.
     void srhadd(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -2873,7 +3118,10 @@ public:
     void addp(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Add pair of elements scalar.
-    void addp(const VRegister& vd, const VRegister& vn);
+    void addp(const VRegister& vd, const VRegister& vn) {
+       assert((vd.Is1D() && vn.Is2D()));
+       Emit(SFormat(vd) | NEON_ADDP_scalar | Rn(vn) | Rd(vd));
+    }
 
     // Multiply-add to accumulator.
     void mla(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -2885,34 +3133,66 @@ public:
     void mul(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Table lookup from one register.
-    void tbl(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void tbl(const VRegister& vd, const VRegister& vn, const VRegister& vm) { NEONTable(vd, vn, vm, NEON_TBL_1v); }
 
     // Table lookup from two registers.
-    void tbl(const VRegister& vd, const VRegister& vn, const VRegister& vn2,
-             const VRegister& vm);
+    void tbl(const VRegister& vd, const VRegister& vn, const VRegister& vn2, const VRegister& vm) {
+        USE(vn2);
+        assert(AreSameFormat(vn, vn2));
+        assert(AreConsecutive(vn, vn2));
+        NEONTable(vd, vn, vm, NEON_TBL_2v);
+    }
 
     // Table lookup from three registers.
-    void tbl(const VRegister& vd, const VRegister& vn, const VRegister& vn2,
-             const VRegister& vn3, const VRegister& vm);
+    void tbl(const VRegister& vd, const VRegister& vn, const VRegister& vn2, const VRegister& vn3, const VRegister& vm) {
+        USE(vn2);
+        USE(vn3);
+        assert(AreSameFormat(vn, vn2, vn3));
+        assert(AreConsecutive(vn, vn2, vn3));
+        NEONTable(vd, vn, vm, NEON_TBL_3v);
+    }
 
     // Table lookup from four registers.
-    void tbl(const VRegister& vd, const VRegister& vn, const VRegister& vn2,
-             const VRegister& vn3, const VRegister& vn4, const VRegister& vm);
+    void tbl(const VRegister& vd, const VRegister& vn, const VRegister& vn2, const VRegister& vn3, const VRegister& vn4,
+             const VRegister& vm) {
+        USE(vn2);
+        USE(vn3);
+        USE(vn4);
+        assert(AreSameFormat(vn, vn2, vn3, vn4));
+        assert(AreConsecutive(vn, vn2, vn3, vn4));
+        NEONTable(vd, vn, vm, NEON_TBL_4v);
+    }
 
     // Table lookup extension from one register.
-    void tbx(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void tbx(const VRegister& vd, const VRegister& vn, const VRegister& vm) { NEONTable(vd, vn, vm, NEON_TBX_1v); }
 
     // Table lookup extension from two registers.
-    void tbx(const VRegister& vd, const VRegister& vn, const VRegister& vn2,
-             const VRegister& vm);
+    void tbx(const VRegister& vd, const VRegister& vn, const VRegister& vn2, const VRegister& vm) {
+        USE(vn2);
+        assert(AreSameFormat(vn, vn2));
+        assert(AreConsecutive(vn, vn2));
+        NEONTable(vd, vn, vm, NEON_TBX_2v);
+    }
 
     // Table lookup extension from three registers.
-    void tbx(const VRegister& vd, const VRegister& vn, const VRegister& vn2,
-             const VRegister& vn3, const VRegister& vm);
+    void tbx(const VRegister& vd, const VRegister& vn, const VRegister& vn2, const VRegister& vn3, const VRegister& vm) {
+        USE(vn2);
+        USE(vn3);
+        assert(AreSameFormat(vn, vn2, vn3));
+        assert(AreConsecutive(vn, vn2, vn3));
+        NEONTable(vd, vn, vm, NEON_TBX_3v);
+    }
 
     // Table lookup extension from four registers.
-    void tbx(const VRegister& vd, const VRegister& vn, const VRegister& vn2,
-             const VRegister& vn3, const VRegister& vn4, const VRegister& vm);
+    void tbx(const VRegister& vd, const VRegister& vn, const VRegister& vn2, const VRegister& vn3, const VRegister& vn4,
+             const VRegister& vm) {
+        USE(vn2);
+        USE(vn3);
+        USE(vn4);
+        assert(AreSameFormat(vn, vn2, vn3, vn4));
+        assert(AreConsecutive(vn, vn2, vn3, vn4));
+        NEONTable(vd, vn, vm, NEON_TBX_4v);
+    }
 
     // Instruction functions used only for test, debug, and patching.
     // Emit raw instructions in the instruction stream.
@@ -3165,12 +3445,28 @@ private:
         Emit(q | op | scalar | immh_immb | Rn(vn) | Rd(vd));
     }
     
+    void NEONModifiedImmShiftLsl(const VRegister& vd, const int imm8, const int left_shift, NEONModifiedImmediateOp op);
+    
+    void NEONModifiedImmShiftMsl(const VRegister& vd, const int imm8, const int shift_amount,
+                                 NEONModifiedImmediateOp op) {
+        assert(vd.Is2S() || vd.Is4S());
+        assert((shift_amount == 8) || (shift_amount == 16));
+        assert(base::is_uint8(imm8));
+
+        int cmode_0 = (shift_amount >> 4) & 1;
+        int cmode = 0xC | cmode_0;
+
+        uint32_t q = vd.IsQ() ? NEON_Q : 0;
+
+        Emit(q | op | ImmNEONabcdefgh(imm8) | NEONCmode(cmode) | Rd(vd));
+    }
+    
     void NEONFP2RegMisc(const VRegister& vd, const VRegister& vn, uint32_t op) {
         assert(AreSameFormat(vd, vn));
         Emit(FPFormat(vd) | op | Rn(vn) | Rd(vd));
     }
     
-    void NEONFP2RegMisc(const VRegister& vd, const VRegister& vn, NEON2RegMiscOp vop, double value) {
+    void NEONFP2RegMisc(const VRegister& vd, const VRegister& vn, NEON2RegMiscOp vop, double value = 0.0) {
         assert(AreSameFormat(vd, vn));
         assert(value == 0.0);
         //USE(value);
@@ -3186,7 +3482,7 @@ private:
         Emit(FPFormat(vd) | op | Rn(vn) | Rd(vd));
     }
     
-    void NEON2RegMisc(const VRegister& vd, const VRegister& vn, NEON2RegMiscOp vop, int value) {
+    void NEON2RegMisc(const VRegister& vd, const VRegister& vn, NEON2RegMiscOp vop, int value = 0) {
         assert(AreSameFormat(vd, vn));
         assert(value == 0);
         //USE(value);
@@ -3202,6 +3498,143 @@ private:
         Emit(format | op | Rn(vn) | Rd(vd));
     }
     
+    void NEONFPByElement(const VRegister& vd, const VRegister& vn,
+                                    const VRegister& vm, int vm_index,
+                                    NEONByIndexedElementOp vop) {
+        assert(AreSameFormat(vd, vn));
+        assert((vd.Is2S() && vm.Is1S()) || (vd.Is4S() && vm.Is1S()) ||
+               (vd.Is1S() && vm.Is1S()) || (vd.Is2D() && vm.Is1D()) || (vd.Is1D() && vm.Is1D()));
+        assert((vm.Is1S() && (vm_index < 4)) || (vm.Is1D() && (vm_index < 2)));
+
+        uint32_t op = vop;
+        int index_num_bits = vm.Is1S() ? 2 : 1;
+        if (vd.IsScalar()) {
+            op |= NEON_Q | NEONScalar;
+        }
+
+        Emit(FPFormat(vd) | op | ImmNEONHLM(vm_index, index_num_bits) | Rm(vm) | Rn(vn) | Rd(vd));
+    }
+
+    void NEONByElement(const VRegister& vd, const VRegister& vn,
+                                  const VRegister& vm, int vm_index,
+                                  NEONByIndexedElementOp vop) {
+        assert(AreSameFormat(vd, vn));
+        assert((vd.Is4H() && vm.Is1H()) || (vd.Is8H() && vm.Is1H()) ||
+               (vd.Is1H() && vm.Is1H()) || (vd.Is2S() && vm.Is1S()) ||
+               (vd.Is4S() && vm.Is1S()) || (vd.Is1S() && vm.Is1S()));
+        assert((vm.Is1H() && (vm.code() < 16) && (vm_index < 8)) || (vm.Is1S() && (vm_index < 4)));
+
+        uint32_t format, op = vop;
+        int index_num_bits = vm.Is1H() ? 3 : 2;
+        if (vd.IsScalar()) {
+            op |= NEONScalar | NEON_Q;
+            format = SFormat(vn);
+        } else {
+            format = VFormat(vn);
+        }
+        Emit(format | op | ImmNEONHLM(vm_index, index_num_bits) | Rm(vm) | Rn(vn) | Rd(vd));
+    }
+
+    void NEONByElementL(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index,
+                        NEONByIndexedElementOp vop) {
+        assert((vd.Is4S() && vn.Is4H() && vm.Is1H()) || (vd.Is4S() && vn.Is8H() && vm.Is1H()) ||
+               (vd.Is1S() && vn.Is1H() && vm.Is1H()) || (vd.Is2D() && vn.Is2S() && vm.Is1S()) ||
+               (vd.Is2D() && vn.Is4S() && vm.Is1S()) || (vd.Is1D() && vn.Is1S() && vm.Is1S()));
+
+        assert((vm.Is1H() && (vm.code() < 16) && (vm_index < 8)) || (vm.Is1S() && (vm_index < 4)));
+
+        uint32_t format, op = vop;
+        int index_num_bits = vm.Is1H() ? 3 : 2;
+        if (vd.IsScalar()) {
+            op |= NEONScalar | NEON_Q;
+            format = SFormat(vn);
+        } else {
+            format = VFormat(vn);
+        }
+        Emit(format | op | ImmNEONHLM(vm_index, index_num_bits) | Rm(vm) | Rn(vn) | Rd(vd));
+    }
+    
+    void NEONXtn(const VRegister& vd, const VRegister& vn, NEON2RegMiscOp vop) {
+        uint32_t format, op = vop;
+        if (vd.IsScalar()) {
+            assert((vd.Is1B() && vn.Is1H()) || (vd.Is1H() && vn.Is1S()) || (vd.Is1S() && vn.Is1D()));
+            op |= NEON_Q | NEONScalar;
+            format = SFormat(vd);
+        } else {
+            assert((vd.Is8B() && vn.Is8H()) || (vd.Is4H() && vn.Is4S()) ||
+                   (vd.Is2S() && vn.Is2D()) || (vd.Is16B() && vn.Is8H()) ||
+                   (vd.Is8H() && vn.Is4S()) || (vd.Is4S() && vn.Is2D()));
+            format = VFormat(vd);
+        }
+        Emit(format | op | Rn(vn) | Rd(vd));
+    }
+    
+    void NEON3DifferentL(const VRegister& vd, const VRegister& vn, const VRegister& vm, NEON3DifferentOp vop) {
+        assert(AreSameFormat(vn, vm));
+        assert((vn.Is1H() && vd.Is1S()) || (vn.Is1S() && vd.Is1D()) ||
+               (vn.Is8B() && vd.Is8H()) || (vn.Is4H() && vd.Is4S()) ||
+               (vn.Is2S() && vd.Is2D()) || (vn.Is16B() && vd.Is8H()) ||
+               (vn.Is8H() && vd.Is4S()) || (vn.Is4S() && vd.Is2D()));
+        uint32_t format, op = vop;
+        if (vd.IsScalar()) {
+            op |= NEON_Q | NEONScalar;
+            format = SFormat(vn);
+        } else {
+            format = VFormat(vn);
+        }
+        Emit(format | op | Rm(vm) | Rn(vn) | Rd(vd));
+    }
+
+    void NEON3DifferentW(const VRegister& vd, const VRegister& vn, const VRegister& vm, NEON3DifferentOp vop) {
+        assert(AreSameFormat(vd, vn));
+        assert((vm.Is8B() && vd.Is8H()) || (vm.Is4H() && vd.Is4S()) ||
+               (vm.Is2S() && vd.Is2D()) || (vm.Is16B() && vd.Is8H()) ||
+               (vm.Is8H() && vd.Is4S()) || (vm.Is4S() && vd.Is2D()));
+        Emit(VFormat(vm) | vop | Rm(vm) | Rn(vn) | Rd(vd));
+    }
+
+    void NEON3DifferentHN(const VRegister& vd, const VRegister& vn, const VRegister& vm, NEON3DifferentOp vop) {
+        assert(AreSameFormat(vm, vn));
+        assert((vd.Is8B() && vn.Is8H()) || (vd.Is4H() && vn.Is4S()) ||
+               (vd.Is2S() && vn.Is2D()) || (vd.Is16B() && vn.Is8H()) ||
+               (vd.Is8H() && vn.Is4S()) || (vd.Is4S() && vn.Is2D()));
+        Emit(VFormat(vd) | vop | Rm(vm) | Rn(vn) | Rd(vd));
+    }
+    
+    void NEONAcrossLanes(const VRegister& vd, const VRegister& vn,
+                                    NEONAcrossLanesOp op) {
+        assert((vn.Is8B() && vd.Is1B()) || (vn.Is16B() && vd.Is1B()) ||
+               (vn.Is4H() && vd.Is1H()) || (vn.Is8H() && vd.Is1H()) || (vn.Is4S() && vd.Is1S()));
+        if ((op & NEONAcrossLanesFPFMask) == NEONAcrossLanesFPFixed) {
+            Emit(FPFormat(vn) | op | Rn(vn) | Rd(vd));
+        } else {
+            Emit(VFormat(vn) | op | Rn(vn) | Rd(vd));
+        }
+    }
+    
+    
+    void NEONAddlp(const VRegister& vd, const VRegister& vn, NEON2RegMiscOp op) {
+        assert((op == NEON_SADDLP) || (op == NEON_UADDLP) || (op == NEON_SADALP) || (op == NEON_UADALP));
+
+        assert((vn.Is8B() && vd.Is4H()) || (vn.Is4H() && vd.Is2S()) ||
+               (vn.Is2S() && vd.Is1D()) || (vn.Is16B() && vd.Is8H()) ||
+               (vn.Is8H() && vd.Is4S()) || (vn.Is4S() && vd.Is2D()));
+        Emit(VFormat(vn) | op | Rn(vn) | Rd(vd));
+    }
+    
+    void NEONTable(const VRegister& vd, const VRegister& vn, const VRegister& vm, NEONTableOp op) {
+        assert(vd.Is16B() || vd.Is8B());
+        assert(vn.Is16B());
+        assert(AreSameFormat(vd, vm));
+        Emit(op | (vd.IsQ() ? NEON_Q : 0) | Rm(vm) | Rn(vn) | Rd(vd));
+    }
+    
+    void NEONPerm(const VRegister& vd, const VRegister& vn, const VRegister& vm, NEONPermOp op) {
+        assert(AreSameFormat(vd, vn, vm));
+        assert(!vd.Is1D());
+        Emit(VFormat(vd) | op | Rm(vm) | Rn(vn) | Rd(vd));
+    }
+
     void Logical(const Register& rd, const Register& rn, const Operand& operand, LogicalOp op);
     
     void AddSub(const Register& rd, const Register& rn, const Operand& operand, FlagsUpdate S, AddSubOp op);
@@ -3861,6 +4294,145 @@ inline void Assembler::FN(const VRegister& vd, const VRegister& vn) { \
     NEONFP2RegMisc(vd, vn, op);                                       \
 }
 NEON_FP2REGMISC_LIST(DEFINE_ASM_FUNC)
+#undef DEFINE_ASM_FUNC
+
+#define NEON_BYELEMENT_LIST(V)              \
+  V(mul, NEON_MUL_byelement, vn.IsVector()) \
+  V(mla, NEON_MLA_byelement, vn.IsVector()) \
+  V(mls, NEON_MLS_byelement, vn.IsVector()) \
+  V(sqdmulh, NEON_SQDMULH_byelement, true)  \
+  V(sqrdmulh, NEON_SQRDMULH_byelement, true)
+
+#define DEFINE_ASM_FUNC(FN, OP, AS)                            \
+inline void Assembler::FN(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index) { \
+    assert(AS);                                                \
+    NEONByElement(vd, vn, vm, vm_index, OP);                   \
+}
+NEON_BYELEMENT_LIST(DEFINE_ASM_FUNC)
+#undef DEFINE_ASM_FUNC
+
+#define NEON_FPBYELEMENT_LIST(V) \
+  V(fmul, NEON_FMUL_byelement)   \
+  V(fmla, NEON_FMLA_byelement)   \
+  V(fmls, NEON_FMLS_byelement)   \
+  V(fmulx, NEON_FMULX_byelement)
+
+#define DEFINE_ASM_FUNC(FN, OP)                                \
+inline void Assembler::FN(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index) { \
+    NEONFPByElement(vd, vn, vm, vm_index, OP);                 \
+}
+NEON_FPBYELEMENT_LIST(DEFINE_ASM_FUNC)
+#undef DEFINE_ASM_FUNC
+
+#define NEON_BYELEMENT_LONG_LIST(V)                              \
+  V(sqdmull, NEON_SQDMULL_byelement, vn.IsScalar() || vn.IsD())  \
+  V(sqdmull2, NEON_SQDMULL_byelement, vn.IsVector() && vn.IsQ()) \
+  V(sqdmlal, NEON_SQDMLAL_byelement, vn.IsScalar() || vn.IsD())  \
+  V(sqdmlal2, NEON_SQDMLAL_byelement, vn.IsVector() && vn.IsQ()) \
+  V(sqdmlsl, NEON_SQDMLSL_byelement, vn.IsScalar() || vn.IsD())  \
+  V(sqdmlsl2, NEON_SQDMLSL_byelement, vn.IsVector() && vn.IsQ()) \
+  V(smull, NEON_SMULL_byelement, vn.IsVector() && vn.IsD())      \
+  V(smull2, NEON_SMULL_byelement, vn.IsVector() && vn.IsQ())     \
+  V(umull, NEON_UMULL_byelement, vn.IsVector() && vn.IsD())      \
+  V(umull2, NEON_UMULL_byelement, vn.IsVector() && vn.IsQ())     \
+  V(smlal, NEON_SMLAL_byelement, vn.IsVector() && vn.IsD())      \
+  V(smlal2, NEON_SMLAL_byelement, vn.IsVector() && vn.IsQ())     \
+  V(umlal, NEON_UMLAL_byelement, vn.IsVector() && vn.IsD())      \
+  V(umlal2, NEON_UMLAL_byelement, vn.IsVector() && vn.IsQ())     \
+  V(smlsl, NEON_SMLSL_byelement, vn.IsVector() && vn.IsD())      \
+  V(smlsl2, NEON_SMLSL_byelement, vn.IsVector() && vn.IsQ())     \
+  V(umlsl, NEON_UMLSL_byelement, vn.IsVector() && vn.IsD())      \
+  V(umlsl2, NEON_UMLSL_byelement, vn.IsVector() && vn.IsQ())
+
+#define DEFINE_ASM_FUNC(FN, OP, AS)                            \
+inline void Assembler::FN(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index) { \
+    assert(AS);                                                \
+    NEONByElementL(vd, vn, vm, vm_index, OP);                  \
+}
+NEON_BYELEMENT_LONG_LIST(DEFINE_ASM_FUNC)
+#undef DEFINE_ASM_FUNC
+
+#define NEON_3DIFF_LONG_LIST(V)                                                \
+  V(pmull, NEON_PMULL, vn.IsVector() && vn.Is8B())                             \
+  V(pmull2, NEON_PMULL2, vn.IsVector() && vn.Is16B())                          \
+  V(saddl, NEON_SADDL, vn.IsVector() && vn.IsD())                              \
+  V(saddl2, NEON_SADDL2, vn.IsVector() && vn.IsQ())                            \
+  V(sabal, NEON_SABAL, vn.IsVector() && vn.IsD())                              \
+  V(sabal2, NEON_SABAL2, vn.IsVector() && vn.IsQ())                            \
+  V(uabal, NEON_UABAL, vn.IsVector() && vn.IsD())                              \
+  V(uabal2, NEON_UABAL2, vn.IsVector() && vn.IsQ())                            \
+  V(sabdl, NEON_SABDL, vn.IsVector() && vn.IsD())                              \
+  V(sabdl2, NEON_SABDL2, vn.IsVector() && vn.IsQ())                            \
+  V(uabdl, NEON_UABDL, vn.IsVector() && vn.IsD())                              \
+  V(uabdl2, NEON_UABDL2, vn.IsVector() && vn.IsQ())                            \
+  V(smlal, NEON_SMLAL, vn.IsVector() && vn.IsD())                              \
+  V(smlal2, NEON_SMLAL2, vn.IsVector() && vn.IsQ())                            \
+  V(umlal, NEON_UMLAL, vn.IsVector() && vn.IsD())                              \
+  V(umlal2, NEON_UMLAL2, vn.IsVector() && vn.IsQ())                            \
+  V(smlsl, NEON_SMLSL, vn.IsVector() && vn.IsD())                              \
+  V(smlsl2, NEON_SMLSL2, vn.IsVector() && vn.IsQ())                            \
+  V(umlsl, NEON_UMLSL, vn.IsVector() && vn.IsD())                              \
+  V(umlsl2, NEON_UMLSL2, vn.IsVector() && vn.IsQ())                            \
+  V(smull, NEON_SMULL, vn.IsVector() && vn.IsD())                              \
+  V(smull2, NEON_SMULL2, vn.IsVector() && vn.IsQ())                            \
+  V(umull, NEON_UMULL, vn.IsVector() && vn.IsD())                              \
+  V(umull2, NEON_UMULL2, vn.IsVector() && vn.IsQ())                            \
+  V(ssubl, NEON_SSUBL, vn.IsVector() && vn.IsD())                              \
+  V(ssubl2, NEON_SSUBL2, vn.IsVector() && vn.IsQ())                            \
+  V(uaddl, NEON_UADDL, vn.IsVector() && vn.IsD())                              \
+  V(uaddl2, NEON_UADDL2, vn.IsVector() && vn.IsQ())                            \
+  V(usubl, NEON_USUBL, vn.IsVector() && vn.IsD())                              \
+  V(usubl2, NEON_USUBL2, vn.IsVector() && vn.IsQ())                            \
+  V(sqdmlal, NEON_SQDMLAL, vn.Is1H() || vn.Is1S() || vn.Is4H() || vn.Is2S())   \
+  V(sqdmlal2, NEON_SQDMLAL2, vn.Is1H() || vn.Is1S() || vn.Is8H() || vn.Is4S()) \
+  V(sqdmlsl, NEON_SQDMLSL, vn.Is1H() || vn.Is1S() || vn.Is4H() || vn.Is2S())   \
+  V(sqdmlsl2, NEON_SQDMLSL2, vn.Is1H() || vn.Is1S() || vn.Is8H() || vn.Is4S()) \
+  V(sqdmull, NEON_SQDMULL, vn.Is1H() || vn.Is1S() || vn.Is4H() || vn.Is2S())   \
+  V(sqdmull2, NEON_SQDMULL2, vn.Is1H() || vn.Is1S() || vn.Is8H() || vn.Is4S())
+
+#define DEFINE_ASM_FUNC(FN, OP, AS)                            \
+inline void Assembler::FN(const VRegister& vd, const VRegister& vn, const VRegister& vm) { \
+    assert(AS);                                                \
+    NEON3DifferentL(vd, vn, vm, OP);                           \
+}
+NEON_3DIFF_LONG_LIST(DEFINE_ASM_FUNC)
+#undef DEFINE_ASM_FUNC
+
+#define NEON_3DIFF_HN_LIST(V)        \
+  V(addhn, NEON_ADDHN, vd.IsD())     \
+  V(addhn2, NEON_ADDHN2, vd.IsQ())   \
+  V(raddhn, NEON_RADDHN, vd.IsD())   \
+  V(raddhn2, NEON_RADDHN2, vd.IsQ()) \
+  V(subhn, NEON_SUBHN, vd.IsD())     \
+  V(subhn2, NEON_SUBHN2, vd.IsQ())   \
+  V(rsubhn, NEON_RSUBHN, vd.IsD())   \
+  V(rsubhn2, NEON_RSUBHN2, vd.IsQ())
+
+#define DEFINE_ASM_FUNC(FN, OP, AS)                            \
+inline void Assembler::FN(const VRegister& vd, const VRegister& vn, const VRegister& vm) { \
+    assert(AS);                                                \
+    NEON3DifferentHN(vd, vn, vm, OP);                          \
+}
+NEON_3DIFF_HN_LIST(DEFINE_ASM_FUNC)
+#undef DEFINE_ASM_FUNC
+
+#define NEON_ACROSSLANES_LIST(V)      \
+  V(fmaxv, NEON_FMAXV, vd.Is1S())     \
+  V(fminv, NEON_FMINV, vd.Is1S())     \
+  V(fmaxnmv, NEON_FMAXNMV, vd.Is1S()) \
+  V(fminnmv, NEON_FMINNMV, vd.Is1S()) \
+  V(addv, NEON_ADDV, true)            \
+  V(smaxv, NEON_SMAXV, true)          \
+  V(sminv, NEON_SMINV, true)          \
+  V(umaxv, NEON_UMAXV, true)          \
+  V(uminv, NEON_UMINV, true)
+
+#define DEFINE_ASM_FUNC(FN, OP, AS)                              \
+inline void Assembler::FN(const VRegister& vd, const VRegister& vn) { \
+    assert(AS);                                                  \
+    NEONAcrossLanes(vd, vn, OP);                                 \
+}
+NEON_ACROSSLANES_LIST(DEFINE_ASM_FUNC)
 #undef DEFINE_ASM_FUNC
 
 } // namespace arm64
