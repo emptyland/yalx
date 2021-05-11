@@ -655,6 +655,13 @@ public:
         assert(reg.Is64Bits() || ((extend != SXTX) && (extend != UXTX)));
     }
     
+    Operand(int64_t immediate)
+        : immediate_(immediate)
+        , reg_(NoReg)
+        , shift_(NO_SHIFT)
+        , extend_(NO_EXTEND)
+        , shift_amount_(0) {}
+        
     Operand ToExtendedRegister() const {
         assert(IsShiftedRegister());
         assert((shift_ == LSL) && (shift_amount_ <= 4));
@@ -1416,57 +1423,121 @@ public:
     void ldrsh(const Register& rt, const MemOperand& src) { LoadStore(rt, src, rt.Is64Bits() ? LDRSH_x : LDRSH_w); }
 
     // Load integer or FP register pair.
-    void ldp(const CPURegister& rt, const CPURegister& rt2, const MemOperand& src);
+    void ldp(const CPURegister& rt, const CPURegister& rt2, const MemOperand& src) {
+        LoadStorePair(rt, rt2, src, LoadPairOpFor(rt, rt2));
+    }
 
     // Store integer or FP register pair.
-    void stp(const CPURegister& rt, const CPURegister& rt2,
-             const MemOperand& dst);
+    void stp(const CPURegister& rt, const CPURegister& rt2, const MemOperand& dst) {
+        LoadStorePair(rt, rt2, dst, StorePairOpFor(rt, rt2));
+    }
 
     // Load word pair with sign extension.
-    void ldpsw(const Register& rt, const Register& rt2, const MemOperand& src);
+    void ldpsw(const Register& rt, const Register& rt2, const MemOperand& src) {
+        assert(rt.Is64Bits());
+        LoadStorePair(rt, rt2, src, LDPSW_x);
+    }
 
     // Load literal to register from a pc relative address.
-    void ldr_pcrel(const CPURegister& rt, int imm19);
+    void ldr_pcrel(const CPURegister& rt, int imm19) {
+        // The pattern 'ldr xzr, #offset' is used to indicate the beginning of a
+        // constant pool. It should not be emitted.
+        assert(!rt.IsZero());
+        Emit(LoadLiteralOpFor(rt) | ImmLLiteral(imm19) | Rt(rt));
+    }
 
     // Load literal to register.
     //void ldr(const CPURegister& rt, const Immediate& imm);
-    void ldr(const CPURegister& rt, const Operand& operand);
+    //void ldr(const CPURegister& rt, const Operand& operand);
 
     // Load-acquire word.
-    void ldar(const Register& rt, const Register& rn);
+    void ldar(const Register& rt, const Register& rn) {
+        assert(rn.Is64Bits());
+        LoadStoreAcquireReleaseOp op = rt.Is32Bits() ? LDAR_w : LDAR_x;
+        Emit(op | Rs(x31) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Load-acquire exclusive word.
-    void ldaxr(const Register& rt, const Register& rn);
+    void ldaxr(const Register& rt, const Register& rn) {
+        assert(rn.Is64Bits());
+        LoadStoreAcquireReleaseOp op = rt.Is32Bits() ? LDAXR_w : LDAXR_x;
+        Emit(op | Rs(x31) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Store-release word.
-    void stlr(const Register& rt, const Register& rn);
+    void stlr(const Register& rt, const Register& rn) {
+        assert(rn.Is64Bits());
+        LoadStoreAcquireReleaseOp op = rt.Is32Bits() ? STLR_w : STLR_x;
+        Emit(op | Rs(x31) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Store-release exclusive word.
-    void stlxr(const Register& rs, const Register& rt, const Register& rn);
+    void stlxr(const Register& rs, const Register& rt, const Register& rn) {
+        assert(rn.Is64Bits());
+        assert(rs != rt && rs != rn);
+        LoadStoreAcquireReleaseOp op = rt.Is32Bits() ? STLXR_w : STLXR_x;
+        Emit(op | Rs(rs) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Load-acquire byte.
-    void ldarb(const Register& rt, const Register& rn);
+    void ldarb(const Register& rt, const Register& rn) {
+        assert(rt.Is32Bits());
+        assert(rn.Is64Bits());
+        Emit(LDAR_b | Rs(x31) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Load-acquire exclusive byte.
-    void ldaxrb(const Register& rt, const Register& rn);
+    void ldaxrb(const Register& rt, const Register& rn) {
+        assert(rt.Is32Bits());
+        assert(rn.Is64Bits());
+        Emit(LDAXR_b | Rs(x31) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Store-release byte.
-    void stlrb(const Register& rt, const Register& rn);
+    void stlrb(const Register& rt, const Register& rn) {
+        assert(rt.Is32Bits());
+        assert(rn.Is64Bits());
+        Emit(STLR_b | Rs(x31) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Store-release exclusive byte.
-    void stlxrb(const Register& rs, const Register& rt, const Register& rn);
+    void stlxrb(const Register& rs, const Register& rt, const Register& rn) {
+        assert(rs.Is32Bits());
+        assert(rt.Is32Bits());
+        assert(rn.Is64Bits());
+        assert(rs != rt && rs != rn);
+        Emit(STLXR_b | Rs(rs) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Load-acquire half-word.
-    void ldarh(const Register& rt, const Register& rn);
+    void ldarh(const Register& rt, const Register& rn) {
+        assert(rt.Is32Bits());
+        assert(rn.Is64Bits());
+        Emit(LDAR_h | Rs(x31) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Load-acquire exclusive half-word.
-    void ldaxrh(const Register& rt, const Register& rn);
+    void ldaxrh(const Register& rt, const Register& rn) {
+        assert(rt.Is32Bits());
+        assert(rn.Is64Bits());
+        Emit(LDAXR_h | Rs(x31) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Store-release half-word.
-    void stlrh(const Register& rt, const Register& rn);
+    void stlrh(const Register& rt, const Register& rn) {
+        assert(rt.Is32Bits());
+        assert(rn.Is64Bits());
+        Emit(STLR_h | Rs(x31) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Store-release exclusive half-word.
-    void stlxrh(const Register& rs, const Register& rt, const Register& rn);
+    void stlxrh(const Register& rs, const Register& rt, const Register& rn) {
+        assert(rs.Is32Bits());
+        assert(rt.Is32Bits());
+        assert(rn.Is64Bits());
+        assert(rs != rt && rs != rn);
+        Emit(STLXR_h | Rs(rs) | Rt2(x31) | RnSP(rn) | Rt(rt));
+    }
 
     // Move instructions. The default shift of -1 indicates that the move
     // instruction will calculate an appropriate 16-bit immediate and left shift
@@ -1479,29 +1550,38 @@ public:
     // most-significant.
 
     // Move and keep.
-    void movk(const Register& rd, uint64_t imm, int shift = -1) {
-      //MoveWide(rd, imm, shift, MOVK);
-    }
+    void movk(const Register& rd, uint64_t imm, int shift = -1) { MoveWide(rd, imm, shift, MOVK); }
 
     // Move with non-zero.
-    void movn(const Register& rd, uint64_t imm, int shift = -1) {
-      //MoveWide(rd, imm, shift, MOVN);
-    }
+    void movn(const Register& rd, uint64_t imm, int shift = -1) { MoveWide(rd, imm, shift, MOVN); }
 
     // Move with zero.
-    void movz(const Register& rd, uint64_t imm, int shift = -1) {
-      //MoveWide(rd, imm, shift, MOVZ);
-    }
+    void movz(const Register& rd, uint64_t imm, int shift = -1) { MoveWide(rd, imm, shift, MOVZ); }
 
     // Misc instructions.
     // Monitor debug-mode breakpoint.
-    void brk(int code);
+    void brk(int code) {
+        assert(base::is_uint16(code));
+        Emit(BRK | ImmException(code));
+    }
 
     // Halting debug-mode breakpoint.
-    void hlt(int code);
+    void hlt(int code) {
+        assert(base::is_uint16(code));
+        Emit(HLT | ImmException(code));
+    }
 
     // Move register to register.
-    void mov(const Register& rd, const Register& rn);
+    void mov(const Register& rd, const Register& rn) {
+        // Moves involving the stack pointer are encoded as add immediate with
+        // second operand of zero. Otherwise, orr with first operand zr is
+        // used.
+        if (rd.IsSP() || rn.IsSP()) {
+            add(rd, rn, Operand{0});
+        } else {
+            orr(rd, AppropriateZeroRegFor(rd), rn);
+        }
+    }
 
     // Move NOT(operand) to register.
     void mvn(const Register& rd, const Operand& operand);
@@ -1514,19 +1594,19 @@ public:
     //void msr(SystemRegister sysreg, const Register& rt);
 
     // System hint.
-    void hint(SystemHint code);
+    void hint(SystemHint code) { Emit(HINT | ImmHint(code) | Rt(xzr)); }
 
     // Data memory barrier
-    void dmb(BarrierDomain domain, BarrierType type);
+    void dmb(BarrierDomain domain, BarrierType type) { Emit(DMB | ImmBarrierDomain(domain) | ImmBarrierType(type)); }
 
     // Data synchronization barrier
-    void dsb(BarrierDomain domain, BarrierType type);
+    void dsb(BarrierDomain domain, BarrierType type) { Emit(DSB | ImmBarrierDomain(domain) | ImmBarrierType(type)); }
 
     // Instruction synchronization barrier
-    void isb();
+    void isb() { Emit(ISB | ImmBarrierDomain(FullSystem) | ImmBarrierType(BarrierAll)); }
 
     // Conditional speculation barrier.
-    void csdb();
+    void csdb() { hint(CSDB); }
 
     // Branch target identification.
     void bti(BranchTargetIdentifier id) {
@@ -1634,43 +1714,52 @@ public:
     void addhn2(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // Signed saturating double long multiply by element.
-    void sqdmull(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-                 int vm_index);
+    void sqdmull(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index);
 
     // Signed saturating double long multiply by element (second part).
-    void sqdmull2(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-                  int vm_index);
+    void sqdmull2(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index);
 
     // Signed saturating doubling long multiply-add by element.
-    void sqdmlal(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-                 int vm_index);
+    void sqdmlal(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index);
 
     // Signed saturating doubling long multiply-add by element (second part).
-    void sqdmlal2(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-                  int vm_index);
+    void sqdmlal2(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index);
 
     // Signed saturating doubling long multiply-sub by element.
-    void sqdmlsl(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-                 int vm_index);
+    void sqdmlsl(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index);
 
     // Signed saturating doubling long multiply-sub by element (second part).
-    void sqdmlsl2(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-                  int vm_index);
+    void sqdmlsl2(const VRegister& vd, const VRegister& vn, const VRegister& vm, int vm_index);
 
     // Compare bitwise to zero.
-    void cmeq(const VRegister& vd, const VRegister& vn, int value);
+    void cmeq(const VRegister& vd, const VRegister& vn, int value) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEON2RegMisc(vd, vn, NEON_CMEQ_zero, value);
+    }
 
     // Compare signed greater than or equal to zero.
-    void cmge(const VRegister& vd, const VRegister& vn, int value);
+    void cmge(const VRegister& vd, const VRegister& vn, int value) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEON2RegMisc(vd, vn, NEON_CMGE_zero, value);
+    }
 
     // Compare signed greater than zero.
-    void cmgt(const VRegister& vd, const VRegister& vn, int value);
+    void cmgt(const VRegister& vd, const VRegister& vn, int value) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEON2RegMisc(vd, vn, NEON_CMGT_zero, value);
+    }
 
     // Compare signed less than or equal to zero.
-    void cmle(const VRegister& vd, const VRegister& vn, int value);
+    void cmle(const VRegister& vd, const VRegister& vn, int value) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEON2RegMisc(vd, vn, NEON_CMLE_zero, value);
+    }
 
     // Compare signed less than zero.
-    void cmlt(const VRegister& vd, const VRegister& vn, int value);
+    void cmlt(const VRegister& vd, const VRegister& vn, int value) {
+        assert(vd.IsVector() || vd.Is1D());
+        NEON2RegMisc(vd, vn, NEON_CMLT_zero, value);
+    }
 
     // Unsigned rounding halving add.
     void urhadd(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -2100,23 +2189,61 @@ public:
     
     // FP instructions.
     // Move immediate to FP register.
-    void fmov(const VRegister& fd, double imm);
-    void fmov(const VRegister& fd, float imm);
+    void fmov(const VRegister& fd, double imm) {
+        if (fd.IsScalar()) {
+            assert(fd.Is1D());
+            Emit(FMOV_d_imm | Rd(fd) | ImmFP(imm));
+        } else {
+            assert(fd.Is2D());
+            uint32_t op = NEONModifiedImmediate_MOVI | NEONModifiedImmediateOpBit;
+            Emit(NEON_Q | op | ImmNEONFP(imm) | NEONCmode(0xF) | Rd(fd));
+        }
+    }
+    void fmov(const VRegister& vd, float imm) {
+        if (vd.IsScalar()) {
+            assert(vd.Is1S());
+            Emit(FMOV_s_imm | Rd(vd) | ImmFP(imm));
+        } else {
+            assert(vd.Is2S() | vd.Is4S());
+            uint32_t op = NEONModifiedImmediate_MOVI;
+            uint32_t q = vd.Is4S() ? NEON_Q : 0;
+            Emit(q | op | ImmNEONFP(imm) | NEONCmode(0xF) | Rd(vd));
+        }
+    }
 
     // Move FP register to register.
-    void fmov(const Register& rd, const VRegister& fn);
+    void fmov(const Register& rd, const VRegister& fn) {
+        assert(rd.size_in_bits() == fn.size_in_bits());
+        FPIntegerConvertOp op = rd.Is32Bits() ? FMOV_ws : FMOV_xd;
+        Emit(op | Rd(rd) | Rn(fn));
+    }
 
     // Move register to FP register.
-    void fmov(const VRegister& fd, const Register& rn);
+    void fmov(const VRegister& vd, const Register& rn) {
+        assert(vd.size_in_bits() == rn.size_in_bits());
+        FPIntegerConvertOp op = vd.Is32Bits() ? FMOV_sw : FMOV_dx;
+        Emit(op | Rd(vd) | Rn(rn));
+    }
 
     // Move FP register to FP register.
-    void fmov(const VRegister& fd, const VRegister& fn);
+    void fmov(const VRegister& vd, const VRegister& vn) {
+        assert(vd.size_in_bits() == vn.size_in_bits());
+        Emit(FPType(vd) | FMOV | Rd(vd) | Rn(vn));
+    }
 
     // Move 64-bit register to top half of 128-bit FP register.
-    void fmov(const VRegister& vd, int index, const Register& rn);
+    void fmov(const VRegister& vd, int index, const Register& rn) {
+        assert((index == 1) && vd.Is1D() && rn.IsX());
+        //USE(index);
+        Emit(FMOV_d1_x | Rd(vd) | Rn(rn));
+    }
 
     // Move top half of 128-bit FP register to 64-bit register.
-    void fmov(const Register& rd, const VRegister& vn, int index);
+    void fmov(const Register& rd, const VRegister& vn, int index) {
+        assert((index == 1) && vn.Is1D() && rd.IsX());
+        //USE(index);
+        Emit(FMOV_x_d1 | Rd(rd) | Rn(vn));
+    }
 
     // FP add.
     void fadd(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -2128,19 +2255,19 @@ public:
     void fmul(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // FP compare equal to zero.
-    void fcmeq(const VRegister& vd, const VRegister& vn, double imm);
+    void fcmeq(const VRegister& vd, const VRegister& vn, double imm) { NEONFP2RegMisc(vd, vn, NEON_FCMEQ_zero, imm); }
 
     // FP greater than zero.
-    void fcmgt(const VRegister& vd, const VRegister& vn, double imm);
+    void fcmgt(const VRegister& vd, const VRegister& vn, double imm) { NEONFP2RegMisc(vd, vn, NEON_FCMGT_zero, imm); }
 
     // FP greater than or equal to zero.
-    void fcmge(const VRegister& vd, const VRegister& vn, double imm);
+    void fcmge(const VRegister& vd, const VRegister& vn, double imm) { NEONFP2RegMisc(vd, vn, NEON_FCMGE_zero, imm); }
 
     // FP less than or equal to zero.
-    void fcmle(const VRegister& vd, const VRegister& vn, double imm);
+    void fcmle(const VRegister& vd, const VRegister& vn, double imm) { NEONFP2RegMisc(vd, vn, NEON_FCMLE_zero, imm); }
 
     // FP less than to zero.
-    void fcmlt(const VRegister& vd, const VRegister& vn, double imm);
+    void fcmlt(const VRegister& vd, const VRegister& vn, double imm) { NEONFP2RegMisc(vd, vn, NEON_FCMLT_zero, imm); }
 
     // FP absolute difference.
     void fabd(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -2216,26 +2343,39 @@ public:
     void fminnmp(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // FP fused multiply-add.
-    void fmadd(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-               const VRegister& va);
+    void fmadd(const VRegister& fd, const VRegister& fn, const VRegister& fm, const VRegister& fa) {
+        FPDataProcessing3Source(fd, fn, fm, fa, fd.Is32Bits() ? FMADD_s : FMADD_d);
+    }
 
     // FP fused multiply-subtract.
-    void fmsub(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-               const VRegister& va);
+    void fmsub(const VRegister& fd, const VRegister& fn, const VRegister& fm, const VRegister& fa) {
+        FPDataProcessing3Source(fd, fn, fm, fa, fd.Is32Bits() ? FMSUB_s : FMSUB_d);
+    }
 
     // FP fused multiply-add and negate.
-    void fnmadd(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-                const VRegister& va);
+    void fnmadd(const VRegister& fd, const VRegister& fn, const VRegister& fm, const VRegister& fa) {
+        FPDataProcessing3Source(fd, fn, fm, fa, fd.Is32Bits() ? FNMADD_s : FNMADD_d);
+    }
 
     // FP fused multiply-subtract and negate.
-    void fnmsub(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-                const VRegister& va);
+    void fnmsub(const VRegister& fd, const VRegister& fn, const VRegister& fm, const VRegister& fa) {
+        FPDataProcessing3Source(fd, fn, fm, fa, fd.Is32Bits() ? FNMSUB_s : FNMSUB_d);
+    }
 
     // FP multiply-negate scalar.
-    void fnmul(const VRegister& vd, const VRegister& vn, const VRegister& vm);
+    void fnmul(const VRegister& vd, const VRegister& vn, const VRegister& vm) {
+        assert(AreSameSizeAndType(vd, vn, vm));
+        uint32_t op = vd.Is1S() ? FNMUL_s : FNMUL_d;
+        Emit(FPType(vd) | op | Rm(vm) | Rn(vn) | Rd(vd));
+    }
 
     // FP reciprocal exponent scalar.
-    void frecpx(const VRegister& vd, const VRegister& vn);
+    void frecpx(const VRegister& vd, const VRegister& vn) {
+        assert(vd.IsScalar());
+        assert(AreSameFormat(vd, vn));
+        assert(vd.Is1S() || vd.Is1D());
+        Emit(FPFormat(vd) | NEON_FRECPX_scalar | Rn(vn) | Rd(vd));
+    }
 
     // FP divide.
     void fdiv(const VRegister& vd, const VRegister& vn, const VRegister& vm);
@@ -2283,43 +2423,110 @@ public:
     void frintz(const VRegister& vd, const VRegister& vn);
 
     // FP compare registers.
-    void fcmp(const VRegister& vn, const VRegister& vm);
+    void fcmp(const VRegister& fn, const VRegister& fm) {
+        assert(fn.size_in_bits() == fm.size_in_bits());
+        Emit(FPType(fn) | FCMP | Rm(fm) | Rn(fn));
+    }
 
     // FP compare immediate.
-    void fcmp(const VRegister& vn, double value);
+    void fcmp(const VRegister& fn, double value) {
+        //USE(value);
+        // Although the fcmp instruction can strictly only take an immediate value of
+        // +0.0, we don't need to check for -0.0 because the sign of 0.0 doesn't
+        // affect the result of the comparison.
+        assert(value == 0.0);
+        Emit(FPType(fn) | FCMP_zero | Rn(fn));
+    }
 
     // FP conditional compare.
-    void fccmp(const VRegister& vn, const VRegister& vm, StatusFlags nzcv,
-               Condition cond);
+    void fccmp(const VRegister& fn, const VRegister& fm, StatusFlags nzcv, Condition cond) {
+        assert(fn.size_in_bits() == fm.size_in_bits());
+        Emit(FPType(fn) | FCCMP | Rm(fm) | Cond(cond) | Rn(fn) | Nzcv(nzcv));
+    }
 
     // FP conditional select.
-    void fcsel(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-               Condition cond);
+    void fcsel(const VRegister& fd, const VRegister& fn, const VRegister& fm, Condition cond) {
+        assert(fd.size_in_bits() == fn.size_in_bits());
+        assert(fd.size_in_bits() == fm.size_in_bits());
+        Emit(FPType(fd) | FCSEL | Rm(fm) | Cond(cond) | Rn(fn) | Rd(fd));
+    }
 
     // Common FP Convert functions.
-//    void NEONFPConvertToInt(const Register& rd, const VRegister& vn, Instr op);
-//    void NEONFPConvertToInt(const VRegister& vd, const VRegister& vn, Instr op);
+    void NEONFPConvertToInt(const Register& rd, const VRegister& vn, uint32_t op) {
+        Emit(SF(rd) | FPType(vn) | op | Rn(vn) | Rd(rd));
+    }
+    
+    void NEONFPConvertToInt(const VRegister& vd, const VRegister& vn, uint32_t op) {
+        if (vn.IsScalar()) {
+            assert((vd.Is1S() && vn.Is1S()) || (vd.Is1D() && vn.Is1D()));
+            op |= NEON_Q | NEONScalar;
+        }
+        Emit(FPFormat(vn) | op | Rn(vn) | Rd(vd));
+    }
 
     // FP convert between precisions.
-    void fcvt(const VRegister& vd, const VRegister& vn);
+    void fcvt(const VRegister& vd, const VRegister& vn) {
+        FPDataProcessing1SourceOp op;
+        if (vd.Is1D()) {
+            assert(vn.Is1S() || vn.Is1H());
+            op = vn.Is1S() ? FCVT_ds : FCVT_dh;
+        } else if (vd.Is1S()) {
+            assert(vn.Is1D() || vn.Is1H());
+            op = vn.Is1D() ? FCVT_sd : FCVT_sh;
+        } else {
+            assert(vd.Is1H());
+            assert(vn.Is1D() || vn.Is1S());
+            op = vn.Is1D() ? FCVT_hd : FCVT_hs;
+        }
+        FPDataProcessing1Source(vd, vn, op);
+    }
 
     // FP convert to higher precision.
-    void fcvtl(const VRegister& vd, const VRegister& vn);
+    void fcvtl(const VRegister& vd, const VRegister& vn) {
+        assert((vd.Is4S() && vn.Is4H()) || (vd.Is2D() && vn.Is2S()));
+        uint32_t format = vd.Is2D() ? (1 << NEONSize_offset) : 0;
+        Emit(format | NEON_FCVTL | Rn(vn) | Rd(vd));
+    }
 
     // FP convert to higher precision (second part).
-    void fcvtl2(const VRegister& vd, const VRegister& vn);
+    void fcvtl2(const VRegister& vd, const VRegister& vn) {
+        assert((vd.Is4S() && vn.Is8H()) || (vd.Is2D() && vn.Is4S()));
+        uint32_t format = vd.Is2D() ? (1 << NEONSize_offset) : 0;
+        Emit(NEON_Q | format | NEON_FCVTL | Rn(vn) | Rd(vd));
+    }
 
     // FP convert to lower precision.
-    void fcvtn(const VRegister& vd, const VRegister& vn);
+    void fcvtn(const VRegister& vd, const VRegister& vn) {
+        assert((vn.Is4S() && vd.Is4H()) || (vn.Is2D() && vd.Is2S()));
+        uint32_t format = vn.Is2D() ? (1 << NEONSize_offset) : 0;
+        Emit(format | NEON_FCVTN | Rn(vn) | Rd(vd));
+    }
 
     // FP convert to lower prevision (second part).
-    void fcvtn2(const VRegister& vd, const VRegister& vn);
+    void fcvtn2(const VRegister& vd, const VRegister& vn) {
+        assert((vn.Is4S() && vd.Is8H()) || (vn.Is2D() && vd.Is4S()));
+        uint32_t format = vn.Is2D() ? (1 << NEONSize_offset) : 0;
+        Emit(NEON_Q | format | NEON_FCVTN | Rn(vn) | Rd(vd));
+    }
 
     // FP convert to lower precision, rounding to odd.
-    void fcvtxn(const VRegister& vd, const VRegister& vn);
+    void fcvtxn(const VRegister& vd, const VRegister& vn) {
+        uint32_t format = 1 << NEONSize_offset;
+        if (vd.IsScalar()) {
+            assert(vd.Is1S() && vn.Is1D());
+            Emit(format | NEON_FCVTXN_scalar | Rn(vn) | Rd(vd));
+        } else {
+            assert(vd.Is2S() && vn.Is2D());
+            Emit(format | NEON_FCVTXN | Rn(vn) | Rd(vd));
+        }
+    }
 
     // FP convert to lower precision, rounding to odd (second part).
-    void fcvtxn2(const VRegister& vd, const VRegister& vn);
+    void fcvtxn2(const VRegister& vd, const VRegister& vn) {
+        assert(vd.Is4S() && vn.Is2D());
+        uint32_t format = 1 << NEONSize_offset;
+        Emit(NEON_Q | format | NEON_FCVTXN | Rn(vn) | Rd(vd));
+    }
 
     // FP convert to signed integer, nearest with ties to away.
     void fcvtas(const Register& rd, const VRegister& vn);
@@ -2349,7 +2556,10 @@ public:
     void fcvtns(const Register& rd, const VRegister& vn);
 
     // FP JavaScript convert to signed integer, rounding toward zero [Armv8.3].
-    void fjcvtzs(const Register& rd, const VRegister& vn);
+    void fjcvtzs(const Register& rd, const VRegister& vn) {
+        assert(rd.IsW() && vn.Is1D());
+        Emit(FJCVTZS | Rn(vn) | Rd(rd));
+    }
 
     // FP convert to unsigned integer, nearest with ties to even.
     void fcvtnu(const Register& rd, const VRegister& vn);
@@ -2361,16 +2571,48 @@ public:
     void fcvtnu(const VRegister& rd, const VRegister& vn);
 
     // FP convert to signed integer or fixed-point, round towards zero.
-    void fcvtzs(const Register& rd, const VRegister& vn, int fbits = 0);
+    void fcvtzs(const Register& rd, const VRegister& vn, int fbits = 0) {
+        assert(vn.Is1S() || vn.Is1D());
+        assert((fbits >= 0) && (fbits <= rd.size_in_bits()));
+        if (fbits == 0) {
+            Emit(SF(rd) | FPType(vn) | FCVTZS | Rn(vn) | Rd(rd));
+        } else {
+            Emit(SF(rd) | FPType(vn) | FCVTZS_fixed | FPScale(64 - fbits) | Rn(vn) | Rd(rd));
+        }
+    }
 
     // FP convert to unsigned integer or fixed-point, round towards zero.
-    void fcvtzu(const Register& rd, const VRegister& vn, int fbits = 0);
+    void fcvtzu(const Register& rd, const VRegister& vn, int fbits = 0) {
+        assert(vn.Is1S() || vn.Is1D());
+        assert((fbits >= 0) && (fbits <= rd.size_in_bits()));
+        if (fbits == 0) {
+            Emit(SF(rd) | FPType(vn) | FCVTZU | Rn(vn) | Rd(rd));
+        } else {
+            Emit(SF(rd) | FPType(vn) | FCVTZU_fixed | FPScale(64 - fbits) | Rn(vn) | Rd(rd));
+        }
+    }
 
     // FP convert to signed integer or fixed-point, round towards zero.
-    void fcvtzs(const VRegister& vd, const VRegister& vn, int fbits = 0);
+    void fcvtzs(const VRegister& vd, const VRegister& vn, int fbits = 0) {
+        assert(fbits >= 0);
+        if (fbits == 0) {
+            NEONFP2RegMisc(vd, vn, NEON_FCVTZS);
+        } else {
+            assert(vd.Is1D() || vd.Is1S() || vd.Is2D() || vd.Is2S() || vd.Is4S());
+            NEONShiftRightImmediate(vd, vn, fbits, NEON_FCVTZS_imm);
+        }
+    }
 
     // FP convert to unsigned integer or fixed-point, round towards zero.
-    void fcvtzu(const VRegister& vd, const VRegister& vn, int fbits = 0);
+    void fcvtzu(const VRegister& vd, const VRegister& vn, int fbits = 0) {
+        assert(fbits >= 0);
+        if (fbits == 0) {
+            NEONFP2RegMisc(vd, vn, NEON_FCVTZU);
+        } else {
+            assert(vd.Is1D() || vd.Is1S() || vd.Is2D() || vd.Is2S() || vd.Is4S());
+            NEONShiftRightImmediate(vd, vn, fbits, NEON_FCVTZU_imm);
+        }
+    }
 
     // FP convert to signed integer, round towards +infinity.
     void fcvtps(const Register& rd, const VRegister& vn);
@@ -2385,20 +2627,49 @@ public:
     void fcvtpu(const VRegister& vd, const VRegister& vn);
 
     // Convert signed integer or fixed point to FP.
-    void scvtf(const VRegister& fd, const Register& rn, int fbits = 0);
+    void scvtf(const VRegister& vd, const Register& rn, int fbits = 0) {
+        assert(fbits >= 0);
+        if (fbits == 0) {
+            Emit(SF(rn) | FPType(vd) | SCVTF | Rn(rn) | Rd(vd));
+        } else {
+            Emit(SF(rn) | FPType(vd) | SCVTF_fixed | FPScale(64 - fbits) | Rn(rn) | Rd(vd));
+        }
+    }
 
     // Convert unsigned integer or fixed point to FP.
-    void ucvtf(const VRegister& fd, const Register& rn, int fbits = 0);
+    void ucvtf(const VRegister& fd, const Register& rn, int fbits = 0) {
+        assert(fbits >= 0);
+        if (fbits == 0) {
+            Emit(SF(rn) | FPType(fd) | UCVTF | Rn(rn) | Rd(fd));
+        } else {
+            Emit(SF(rn) | FPType(fd) | UCVTF_fixed | FPScale(64 - fbits) | Rn(rn) | Rd(fd));
+        }
+    }
 
     // Convert signed integer or fixed-point to FP.
-    void scvtf(const VRegister& fd, const VRegister& vn, int fbits = 0);
+    void scvtf(const VRegister& vd, const VRegister& vn, int fbits = 0) {
+        assert(fbits >= 0);
+        if (fbits == 0) {
+            NEONFP2RegMisc(vd, vn, NEON_SCVTF);
+        } else {
+            assert(vd.Is1D() || vd.Is1S() || vd.Is2D() || vd.Is2S() || vd.Is4S());
+            NEONShiftRightImmediate(vd, vn, fbits, NEON_SCVTF_imm);
+        }
+    }
 
     // Convert unsigned integer or fixed-point to FP.
-    void ucvtf(const VRegister& fd, const VRegister& vn, int fbits = 0);
+    void ucvtf(const VRegister& vd, const VRegister& vn, int fbits = 0) {
+        assert(fbits >= 0);
+        if (fbits == 0) {
+            NEONFP2RegMisc(vd, vn, NEON_UCVTF);
+        } else {
+            assert(vd.Is1D() || vd.Is1S() || vd.Is2D() || vd.Is2S() || vd.Is4S());
+            NEONShiftRightImmediate(vd, vn, fbits, NEON_UCVTF_imm);
+        }
+    }
 
     // Extract vector from pair of vectors.
-    void ext(const VRegister& vd, const VRegister& vn, const VRegister& vm,
-             int index);
+    void ext(const VRegister& vd, const VRegister& vn, const VRegister& vm, int index);
 
     // Duplicate vector element to vector or scalar.
     void dup(const VRegister& vd, const VRegister& vn, int vn_index);
@@ -2556,10 +2827,20 @@ public:
     void ushll2(const VRegister& vd, const VRegister& vn, int shift);
 
     // Shift left long by element size.
-    void shll(const VRegister& vd, const VRegister& vn, int shift);
+    void shll(const VRegister& vd, const VRegister& vn, int shift) {
+        assert((vd.Is8H() && vn.Is8B() && shift == 8) || (vd.Is4S() && vn.Is4H() && shift == 16) ||
+               (vd.Is2D() && vn.Is2S() && shift == 32));
+        //USE(shift);
+        Emit(VFormat(vn) | NEON_SHLL | Rn(vn) | Rd(vd));
+    }
 
     // Shift left long by element size (second part).
-    void shll2(const VRegister& vd, const VRegister& vn, int shift);
+    void shll2(const VRegister& vd, const VRegister& vn, int shift) {
+        //USE(shift);
+        assert((vd.Is8H() && vn.Is16B() && shift == 8) || (vd.Is4S() && vn.Is8H() && shift == 16) ||
+               (vd.Is2D() && vn.Is4S() && shift == 32));
+        Emit(VFormat(vn) | NEON_SHLL | Rn(vn) | Rd(vd));
+    }
 
     // Unsigned extend long.
     void uxtl(const VRegister& vd, const VRegister& vn);
@@ -2651,6 +2932,8 @@ public:
     // End of Instruction set functions --------------------------------------------------------------------------------
     
 private:
+    void MoveWide(const Register& rd, uint64_t imm, int shift, MoveWideImmediateOp mov_op);
+    
     void ConditionalSelect(const Register& rd, const Register& rn, const Register& rm, Condition cond,
                            ConditionalSelectOp op) {
         assert(rd.size_in_bits() == rn.size_in_bits());
@@ -2675,6 +2958,23 @@ private:
     }
     
     static bool IsImmConditionalCompare(int64_t immediate) { return base::is_uint5(immediate); }
+    
+    void FPDataProcessing1Source(const VRegister& vd, const VRegister& vn, FPDataProcessing1SourceOp op) {
+        Emit(FPType(vn) | op | Rn(vn) | Rd(vd));
+    }
+
+    void FPDataProcessing2Source(const VRegister& fd, const VRegister& fn, const VRegister& fm,
+                                 FPDataProcessing2SourceOp op) {
+        assert(fd.size_in_bits() == fn.size_in_bits());
+        assert(fd.size_in_bits() == fm.size_in_bits());
+        Emit(FPType(fd) | op | Rm(fm) | Rn(fn) | Rd(fd));
+    }
+    
+    void FPDataProcessing3Source(const VRegister& fd, const VRegister& fn, const VRegister& fm, const VRegister& fa,
+                                 FPDataProcessing3SourceOp op) {
+        assert(AreSameSizeAndType(fd, fn, fm, fa));
+        Emit(FPType(fd) | op | Rm(fm) | Rn(fn) | Rd(fd) | Ra(fa));
+    }
     
     void DataProcessing3Source(const Register& rd, const Register& rn, const Register& rm, const Register& ra,
                                DataProcessing3SourceOp op) {
@@ -2715,6 +3015,8 @@ private:
         }
         return size;
     }
+    
+    void LoadStorePair(const CPURegister& rt, const CPURegister& rt2, const MemOperand& addr, LoadStorePairOp op);
     
     LoadStorePairOp LoadPairOpFor(const CPURegister& rt, const CPURegister& rt2) {
       assert((STP_w | LoadStorePairLBit) == LDP_w);
@@ -2796,6 +3098,108 @@ private:
         }
 
         Emit(format | op | Rm(vm) | Rn(vn) | Rd(vd));
+    }
+    
+    void NEONFP3Same(const VRegister& vd, const VRegister& vn, const VRegister& vm, uint32_t op) {
+        assert(AreSameFormat(vd, vn, vm));
+        Emit(FPFormat(vd) | op | Rm(vm) | Rn(vn) | Rd(vd));
+    }
+    
+    void NEONShiftImmediate(const VRegister& vd, const VRegister& vn, NEONShiftImmediateOp op, int immh_immb) {
+        assert(AreSameFormat(vd, vn));
+        uint32_t q, scalar;
+        if (vn.IsScalar()) {
+            q = NEON_Q;
+            scalar = NEONScalar;
+        } else {
+            q = vd.IsD() ? 0 : NEON_Q;
+            scalar = 0;
+        }
+        Emit(q | op | scalar | immh_immb | Rn(vn) | Rd(vd));
+    }
+
+    void NEONShiftLeftImmediate(const VRegister& vd, const VRegister& vn, int shift, NEONShiftImmediateOp op) {
+        int lane_size_in_bits = vn.LaneSizeInBits();
+        assert((shift >= 0) && (shift < lane_size_in_bits));
+        NEONShiftImmediate(vd, vn, op, (lane_size_in_bits + shift) << 16);
+    }
+
+    void NEONShiftRightImmediate(const VRegister& vd,
+                                            const VRegister& vn, int shift,
+                                            NEONShiftImmediateOp op) {
+        int lane_size_in_bits = vn.LaneSizeInBits();
+        assert((shift >= 1) && (shift <= lane_size_in_bits));
+        NEONShiftImmediate(vd, vn, op, ((2 * lane_size_in_bits) - shift) << 16);
+    }
+
+    void NEONShiftImmediateL(const VRegister& vd, const VRegister& vn,
+                                        int shift, NEONShiftImmediateOp op) {
+        int lane_size_in_bits = vn.LaneSizeInBits();
+        assert((shift >= 0) && (shift < lane_size_in_bits));
+        int immh_immb = (lane_size_in_bits + shift) << 16;
+
+        assert((vn.Is8B() && vd.Is8H()) || (vn.Is4H() && vd.Is4S()) ||
+               (vn.Is2S() && vd.Is2D()) || (vn.Is16B() && vd.Is8H()) ||
+               (vn.Is8H() && vd.Is4S()) || (vn.Is4S() && vd.Is2D()));
+        uint32_t q = vn.IsD() ? 0 : NEON_Q;
+        Emit(q | op | immh_immb | Rn(vn) | Rd(vd));
+    }
+
+    void NEONShiftImmediateN(const VRegister& vd, const VRegister& vn, int shift, NEONShiftImmediateOp op) {
+        uint32_t q, scalar;
+        int lane_size_in_bits = vd.LaneSizeInBits();
+        assert((shift >= 1) && (shift <= lane_size_in_bits));
+        int immh_immb = (2 * lane_size_in_bits - shift) << 16;
+
+        if (vn.IsScalar()) {
+            assert((vd.Is1B() && vn.Is1H()) || (vd.Is1H() && vn.Is1S()) || (vd.Is1S() && vn.Is1D()));
+            q = NEON_Q;
+            scalar = NEONScalar;
+        } else {
+            assert((vd.Is8B() && vn.Is8H()) || (vd.Is4H() && vn.Is4S()) ||
+                   (vd.Is2S() && vn.Is2D()) || (vd.Is16B() && vn.Is8H()) ||
+                   (vd.Is8H() && vn.Is4S()) || (vd.Is4S() && vn.Is2D()));
+            scalar = 0;
+            q = vd.IsD() ? 0 : NEON_Q;
+        }
+        Emit(q | op | scalar | immh_immb | Rn(vn) | Rd(vd));
+    }
+    
+    void NEONFP2RegMisc(const VRegister& vd, const VRegister& vn, uint32_t op) {
+        assert(AreSameFormat(vd, vn));
+        Emit(FPFormat(vd) | op | Rn(vn) | Rd(vd));
+    }
+    
+    void NEONFP2RegMisc(const VRegister& vd, const VRegister& vn, NEON2RegMiscOp vop, double value) {
+        assert(AreSameFormat(vd, vn));
+        assert(value == 0.0);
+        //USE(value);
+
+        uint32_t op = vop;
+        if (vd.IsScalar()) {
+            assert(vd.Is1S() || vd.Is1D());
+            op |= NEON_Q | NEONScalar;
+        } else {
+            assert(vd.Is2S() || vd.Is2D() || vd.Is4S());
+        }
+
+        Emit(FPFormat(vd) | op | Rn(vn) | Rd(vd));
+    }
+    
+    void NEON2RegMisc(const VRegister& vd, const VRegister& vn, NEON2RegMiscOp vop, int value) {
+        assert(AreSameFormat(vd, vn));
+        assert(value == 0);
+        //USE(value);
+
+        uint32_t format, op = vop;
+        if (vd.IsScalar()) {
+            op |= NEON_Q | NEONScalar;
+            format = SFormat(vd);
+        } else {
+            format = VFormat(vd);
+        }
+
+        Emit(format | op | Rn(vn) | Rd(vd));
     }
     
     void Logical(const Register& rd, const Register& rn, const Operand& operand, LogicalOp op);
@@ -3067,10 +3471,73 @@ private:
         return shift << ShiftMoveWide_offset;
     }
     
+    static uint32_t ImmNEONHLM(int index, int num_bits) {
+        int h, l, m;
+        if (num_bits == 3) {
+            assert(base::is_uint3(index));
+            h = (index >> 2) & 1;
+            l = (index >> 1) & 1;
+            m = (index >> 0) & 1;
+        } else if (num_bits == 2) {
+            assert(base::is_uint2(index));
+            h = (index >> 1) & 1;
+            l = (index >> 0) & 1;
+            m = 0;
+        } else {
+            assert(base::is_uint1(index) && (num_bits == 1));
+            h = (index >> 0) & 1;
+            l = 0;
+            m = 0;
+        }
+        return (h << NEONH_offset) | (l << NEONL_offset) | (m << NEONM_offset);
+    }
+
+    static uint32_t ImmNEONExt(int imm4) {
+        assert(base::is_uint4(imm4));
+      return imm4 << ImmNEONExt_offset;
+    }
+
+    static uint32_t ImmNEON5(uint32_t format, int index) {
+        assert(base::is_uint4(index));
+        int s = LaneSizeInBytesLog2FromFormat(static_cast<VectorFormat>(format));
+        int imm5 = (index << (s + 1)) | (1 << s);
+        return imm5 << ImmNEON5_offset;
+    }
+
+    static uint32_t ImmNEON4(uint32_t format, int index) {
+        assert(base::is_uint4(index));
+        int s = LaneSizeInBytesLog2FromFormat(static_cast<VectorFormat>(format));
+        int imm4 = index << s;
+        return imm4 << ImmNEON4_offset;
+    }
+
+    static uint32_t ImmNEONabcdefgh(int imm8) {
+        assert(base::is_uint8(imm8));
+        uint32_t instr;
+        instr = ((imm8 >> 5) & 7) << ImmNEONabc_offset;
+        instr |= (imm8 & 0x1f) << ImmNEONdefgh_offset;
+        return instr;
+    }
+
+    static uint32_t NEONCmode(int cmode) {
+        assert(base::is_uint4(cmode));
+        return cmode << NEONCmode_offset;
+    }
+
+    static uint32_t NEONModImmOp(int op) {
+        assert(base::is_uint1(op));
+        return op << NEONModImmOp_offset;
+    }
+    
     static bool IsImmLSUnscaled(int64_t offset) { return base::is_int9(offset); }
     static bool IsImmLSScaled(int64_t offset, unsigned size) {
         bool offset_is_size_multiple = (static_cast<int64_t>(static_cast<uint64_t>(offset >> size) << size) == offset);
         return offset_is_size_multiple && base::is_uint12(offset >> size);
+    }
+    static bool IsImmLSPair(int64_t offset, unsigned size) {
+        bool offset_is_size_multiple = (static_cast<int64_t>(static_cast<uint64_t>(offset >> size) << size) ==
+                                        offset);
+        return offset_is_size_multiple && base::is_int7(offset >> size);
     }
     static bool IsImmLLiteral(int64_t offset) {
         int inst_size = static_cast<int>(kInstrSizeLog2);
@@ -3080,14 +3547,6 @@ private:
         offset >>= kLoadLiteralScaleLog2;
         return offset_is_inst_multiple && base::is_intn(offset, ImmLLiteral_width);
     }
-
-    // Move immediates encoding.
-    //inline static uint32_t ImmMoveWide(int imm);
-    //inline static uint32_t ShiftMoveWide(int shift);
-
-    // FP Immediates.
-//    static uint32_t ImmFP(double imm);
-//    static uint32_t ImmNEONFP(double imm);
 
     static uint32_t FPType(VRegister fd) { return fd.Is64Bits() ? FP64 : FP32; }
 
@@ -3109,6 +3568,79 @@ private:
     }
     
     static bool IsImmLogical(uint64_t value, unsigned width, unsigned* n, unsigned* imm_s, unsigned* imm_r);
+    
+    static uint32_t ImmFP(double imm) { return FPToImm8(imm) << ImmFP_offset; }
+    
+    static uint32_t ImmNEONFP(double imm) { return ImmNEONabcdefgh(FPToImm8(imm)); }
+    
+    // Below, a difference in case for the same letter indicates a
+    // negated bit. If b is 1, then B is 0.
+    static uint32_t FPToImm8(double imm) {
+        assert(IsImmFP64(imm));
+        // bits: aBbb.bbbb.bbcd.efgh.0000.0000.0000.0000
+        //       0000.0000.0000.0000.0000.0000.0000.0000
+        uint64_t bits = bit_cast<uint64_t>(imm);
+        // bit7: a000.0000
+        uint64_t bit7 = ((bits >> 63) & 0x1) << 7;
+        // bit6: 0b00.0000
+        uint64_t bit6 = ((bits >> 61) & 0x1) << 6;
+        // bit5_to_0: 00cd.efgh
+        uint64_t bit5_to_0 = (bits >> 48) & 0x3F;
+        return static_cast<uint32_t>(bit7 | bit6 | bit5_to_0);
+    }
+    
+    
+    static bool IsImmFP64(double imm) {
+        // Valid values will have the form:
+        // aBbb.bbbb.bbcd.efgh.0000.0000.0000.0000
+        // 0000.0000.0000.0000.0000.0000.0000.0000
+        uint64_t bits = bit_cast<uint64_t>(imm);
+        // bits[47..0] are cleared.
+        if ((bits & 0xFFFFFFFFFFFFL) != 0) {
+            return false;
+        }
+
+        // bits[61..54] are all set or all cleared.
+        uint32_t b_pattern = (bits >> 48) & 0x3FC0;
+        if (b_pattern != 0 && b_pattern != 0x3FC0) {
+            return false;
+        }
+
+        // bit[62] and bit[61] are opposite.
+        if (((bits ^ (bits << 1)) & 0x4000000000000000L) == 0) {
+            return false;
+        }
+        return true;
+    }
+    
+    LoadLiteralOp LoadLiteralOpFor(const CPURegister& rt) {
+        if (rt.IsRegister()) {
+            return rt.Is64Bits() ? LDR_x_lit : LDR_w_lit;
+        } else {
+            assert(rt.IsVRegister());
+            return rt.Is64Bits() ? LDR_d_lit : LDR_s_lit;
+        }
+    }
+    
+    // Instruction bits for vector format in floating point data processing
+    // operations.
+    static uint32_t FPFormat(VRegister vd) {
+        if (vd.lane_count() == 1) {
+            // Floating point scalar formats.
+            assert(vd.Is32Bits() || vd.Is64Bits());
+            return vd.Is64Bits() ? FP64 : FP32;
+        }
+
+        // Two lane floating point vector formats.
+        if (vd.lane_count() == 2) {
+            assert(vd.Is64Bits() || vd.Is128Bits());
+            return vd.Is128Bits() ? NEON_FP_2D : NEON_FP_2S;
+        }
+
+        // Four lane floating point vector format.
+        assert((vd.lane_count() == 4) && vd.Is128Bits());
+        return NEON_FP_4S;
+    }
     
     // Instruction bits for vector format in data processing operations.
     static uint32_t VFormat(VRegister vd) {
@@ -3237,6 +3769,98 @@ private:
         NEON3Same(vd, vn, vm, OP);                                 \
     }
 NEON_3SAME_LIST(DEFINE_ASM_FUNC)
+#undef DEFINE_ASM_FUNC
+
+#define NEON_FP3SAME_LIST_V2(V)                 \
+  V(fadd, NEON_FADD, FADD)                      \
+  V(fsub, NEON_FSUB, FSUB)                      \
+  V(fmul, NEON_FMUL, FMUL)                      \
+  V(fdiv, NEON_FDIV, FDIV)                      \
+  V(fmax, NEON_FMAX, FMAX)                      \
+  V(fmaxnm, NEON_FMAXNM, FMAXNM)                \
+  V(fmin, NEON_FMIN, FMIN)                      \
+  V(fminnm, NEON_FMINNM, FMINNM)                \
+  V(fmulx, NEON_FMULX, NEON_FMULX_scalar)       \
+  V(frecps, NEON_FRECPS, NEON_FRECPS_scalar)    \
+  V(frsqrts, NEON_FRSQRTS, NEON_FRSQRTS_scalar) \
+  V(fabd, NEON_FABD, NEON_FABD_scalar)          \
+  V(fmla, NEON_FMLA, 0)                         \
+  V(fmls, NEON_FMLS, 0)                         \
+  V(facge, NEON_FACGE, NEON_FACGE_scalar)       \
+  V(facgt, NEON_FACGT, NEON_FACGT_scalar)       \
+  V(fcmeq, NEON_FCMEQ, NEON_FCMEQ_scalar)       \
+  V(fcmge, NEON_FCMGE, NEON_FCMGE_scalar)       \
+  V(fcmgt, NEON_FCMGT, NEON_FCMGT_scalar)       \
+  V(faddp, NEON_FADDP, 0)                       \
+  V(fmaxp, NEON_FMAXP, 0)                       \
+  V(fminp, NEON_FMINP, 0)                       \
+  V(fmaxnmp, NEON_FMAXNMP, 0)                   \
+  V(fminnmp, NEON_FMINNMP, 0)
+
+#define DEFINE_ASM_FUNC(FN, VEC_OP, SCA_OP)                    \
+inline void Assembler::FN(const VRegister& vd, const VRegister& vn, const VRegister& vm) { \
+    uint32_t op;                                               \
+    if ((SCA_OP != 0) && vd.IsScalar()) {                      \
+        assert(vd.Is1S() || vd.Is1D());                        \
+        op = SCA_OP;                                           \
+    } else {                                                   \
+        assert(vd.IsVector());                                 \
+        assert(vd.Is2S() || vd.Is2D() || vd.Is4S());           \
+        op = VEC_OP;                                           \
+    }                                                          \
+    NEONFP3Same(vd, vn, vm, op);                               \
+}
+NEON_FP3SAME_LIST_V2(DEFINE_ASM_FUNC)
+#undef DEFINE_ASM_FUNC
+
+#define NEON_FP2REGMISC_FCVT_LIST(V) \
+  V(fcvtnu, NEON_FCVTNU, FCVTNU)     \
+  V(fcvtns, NEON_FCVTNS, FCVTNS)     \
+  V(fcvtpu, NEON_FCVTPU, FCVTPU)     \
+  V(fcvtps, NEON_FCVTPS, FCVTPS)     \
+  V(fcvtmu, NEON_FCVTMU, FCVTMU)     \
+  V(fcvtms, NEON_FCVTMS, FCVTMS)     \
+  V(fcvtau, NEON_FCVTAU, FCVTAU)     \
+  V(fcvtas, NEON_FCVTAS, FCVTAS)
+
+#define DEFINE_ASM_FUNCS(FN, VEC_OP, SCA_OP)                              \
+    inline void Assembler::FN(const Register& rd, const VRegister& vn) {  \
+        NEONFPConvertToInt(rd, vn, SCA_OP);                               \
+    }                                                                     \
+    inline void Assembler::FN(const VRegister& vd, const VRegister& vn) { \
+        NEONFPConvertToInt(vd, vn, VEC_OP);                               \
+    }
+NEON_FP2REGMISC_FCVT_LIST(DEFINE_ASM_FUNCS)
+#undef DEFINE_ASM_FUNCS
+
+
+#define NEON_FP2REGMISC_LIST(V)                 \
+  V(fabs, NEON_FABS, FABS)                      \
+  V(fneg, NEON_FNEG, FNEG)                      \
+  V(fsqrt, NEON_FSQRT, FSQRT)                   \
+  V(frintn, NEON_FRINTN, FRINTN)                \
+  V(frinta, NEON_FRINTA, FRINTA)                \
+  V(frintp, NEON_FRINTP, FRINTP)                \
+  V(frintm, NEON_FRINTM, FRINTM)                \
+  V(frintx, NEON_FRINTX, FRINTX)                \
+  V(frintz, NEON_FRINTZ, FRINTZ)                \
+  V(frinti, NEON_FRINTI, FRINTI)                \
+  V(frsqrte, NEON_FRSQRTE, NEON_FRSQRTE_scalar) \
+  V(frecpe, NEON_FRECPE, NEON_FRECPE_scalar)
+
+#define DEFINE_ASM_FUNC(FN, VEC_OP, SCA_OP)                           \
+inline void Assembler::FN(const VRegister& vd, const VRegister& vn) { \
+    uint32_t op;                                                      \
+    if (vd.IsScalar()) {                                              \
+        assert(vd.Is1S() || vd.Is1D());                               \
+        op = SCA_OP;                                                  \
+    } else {                                                          \
+        assert(vd.Is2S() || vd.Is2D() || vd.Is4S());                  \
+        op = VEC_OP;                                                  \
+    }                                                                 \
+    NEONFP2RegMisc(vd, vn, op);                                       \
+}
+NEON_FP2REGMISC_LIST(DEFINE_ASM_FUNC)
 #undef DEFINE_ASM_FUNC
 
 } // namespace arm64

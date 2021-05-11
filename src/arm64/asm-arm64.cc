@@ -17,12 +17,29 @@ inline uint64_t LargestPowerOf2Divisor(uint64_t value) {
     return value & ((~value) + 1);
 }
 
-int CountLeadingZeros(uint64_t value, int width) {
+inline int CountLeadingZeros(uint64_t value, int width) {
     assert(IsPowerOf2(width) && (width <= 64));
     if (value == 0) {
         return width;
     }
     return base::Bits::CountLeadingZeros64(value << (64 - width));
+}
+
+unsigned CalcLSPairDataSize(LoadStorePairOp op) {
+    static_assert(kXRegSize == kDRegSize, "X and D registers must be same size.");
+    static_assert(kWRegSize == kSRegSize, "W and S registers must be same size.");
+    switch (op) {
+        case STP_q:
+        case LDP_q:
+            return kQRegSizeLog2;
+        case STP_x:
+        case LDP_x:
+        case STP_d:
+        case LDP_d:
+            return kXRegSizeLog2;
+        default:
+            return kWRegSizeLog2;
+    }
 }
 
 } // internal
@@ -395,6 +412,45 @@ void Assembler::Logical(const Register& rd, const Register& rn, const Operand& o
     }
 }
 
+// Code generation helpers.
+void Assembler::MoveWide(const Register& rd, uint64_t imm, int shift, MoveWideImmediateOp mov_op) {
+    // Ignore the top 32 bits of an immediate if we're moving to a W register.
+    if (rd.Is32Bits()) {
+        // Check that the top 32 bits are zero (a positive 32-bit number) or top
+        // 33 bits are one (a negative 32-bit number, sign extended to 64 bits).
+        assert(((imm >> kWRegSizeInBits) == 0) || ((imm >> (kWRegSizeInBits - 1)) == 0x1FFFFFFFF));
+        imm &= kWRegMask;
+    }
+
+    if (shift >= 0) {
+        // Explicit shift specified.
+        assert((shift == 0) || (shift == 16) || (shift == 32) || (shift == 48));
+        assert(rd.Is64Bits() || (shift == 0) || (shift == 16));
+        shift /= 16;
+    } else {
+        // Calculate a new immediate and shift combination to encode the immediate
+        // argument.
+        shift = 0;
+        if ((imm & ~0xFFFFULL) == 0) {
+            // Nothing to do.
+        } else if ((imm & ~(0xFFFFULL << 16)) == 0) {
+            imm >>= 16;
+            shift = 1;
+        } else if ((imm & ~(0xFFFFULL << 32)) == 0) {
+            assert(rd.Is64Bits());
+            imm >>= 32;
+            shift = 2;
+        } else if ((imm & ~(0xFFFFULL << 48)) == 0) {
+            assert(rd.Is64Bits());
+            imm >>= 48;
+            shift = 3;
+        }
+    }
+
+    assert(base::is_uint16(imm));
+    Emit(SF(rd) | MoveWideImmediateFixed | mov_op | Rd(rd) | ImmMoveWide(static_cast<int>(imm)) | ShiftMoveWide(shift));
+}
+
 void Assembler::AddSub(const Register& rd, const Register& rn, const Operand& operand, FlagsUpdate S, AddSubOp op) {
     assert(rd.size_in_bits() == rn.size_in_bits());
     //assert(!operand.NeedsRelocation(this));
@@ -624,6 +680,34 @@ bool Assembler::IsImmLogical(uint64_t value, unsigned width, unsigned* n, unsign
     *imm_r = r;
 
     return true;
+}
+
+void Assembler::LoadStorePair(const CPURegister& rt, const CPURegister& rt2,
+                              const MemOperand& addr, LoadStorePairOp op) {
+    // 'rt' and 'rt2' can only be aliased for stores.
+    assert(((op & LoadStorePairLBit) == 0) || rt != rt2);
+    assert(AreSameSizeAndType(rt, rt2));
+    assert(IsImmLSPair(addr.offset(), CalcLSPairDataSize(op)));
+    int offset = static_cast<int>(addr.offset());
+
+    uint32_t memop = op | Rt(rt) | Rt2(rt2) | RnSP(addr.base()) | ImmLSPair(offset, CalcLSPairDataSize(op));
+
+    uint32_t addrmodeop;
+    if (addr.IsImmediateOffset()) {
+        addrmodeop = LoadStorePairOffsetFixed;
+    } else {
+        // Pre-index and post-index modes.
+        assert(rt != addr.base());
+        assert(rt2 != addr.base());
+        assert(addr.offset() != 0);
+        if (addr.IsPreIndex()) {
+            addrmodeop = LoadStorePairPreIndexFixed;
+        } else {
+            assert(addr.IsPostIndex());
+            addrmodeop = LoadStorePairPostIndexFixed;
+        }
+    }
+    Emit(addrmodeop | memop);
 }
 
 void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr, LoadStoreOp op) {
