@@ -114,6 +114,11 @@ constexpr inline T AlignDownBounds(T bounds, size_t value) {
     return (value + bounds - 1) & (~(bounds - 1));
 }
 
+template <typename T, typename U>
+constexpr inline bool IsAligned(T value, U alignment) {
+    return (value & (alignment - 1)) == 0;
+}
+
 template<class T>
 inline int ComputeValueShift(T value) {
     int shift;

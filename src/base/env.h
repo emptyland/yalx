@@ -55,12 +55,17 @@ private:
 
 class Env {
 public:
+    static constexpr int kMemoryNone = 0;
     static constexpr int kMemoryReadable = 0x1;
     static constexpr int kMemoryWriteable = 0x2;
     static constexpr int kMemoryExecuteable = 0x4;
     
+    static constexpr int kMemoryWR = kMemoryReadable | kMemoryWriteable;
+    static constexpr int kMemoryWRX = kMemoryReadable | kMemoryWriteable | kMemoryExecuteable;
+    
     static int kOSPageSize;
     
+    // Global env initialize.
     static Status Init();
     
     // std::unique_ptr<SequentialFile> file;
@@ -79,8 +84,10 @@ public:
         return OSPageMemory{static_cast<Address>(memory), n};
     }
     
+    // Allocate one or more pages from os.
     static inline Status OSPageAllocate(size_t n, int access, void **result);
     
+    // Free one or moer pages to os.
     static inline Status OSPageFree(void *chunk, size_t n);
 };
 

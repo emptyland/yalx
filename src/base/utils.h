@@ -11,6 +11,19 @@ namespace base {
 
 static constexpr int kBitsPerByte = 8;
 
+// Bit field extraction.
+inline uint32_t unsigned_bitextract_32(int msb, int lsb, uint32_t x) {
+    return (x >> lsb) & ((1 << (1 + msb - lsb)) - 1);
+}
+
+inline uint64_t unsigned_bitextract_64(int msb, int lsb, uint64_t x) {
+    return (x >> lsb) & ((static_cast<uint64_t>(1) << (1 + msb - lsb)) - 1);
+}
+
+inline int32_t signed_bitextract_32(int msb, int lsb, uint32_t x) {
+    return static_cast<int32_t>(x << (31 - msb)) >> (lsb + 31 - msb);
+}
+
 // Check number width.
 inline bool is_intn(int64_t x, unsigned n) {
     assert((0 < n) && (n < 64));

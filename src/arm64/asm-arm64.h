@@ -7,6 +7,8 @@
 #define YALX_ARM64_ASM_ARM64_H_
 
 #include "arm64/const-arm64.h"
+#include "arm64/instr-arm64.h"
+#include "arch/label.h"
 #include "base/utils.h"
 #include "base/base.h"
 #include "base/checking.h"
@@ -589,35 +591,6 @@ inline VRegister CPURegister::Q() const {
 
 
 //----------------------------------------------------------------------------------------------------------------------
-
-enum ImmBranchType {
-  UnknownBranchType = 0,
-  CondBranchType = 1,
-  UncondBranchType = 2,
-  CompareBranchType = 3,
-  TestBranchType = 4
-};
-
-enum AddrMode { Offset, PreIndex, PostIndex };
-
-enum FPRounding {
-  // The first four values are encodable directly by FPCR<RMode>.
-  FPTieEven = 0x0,
-  FPPositiveInfinity = 0x1,
-  FPNegativeInfinity = 0x2,
-  FPZero = 0x3,
-
-  // The final rounding modes are only available when explicitly specified by
-  // the instruction (such as with fcvta). They cannot be set in FPCR.
-  FPTieAway,
-  FPRoundOdd
-};
-
-enum Reg31Mode { Reg31IsStackPointer, Reg31IsZeroRegister };
-
-class Label;
-
-//----------------------------------------------------------------------------------------------------------------------
 // Immediate
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -793,12 +766,17 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 // Assembler
-
+using arch::Label;
 
 class Assembler {
 public:
     inline Assembler() = default;
     
+    // Label --------------------------------------------------------------------
+    // Bind a label to the current pc. Note that labels can only be bound once,
+    // and if labels are linked to other instructions, they _must_ be bound
+    // before they go out of scope.
+    void bind(Label *label);
     
     // Instruction set functions ---------------------------------------------------------------------------------------
 
@@ -2516,10 +2494,7 @@ public:
     }*/
 
     // FP pairwise minimum number vector.
-    void fminnmp(const VRegister& vd, const VRegister& vn, const VRegister& vm); /*{
-        assert((vd.Is1S() && vn.Is2S()) || (vd.Is1D() && vn.Is2D()));
-        Emit(FPFormat(vd) | NEON_FMINNMP_scalar | Rn(vn) | Rd(vd));
-    }*/
+    void fminnmp(const VRegister& vd, const VRegister& vn, const VRegister& vm);
 
     // FP fused multiply-add.
     void fmadd(const VRegister& fd, const VRegister& fn, const VRegister& fm, const VRegister& fa) {
@@ -3211,7 +3186,6 @@ public:
     void dcptr(Label* label);
     // End of Instruction set functions --------------------------------------------------------------------------------
     
-private:
     void MoveWide(const Register& rd, uint64_t imm, int shift, MoveWideImmediateOp mov_op);
     
     void ConditionalSelect(const Register& rd, const Register& rn, const Register& rm, Condition cond,
@@ -3303,67 +3277,9 @@ private:
       return static_cast<LoadStorePairOp>(StorePairOpFor(rt, rt2) | LoadStorePairLBit);
     }
     
-    LoadStoreOp LoadOpFor(const CPURegister& rt) {
-        assert(rt.is_valid());
-        if (rt.IsRegister()) {
-            return rt.Is64Bits() ? LDR_x : LDR_w;
-        } else {
-            assert(rt.IsVRegister());
-            switch (rt.size_in_bits()) {
-                case kBRegSizeInBits:
-                    return LDR_b;
-                case kHRegSizeInBits:
-                    return LDR_h;
-                case kSRegSizeInBits:
-                    return LDR_s;
-                case kDRegSizeInBits:
-                    return LDR_d;
-                default:
-                    assert(rt.IsQ());
-                    return LDR_q;
-            }
-        }
-    }
-    
-    LoadStorePairOp StorePairOpFor(const CPURegister& rt, const CPURegister& rt2) {
-        assert(AreSameSizeAndType(rt, rt2));
-        if (rt.IsRegister()) {
-            return rt.Is64Bits() ? STP_x : STP_w;
-        } else {
-            assert(rt.IsVRegister());
-            switch (rt.size_in_bits()) {
-                case kSRegSizeInBits:
-                    return STP_s;
-                case kDRegSizeInBits:
-                    return STP_d;
-                default:
-                    assert(rt.IsQ());
-                    return STP_q;
-            }
-        }
-    }
-    
-    LoadStoreOp StoreOpFor(const CPURegister& rt) {
-        assert(rt.is_valid());
-        if (rt.IsRegister()) {
-            return rt.Is64Bits() ? STR_x : STR_w;
-        } else {
-            assert(rt.IsVRegister());
-            switch (rt.size_in_bits()) {
-                case kBRegSizeInBits:
-                    return STR_b;
-                case kHRegSizeInBits:
-                    return STR_h;
-                case kSRegSizeInBits:
-                    return STR_s;
-                case kDRegSizeInBits:
-                    return STR_d;
-                default:
-                    assert(rt.IsQ());
-                    return STR_q;
-            }
-        }
-    }
+    static LoadStoreOp LoadOpFor(const CPURegister& rt);
+    static LoadStorePairOp StorePairOpFor(const CPURegister& rt, const CPURegister& rt2);
+    static LoadStoreOp StoreOpFor(const CPURegister& rt);
 
     void NEON3Same(const VRegister& vd, const VRegister& vn, const VRegister& vm, NEON3SameOp vop) {
         assert(AreSameFormat(vd, vn, vm));
@@ -3648,16 +3564,71 @@ private:
         Emit(SF(rd) | op | Flags(S) | Rm(operand.reg()) | Rn(rn) | Rd(rd));
     }
     
-    int LinkAndGetInstructionOffsetTo(Label */*l*/) {
-        // TODO:
-        UNREACHABLE();
-        return 0;
+    static constexpr int kStartOfLabelLinkChain = 0;
+    
+    int LinkAndGetInstructionOffsetTo(Label *label) {
+        assert(kStartOfLabelLinkChain == 0);
+        int offset = LinkAndGetByteOffsetTo(label);
+        assert(IsAligned(offset, kInstrSize));
+        return offset >> kInstrSizeLog2;
     }
     
-    int LinkAndGetByteOffsetTo(Label */*l*/) {
-        // TODO:
-        UNREACHABLE();
-        return 0;
+    int LinkAndGetByteOffsetTo(Label *label) {
+        int offset;
+        if (label->is_bound()) {
+            // The label is bound, so it does not need to be updated. Referring
+            // instructions must link directly to the label as they will not be
+            // updated.
+            //
+            // In this case, label->pos() returns the offset of the label from the
+            // start of the buffer.
+            //
+            // Note that offset can be zero for self-referential instructions. (This
+            // could be useful for ADR, for example.)
+            offset = label->pos() - pc_offset();
+            assert(offset <= 0);
+        } else {
+            if (label->is_linked()) {
+                // The label is linked, so the referring instruction should be added onto
+                // the end of the label's link chain.
+                //
+                // In this case, label->pos() returns the offset of the last linked
+                // instruction from the start of the buffer.
+                offset = label->pos() - pc_offset();
+                assert(offset != kStartOfLabelLinkChain);
+                // Note that the offset here needs to be PC-relative only so that the
+                // first instruction in a buffer can link to an unbound label. Otherwise,
+                // the offset would be 0 for this case, and 0 is reserved for
+                // kStartOfLabelLinkChain.
+            } else {
+                // The label is unused, so it now becomes linked and the referring
+                // instruction is at the start of the new link chain.
+                offset = kStartOfLabelLinkChain;
+            }
+            // The instruction at pc is now the last link in the label's chain.
+            label->link_to(pc_offset());
+        }
+        return offset;
+    }
+    
+    void CheckLabelLinkChain(Label const* label) {
+    #ifndef NDEBUG
+        if (label->is_linked()) {
+            static const int kMaxLinksToCheck = 64;  // Avoid O(n2) behaviour.
+            int links_checked = 0;
+            int64_t link_offset = label->pos();
+            bool end_of_chain = false;
+            while (!end_of_chain) {
+                if (++links_checked > kMaxLinksToCheck) break;
+                Instruction* link = InstructionAt(link_offset);
+                int64_t link_pc_offset = link->ImmPCOffset();
+                int64_t prev_link_offset = link_offset + link_pc_offset;
+
+                end_of_chain = (link_offset == prev_link_offset);
+                link_offset = link_offset + link_pc_offset;
+            }
+        }
+    #endif
     }
     
     const Register& AppropriateZeroRegFor(const CPURegister& reg) const { return reg.Is64Bits() ? xzr : wzr; }
@@ -3904,26 +3875,7 @@ private:
         return shift << ShiftMoveWide_offset;
     }
     
-    static uint32_t ImmNEONHLM(int index, int num_bits) {
-        int h, l, m;
-        if (num_bits == 3) {
-            assert(base::is_uint3(index));
-            h = (index >> 2) & 1;
-            l = (index >> 1) & 1;
-            m = (index >> 0) & 1;
-        } else if (num_bits == 2) {
-            assert(base::is_uint2(index));
-            h = (index >> 1) & 1;
-            l = (index >> 0) & 1;
-            m = 0;
-        } else {
-            assert(base::is_uint1(index) && (num_bits == 1));
-            h = (index >> 0) & 1;
-            l = 0;
-            m = 0;
-        }
-        return (h << NEONH_offset) | (l << NEONL_offset) | (m << NEONM_offset);
-    }
+    static uint32_t ImmNEONHLM(int index, int num_bits);
 
     static uint32_t ImmNEONExt(int imm4) {
         assert(base::is_uint4(imm4));
@@ -4076,53 +4028,18 @@ private:
     }
     
     // Instruction bits for vector format in data processing operations.
-    static uint32_t VFormat(VRegister vd) {
-        if (vd.Is64Bits()) {
-            switch (vd.lane_count()) {
-                case 2:
-                    return NEON_2S;
-                case 4:
-                    return NEON_4H;
-                case 8:
-                    return NEON_8B;
-                default:
-                    UNREACHABLE();
-            }
-        } else {
-            assert(vd.Is128Bits());
-            switch (vd.lane_count()) {
-                case 2:
-                    return NEON_2D;
-                case 4:
-                    return NEON_4S;
-                case 8:
-                    return NEON_8H;
-                case 16:
-                    return NEON_16B;
-                default:
-                    UNREACHABLE();
-            }
-        }
-    }
+    static uint32_t VFormat(VRegister vd);
 
     // Instruction bits for scalar format in data processing operations.
-    static uint32_t SFormat(VRegister vd) {
-        assert(vd.IsScalar());
-        switch (vd.size_in_bytes()) {
-            case 1:
-                return NEON_B;
-            case 2:
-                return NEON_H;
-            case 4:
-                return NEON_S;
-            case 8:
-                return NEON_D;
-            default:
-                UNREACHABLE();
-        }
+    static uint32_t SFormat(VRegister vd);
+
+    const Instruction *operator [] (size_t i) const { return InstructionAt(i * 4); }
+    
+    const Instruction *InstructionAt(size_t offset) const {
+        assert(offset >= 0 && offset < buf_.size());
+        return reinterpret_cast<const Instruction *>(&buf_[offset]);
     }
-
-
+private:
     // Emit the instruction at pc_.
     void Emit(uint32_t instruction) {
         buf_.append(reinterpret_cast<char *>(&instruction), sizeof(instruction));
@@ -4133,6 +4050,15 @@ private:
         buf_.append(static_cast<const char *>(data), n);
         pc_ += n;
     }
+    
+    Instruction *InstructionAt(size_t offset) {
+        assert(offset >= 0 && offset < buf_.size());
+        return reinterpret_cast<Instruction *>(&buf_[offset]);
+    }
+    
+    Instruction *InstructionLatest() { return reinterpret_cast<Instruction *>(&buf_[pc_]); }
+    
+    int pc_offset() const { return pc_; }
 
     int pc_ = 0;
     std::string buf_;

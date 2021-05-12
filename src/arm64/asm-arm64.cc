@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include "arm64/asm-arm64.h"
+#include "arm64/instr-arm64.h"
 #include "base/bit-ops.h"
 
 namespace yalx {
@@ -949,6 +950,190 @@ void Assembler::LoadStore(const CPURegister& rt, const MemOperand& addr, LoadSto
             // This case is handled in the macro assembler.
             UNREACHABLE();
         }
+    }
+}
+
+void Assembler::bind(Label* label) {
+    // Bind label to the address at pc_. All instructions (most likely branches)
+    // that are linked to this label will be updated to point to the newly-bound
+    // label.
+
+    assert(!label->is_near_linked());
+    assert(!label->is_bound());
+
+    //DeleteUnresolvedBranchInfoForLabel(label);
+
+    // If the label is linked, the link chain looks something like this:
+    //
+    // |--I----I-------I-------L
+    // |---------------------->| pc_offset
+    // |-------------->|         linkoffset = label->pos()
+    //         |<------|         link->ImmPCOffset()
+    // |------>|                 prevlinkoffset = linkoffset + link->ImmPCOffset()
+    //
+    // On each iteration, the last link is updated and then removed from the
+    // chain until only one remains. At that point, the label is bound.
+    //
+    // If the label is not linked, no preparation is required before binding.
+    // TODO:
+    while (label->is_linked()) {
+        int link_offset = label->pos();
+        Instruction* link = InstructionAt(link_offset);
+        int prev_link_offset = link_offset + static_cast<int>(link->ImmPCOffset());
+
+        CheckLabelLinkChain(label);
+
+        assert(link_offset >= 0);
+        assert(link_offset < pc_offset());
+        assert((link_offset > prev_link_offset) || (link_offset - prev_link_offset == kStartOfLabelLinkChain));
+        assert(prev_link_offset >= 0);
+
+        // Update the link to point to the label.
+        link->SetImmPCOffsetTarget(reinterpret_cast<Instruction*>(InstructionLatest()));
+
+        // Link the label to the previous link in the chain.
+        if (link_offset - prev_link_offset == kStartOfLabelLinkChain) {
+            // We hit kStartOfLabelLinkChain, so the chain is fully processed.
+            label->Unuse();
+        } else {
+            // Update the label for the next iteration.
+            label->link_to(prev_link_offset);
+        }
+    }
+    
+    label->bind_to(pc_offset());
+
+    assert(label->is_bound());
+    assert(!label->is_linked());
+}
+
+LoadStoreOp Assembler::LoadOpFor(const CPURegister& rt) {
+    assert(rt.is_valid());
+    if (rt.IsRegister()) {
+        return rt.Is64Bits() ? LDR_x : LDR_w;
+    } else {
+        assert(rt.IsVRegister());
+        switch (rt.size_in_bits()) {
+            case kBRegSizeInBits:
+                return LDR_b;
+            case kHRegSizeInBits:
+                return LDR_h;
+            case kSRegSizeInBits:
+                return LDR_s;
+            case kDRegSizeInBits:
+                return LDR_d;
+            default:
+                assert(rt.IsQ());
+                return LDR_q;
+        }
+    }
+}
+
+LoadStorePairOp Assembler::StorePairOpFor(const CPURegister& rt, const CPURegister& rt2) {
+    assert(AreSameSizeAndType(rt, rt2));
+    if (rt.IsRegister()) {
+        return rt.Is64Bits() ? STP_x : STP_w;
+    } else {
+        assert(rt.IsVRegister());
+        switch (rt.size_in_bits()) {
+            case kSRegSizeInBits:
+                return STP_s;
+            case kDRegSizeInBits:
+                return STP_d;
+            default:
+                assert(rt.IsQ());
+                return STP_q;
+        }
+    }
+}
+
+LoadStoreOp Assembler::StoreOpFor(const CPURegister& rt) {
+    assert(rt.is_valid());
+    if (rt.IsRegister()) {
+        return rt.Is64Bits() ? STR_x : STR_w;
+    } else {
+        assert(rt.IsVRegister());
+        switch (rt.size_in_bits()) {
+            case kBRegSizeInBits:
+                return STR_b;
+            case kHRegSizeInBits:
+                return STR_h;
+            case kSRegSizeInBits:
+                return STR_s;
+            case kDRegSizeInBits:
+                return STR_d;
+            default:
+                assert(rt.IsQ());
+                return STR_q;
+        }
+    }
+}
+
+uint32_t Assembler::ImmNEONHLM(int index, int num_bits) {
+    int h, l, m;
+    if (num_bits == 3) {
+        assert(base::is_uint3(index));
+        h = (index >> 2) & 1;
+        l = (index >> 1) & 1;
+        m = (index >> 0) & 1;
+    } else if (num_bits == 2) {
+        assert(base::is_uint2(index));
+        h = (index >> 1) & 1;
+        l = (index >> 0) & 1;
+        m = 0;
+    } else {
+        assert(base::is_uint1(index) && (num_bits == 1));
+        h = (index >> 0) & 1;
+        l = 0;
+        m = 0;
+    }
+    return (h << NEONH_offset) | (l << NEONL_offset) | (m << NEONM_offset);
+}
+
+// Instruction bits for vector format in data processing operations.
+uint32_t Assembler::VFormat(VRegister vd) {
+    if (vd.Is64Bits()) {
+        switch (vd.lane_count()) {
+            case 2:
+                return NEON_2S;
+            case 4:
+                return NEON_4H;
+            case 8:
+                return NEON_8B;
+            default:
+                UNREACHABLE();
+        }
+    } else {
+        assert(vd.Is128Bits());
+        switch (vd.lane_count()) {
+            case 2:
+                return NEON_2D;
+            case 4:
+                return NEON_4S;
+            case 8:
+                return NEON_8H;
+            case 16:
+                return NEON_16B;
+            default:
+                UNREACHABLE();
+        }
+    }
+}
+
+// Instruction bits for scalar format in data processing operations.
+uint32_t Assembler::SFormat(VRegister vd) {
+    assert(vd.IsScalar());
+    switch (vd.size_in_bytes()) {
+        case 1:
+            return NEON_B;
+        case 2:
+            return NEON_H;
+        case 4:
+            return NEON_S;
+        case 8:
+            return NEON_D;
+        default:
+            UNREACHABLE();
     }
 }
 
