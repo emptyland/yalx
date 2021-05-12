@@ -36,6 +36,8 @@ TEST_F(Arm64AssemblerTest, BindBeforeJump) {
     __ add(x0, x1, Operand{x2});
     __ b(&label);
     __ ret();
+    
+    __ ldr(x0, MemOperand(x1, Operand{0}));
 }
 
 TEST_F(Arm64AssemblerTest, BindAfterJump) {

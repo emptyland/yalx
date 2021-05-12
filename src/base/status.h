@@ -2,6 +2,7 @@
 #ifndef YALX_BASE_STATUS_H_
 #define YALX_BASE_STATUS_H_
 
+#include "base/base.h"
 #include <string>
 #include <string_view>
 
@@ -42,6 +43,8 @@ public:
     
     static Status OK() { return Status(); }
     
+    static Status Eof() { return Status(nullptr, 0, kEOF, ""); }
+    
     static Status NotFound(const char *file_name, int line, std::string_view message = "") {
         return Status(file_name, line, kNotFound, message);
     }
@@ -49,11 +52,13 @@ public:
     static Status Corruption(const char *file_name, int line, std::string_view message = "") {
         return Status(file_name, line, kCorruption, message);
     }
-    
+
+    static Status PError(const char *file_name, int line, std::string_view message = "");
+
     static Status NotSupported(const char *file_name, int line, std::string_view message = "") {
         return Status(file_name, line, kNotSupported, message);
     }
-    
+
     static Status InvalidArgument(const char *file_name, int line, std::string_view message = "") {
         return Status(file_name, line, kInvalidArgument, message);
     }
@@ -109,6 +114,7 @@ private:
 
 #define ERR_NOT_FOUND()           Status::NotFound(__FILE__, __LINE__)
 #define ERR_CORRUPTION(msg)       Status::Corruption(__FILE__, __LINE__, msg)
+#define ERR_PERROR(msg)           Status::PError(__FILE__, __LINE__, msg)
 #define ERR_NOT_SUPPORTED()       Status::NotSupported(__FILE__, __LINE__)
 #define ERR_INVALID_ARGUMENT(msg) Status::InvalidArgument(__FILE__, __LINE__, msg)
 

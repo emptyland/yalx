@@ -21,6 +21,26 @@ public:
 }; // class SequentialFile
 
 
+class WritableFile {
+public:
+    WritableFile() {}
+    virtual ~WritableFile();
+    
+    virtual Status Append(std::string_view data) = 0;
+    virtual Status PositionedAppend(std::string_view data, uint64_t offset) = 0;
+    virtual Status Truncate(uint64_t size) = 0;
+    
+}; // class WritableFile
+
+class RandomAccessFile {
+public:
+    RandomAccessFile() {}
+    virtual ~RandomAccessFile();
+    
+    virtual Status Read(uint64_t offset, size_t n, std::string_view *result, std::string *scratch) = 0;
+    virtual Status GetFileSize(uint64_t *size) = 0;
+}; // class RandomAccessFile
+
 } // namespace base
 
     
