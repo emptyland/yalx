@@ -18,6 +18,18 @@ namespace yalx {
 
 namespace arm64 {
 
+/* Register Usage:
+ *
+ * -- 64 bits POSIX: Linux, BSD, MacOS
+ * Scratch Registers: r9~15
+ * Callee-Saved Registers: r19~28 (r19,r30)
+ * Parameters: r0~7, v0~7
+ * Return: r0, r8
+ * r17(ip1)
+ * r16(ip0)
+ *
+ */
+
 // -----------------------------------------------------------------------------
 // Registers.
 // clang-format off
@@ -4039,6 +4051,8 @@ public:
         assert(offset >= 0 && offset < buf_.size());
         return reinterpret_cast<const Instruction *>(&buf_[offset]);
     }
+    
+    const std::string &buf() const { return buf_; }
 private:
     // Emit the instruction at pc_.
     void Emit(uint32_t instruction) {

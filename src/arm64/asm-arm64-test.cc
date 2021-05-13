@@ -61,10 +61,18 @@ TEST_F(Arm64AssemblerTest, BindAfterJump) {
 
 #if defined(YALX_ARCH_ARM64)
 
-// TODO: Only for arm64
-
-TEST_F(Arm64AssemblerTest, RunSanity) {
-    FAIL() << "fail";
+TEST_F(Arm64AssemblerTest, PosixABICalling) {
+    __ sub(sp, sp, Operand{0x20});
+    __ stp(fp, lr, MemOperand(sp, Operand{0x10}));
+    __ add(x0, x0, x1);
+    __ ldp(fp, lr, MemOperand(sp, Operand{0x10}));
+    __ add(sp, sp, Operand{0x20});
+    __ ret();
+    
+    auto memory = NewCodeBuffer();
+    auto fun = memory.WriteTo<int64_t(int64_t, int64_t)>(assembler_.buf());
+    ASSERT_EQ(1, fun(1, 0));
+    ASSERT_EQ(3, fun(1, 2));
 }
 
 #endif // defined(YALX_ARCH_ARM64)

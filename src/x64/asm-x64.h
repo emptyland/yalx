@@ -10,6 +10,17 @@
 namespace yalx {
 
 namespace x64 {
+
+
+/* Register Usage:
+ *
+ * -- 64 bits POSIX: Linux, BSD, MacOS
+ * Scratch Registers: rax, rdx, rsi, rdi, r8~11, xmm0~15
+ * Callee-Saved Registers: rbx, rbp, r12~15
+ * Parameters: rdi, rsi, rdx, rcx, r8, r9, r10, r11, xmm0~7
+ * Return: rax, rdx, xmm0
+ *
+ */
     
 enum ScaleFactor {
     times_1 = 0,
