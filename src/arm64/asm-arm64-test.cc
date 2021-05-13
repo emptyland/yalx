@@ -70,9 +70,38 @@ TEST_F(Arm64AssemblerTest, PosixABICalling) {
     __ ret();
     
     auto memory = NewCodeBuffer();
+    
     auto fun = memory.WriteTo<int64_t(int64_t, int64_t)>(assembler_.buf());
     ASSERT_EQ(1, fun(1, 0));
     ASSERT_EQ(3, fun(1, 2));
+}
+
+TEST_F(Arm64AssemblerTest, SimpleAdd) {
+    __ sub(sp, sp, 0x10);
+    __ stp(fp, lr, MemOperand{sp, 0x10});
+    __ add(w0, w0, w1);
+    __ ldp(fp, lr, MemOperand{sp, 0x10});
+    __ add(sp, sp, 0x10);
+    __ ret();
+
+    auto memory = NewCodeBuffer();
+    auto fun = memory.WriteTo<int(int, int)>(assembler_.buf());
+    ASSERT_EQ(1, fun(1, 0));
+    ASSERT_EQ(3, fun(1, 2));
+}
+
+TEST_F(Arm64AssemblerTest, SimpleMul) {
+    __ sub(sp, sp, 0x10);
+    __ stp(fp, lr, MemOperand{sp, 0x10});
+    __ mul(w0, w0, w1);
+    __ ldp(fp, lr, MemOperand{sp, 0x10});
+    __ add(sp, sp, 0x10);
+    __ ret();
+
+    auto memory = NewCodeBuffer();
+    auto fun = memory.WriteTo<int(int, int)>(assembler_.buf());
+    ASSERT_EQ(0, fun(1, 0));
+    ASSERT_EQ(2, fun(1, 2));
 }
 
 #endif // defined(YALX_ARCH_ARM64)

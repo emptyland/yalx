@@ -8,6 +8,11 @@
 
 #if defined(YALX_OS_DARWIN)
 #include <sys/mman.h>
+#include <libkern/OSCacheControl.h>
+#if defined(YALX_ARCH_ARM64)
+#include <pthread.h>
+#endif // defined(YALX_ARCH_ARM64)
+
 #endif // defined(YALX_OS_DARWIN)
 
 #include <memory>
@@ -35,9 +40,16 @@ public:
     
     template<class T> inline T *WriteTo(const std::string &buf) { return reinterpret_cast<T *>(Write(buf)); }
     
-    Address Write(const std::string &buf) {
+    Address Write(const std::string &buf, bool code = false) {
         assert(pos_ < size_);
+    #if defined(YALX_OS_DARWIN) && defined(YALX_ARCH_ARM64)
+        ::pthread_jit_write_protect_np(false);
+    #endif // defined(YALX_OS_DARWIN) && defined(YALX_ARCH_ARM64)
         ::memcpy(chunk_ + pos_, &buf[0], buf.size());
+    #if defined(YALX_OS_DARWIN) && defined(YALX_ARCH_ARM64)
+        ::pthread_jit_write_protect_np(true);
+        ::sys_icache_invalidate(chunk_ + pos_, buf.size());
+    #endif // defined(YALX_OS_DARWIN) && defined(YALX_ARCH_ARM64)
         auto space = (chunk_ + pos_);
         pos_ += buf.size();
         return space;
@@ -108,9 +120,9 @@ inline Status Env::OSPageAllocate(size_t n, int access, void **result) {
         flags |= MAP_JIT;
     }
 #endif // defined(YALX_OS_DARWIN)
-    auto chunk = ::mmap(nullptr, n, access, MAP_ANON|MAP_PRIVATE, -1, 0);
+    auto chunk = ::mmap(nullptr, n, access, flags, -1, 0);
     if (chunk == MAP_FAILED) {
-        return ERR_CORRUPTION("mmap fail!");
+        return ERR_PERROR("mmap fail!");
     }
     *result = chunk;
     return Status::OK();

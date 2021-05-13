@@ -81,6 +81,7 @@
 		2354CD942644DDA400A2FAC3 /* format.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = format.cc; path = ../src/base/format.cc; sourceTree = "<group>"; };
 		2354CD962644DE4700A2FAC3 /* status.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = status.cc; path = ../src/base/status.cc; sourceTree = "<group>"; };
 		2354CD982644DF1600A2FAC3 /* base.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = base.cc; path = ../src/base/base.cc; sourceTree = "<group>"; };
+		23ED3A95264D6BAD001FDE88 /* all-tests.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "all-tests.entitlements"; sourceTree = "<group>"; };
 		23EFD486264624BD007222D6 /* asm-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "asm-arm64.h"; path = "../src/arm64/asm-arm64.h"; sourceTree = "<group>"; };
 		23EFD487264624D2007222D6 /* asm-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-arm64.cc"; path = "../src/arm64/asm-arm64.cc"; sourceTree = "<group>"; };
 		23EFD48926463962007222D6 /* const-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "const-arm64.h"; path = "../src/arm64/const-arm64.h"; sourceTree = "<group>"; };
@@ -110,6 +111,7 @@
 		2354CD2B2643994A00A2FAC3 = {
 			isa = PBXGroup;
 			children = (
+				23ED3A95264D6BAD001FDE88 /* all-tests.entitlements */,
 				2354CD3226439A1400A2FAC3 /* Source */,
 				2354CD5726439CB400A2FAC3 /* Products */,
 			);
@@ -332,9 +334,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_ENTITLEMENTS = "all-tests.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = c11;
@@ -397,9 +401,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_ENTITLEMENTS = "all-tests.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = c11;

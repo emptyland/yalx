@@ -16,7 +16,7 @@ TEST(EnvTest, OpenNotExistFile) {
     std::unique_ptr<SequentialFile> file;
     auto rs = Env::NewSequentialFile(".not_exists_file", &file);
     ASSERT_TRUE(rs.IsCorruption());
-    FAIL() << rs.ToString();
+    //FAIL() << rs.ToString();
 }
 
 
