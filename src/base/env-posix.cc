@@ -65,6 +65,35 @@ private:
 }; // class PosixSequentialFile
 
 
+class PosixWritableFile final : public WritableFile {
+public:
+    PosixWritableFile(FILE *fp) : fp_(DCHECK_NOTNULL(fp)) {}
+    ~PosixWritableFile() override { ::fclose(fp_); }
+    
+    Status Append(std::string_view data) override {
+        auto rs = ::fwrite(data.data(), 1, data.size(), fp_);
+        USE(rs);
+        assert(rs == data.size());
+        if (::ferror(fp_)) {
+            return ERR_PERROR("Write file fail");
+        }
+        return Status::OK();
+    }
+    Status PositionedAppend(std::string_view data, uint64_t offset) override {
+        if (::fseek(fp_, offset, SEEK_SET)) {
+            return ERR_PERROR("Seek file fail");
+        }
+        return Append(data);
+    }
+    Status Truncate(uint64_t size) override {
+        if (::ftruncate(fileno(fp_), size) < 0) {
+            return ERR_PERROR("Truncate file fail");
+        }
+        return Status::OK();
+    }
+private:
+    FILE *fp_;
+};
 
 } // namespace
 
