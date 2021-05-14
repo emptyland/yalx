@@ -71,7 +71,7 @@ TEST_F(Arm64AssemblerTest, PosixABICalling) {
     
     auto memory = NewCodeBuffer();
     
-    auto fun = memory.WriteTo<int64_t(int64_t, int64_t)>(assembler_.buf());
+    auto fun = memory.WriteTo<int64_t(int64_t, int64_t)>(assembler_.buf(), true/*code*/);
     ASSERT_EQ(1, fun(1, 0));
     ASSERT_EQ(3, fun(1, 2));
 }
@@ -85,7 +85,7 @@ TEST_F(Arm64AssemblerTest, SimpleAdd) {
     __ ret();
 
     auto memory = NewCodeBuffer();
-    auto fun = memory.WriteTo<int(int, int)>(assembler_.buf());
+    auto fun = memory.WriteTo<int(int, int)>(assembler_.buf(), true/*code*/);
     ASSERT_EQ(1, fun(1, 0));
     ASSERT_EQ(3, fun(1, 2));
 }
@@ -99,7 +99,7 @@ TEST_F(Arm64AssemblerTest, SimpleMul) {
     __ ret();
 
     auto memory = NewCodeBuffer();
-    auto fun = memory.WriteTo<int(int, int)>(assembler_.buf());
+    auto fun = memory.WriteTo<int(int, int)>(assembler_.buf(), true/*code*/);
     ASSERT_EQ(0, fun(1, 0));
     ASSERT_EQ(2, fun(1, 2));
 }

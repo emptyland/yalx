@@ -42,20 +42,20 @@ public:
         return Status::OK();
     }
 
-    Status GetFileSize(size_t *size) override {
-        long saved = ::ftell(fp_);
-        if (saved < 0) {
+    Status Available(size_t *size) override {
+        long current = ::ftell(fp_);
+        if (current < 0) {
             return ERR_PERROR("Get file size fail");
         }
         if (::fseek(fp_, 0, SEEK_END) < 0) {
             return ERR_PERROR("Get file size fail");
         }
-        long current = ::ftell(fp_);
-        if (current < 0) {
+        long end = ::ftell(fp_);
+        if (end < 0) {
             return ERR_PERROR("Get file size fail");
         }
-        *size = current;
-        if (::fseek(fp_, saved, SEEK_SET) < 0) {
+        *size = end - current;
+        if (::fseek(fp_, current, SEEK_SET) < 0) {
             return ERR_PERROR("Get file size fail");
         }
         return Status::OK();
@@ -93,12 +93,12 @@ public:
     }
 private:
     FILE *fp_;
-};
+}; // class PosixWritableFile
 
 } // namespace
 
 Status Env::NewSequentialFile(const std::string &name, std::unique_ptr<SequentialFile> *file) {
-    FILE *fp = ::fopen(name.c_str(), "r");
+    FILE *fp = ::fopen(name.c_str(), "rb");
     if (fp == nullptr) {
         return ERR_PERROR("Can not open file");
     }
@@ -106,6 +106,14 @@ Status Env::NewSequentialFile(const std::string &name, std::unique_ptr<Sequentia
     return Status::OK();
 }
 
+Status Env::NewWritableFile(const std::string &name, bool append, std::unique_ptr<WritableFile> *file) {
+    FILE *fp = ::fopen(name.c_str(), append ? "ab" : "wb");
+    if (fp == nullptr) {
+        return ERR_PERROR("Can not open file");
+    }
+    file->reset(new PosixWritableFile(fp));
+    return Status::OK();
+}
 
 } // namespace base
 

@@ -14,17 +14,17 @@ namespace base {
 class SequentialFile {
 public:
     SequentialFile() = default;
-    virtual ~SequentialFile() {}
+    virtual ~SequentialFile() = default;
     virtual Status Read(size_t n, std::string_view *result, std::string *scratch) = 0;
     virtual Status Skip(size_t n) = 0;
-    virtual Status GetFileSize(size_t *size) = 0;
+    virtual Status Available(size_t *size) = 0;
 }; // class SequentialFile
 
 
 class WritableFile {
 public:
-    WritableFile() {}
-    virtual ~WritableFile();
+    WritableFile() = default;
+    virtual ~WritableFile() = default;
     
     virtual Status Append(std::string_view data) = 0;
     virtual Status PositionedAppend(std::string_view data, uint64_t offset) = 0;
@@ -34,8 +34,8 @@ public:
 
 class RandomAccessFile {
 public:
-    RandomAccessFile() {}
-    virtual ~RandomAccessFile();
+    RandomAccessFile() = default;
+    virtual ~RandomAccessFile() = default;
     
     virtual Status Read(uint64_t offset, size_t n, std::string_view *result, std::string *scratch) = 0;
     virtual Status GetFileSize(uint64_t *size) = 0;

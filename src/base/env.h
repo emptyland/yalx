@@ -22,6 +22,7 @@ namespace yalx {
 namespace base  {
 
 class SequentialFile;
+class WritableFile;
 class Env;
 
 class OSPageMemory {
@@ -38,17 +39,23 @@ public:
     
     bool is_valid() const { return chunk_ != reinterpret_cast<Address>(-1) && size_ > 0; }
     
-    template<class T> inline T *WriteTo(const std::string &buf) { return reinterpret_cast<T *>(Write(buf)); }
+    template<class T> inline T *WriteTo(const std::string &buf, bool code = false) {
+        return reinterpret_cast<T *>(Write(buf, code));
+    }
     
     Address Write(const std::string &buf, bool code = false) {
         assert(pos_ < size_);
     #if defined(YALX_OS_DARWIN) && defined(YALX_ARCH_ARM64)
-        ::pthread_jit_write_protect_np(false);
+        if (code) {
+            ::pthread_jit_write_protect_np(false);
+        }
     #endif // defined(YALX_OS_DARWIN) && defined(YALX_ARCH_ARM64)
         ::memcpy(chunk_ + pos_, &buf[0], buf.size());
     #if defined(YALX_OS_DARWIN) && defined(YALX_ARCH_ARM64)
-        ::pthread_jit_write_protect_np(true);
-        ::sys_icache_invalidate(chunk_ + pos_, buf.size());
+        if (code) {
+            ::pthread_jit_write_protect_np(true);
+            ::sys_icache_invalidate(chunk_ + pos_, buf.size());
+        }
     #endif // defined(YALX_OS_DARWIN) && defined(YALX_ARCH_ARM64)
         auto space = (chunk_ + pos_);
         pos_ += buf.size();
@@ -86,6 +93,8 @@ public:
     //     return rs;
     // }
     static Status NewSequentialFile(const std::string &name, std::unique_ptr<SequentialFile> *file);
+    
+    static Status NewWritableFile(const std::string &name, bool append, std::unique_ptr<WritableFile> *file);
     
     static OSPageMemory OSPageAllocate(size_t n, int access) {
         n = RoundUp(n, kOSPageSize);

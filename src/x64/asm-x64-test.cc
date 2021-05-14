@@ -29,7 +29,7 @@ TEST_F(X64AssemblerTest, Sanity) {
     __ ret(0);
     
     auto memory = NewCodeBuffer();
-    auto fun = memory.WriteTo<int64_t()>(assembler_.buf());
+    auto fun = memory.WriteTo<int64_t()>(assembler_.buf(), true/*code*/);
     ASSERT_EQ(0, fun());
 }
 
@@ -42,7 +42,7 @@ TEST_F(X64AssemblerTest, Add) {
     __ ret(0);
     
     auto memory = NewCodeBuffer();
-    auto fun = memory.WriteTo<int64_t(int64_t, int64_t)>(assembler_.buf());
+    auto fun = memory.WriteTo<int64_t(int64_t, int64_t)>(assembler_.buf(), true/*code*/);
     ASSERT_EQ(3, fun(1, 2));
 }
 

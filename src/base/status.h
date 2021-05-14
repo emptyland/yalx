@@ -23,9 +23,7 @@ public:
 
     Status() : Status(nullptr, 0, kOk, "") {}
 
-    Status(const Status &other)
-        : Status(other.file_name_, other.line_, other.code(), other.message()) {
-    }
+    Status(const Status &other): Status(other.file_name_, other.line_, other.code(), other.message()) {}
 
     Status(Status &&other)
         : file_name_(other.file_name_)
@@ -85,6 +83,27 @@ public:
     
     std::string ToString() const;
     
+    void operator = (const Status &other) {
+        file_name_ = other.file_name_;
+        line_ = other.line_;
+        delete [] state_;
+        if (state_) {
+            state_ = MakeState(code(), std::string_view(state_ + 8, *reinterpret_cast<const int *>(state_)));
+        } else {
+            state_ = nullptr;
+        }
+    }
+    
+    void operator = (Status &&other) {
+        file_name_ = other.file_name_;
+        line_ = other.line_;
+        state_ = other.state_;
+        
+        other.file_name_ = nullptr;
+        other.line_ = 0;
+        delete[] other.state_;
+        other.state_ = nullptr;
+    }
 private:
     Status(const char *file_name, int line, Code code, std::string_view message)
         : file_name_(file_name)
