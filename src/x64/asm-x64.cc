@@ -169,18 +169,18 @@ void Assembler::movapd(XMMRegister dst, XMMRegister src) {
 
 void Assembler::call(Label *l) {
     EmitB(0xE8);
-    if (l->IsBound()) {
-        int off = l->GetPosition() - pc() - sizeof(uint32_t);
+    if (l->is_bound()) {
+        int off = l->pos() - pc() - sizeof(uint32_t);
         assert(off <= 0);
         EmitDW(off);
-    } else if (l->IsLinked()) {
-        EmitDW(l->GetPosition());
-        l->LinkTo(pc() - sizeof(uint32_t), true);
+    } else if (l->is_linked()) {
+        EmitDW(l->pos());
+        l->link_to(pc() - sizeof(uint32_t));
     } else {
-        assert(l->IsUnused());
+        assert(l->is_unused());
         int32_t curr = pc();
         EmitDW(curr);
-        l->LinkTo(curr, true);
+        l->link_to(curr);
     }
 }
 
@@ -195,12 +195,12 @@ void Assembler::ret(int val) {
     }
 }
 
-void Assembler::jmp(Label *l, bool is_far) {
+void Assembler::jmp(Label *l, Label::Distance distance) {
     static const int kShortSize = 1;
     static const int kLongSize = 4;
     
-    if (l->IsBound()) {
-        int off = l->GetPosition() - pc() - 1;
+    if (l->is_bound()) {
+        int off = l->pos() - pc() - 1;
         assert(off <= 0);
         
         if (IsIntN(off - kShortSize, 8)) {
@@ -212,35 +212,35 @@ void Assembler::jmp(Label *l, bool is_far) {
             EmitB(0xE9);
             EmitDW(off - kLongSize);
         }
-    } else if (!is_far) { // near
+    } else if (distance == Label::kNear) { // near
         EmitB(0xEB);
         uint8_t disp = 0x0;
         
-        if (l->IsNearLinked()) {
-            int off = l->GetNearLinkPosition() - pc();
+        if (l->is_near_linked()) {
+            int off = l->near_link_pos() - pc();
             assert(IsIntN(off, 8));
             disp = static_cast<uint8_t>(off & 0xFF);
         }
-        l->LinkTo(pc(), false);
+        l->link_to(pc(), Label::kNear);
         EmitB(disp);
-    } else if (l->IsLinked()) {
+    } else if (l->is_linked()) {
         // 1110 1001 #32-bit disp
         EmitB(0xE9);
-        EmitDW(l->GetPosition());
-        l->LinkTo(pc() - kLongSize, true);
+        EmitDW(l->pos());
+        l->link_to(pc() - kLongSize);
     } else {
-        assert(l->IsUnused());
+        assert(l->is_unused());
         EmitB(0xE9);
         
         int32_t curr = pc();
         EmitDW(curr);
-        l->LinkTo(curr, true);
+        l->link_to(curr);
     }
 }
     
-void Assembler::j(Cond cc, Label *label, bool is_far) {
+void Assembler::j(Cond cc, Label *label, Label::Distance distance) {
     if (cc == Always) {
-        jmp(label, is_far);
+        jmp(label, distance);
         return;
     }
     if (cc == Never) {
@@ -248,11 +248,11 @@ void Assembler::j(Cond cc, Label *label, bool is_far) {
     }
     
     assert(IsUintN(cc, 4));
-    if (label->IsBound()) {
+    if (label->is_bound()) {
         static const int kShortSize = 2;
         static const int kLongSize  = 6;
     
-        int off = label->GetPosition() - pc();
+        int off = label->pos() - pc();
         assert(off <= 0);
         
         if (IsIntN(off - kShortSize, 8)) {
@@ -270,7 +270,7 @@ void Assembler::j(Cond cc, Label *label, bool is_far) {
             EmitB(0x80 | cc);
             EmitDW((off - kLongSize));
         }
-    } else if (!is_far) { // near
+    } else if (distance == Label::kNear) { // near
         // 0111 tttn #8-bit disp
         if (cc == RCXZero) {
             EmitB(0xE3);
@@ -279,29 +279,29 @@ void Assembler::j(Cond cc, Label *label, bool is_far) {
         }
         uint8_t disp = 0x0;
         
-        if (label->IsNearLinked()) {
-            int off = label->GetNearLinkPosition() - pc();
+        if (label->is_near_linked()) {
+            int off = label->near_link_pos() - pc();
             assert(IsIntN(off, 8));
             disp = static_cast<uint8_t>(off & 0xFF);
         }
-        label->LinkTo(pc(), false);
+        label->link_to(pc(), Label::kNear);
         EmitB(disp);
-    } else if (label->IsLinked()) {
+    } else if (label->is_linked()) {
         // 0000 1111 1000 tttn #32-bit disp
         assert(cc != RCXZero);
         EmitB(0x0F);
         EmitB(0x80 | cc);
-        EmitDW(label->GetPosition());
-        label->LinkTo(pc() - sizeof(uint32_t), true);
+        EmitDW(label->pos());
+        label->link_to(pc() - sizeof(uint32_t));
     } else {
-        assert(label->IsUnused());
+        assert(label->is_unused());
         assert(cc != RCXZero);
         EmitB(0x0F);
         EmitB(0x80 | cc);
 
         int32_t curr = pc();
         EmitDW(curr);
-        label->LinkTo(curr, true);
+        label->link_to(curr);
     }
 }
     
@@ -346,12 +346,12 @@ void Assembler::test(Operand dst, Immediate mask, int size) {
 }
 
 void Assembler::BindTo(Label *l, int pos) {
-    assert(!l->IsBound()); // Label may only be bound once.
+    assert(!l->is_bound()); // Label may only be bound once.
     assert(pos >= 0);
     assert(pos <= pc());
     
-    if (l->IsLinked()) {
-        int curr = l->GetPosition();
+    if (l->is_linked()) {
+        int curr = l->pos();
         int next = LongAt(curr);
         
         while (next != curr) {
@@ -365,8 +365,8 @@ void Assembler::BindTo(Label *l, int pos) {
         LongPut(curr, last_i32);
     }
 
-    while (l->IsNearLinked()) {
-        int fixup_pos = l->GetNearLinkPosition();
+    while (l->is_near_linked()) {
+        int fixup_pos = l->near_link_pos();
         int off_to_next = *reinterpret_cast<int8_t *>(AddrAt(fixup_pos));
         assert(off_to_next <= 0);
         
@@ -377,14 +377,14 @@ void Assembler::BindTo(Label *l, int pos) {
         buf_[fixup_pos] = disp;
         if (off_to_next < 0) {
             //YILabelLinkTo(l, fixup_pos + off_to_next, 0);
-            l->LinkTo(fixup_pos + off_to_next, false);
+            l->link_to(fixup_pos + off_to_next, Label::kNear);
         } else {
-            l->set_near_link_pos(0);
+            l->UnuseNear();
         }
     }
 
     //YILabelBindTo(l, pos);
-    l->BindTo(pos);
+    l->bind_to(pos);
 }
 
 void Assembler::nop(int n) {

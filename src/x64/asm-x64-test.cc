@@ -46,6 +46,36 @@ TEST_F(X64AssemblerTest, Add) {
     ASSERT_EQ(3, fun(1, 2));
 }
 
+TEST_F(X64AssemblerTest, CondBranch) {
+    __ pushq(rbp);
+    __ movq(rbp, rsp);
+    __ cmpl(Argv_0, Argv_1);
+    Label gt;
+    __ j(Greater, &gt, Label::kNear);
+    Label lt;
+    __ j(Less, &lt, Label::kNear);
+    __ xorl(rax, rax);
+    __ popq(rbp);
+    __ ret(0);
+    
+    __ Bind(&lt);
+    __ movl(rax, -1);
+    __ popq(rbp);
+    __ ret(0);
+    
+    __ Bind(&gt);
+    __ movl(rax, 1);
+    __ popq(rbp);
+    __ ret(0);
+    
+    auto memory = NewCodeBuffer();
+    auto fun = memory.WriteTo<int(int, int)>(assembler_.buf(), true/*code*/);
+    ASSERT_EQ(-1, fun(1, 2));
+    ASSERT_EQ(0, fun(2, 2));
+    ASSERT_EQ(1, fun(2, 1));
+    
+}
+
 #endif // defined(YALX_ARCH_X64)
 
 } // namespace x64

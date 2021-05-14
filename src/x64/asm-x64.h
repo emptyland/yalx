@@ -2,6 +2,7 @@
 #ifndef YALX_ASM_X64_H_
 #define YALX_ASM_X64_H_
 
+#include "arch/label.h"
 #include "base/base.h"
 #include "base/checking.h"
 #include <string>
@@ -327,53 +328,7 @@ private:
     uint8_t len_;
 }; // class Operand
 
-class Label {
-public:
-    Label() { assert(IsUnused()); }
-    
-    ~Label() {
-        assert(!IsLinked());
-        assert(!IsNearLinked());
-    }
-
-    DEF_VAL_GETTER(int, pos);
-    DEF_VAL_PROP_RW(int, near_link_pos);
-    
-    bool IsBound() const { return pos_ < 0; }
-    bool IsUnused() const { return pos_ == 0 && near_link_pos_ == 0; }
-    bool IsLinked() const { return pos_ > 0; }
-    bool IsNearLinked() const { return near_link_pos_ > 0; }
-    
-    void BindTo(int for_bind) {
-        pos_ = -(for_bind) - 1;
-        assert(IsBound());
-    }
-    
-    void LinkTo(int for_link, bool is_far) {
-        if (!is_far) {
-            near_link_pos_ = for_link + 1;
-            assert(IsNearLinked());
-        } else {
-            pos_ = for_link + 1;
-            assert(IsLinked());
-        }
-    }
-
-    int GetPosition() const {
-        if (pos_ < 0)
-            return -pos_ - 1;
-        if (pos_ > 0)
-            return pos_ - 1;
-        UNREACHABLE();
-        return 0;
-    }
-    
-    int GetNearLinkPosition() const { return near_link_pos_ - 1; }
-    
-private:
-    int pos_ = 0;
-    int near_link_pos_ = 0;
-}; // class Label
+using arch::Label;
 
 class Assembler {
 public:
@@ -757,7 +712,7 @@ public:
     void ret(int val);
     
     // Jumping
-    void jmp(Label *l, bool is_far);
+    void jmp(Label *l, Label::Distance distance = Label::kFar);
     
     void jmp(int dest) {
         int off = dest - pc() - 1;
@@ -791,16 +746,16 @@ public:
         EmitOperand(0x4, addr);
     }
     
-    void j(Cond cond, Label *l, bool is_far);
+    void j(Cond cond, Label *l, Label::Distance distance = Label::kFar);
     
-    void LikelyJ(Cond cond, Label *l, bool is_far) {
+    void LikelyJ(Cond cond, Label *l, Label::Distance distance = Label::kFar) {
         PrefixLikely();
-        j(cond, l, is_far);
+        j(cond, l, distance);
     }
     
-    void UnlikelyJ(Cond cond, Label *l, bool is_far) {
+    void UnlikelyJ(Cond cond, Label *l, Label::Distance distance = Label::kFar) {
         PrefixUnlikely();
-        j(cond, l, is_far);
+        j(cond, l, distance);
     }
     
     void Bind(Label *l) { BindTo(l, pc()); }
