@@ -29,7 +29,7 @@ public:
     virtual Status Append(std::string_view data) = 0;
     virtual Status PositionedAppend(std::string_view data, uint64_t offset) = 0;
     virtual Status Truncate(uint64_t size) = 0;
-    
+    virtual std::string ToString() const = 0;
 }; // class WritableFile
 
 class RandomAccessFile {
@@ -41,9 +41,11 @@ public:
     virtual Status GetFileSize(uint64_t *size) = 0;
 }; // class RandomAccessFile
 
+SequentialFile *NewMemorySequentialFile(const std::string &buf);
+SequentialFile *NewMemorySequentialFile(const char *z, size_t n);
+
 } // namespace base
 
-    
 } // namespace yalx
 
 

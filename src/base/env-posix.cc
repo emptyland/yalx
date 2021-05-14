@@ -91,6 +91,9 @@ public:
         }
         return Status::OK();
     }
+    std::string ToString() const override {
+        return "PosixWritableFile";
+    }
 private:
     FILE *fp_;
 }; // class PosixWritableFile

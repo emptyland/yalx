@@ -88,6 +88,20 @@ TEST_F(EnvTest, ReadFile) {
     ASSERT_EQ("hello\nworld\n", result);
 }
 
+TEST_F(EnvTest, MemoryReadFile) {
+    std::unique_ptr<SequentialFile> file(NewMemorySequentialFile("hello\nworld\n"));
+    size_t n;
+    auto rs = file->Available(&n);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    ASSERT_EQ(12, n);
+    
+    std::string_view result;
+    rs = file->Read(n, &result, nullptr);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    
+    ASSERT_EQ("hello\nworld\n", result);
+}
+
 
 } // namespace base
 

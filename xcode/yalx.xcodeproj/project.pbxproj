@@ -10,6 +10,7 @@
 		232A47BB264A8433003DCA4F /* env-posix.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47BA264A83D4003DCA4F /* env-posix.cc */; };
 		232A47BF264A8BF1003DCA4F /* asm-x64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47BE264A8BF1003DCA4F /* asm-x64-test.cc */; };
 		232A47C4264B8962003DCA4F /* instr-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C3264B8962003DCA4F /* instr-arm64.cc */; };
+		232A47C6264E200F003DCA4F /* io.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C5264E1EEC003DCA4F /* io.cc */; };
 		2340E6B62648234A006B37F3 /* env-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2340E6B52648234A006B37F3 /* env-test.cc */; };
 		2354CD7926439E9500A2FAC3 /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6226439E9500A2FAC3 /* crc32.c */; };
 		2354CD7B26439E9500A2FAC3 /* arena-utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6426439E9500A2FAC3 /* arena-utils.cc */; };
@@ -48,6 +49,7 @@
 		232A47C1264B6DFD003DCA4F /* label.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = label.h; path = ../src/arch/label.h; sourceTree = "<group>"; };
 		232A47C2264B7D28003DCA4F /* instr-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "instr-arm64.h"; path = "../src/arm64/instr-arm64.h"; sourceTree = "<group>"; };
 		232A47C3264B8962003DCA4F /* instr-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instr-arm64.cc"; path = "../src/arm64/instr-arm64.cc"; sourceTree = "<group>"; };
+		232A47C5264E1EEC003DCA4F /* io.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = io.cc; path = ../src/base/io.cc; sourceTree = "<group>"; };
 		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
 		2354CD5626439CB400A2FAC3 /* all-tests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "all-tests"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2354CD6026439E9500A2FAC3 /* status.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = status.h; path = ../src/base/status.h; sourceTree = "<group>"; };
@@ -156,6 +158,7 @@
 				2354CD6F26439E9500A2FAC3 /* hash.cc */,
 				2354CD6126439E9500A2FAC3 /* hash.h */,
 				2354CD6A26439E9500A2FAC3 /* io.h */,
+				232A47C5264E1EEC003DCA4F /* io.cc */,
 				2354CD7126439E9500A2FAC3 /* lazy-instance.h */,
 				2354CD6826439E9500A2FAC3 /* queue-macros.h */,
 				2354CD6E26439E9500A2FAC3 /* reference-count-test.cc */,
@@ -262,6 +265,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				232A47C6264E200F003DCA4F /* io.cc in Sources */,
 				232A47BB264A8433003DCA4F /* env-posix.cc in Sources */,
 				2354CD992644DF1600A2FAC3 /* base.cc in Sources */,
 				2354CD8E2644D46C00A2FAC3 /* arena-test.cc in Sources */,
