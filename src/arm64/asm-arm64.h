@@ -22,7 +22,7 @@ namespace arm64 {
  *
  * -- 64 bits POSIX: Linux, BSD, MacOS
  * Scratch Registers: r9~15
- * Callee-Saved Registers: r19~28 (r19,r30)
+ * Callee-Saved Registers: r19~28 (r29,r30)
  * Parameters: r0~7, v0~7
  * Return: r0, r8
  * r17(ip1)
@@ -865,6 +865,12 @@ public:
     void adr(const Register& rd, int imm21) {
         assert(rd.Is64Bits());
         Emit(ADR | ImmPCRelAddress(imm21) | Rd(rd));
+    }
+    
+    void adrp(const Register& rd, Label* label) { adrp(rd, LinkAndGetByteOffsetTo(label)); }
+    void adrp(const Register &rd, int imm21) {
+        assert(rd.Is64Bits());
+        Emit(ADRP | ImmPCRelAddress(imm21) | Rd(rd));
     }
     
     // Data Processing instructions.
