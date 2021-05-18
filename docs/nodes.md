@@ -2,11 +2,19 @@
 
 ## Node Tree
 
+
 ```
 Node
-    + ast::
+    +: il
     +- FileUnit
     +- Statement
+        +- Block
+        +- BreakStatement
+        +- ContinueStatement
+        +- ReturnStatement
+        +- WhileStatement
+        +- ForEachStatement
+        +- ForStepStatement
         +- Declaration
             +- VariableDeclaration
             +- FunctionDeclaration
@@ -14,14 +22,44 @@ Node
         +- Definition 
             +- InterfaceDefinition
             +- ClassDefinition
+            +- AnnotationDefinition
         +- Expression
             +- Identifier
             +- Literal
                 +- UnitLiteral
                 +- ActualLiteral<T>
+            +- ExpressionWithOperands<N>
+                +- BinaryExpression
+                    +- Add
+                    +- Sub
+                    +- Mul
+                    +- Div
+                    +- Mod
+                    +- Equal
+                    +- NotEqual
+                    +- Less
+                    +- LessEqual
+                    +- Greater
+                    +- GreaterEqual
+                    +- And
+                    +- Or
+                    +- BitwiseAnd
+                    +- BitwiseOr
+                    +- BitwiseXor
+                    +- ChannelWrite
+                    +- IndexedGet
+                +- UnaryExpression
+                    +- Negative
+                    +- Not
+                    +- BitwiseNegative
+                    +- ChannelRead
+            +- Dot
+            +- IfExpression
+            +- WhenExpression
     +- Type
         +- ArrayType
         +- ClassType
+        +- InterfaceType
         +- FunctionPrototype
 ```
 
@@ -77,6 +115,7 @@ class Declaration : Statement
     = Type(): TypeRef *
     = Item(int i): Declaration *
     = ItemSize(): size_t
+    + annotations: List<Annotation *>
     + access: {kExport, kPublic, kProtected, kPrivate, kDefault}
 ```
 
@@ -110,6 +149,7 @@ class ObjectDeclaration : Declaration
 
 ```
 class Definition : Statement
+    + annotations: List<Annotation *>
     + generic_params: List<GenericParameter *>
     + has_instantiated: bool
 ```
@@ -143,15 +183,96 @@ class Symbol : Node
     + name: NString *
 ```
 
+### Annotation
+
+```
+class AnnotationDefinition : Definition
+    + name: NString *
+    + members: List<VariableDeclaration *>
+```
+
+```
+class Annotation : Node
+    + name: Symbol *
+    class Field : Node
+        + name: NString *
+        + value: Expression *
+    + fields: List<Field *>
+```
+
+### Statements
+
+```
+class Statement : Node
+```
+
+```
+class Block : Statement
+    + statements: List<Statement *>
+```
+
+```
+class BreakStatement : Statement
+```
+
+```
+class ContinueStatement : Statement
+```
+
+```
+class ReturnStatement : Statement
+    + values: List<Expression *>
+```
+
+```
+class Assignment : Statement
+    + lvals: List<Expression *>
+    + rvals: List<Expression *>
+```
+
+```
+class WhileStatement : Statement
+    + condition: Expression *
+    + body: Block *
+
+// while (foo()>0) {
+//    println("ok")
+// }
+```
+
+```
+class ForEachStatement : Statement
+    + value: VariableDeclaration *
+    + container: Expression *
+```
+
+```
+class ForStepStatement : Statement
+    + value: VariableDeclaration *
+    + begin: Expression *
+    + end: Expression *
+    + bound: {kUntil, kTo}
+```
+
 ### Expression
 
 ```
-class Identifer : Expression
+class Expression : Statement
+    = is_lval(): bool
+    = is_rval(): bool
+    = is_only_lval(): bool
+    = is_only_rval(): bool
+    + is_lval: bool
+    + is_rval: bool
+```
+
+```
+class Identifer(rval = true, lval = true) : Expression
     + name: NString *
 ```
 
 ```
-class Literal : Expression
+class Literal(rval = true, lval = false) : Expression
     = Type(type: Type *): Type *
     + type: Type *
 ```
@@ -173,13 +294,84 @@ StringLiteral <- ActualLiteral<NString *>
 ```
 
 ```
-class ArrayInitializer : Expression
+class ArrayInitializer(rval = true, lval = false) : Expression
     = dimension_count(): int
     + hint_type: ArrayType *
     + dimension: List<ArrayDimension *>
 
-class ArrayDimension : Expression
+class ArrayDimension(rval = true, lval = false) : Expression
     + values: List<ArrayDimension *| Expression *>
+```
+
+```
+class ExpressionWithOperands<N>(rval = true, lval = false) : Expression
+    = lhs(): Expression *
+    = rhs(): Expression *
+    = operand(i: int): Expression *
+    + operand_count: int
+    + operands: Expression *[N]
+
+BinaryExpression <- ExpressionWithOperands<2>
+UnaryExpression <- ExpressionWithOperands<1>
+
+Negative <- UnaryExpression
+Add <- BinaryExpression
+Sub <- BinaryExpression
+Mul <- BinaryExpression
+Div <- BinaryExpression
+Mod <- BinaryExpression
+
+Equal <- BinaryExpression
+NotEqual <- BinaryExpression
+Less <- BinaryExpression
+LessEqual <- BinaryExpression
+Greater <- BinaryExpression
+GreaterEqual <- BinaryExpression
+
+And <- BinaryExpression
+Or <- BinaryExpression
+Not <- UnaryExpression
+
+BitwiseAnd <- BinaryExpression
+BitwiseOr <- BinaryExpression
+BitwiseXor <- BinaryExpression
+BitwiseNegative <- UnaryExpression
+
+ChannelRead <- UnaryExpression
+ChannelWrite <- BinaryExpression
+
+IndexedGet <- BinaryExpression
+```
+
+```
+class Dot(rval = true, lval = true) : Expression
+    + primary: Expression *
+    + field: NString *
+```
+
+```
+class IfExpression(rval = true, lval = false) : Expression
+    + initializer: Statement *
+    + condition: Expression *
+    + else_clause: Expression
+    + then_clause: Statement *
+```
+
+```
+class WhenExpression : Expression
+    + initializer: Statement *
+    + condition: Expression *
+    class CaseClause : Node
+        + case_: {Casting, Expression}
+        + then_: Statement
+    + case_clauses: List<CaseClause *>
+    + else_clause: Statement
+```
+
+```
+class Casting : Expression
+    + primary: Expression *
+    + destination: Type *
 ```
 
 
