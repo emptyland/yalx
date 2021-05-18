@@ -2,7 +2,6 @@
 
 ## Node Tree
 
-
 ```
 Node
     +: il
@@ -54,8 +53,12 @@ Node
                     +- BitwiseNegative
                     +- ChannelRead
             +- Dot
+            +- Casting
+            +- Calling
             +- IfExpression
             +- WhenExpression
+            +- ArrayInitializer
+            +- ArrayDimension
     +- Type
         +- ArrayType
         +- ClassType
@@ -374,6 +377,11 @@ class Casting : Expression
     + destination: Type *
 ```
 
+```
+class Calling : Expression
+    + callee: Expression *
+    + args: List<Expression *>
+```
 
 ### Type Reference
 
@@ -389,7 +397,7 @@ class Type : Node
     = ToArray(dimension_count: int): ArrayType *
     = ToClass(class_def: ClassDefinition *): ClassType *
     = ToFunction(...): FunctionPrototype *
-    + primary_type: {t_unit, t_bool, t_i8, t_u8, t_i16, ..., t_string, t_chan, t_fun, t_class, t_identifier, t_array}
+    + primary_type: {t_unit, t_bool, t_i8, t_u8, t_i16, ..., t_string, t_chan, t_fun, t_class, t_struct, t_identifier, t_array}
     + identifier: Symbol *
     + generic_args: List<Type *>
 ```
@@ -414,4 +422,146 @@ class FunctionPrototype : Type
     + parameters: List<VariableDeclaration::Item *>
     + vargs: bool
     + returns: List<Type *>
+```
+
+## Lowing
+
+### Base of Low Nodes
+
+```
+class Operand : Node
+    + location: {kUnkown, kArguemnt, kRegister, kFPRegister, kStackSlot, kMemory, kConstant}
+    + index: int64_t // == kUnallocated
+```
+
+### Memory
+
+```
+class Argument : Operand
+    + type: Type *
+
+class StackAllocate : Operand
+    + type: Type *
+
+class HeapAllocate: Operand
+    + type: Type *
+
+class StackStore : Operand
+    + destination: Operand *
+
+class GlobalLoad : Operand
+    + symbol: NString *
+
+class GlobalStore : Operand
+    + symbol: NString *
+    + destination: Operand *
+```
+
+### Constant
+
+```
+class Immediate<T> : Operand
+    + value: T
+
+class Constant<T> : Operand
+    + value: T
+```
+
+### Call Runtime
+
+```
+class CallRuntime : Operand
+    + fun: RuntimeFunCode
+    + arguments: List<Operand *>
+```
+
+### Arithmetic
+
+```
+class Arithmetic<N> : Operand
+    + operands: Operand*[N]
+    + bits: int
+
+I8Add <- Arithmetic<2>
+U8Add <- Arithmetic<2>
+...
+I32Add <- Arithmetic<2>
+U32Add <- Arithmetic<2>
+...
+I32Sub <- Arithmetic<2>
+U32Sub <- Arithmetic<2>
+...
+
+```
+
+Lowing example:
+
+```
+Example 1: 1 + foo.number
+
+              +-------+                                         +--------+
+              |  Add  |                                         | I32Add |
+              +-------+                                         +--------+
+             /         \                                        /         \
+            /           \                              +----------+        \
++------------+          +----------+                   | Constant |      +--------------+
+| IntLiteral |          |    Dot   |     lowing        |    1     |      | GlobalLoad   |
+|  value(1)  |          | "number" |  =============>   +----------+      | "foo.number" |
++------------+          +----------+                                     +--------------+
+                      /
+              +------------+
+              | Identifier |
+              |   "foo"    |
+              +------------+
+
+Example 2:  
+var i = 0
+while (i < 10) { i = i + 1 }
+
+                         +----------------+
+                         | WhileStatement |
+                         +----------------+
+                        /                  \
+               +------+                      +-----------+
+               | Less |                      |   Block   |
+               +------+                      +-----------+
+              /        \                                  \
++------------+          +------------+                     +------------+
+| Identifier |          | IntLiteral |                     | Assignment |
+|    "i"     |          |     10     |                     +------------+
++------------+          +------------+                    /              \
+                                                         /                \
+                                           +------------+                  +-------+
+                                           | Identifier |                  |  Add  |
+                                           |     "i"    |                  +-------+
+                                           +------------+                 /         \
+                                                                         /           \
+                                                           +------------+             +------------+
+                                                           | Identifier |             | IntLiteral |
+                                                           |    "i"     |             |      1     |
+                                                           +------------+             +------------+
+Lowing
+=====>
+
+                        +---------------+
+                        | ConditionLoop |
+                        +---------------+
+                       /                 \
+             +---------+                  +-----------+
+             | I32Less |                  | BascBlock |
+             +---------+                  +-----------+
+            /           \                        \
++ - - - - - - - +    +----------+         +------------+
+| StackAllocate |    | Constant |         | StackStore |
+|      [0]      |    |    10    |         |    [0]     |
++ - - - - - - - +    +----------+         +------------+
+                                                \
+                                            +--------+
+                                            | I32Add |
+                                            +--------+
+                                            /        \
+                            + - - - - - - - +        +----------+
+                            | StackAllocate |        | Constant |
+                            |      [0]      |        |     1    |
+                            + - - - - - - - +        +----------+
 ```
