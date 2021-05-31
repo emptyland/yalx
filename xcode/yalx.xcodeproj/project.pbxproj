@@ -12,6 +12,9 @@
 		232A47C4264B8962003DCA4F /* instr-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C3264B8962003DCA4F /* instr-arm64.cc */; };
 		232A47C6264E200F003DCA4F /* io.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C5264E1EEC003DCA4F /* io.cc */; };
 		2340E6B62648234A006B37F3 /* env-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2340E6B52648234A006B37F3 /* env-test.cc */; };
+		2351F81026648D4D00D337EA /* runtime.c in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80F26648D4D00D337EA /* runtime.c */; };
+		2351F813266494AE00D337EA /* runtime-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2351F812266494AE00D337EA /* runtime-test.cc */; };
+		2351F815266495AC00D337EA /* bootstrap-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 2351F814266495AC00D337EA /* bootstrap-x64.s */; };
 		2354CD7926439E9500A2FAC3 /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6226439E9500A2FAC3 /* crc32.c */; };
 		2354CD7B26439E9500A2FAC3 /* arena-utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6426439E9500A2FAC3 /* arena-utils.cc */; };
 		2354CD7C26439E9500A2FAC3 /* sha256-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6626439E9500A2FAC3 /* sha256-test.cc */; };
@@ -27,6 +30,8 @@
 		2354CD952644DDA400A2FAC3 /* format.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD942644DDA400A2FAC3 /* format.cc */; };
 		2354CD972644DE4700A2FAC3 /* status.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD962644DE4700A2FAC3 /* status.cc */; };
 		2354CD992644DF1600A2FAC3 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD982644DF1600A2FAC3 /* base.cc */; };
+		23A3AB5C2664C1DB00007658 /* stack.c in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5B2664C1DB00007658 /* stack.c */; };
+		23A3AB5E2664DB9F00007658 /* stack-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5D2664DB9F00007658 /* stack-test.cc */; };
 		23EFD488264624D2007222D6 /* asm-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD487264624D2007222D6 /* asm-arm64.cc */; };
 		23EFD48B26466D87007222D6 /* asm-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD48A26466D87007222D6 /* asm-arm64-test.cc */; };
 /* End PBXBuildFile section */
@@ -51,6 +56,11 @@
 		232A47C3264B8962003DCA4F /* instr-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instr-arm64.cc"; path = "../src/arm64/instr-arm64.cc"; sourceTree = "<group>"; };
 		232A47C5264E1EEC003DCA4F /* io.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = io.cc; path = ../src/base/io.cc; sourceTree = "<group>"; };
 		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
+		2351F80E26648CB200D337EA /* runtime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = runtime.h; path = ../src/runtime/runtime.h; sourceTree = "<group>"; };
+		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
+		2351F8112664939700D337EA /* macros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macros.h; path = ../src/runtime/macros.h; sourceTree = "<group>"; };
+		2351F812266494AE00D337EA /* runtime-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "runtime-test.cc"; path = "../src/runtime/runtime-test.cc"; sourceTree = "<group>"; };
+		2351F814266495AC00D337EA /* bootstrap-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "bootstrap-x64.s"; path = "../src/runtime/bootstrap-x64.s"; sourceTree = "<group>"; };
 		2354CD5626439CB400A2FAC3 /* all-tests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "all-tests"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2354CD6026439E9500A2FAC3 /* status.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = status.h; path = ../src/base/status.h; sourceTree = "<group>"; };
 		2354CD6126439E9500A2FAC3 /* hash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hash.h; path = ../src/base/hash.h; sourceTree = "<group>"; };
@@ -83,6 +93,9 @@
 		2354CD942644DDA400A2FAC3 /* format.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = format.cc; path = ../src/base/format.cc; sourceTree = "<group>"; };
 		2354CD962644DE4700A2FAC3 /* status.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = status.cc; path = ../src/base/status.cc; sourceTree = "<group>"; };
 		2354CD982644DF1600A2FAC3 /* base.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = base.cc; path = ../src/base/base.cc; sourceTree = "<group>"; };
+		23A3AB5A2664BAE800007658 /* stack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = stack.h; path = ../src/runtime/stack.h; sourceTree = "<group>"; };
+		23A3AB5B2664C1DB00007658 /* stack.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = stack.c; path = ../src/runtime/stack.c; sourceTree = "<group>"; };
+		23A3AB5D2664DB9F00007658 /* stack-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "stack-test.cc"; path = "../src/runtime/stack-test.cc"; sourceTree = "<group>"; };
 		23ED3A95264D6BAD001FDE88 /* all-tests.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "all-tests.entitlements"; sourceTree = "<group>"; };
 		23EFD486264624BD007222D6 /* asm-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "asm-arm64.h"; path = "../src/arm64/asm-arm64.h"; sourceTree = "<group>"; };
 		23EFD487264624D2007222D6 /* asm-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-arm64.cc"; path = "../src/arm64/asm-arm64.cc"; sourceTree = "<group>"; };
@@ -110,6 +123,21 @@
 			name = Arch;
 			sourceTree = "<group>";
 		};
+		2351F80D26648C8200D337EA /* Runtime */ = {
+			isa = PBXGroup;
+			children = (
+				2351F812266494AE00D337EA /* runtime-test.cc */,
+				2351F80E26648CB200D337EA /* runtime.h */,
+				2351F80F26648D4D00D337EA /* runtime.c */,
+				2351F8112664939700D337EA /* macros.h */,
+				2351F814266495AC00D337EA /* bootstrap-x64.s */,
+				23A3AB5D2664DB9F00007658 /* stack-test.cc */,
+				23A3AB5A2664BAE800007658 /* stack.h */,
+				23A3AB5B2664C1DB00007658 /* stack.c */,
+			);
+			name = Runtime;
+			sourceTree = "<group>";
+		};
 		2354CD2B2643994A00A2FAC3 = {
 			isa = PBXGroup;
 			children = (
@@ -122,6 +150,7 @@
 		2354CD3226439A1400A2FAC3 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				2351F80D26648C8200D337EA /* Runtime */,
 				232A47C0264B6DE7003DCA4F /* Arch */,
 				23EFD48526462489007222D6 /* Arm64 */,
 				2354CD8F2644D4EE00A2FAC3 /* X64 */,
@@ -265,14 +294,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				23A3AB5E2664DB9F00007658 /* stack-test.cc in Sources */,
 				232A47C6264E200F003DCA4F /* io.cc in Sources */,
 				232A47BB264A8433003DCA4F /* env-posix.cc in Sources */,
 				2354CD992644DF1600A2FAC3 /* base.cc in Sources */,
 				2354CD8E2644D46C00A2FAC3 /* arena-test.cc in Sources */,
+				2351F813266494AE00D337EA /* runtime-test.cc in Sources */,
 				2354CD7F26439E9500A2FAC3 /* reference-count-test.cc in Sources */,
 				2354CD952644DDA400A2FAC3 /* format.cc in Sources */,
 				232A47C4264B8962003DCA4F /* instr-arm64.cc in Sources */,
 				2354CD922644D50B00A2FAC3 /* asm-x64.cc in Sources */,
+				2351F81026648D4D00D337EA /* runtime.c in Sources */,
+				2351F815266495AC00D337EA /* bootstrap-x64.s in Sources */,
 				2354CD872643C8FD00A2FAC3 /* all-tests.cc in Sources */,
 				2354CD972644DE4700A2FAC3 /* status.cc in Sources */,
 				232A47BF264A8BF1003DCA4F /* asm-x64-test.cc in Sources */,
@@ -280,6 +313,7 @@
 				23EFD488264624D2007222D6 /* asm-arm64.cc in Sources */,
 				2354CD8C2643D34B00A2FAC3 /* status-test.cc in Sources */,
 				2354CD7926439E9500A2FAC3 /* crc32.c in Sources */,
+				23A3AB5C2664C1DB00007658 /* stack.c in Sources */,
 				2354CD7D26439E9500A2FAC3 /* at-exit.cc in Sources */,
 				2354CD7B26439E9500A2FAC3 /* arena-utils.cc in Sources */,
 				2354CD8326439E9500A2FAC3 /* sha256.c in Sources */,
