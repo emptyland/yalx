@@ -39,4 +39,31 @@
 #define USE(x) ((void)(x))
 
 
+// List Macros:
+
+#define QUEUE_HEADER(type) \
+    type *next; \
+    type *prev
+
+#define QUEUE_INSERT_HEAD(h, x) \
+    (x)->next = (h)->next; \
+    (x)->next->prev = x; \
+    (x)->prev = h; \
+    (h)->next = x
+
+#define QUEUE_INSERT_TAIL(h, x) \
+    (x)->prev = (h)->prev; \
+    (x)->prev->next = x; \
+    (x)->next = h; \
+    (h)->prev = x \
+
+#define QUEUE_REMOVE(x) \
+    (x)->next->prev_ = (x)->prev; \
+    (x)->prev->next_ = (x)->next; \
+    (x)->prev = NULL; \
+    (x)->next = NULL
+
+#define QUEUE_EMPTY(h) ((h)->next == (h))
+
+
 #endif // YALX_RUNTIME_MACROS_H_

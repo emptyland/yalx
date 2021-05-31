@@ -10,6 +10,8 @@ int yalx_init_stack(size_t size, struct stack *stack) {
         return -1;
     }
     dbg_init_zag(chunk, total_size);
+    stack->next   = stack;
+    stack->prev   = stack;
     stack->core   = (struct stack_core *)chunk;
     stack->size   = size;
     stack->top    = stack->core->frame + size;

@@ -61,6 +61,7 @@ extern int ncpus;
 extern int os_page_size;
 
 
+
 int yalx_runtime_init(void);
 
 void *fill_memory_zag(void *chunk, size_t n, uint32_t zag);

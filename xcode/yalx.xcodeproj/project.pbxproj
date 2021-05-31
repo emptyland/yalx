@@ -32,6 +32,7 @@
 		2354CD992644DF1600A2FAC3 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD982644DF1600A2FAC3 /* base.cc */; };
 		23A3AB5C2664C1DB00007658 /* stack.c in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5B2664C1DB00007658 /* stack.c */; };
 		23A3AB5E2664DB9F00007658 /* stack-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5D2664DB9F00007658 /* stack-test.cc */; };
+		23A3AB612664E32E00007658 /* process.c in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB602664E32E00007658 /* process.c */; };
 		23EFD488264624D2007222D6 /* asm-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD487264624D2007222D6 /* asm-arm64.cc */; };
 		23EFD48B26466D87007222D6 /* asm-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD48A26466D87007222D6 /* asm-arm64-test.cc */; };
 /* End PBXBuildFile section */
@@ -69,7 +70,6 @@
 		2354CD6526439E9500A2FAC3 /* env.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = env.h; path = ../src/base/env.h; sourceTree = "<group>"; };
 		2354CD6626439E9500A2FAC3 /* sha256-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "sha256-test.cc"; path = "../src/base/sha256-test.cc"; sourceTree = "<group>"; };
 		2354CD6726439E9500A2FAC3 /* arena-utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "arena-utils.h"; path = "../src/base/arena-utils.h"; sourceTree = "<group>"; };
-		2354CD6826439E9500A2FAC3 /* queue-macros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "queue-macros.h"; path = "../src/base/queue-macros.h"; sourceTree = "<group>"; };
 		2354CD6926439E9500A2FAC3 /* at-exit.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "at-exit.cc"; path = "../src/base/at-exit.cc"; sourceTree = "<group>"; };
 		2354CD6A26439E9500A2FAC3 /* io.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = io.h; path = ../src/base/io.h; sourceTree = "<group>"; };
 		2354CD6B26439E9500A2FAC3 /* reference-count.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "reference-count.h"; path = "../src/base/reference-count.h"; sourceTree = "<group>"; };
@@ -96,6 +96,8 @@
 		23A3AB5A2664BAE800007658 /* stack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = stack.h; path = ../src/runtime/stack.h; sourceTree = "<group>"; };
 		23A3AB5B2664C1DB00007658 /* stack.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = stack.c; path = ../src/runtime/stack.c; sourceTree = "<group>"; };
 		23A3AB5D2664DB9F00007658 /* stack-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "stack-test.cc"; path = "../src/runtime/stack-test.cc"; sourceTree = "<group>"; };
+		23A3AB5F2664DE4D00007658 /* process.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = process.h; path = ../src/runtime/process.h; sourceTree = "<group>"; };
+		23A3AB602664E32E00007658 /* process.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = process.c; path = ../src/runtime/process.c; sourceTree = "<group>"; };
 		23ED3A95264D6BAD001FDE88 /* all-tests.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "all-tests.entitlements"; sourceTree = "<group>"; };
 		23EFD486264624BD007222D6 /* asm-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "asm-arm64.h"; path = "../src/arm64/asm-arm64.h"; sourceTree = "<group>"; };
 		23EFD487264624D2007222D6 /* asm-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-arm64.cc"; path = "../src/arm64/asm-arm64.cc"; sourceTree = "<group>"; };
@@ -134,6 +136,8 @@
 				23A3AB5D2664DB9F00007658 /* stack-test.cc */,
 				23A3AB5A2664BAE800007658 /* stack.h */,
 				23A3AB5B2664C1DB00007658 /* stack.c */,
+				23A3AB5F2664DE4D00007658 /* process.h */,
+				23A3AB602664E32E00007658 /* process.c */,
 			);
 			name = Runtime;
 			sourceTree = "<group>";
@@ -189,7 +193,6 @@
 				2354CD6A26439E9500A2FAC3 /* io.h */,
 				232A47C5264E1EEC003DCA4F /* io.cc */,
 				2354CD7126439E9500A2FAC3 /* lazy-instance.h */,
-				2354CD6826439E9500A2FAC3 /* queue-macros.h */,
 				2354CD6E26439E9500A2FAC3 /* reference-count-test.cc */,
 				2354CD6B26439E9500A2FAC3 /* reference-count.h */,
 				2354CD6626439E9500A2FAC3 /* sha256-test.cc */,
@@ -299,6 +302,7 @@
 				232A47BB264A8433003DCA4F /* env-posix.cc in Sources */,
 				2354CD992644DF1600A2FAC3 /* base.cc in Sources */,
 				2354CD8E2644D46C00A2FAC3 /* arena-test.cc in Sources */,
+				23A3AB612664E32E00007658 /* process.c in Sources */,
 				2351F813266494AE00D337EA /* runtime-test.cc in Sources */,
 				2354CD7F26439E9500A2FAC3 /* reference-count-test.cc in Sources */,
 				2354CD952644DDA400A2FAC3 /* format.cc in Sources */,
@@ -330,12 +334,22 @@
 		2354CD302643994A00A2FAC3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				GCC_C_LANGUAGE_STANDARD = c11;
+				GCC_ENABLE_CPP_EXCEPTIONS = YES;
+				GCC_ENABLE_CPP_RTTI = YES;
 			};
 			name = Debug;
 		};
 		2354CD312643994A00A2FAC3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				GCC_C_LANGUAGE_STANDARD = c11;
+				GCC_ENABLE_CPP_EXCEPTIONS = YES;
+				GCC_ENABLE_CPP_RTTI = YES;
 			};
 			name = Release;
 		};

@@ -24,6 +24,7 @@ struct stack_core {
 }; // struct stack
 
 struct stack {
+    QUEUE_HEADER(struct stack);
     address_t top;
     address_t bottom;
     size_t size;

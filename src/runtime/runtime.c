@@ -1,6 +1,8 @@
 #include "runtime/runtime.h"
+#include "runtime/process.h"
 #include <unistd.h>
 #include <sys/sysctl.h>
+#include <stdlib.h>
 
 int ncpus = 0;
 
@@ -8,9 +10,17 @@ int os_page_size = 0;
 
 const struct yalx_str yalx_version = YALX_STR("yalx-lang v0.0.0");
 
-#if defined(YALX_OS_DARWIN)
+struct processor *procs = NULL;
+
+int nprocs = 0;
+
+struct machine m0;
+
+_Thread_local struct machine *thread_local_mach;
 
 int yalx_runtime_init() {
+    
+#if defined(YALX_OS_DARWIN)
     os_page_size = getpagesize();
     
     int mib[2] = { CTL_HW, HW_AVAILCPU };
@@ -21,10 +31,32 @@ int yalx_runtime_init() {
         return -1;
     }
     ncpus = (int)cpu_count;
+#endif // defined(YALX_OS_DARWIN)
+    
+    m0.next = &m0;
+    m0.prev = &m0;
+    m0.thread = pthread_self();
+    m0.state = MACH_INIT;
+    
+    thread_local_mach = &m0;
+
+    nprocs = ncpus;
+    procs = malloc(nprocs * sizeof(struct processor));
+    if (!procs) {
+        return -1;
+    }
+    
+    for (int i = 0; i < nprocs; i++) {
+        procid_t id = {i};
+        if (yalx_init_processor(id, &procs[i]) < 0) {
+            return -1;
+        }
+    }
+    
+    yalx_add_machine_to_processor(&procs[0], &m0);
     return 0;
 }
 
-#endif // defined(YALX_OS_DARWIN)
 
 void *fill_memory_zag(void *chunk, size_t n, uint32_t zag) {
     if (!chunk) {
