@@ -58,8 +58,8 @@
     (h)->prev = x \
 
 #define QUEUE_REMOVE(x) \
-    (x)->next->prev_ = (x)->prev; \
-    (x)->prev->next_ = (x)->next; \
+    (x)->next->prev = (x)->prev; \
+    (x)->prev->next = (x)->next; \
     (x)->prev = NULL; \
     (x)->next = NULL
 

@@ -1,5 +1,5 @@
 #include "runtime/process.h"
-
+#include <stdlib.h>
 
 int yalx_init_processor(const procid_t id, struct processor *proc) {
     // TODO:

@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/sysctl.h>
 #include <stdlib.h>
+#include <string.h>
 
 int ncpus = 0;
 
@@ -18,6 +19,8 @@ struct machine m0;
 
 _Thread_local struct machine *thread_local_mach;
 
+struct stack_pool stack_pool;
+
 int yalx_runtime_init() {
     
 #if defined(YALX_OS_DARWIN)
@@ -32,6 +35,8 @@ int yalx_runtime_init() {
     }
     ncpus = (int)cpu_count;
 #endif // defined(YALX_OS_DARWIN)
+    
+    yalx_init_stack_pool(&stack_pool, 10 * MB);
     
     m0.next = &m0;
     m0.prev = &m0;

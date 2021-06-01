@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		230471B82665B97D00F5682B /* bootstrap-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 230471B72665B97D00F5682B /* bootstrap-arm64.s */; };
+		230471BA2665BC4600F5682B /* boot-stub-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 230471B92665BC4600F5682B /* boot-stub-arm64.s */; };
 		232A47BB264A8433003DCA4F /* env-posix.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47BA264A83D4003DCA4F /* env-posix.cc */; };
 		232A47BF264A8BF1003DCA4F /* asm-x64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47BE264A8BF1003DCA4F /* asm-x64-test.cc */; };
 		232A47C4264B8962003DCA4F /* instr-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C3264B8962003DCA4F /* instr-arm64.cc */; };
@@ -14,7 +16,6 @@
 		2340E6B62648234A006B37F3 /* env-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2340E6B52648234A006B37F3 /* env-test.cc */; };
 		2351F81026648D4D00D337EA /* runtime.c in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80F26648D4D00D337EA /* runtime.c */; };
 		2351F813266494AE00D337EA /* runtime-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2351F812266494AE00D337EA /* runtime-test.cc */; };
-		2351F815266495AC00D337EA /* bootstrap-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 2351F814266495AC00D337EA /* bootstrap-x64.s */; };
 		2354CD7926439E9500A2FAC3 /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6226439E9500A2FAC3 /* crc32.c */; };
 		2354CD7B26439E9500A2FAC3 /* arena-utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6426439E9500A2FAC3 /* arena-utils.cc */; };
 		2354CD7C26439E9500A2FAC3 /* sha256-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6626439E9500A2FAC3 /* sha256-test.cc */; };
@@ -50,6 +51,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		230471B72665B97D00F5682B /* bootstrap-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "bootstrap-arm64.s"; path = "../src/runtime/bootstrap-arm64.s"; sourceTree = "<group>"; };
+		230471B92665BC4600F5682B /* boot-stub-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "boot-stub-arm64.s"; path = "../src/runtime/boot-stub-arm64.s"; sourceTree = "<group>"; };
 		232A47BA264A83D4003DCA4F /* env-posix.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-posix.cc"; path = "../src/base/env-posix.cc"; sourceTree = "<group>"; };
 		232A47BE264A8BF1003DCA4F /* asm-x64-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-x64-test.cc"; path = "../src/x64/asm-x64-test.cc"; sourceTree = "<group>"; };
 		232A47C1264B6DFD003DCA4F /* label.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = label.h; path = ../src/arch/label.h; sourceTree = "<group>"; };
@@ -133,6 +136,8 @@
 				2351F80F26648D4D00D337EA /* runtime.c */,
 				2351F8112664939700D337EA /* macros.h */,
 				2351F814266495AC00D337EA /* bootstrap-x64.s */,
+				230471B72665B97D00F5682B /* bootstrap-arm64.s */,
+				230471B92665BC4600F5682B /* boot-stub-arm64.s */,
 				23A3AB5D2664DB9F00007658 /* stack-test.cc */,
 				23A3AB5A2664BAE800007658 /* stack.h */,
 				23A3AB5B2664C1DB00007658 /* stack.c */,
@@ -308,8 +313,8 @@
 				2354CD952644DDA400A2FAC3 /* format.cc in Sources */,
 				232A47C4264B8962003DCA4F /* instr-arm64.cc in Sources */,
 				2354CD922644D50B00A2FAC3 /* asm-x64.cc in Sources */,
+				230471B82665B97D00F5682B /* bootstrap-arm64.s in Sources */,
 				2351F81026648D4D00D337EA /* runtime.c in Sources */,
-				2351F815266495AC00D337EA /* bootstrap-x64.s in Sources */,
 				2354CD872643C8FD00A2FAC3 /* all-tests.cc in Sources */,
 				2354CD972644DE4700A2FAC3 /* status.cc in Sources */,
 				232A47BF264A8BF1003DCA4F /* asm-x64-test.cc in Sources */,
@@ -320,6 +325,7 @@
 				23A3AB5C2664C1DB00007658 /* stack.c in Sources */,
 				2354CD7D26439E9500A2FAC3 /* at-exit.cc in Sources */,
 				2354CD7B26439E9500A2FAC3 /* arena-utils.cc in Sources */,
+				230471BA2665BC4600F5682B /* boot-stub-arm64.s in Sources */,
 				2354CD8326439E9500A2FAC3 /* sha256.c in Sources */,
 				2354CD8026439E9500A2FAC3 /* hash.cc in Sources */,
 				2340E6B62648234A006B37F3 /* env-test.cc in Sources */,

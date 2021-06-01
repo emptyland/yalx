@@ -81,6 +81,8 @@ static inline void dbg_free_zag(void *chunk, size_t n) { fill_memory_zag(chunk, 
 #endif
 
 // implements in bootstrap-[Arch].s
+
+
 int entry(void);
 int asm_stub1(int, int);
 int asm_stub2(const struct yalx_str *);

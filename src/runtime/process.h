@@ -2,6 +2,7 @@
 #ifndef YALX_RUNTIME_PROCESS_H_
 #define YALX_RUNTIME_PROCESS_H_
 
+#include "runtime/stack.h"
 #include "runtime/runtime.h"
 #include <pthread.h>
 
@@ -20,6 +21,8 @@ extern "C" {
 struct processor;
 struct coroutine;
 struct machine;
+
+struct stack;
 
 enum processor_state {
     PROC_INIT,
@@ -45,9 +48,13 @@ struct coroutine_id {
 };
 typedef struct coroutine_id coid_t;
 
+
+
 struct coroutine {
     QUEUE_HEADER(struct coroutine);
     coid_t id;
+    struct stack *stack;
+    address_t entry;
 }; // struct coroutine
 
 
@@ -56,7 +63,7 @@ struct machine {
     struct processor *owns;
     pthread_t thread;
     enum machine_state state;
-    
+    struct stack_pool stack_pool;
     // TODO:
 }; // struct machine
 
@@ -74,6 +81,7 @@ extern int nprocs;
 extern struct machine m0;
 extern _Thread_local struct machine *thread_local_mach;
 
+
 int yalx_init_processor(const procid_t id, struct processor *proc);
 
 int yalx_add_machine_to_processor(struct processor *proc, struct machine *m);
@@ -83,6 +91,7 @@ enum processor_state yalx_set_processor_state(struct processor *proc, enum proce
 struct processor *yalx_find_idle_processor(void);
 
 static inline int yalx_is_m0(struct machine *m) { return m == &m0; }
+
 
 #ifdef __cplusplus
 }
