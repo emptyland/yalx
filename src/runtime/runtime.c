@@ -1,4 +1,5 @@
 #include "runtime/runtime.h"
+#include "runtime/scheduler.h"
 #include "runtime/process.h"
 #include <unistd.h>
 #include <sys/sysctl.h>
@@ -16,6 +17,7 @@ struct processor *procs = NULL;
 int nprocs = 0;
 
 struct machine m0;
+struct coroutine c0;
 
 _Thread_local struct machine *thread_local_mach;
 
@@ -38,12 +40,18 @@ int yalx_runtime_init() {
     
     yalx_init_stack_pool(&stack_pool, 10 * MB);
     
-    m0.next = &m0;
-    m0.prev = &m0;
+    yalx_init_machine(&m0, &procs[0]);
     m0.thread = pthread_self();
-    m0.state = MACH_INIT;
     
     thread_local_mach = &m0;
+    
+    struct stack *s0 = yalx_new_stack_from_pool(&m0.stack_pool, 1 * MB);
+    if (!s0) {
+        return -1;
+    }
+    coid_t coid;
+    coid.value = 0;
+    yalx_init_coroutine(coid, &c0, s0, (address_t)yalx_rt0);
 
     nprocs = ncpus;
     procs = malloc(nprocs * sizeof(struct processor));
@@ -59,6 +67,8 @@ int yalx_runtime_init() {
     }
     
     yalx_add_machine_to_processor(&procs[0], &m0);
+    
+    yalx_init_scheduler(&scheduler);
     return 0;
 }
 

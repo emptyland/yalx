@@ -10,7 +10,7 @@ namespace base {
 
 #if defined(NDEBUG)
 
-#define UNREACHED()
+#define UNREACHABLE()
 #define DCHECK_NOTNULL(p) (p)
 
 #else

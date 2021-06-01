@@ -38,13 +38,21 @@ enum machine_state {
     MACH_SYSCALL
 }; // enum processor_state
 
+enum coroutine_state {
+    CO_INIT,
+    CO_PARKING,
+    CO_RUNNING,
+    CO_SYSCALL,
+    CO_DEAD,
+}; // enum coroutine_state
+
 struct processor_id {
     i32_t value;
 };
 typedef struct processor_id procid_t;
 
 struct coroutine_id {
-    i64_t value;
+    u64_t value;
 };
 typedef struct coroutine_id coid_t;
 
@@ -53,6 +61,7 @@ typedef struct coroutine_id coid_t;
 struct coroutine {
     QUEUE_HEADER(struct coroutine);
     coid_t id;
+    enum coroutine_state state;
     struct stack *stack;
     address_t entry;
 }; // struct coroutine
@@ -64,6 +73,8 @@ struct machine {
     pthread_t thread;
     enum machine_state state;
     struct stack_pool stack_pool;
+    struct coroutine coroutine_head;
+    struct coroutine *running;
     // TODO:
 }; // struct machine
 
@@ -79,6 +90,7 @@ struct processor {
 extern struct processor *procs;
 extern int nprocs;
 extern struct machine m0;
+extern struct coroutine c0;
 extern _Thread_local struct machine *thread_local_mach;
 
 
@@ -88,9 +100,11 @@ int yalx_add_machine_to_processor(struct processor *proc, struct machine *m);
 
 enum processor_state yalx_set_processor_state(struct processor *proc, enum processor_state state);
 
-struct processor *yalx_find_idle_processor(void);
+int yalx_init_machine(struct machine *mach, struct processor *owns);
 
 static inline int yalx_is_m0(struct machine *m) { return m == &m0; }
+
+int yalx_init_coroutine(const coid_t id, struct coroutine *co, struct stack *stack, address_t entry);
 
 
 #ifdef __cplusplus

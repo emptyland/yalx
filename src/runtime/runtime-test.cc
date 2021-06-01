@@ -1,4 +1,5 @@
 #include "runtime/runtime.h"
+#include "runtime/process.h"
 #include <gtest/gtest.h>
 
 TEST(RuntimeTest, Sanity) {
@@ -38,4 +39,10 @@ TEST(RuntimeTest, FillMemoryZag) {
     fill_memory_zag(b5, sizeof(b5), MEM_FREE_ZAG);
     ASSERT_EQ(0xed, b5[0]);
     ASSERT_EQ(0xed, b5[4]);
+}
+
+TEST(RuntimeTest, C0M0) {
+    ASSERT_EQ(m0.owns, &procs[0]);
+    ASSERT_EQ(thread_local_mach, &m0);
+    ASSERT_TRUE(yalx_is_m0(&m0));
 }

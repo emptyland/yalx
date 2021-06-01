@@ -1,9 +1,3 @@
-//
-//  bootstrap-x64.s
-//  all-tests
-//
-
-
 .section __TEXT,__text,regular,pure_instructions
 .p2align 2
 

@@ -34,6 +34,7 @@
 		23A3AB5C2664C1DB00007658 /* stack.c in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5B2664C1DB00007658 /* stack.c */; };
 		23A3AB5E2664DB9F00007658 /* stack-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5D2664DB9F00007658 /* stack-test.cc */; };
 		23A3AB612664E32E00007658 /* process.c in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB602664E32E00007658 /* process.c */; };
+		23CAA1E02666799F000EF129 /* scheduler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23CAA1DF2666799F000EF129 /* scheduler.cc */; };
 		23EFD488264624D2007222D6 /* asm-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD487264624D2007222D6 /* asm-arm64.cc */; };
 		23EFD48B26466D87007222D6 /* asm-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD48A26466D87007222D6 /* asm-arm64-test.cc */; };
 /* End PBXBuildFile section */
@@ -101,6 +102,9 @@
 		23A3AB5D2664DB9F00007658 /* stack-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "stack-test.cc"; path = "../src/runtime/stack-test.cc"; sourceTree = "<group>"; };
 		23A3AB5F2664DE4D00007658 /* process.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = process.h; path = ../src/runtime/process.h; sourceTree = "<group>"; };
 		23A3AB602664E32E00007658 /* process.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = process.c; path = ../src/runtime/process.c; sourceTree = "<group>"; };
+		23CAA1DD26667586000EF129 /* checking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = checking.h; path = ../src/runtime/checking.h; sourceTree = "<group>"; };
+		23CAA1DE2666790B000EF129 /* scheduler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scheduler.h; path = ../src/runtime/scheduler.h; sourceTree = "<group>"; };
+		23CAA1DF2666799F000EF129 /* scheduler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scheduler.cc; path = ../src/runtime/scheduler.cc; sourceTree = "<group>"; };
 		23ED3A95264D6BAD001FDE88 /* all-tests.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "all-tests.entitlements"; sourceTree = "<group>"; };
 		23EFD486264624BD007222D6 /* asm-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "asm-arm64.h"; path = "../src/arm64/asm-arm64.h"; sourceTree = "<group>"; };
 		23EFD487264624D2007222D6 /* asm-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-arm64.cc"; path = "../src/arm64/asm-arm64.cc"; sourceTree = "<group>"; };
@@ -143,6 +147,9 @@
 				23A3AB5B2664C1DB00007658 /* stack.c */,
 				23A3AB5F2664DE4D00007658 /* process.h */,
 				23A3AB602664E32E00007658 /* process.c */,
+				23CAA1DD26667586000EF129 /* checking.h */,
+				23CAA1DE2666790B000EF129 /* scheduler.h */,
+				23CAA1DF2666799F000EF129 /* scheduler.cc */,
 			);
 			name = Runtime;
 			sourceTree = "<group>";
@@ -331,6 +338,7 @@
 				2340E6B62648234A006B37F3 /* env-test.cc in Sources */,
 				23EFD48B26466D87007222D6 /* asm-arm64-test.cc in Sources */,
 				2354CD8A2643CC1900A2FAC3 /* gtest-all.cc in Sources */,
+				23CAA1E02666799F000EF129 /* scheduler.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

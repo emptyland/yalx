@@ -1,9 +1,3 @@
-//
-//  bootstrap-arm64.s
-//  all-tests
-//
-//  Created by niko on 2021/6/1.
-//
 .section __TEXT,__text,regular,pure_instructions
 .p2align 2
 
@@ -24,4 +18,9 @@ _asm_stub1:
 .global _asm_stub2
 _asm_stub2:
     ldr w0, [x0, 8]
+    ret
+
+.global _yalx_rt0
+_yalx_rt0:
+    // TODO:
     ret

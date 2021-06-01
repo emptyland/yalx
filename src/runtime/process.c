@@ -1,4 +1,5 @@
 #include "runtime/process.h"
+#include "runtime/checking.h"
 #include <stdlib.h>
 
 int yalx_init_processor(const procid_t id, struct processor *proc) {
@@ -31,22 +32,25 @@ enum processor_state yalx_set_processor_state(struct processor *proc, enum proce
 }
 
 
-struct processor *yalx_find_idle_processor() {
-    for (int i = 0; i < nprocs; i++) {
-        struct processor *proc = &procs[i];
-        pthread_mutex_lock(&proc->mutex);
-        if (proc->n_threads == 0) {
-            pthread_mutex_unlock(&proc->mutex);
-            return proc;
-        }
-        
-        if (proc->state == PROC_IDLE) {
-            pthread_mutex_unlock(&proc->mutex);
-            return proc;
-        }
-        // TODO:
-        pthread_mutex_unlock(&proc->mutex);
-    }
-    
-    return NULL;
+int yalx_init_machine(struct machine *mach, struct processor *owns) {
+    mach->next = mach;
+    mach->prev = mach;
+    mach->owns = owns;
+    mach->state = MACH_INIT;
+    mach->running = NULL;
+    mach->coroutine_head.next = &mach->coroutine_head;
+    mach->coroutine_head.prev = &mach->coroutine_head;
+    yalx_init_stack_pool(&mach->stack_pool, 10 * MB);
+    return 0;
+}
+
+int yalx_init_coroutine(const coid_t id, struct coroutine *co, struct stack *stack, address_t entry) {
+    co->entry = entry;
+    co->next = co;
+    co->prev = co;
+    co->id = id;
+    co->state = CO_INIT;
+    DCHECK(stack != NULL);
+    co->stack = stack;
+    return 0;
 }
