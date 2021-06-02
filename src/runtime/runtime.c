@@ -5,6 +5,7 @@
 #include <sys/sysctl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 int ncpus = 0;
 
@@ -22,6 +23,53 @@ struct coroutine c0;
 _Thread_local struct machine *thread_local_mach;
 
 struct stack_pool stack_pool;
+
+#ifndef NDEBUG
+
+struct dev_struct_field {
+    ptrdiff_t       offset;
+    struct yalx_str name;
+}; // struct dev_struct_field
+
+#define DECLARE_FIELD(type, name) {offsetof(struct type, name), YALX_STR(#name)}
+#define DECLARE_END() {0, {NULL, 0}}
+
+static const struct dev_struct_field scheduler_fields[] = {
+    DECLARE_FIELD(scheduler, mutex),
+    DECLARE_FIELD(scheduler, next_coid),
+    DECLARE_END()
+};
+
+static const struct dev_struct_field coroutine_fields[] = {
+    DECLARE_FIELD(coroutine, next),
+    DECLARE_FIELD(coroutine, prev),
+    DECLARE_FIELD(coroutine, id),
+    DECLARE_FIELD(coroutine, state),
+    DECLARE_FIELD(coroutine, stack),
+    DECLARE_FIELD(coroutine, entry),
+    DECLARE_END()
+};
+
+#undef DECLARE_FIELD
+
+static void dev_print_fields(const struct dev_struct_field *field) {
+    for (;field->name.z != NULL; field++) {
+        printf("    %s %d 0x%04x\n", field->name.z, field->offset, field->offset);
+    }
+}
+
+static void dev_print_struct_fields() {
+    printf("struct scheduler:\n");
+    dev_print_fields(scheduler_fields);
+    printf("struct coroutine:\n");
+    dev_print_fields(coroutine_fields);
+}
+
+#else // #ifndef NDEBUG
+
+static void dev_print_struct_fields() {}
+
+#endif
 
 int yalx_runtime_init() {
     
@@ -51,7 +99,7 @@ int yalx_runtime_init() {
     }
     coid_t coid;
     coid.value = 0;
-    yalx_init_coroutine(coid, &c0, s0, (address_t)yalx_rt0);
+    yalx_init_coroutine(coid, &c0, s0, NULL);
 
     nprocs = ncpus;
     procs = malloc(nprocs * sizeof(struct processor));
@@ -69,6 +117,8 @@ int yalx_runtime_init() {
     yalx_add_machine_to_processor(&procs[0], &m0);
     
     yalx_init_scheduler(&scheduler);
+    
+    dev_print_struct_fields();
     return 0;
 }
 
@@ -103,3 +153,5 @@ void *fill_memory_zag(void *chunk, size_t n, uint32_t zag) {
     }
     return chunk;
 }
+
+void dbg_output(const char *s) { puts(s); }

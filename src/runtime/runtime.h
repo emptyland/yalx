@@ -80,12 +80,14 @@ static inline void dbg_init_zag(void *chunk, size_t n) { fill_memory_zag(chunk, 
 static inline void dbg_free_zag(void *chunk, size_t n) { fill_memory_zag(chunk, n, MEM_FREE_ZAG); }
 #endif
 
-// implements in bootstrap-[Arch].s
-void yalx_rt0(void);
+void dbg_output(const char *s);
 
-int entry(void);
+// implements in bootstrap-[Arch].s
 int asm_stub1(int, int);
 int asm_stub2(const struct yalx_str *);
+u64_t asm_stub3(void);
+int asm_stub4(void);
+void *asm_stub5(void);
 
 #ifdef __cplusplus
 }

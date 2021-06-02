@@ -7,40 +7,59 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		230471B82665B97D00F5682B /* bootstrap-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 230471B72665B97D00F5682B /* bootstrap-arm64.s */; };
-		230471BA2665BC4600F5682B /* boot-stub-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 230471B92665BC4600F5682B /* boot-stub-arm64.s */; };
-		232A47BB264A8433003DCA4F /* env-posix.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47BA264A83D4003DCA4F /* env-posix.cc */; };
-		232A47BF264A8BF1003DCA4F /* asm-x64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47BE264A8BF1003DCA4F /* asm-x64-test.cc */; };
-		232A47C4264B8962003DCA4F /* instr-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C3264B8962003DCA4F /* instr-arm64.cc */; };
-		232A47C6264E200F003DCA4F /* io.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C5264E1EEC003DCA4F /* io.cc */; };
-		2340E6B62648234A006B37F3 /* env-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2340E6B52648234A006B37F3 /* env-test.cc */; };
-		2351F81026648D4D00D337EA /* runtime.c in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80F26648D4D00D337EA /* runtime.c */; };
-		2351F813266494AE00D337EA /* runtime-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2351F812266494AE00D337EA /* runtime-test.cc */; };
-		2354CD7926439E9500A2FAC3 /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6226439E9500A2FAC3 /* crc32.c */; };
-		2354CD7B26439E9500A2FAC3 /* arena-utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6426439E9500A2FAC3 /* arena-utils.cc */; };
-		2354CD7C26439E9500A2FAC3 /* sha256-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6626439E9500A2FAC3 /* sha256-test.cc */; };
-		2354CD7D26439E9500A2FAC3 /* at-exit.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6926439E9500A2FAC3 /* at-exit.cc */; };
-		2354CD7F26439E9500A2FAC3 /* reference-count-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6E26439E9500A2FAC3 /* reference-count-test.cc */; };
-		2354CD8026439E9500A2FAC3 /* hash.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6F26439E9500A2FAC3 /* hash.cc */; };
-		2354CD8326439E9500A2FAC3 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7726439E9500A2FAC3 /* sha256.c */; };
-		2354CD872643C8FD00A2FAC3 /* all-tests.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD862643C8FD00A2FAC3 /* all-tests.cc */; };
-		2354CD8A2643CC1900A2FAC3 /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD892643CC1900A2FAC3 /* gtest-all.cc */; };
-		2354CD8C2643D34B00A2FAC3 /* status-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD8B2643D34B00A2FAC3 /* status-test.cc */; };
-		2354CD8E2644D46C00A2FAC3 /* arena-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD8D2644D3F200A2FAC3 /* arena-test.cc */; };
-		2354CD922644D50B00A2FAC3 /* asm-x64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD902644D50B00A2FAC3 /* asm-x64.cc */; };
-		2354CD952644DDA400A2FAC3 /* format.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD942644DDA400A2FAC3 /* format.cc */; };
-		2354CD972644DE4700A2FAC3 /* status.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD962644DE4700A2FAC3 /* status.cc */; };
-		2354CD992644DF1600A2FAC3 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD982644DF1600A2FAC3 /* base.cc */; };
-		23A3AB5C2664C1DB00007658 /* stack.c in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5B2664C1DB00007658 /* stack.c */; };
-		23A3AB5E2664DB9F00007658 /* stack-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5D2664DB9F00007658 /* stack-test.cc */; };
-		23A3AB612664E32E00007658 /* process.c in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB602664E32E00007658 /* process.c */; };
-		23CAA1E02666799F000EF129 /* scheduler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23CAA1DF2666799F000EF129 /* scheduler.cc */; };
-		23EFD488264624D2007222D6 /* asm-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD487264624D2007222D6 /* asm-arm64.cc */; };
-		23EFD48B26466D87007222D6 /* asm-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD48A26466D87007222D6 /* asm-arm64-test.cc */; };
+		23D5A64C266718ED00635ADB /* runtime-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2351F812266494AE00D337EA /* runtime-test.cc */; };
+		23D5A64D266718ED00635ADB /* runtime.h in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80E26648CB200D337EA /* runtime.h */; };
+		23D5A64E266718ED00635ADB /* runtime.c in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80F26648D4D00D337EA /* runtime.c */; };
+		23D5A64F266718ED00635ADB /* macros.h in Sources */ = {isa = PBXBuildFile; fileRef = 2351F8112664939700D337EA /* macros.h */; };
+		23D5A651266718ED00635ADB /* stack-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5D2664DB9F00007658 /* stack-test.cc */; };
+		23D5A652266718ED00635ADB /* stack.h in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5A2664BAE800007658 /* stack.h */; };
+		23D5A653266718ED00635ADB /* stack.c in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5B2664C1DB00007658 /* stack.c */; };
+		23D5A654266718ED00635ADB /* process.h in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5F2664DE4D00007658 /* process.h */; };
+		23D5A655266718ED00635ADB /* process.c in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB602664E32E00007658 /* process.c */; };
+		23D5A656266718ED00635ADB /* checking.h in Sources */ = {isa = PBXBuildFile; fileRef = 23CAA1DD26667586000EF129 /* checking.h */; };
+		23D5A657266718ED00635ADB /* scheduler.h in Sources */ = {isa = PBXBuildFile; fileRef = 23CAA1DE2666790B000EF129 /* scheduler.h */; };
+		23D5A658266718ED00635ADB /* scheduler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23CAA1DF2666799F000EF129 /* scheduler.cc */; };
+		23D5A659266718ED00635ADB /* label.h in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C1264B6DFD003DCA4F /* label.h */; };
+		23D5A65A266718ED00635ADB /* asm-x64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47BE264A8BF1003DCA4F /* asm-x64-test.cc */; };
+		23D5A65B266718ED00635ADB /* asm-x64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD902644D50B00A2FAC3 /* asm-x64.cc */; };
+		23D5A65C266718ED00635ADB /* asm-x64.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD912644D50B00A2FAC3 /* asm-x64.h */; };
+		23D5A65D266718ED00635ADB /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD892643CC1900A2FAC3 /* gtest-all.cc */; };
+		23D5A65E266718ED00635ADB /* all-tests.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD862643C8FD00A2FAC3 /* all-tests.cc */; };
+		23D5A65F266718F900635ADB /* arena-utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6426439E9500A2FAC3 /* arena-utils.cc */; };
+		23D5A660266718F900635ADB /* arena-utils.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6726439E9500A2FAC3 /* arena-utils.h */; };
+		23D5A661266718F900635ADB /* arena-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD8D2644D3F200A2FAC3 /* arena-test.cc */; };
+		23D5A662266718F900635ADB /* arena.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7626439E9500A2FAC3 /* arena.h */; };
+		23D5A663266718F900635ADB /* at-exit.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6926439E9500A2FAC3 /* at-exit.cc */; };
+		23D5A664266718F900635ADB /* at-exit.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7426439E9500A2FAC3 /* at-exit.h */; };
+		23D5A665266718F900635ADB /* base.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7826439E9500A2FAC3 /* base.h */; };
+		23D5A666266718F900635ADB /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD982644DF1600A2FAC3 /* base.cc */; };
+		23D5A667266718F900635ADB /* bit-ops.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7226439E9500A2FAC3 /* bit-ops.h */; };
+		23D5A668266718F900635ADB /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6226439E9500A2FAC3 /* crc32.c */; };
+		23D5A669266718F900635ADB /* env-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2340E6B52648234A006B37F3 /* env-test.cc */; };
+		23D5A66A266718F900635ADB /* env-posix.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47BA264A83D4003DCA4F /* env-posix.cc */; };
+		23D5A66B266718F900635ADB /* env.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6526439E9500A2FAC3 /* env.h */; };
+		23D5A66C266718F900635ADB /* hash.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6F26439E9500A2FAC3 /* hash.cc */; };
+		23D5A66D266718F900635ADB /* hash.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6126439E9500A2FAC3 /* hash.h */; };
+		23D5A66E266718F900635ADB /* io.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6A26439E9500A2FAC3 /* io.h */; };
+		23D5A66F266718F900635ADB /* io.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C5264E1EEC003DCA4F /* io.cc */; };
+		23D5A670266718F900635ADB /* lazy-instance.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7126439E9500A2FAC3 /* lazy-instance.h */; };
+		23D5A671266718F900635ADB /* reference-count-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6E26439E9500A2FAC3 /* reference-count-test.cc */; };
+		23D5A672266718F900635ADB /* reference-count.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6B26439E9500A2FAC3 /* reference-count.h */; };
+		23D5A673266718F900635ADB /* sha256-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6626439E9500A2FAC3 /* sha256-test.cc */; };
+		23D5A674266718F900635ADB /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7726439E9500A2FAC3 /* sha256.c */; };
+		23D5A675266718F900635ADB /* sha256.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6C26439E9500A2FAC3 /* sha256.h */; };
+		23D5A676266718F900635ADB /* status-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD8B2643D34B00A2FAC3 /* status-test.cc */; };
+		23D5A677266718F900635ADB /* status.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6026439E9500A2FAC3 /* status.h */; };
+		23D5A678266718F900635ADB /* status.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD962644DE4700A2FAC3 /* status.cc */; };
+		23D5A679266718F900635ADB /* checking.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD882643CA5000A2FAC3 /* checking.h */; };
+		23D5A67A266718F900635ADB /* format.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD932644DCF200A2FAC3 /* format.h */; };
+		23D5A67B266718F900635ADB /* format.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD942644DDA400A2FAC3 /* format.cc */; };
+		23D5A67C266718F900635ADB /* utils.h in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD48C26467FB5007222D6 /* utils.h */; };
+		23D5A67E26672FE000635ADB /* test-stub-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A67D26672FE000635ADB /* test-stub-x64.s */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		2354CD5426439CB400A2FAC3 /* CopyFiles */ = {
+		23D5A643266718B400635ADB /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -52,8 +71,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		230471B72665B97D00F5682B /* bootstrap-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "bootstrap-arm64.s"; path = "../src/runtime/bootstrap-arm64.s"; sourceTree = "<group>"; };
-		230471B92665BC4600F5682B /* boot-stub-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "boot-stub-arm64.s"; path = "../src/runtime/boot-stub-arm64.s"; sourceTree = "<group>"; };
 		232A47BA264A83D4003DCA4F /* env-posix.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-posix.cc"; path = "../src/base/env-posix.cc"; sourceTree = "<group>"; };
 		232A47BE264A8BF1003DCA4F /* asm-x64-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-x64-test.cc"; path = "../src/x64/asm-x64-test.cc"; sourceTree = "<group>"; };
 		232A47C1264B6DFD003DCA4F /* label.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = label.h; path = ../src/arch/label.h; sourceTree = "<group>"; };
@@ -65,8 +82,6 @@
 		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
 		2351F8112664939700D337EA /* macros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macros.h; path = ../src/runtime/macros.h; sourceTree = "<group>"; };
 		2351F812266494AE00D337EA /* runtime-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "runtime-test.cc"; path = "../src/runtime/runtime-test.cc"; sourceTree = "<group>"; };
-		2351F814266495AC00D337EA /* bootstrap-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "bootstrap-x64.s"; path = "../src/runtime/bootstrap-x64.s"; sourceTree = "<group>"; };
-		2354CD5626439CB400A2FAC3 /* all-tests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "all-tests"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2354CD6026439E9500A2FAC3 /* status.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = status.h; path = ../src/base/status.h; sourceTree = "<group>"; };
 		2354CD6126439E9500A2FAC3 /* hash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hash.h; path = ../src/base/hash.h; sourceTree = "<group>"; };
 		2354CD6226439E9500A2FAC3 /* crc32.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = crc32.c; path = ../src/base/crc32.c; sourceTree = "<group>"; };
@@ -105,6 +120,8 @@
 		23CAA1DD26667586000EF129 /* checking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = checking.h; path = ../src/runtime/checking.h; sourceTree = "<group>"; };
 		23CAA1DE2666790B000EF129 /* scheduler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scheduler.h; path = ../src/runtime/scheduler.h; sourceTree = "<group>"; };
 		23CAA1DF2666799F000EF129 /* scheduler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scheduler.cc; path = ../src/runtime/scheduler.cc; sourceTree = "<group>"; };
+		23D5A645266718B400635ADB /* all-tests-x64 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "all-tests-x64"; sourceTree = BUILT_PRODUCTS_DIR; };
+		23D5A67D26672FE000635ADB /* test-stub-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "test-stub-x64.s"; path = "../src/runtime/test-stub-x64.s"; sourceTree = "<group>"; };
 		23ED3A95264D6BAD001FDE88 /* all-tests.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "all-tests.entitlements"; sourceTree = "<group>"; };
 		23EFD486264624BD007222D6 /* asm-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "asm-arm64.h"; path = "../src/arm64/asm-arm64.h"; sourceTree = "<group>"; };
 		23EFD487264624D2007222D6 /* asm-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-arm64.cc"; path = "../src/arm64/asm-arm64.cc"; sourceTree = "<group>"; };
@@ -114,7 +131,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		2354CD5326439CB400A2FAC3 /* Frameworks */ = {
+		23D5A642266718B400635ADB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -139,9 +156,6 @@
 				2351F80E26648CB200D337EA /* runtime.h */,
 				2351F80F26648D4D00D337EA /* runtime.c */,
 				2351F8112664939700D337EA /* macros.h */,
-				2351F814266495AC00D337EA /* bootstrap-x64.s */,
-				230471B72665B97D00F5682B /* bootstrap-arm64.s */,
-				230471B92665BC4600F5682B /* boot-stub-arm64.s */,
 				23A3AB5D2664DB9F00007658 /* stack-test.cc */,
 				23A3AB5A2664BAE800007658 /* stack.h */,
 				23A3AB5B2664C1DB00007658 /* stack.c */,
@@ -150,6 +164,7 @@
 				23CAA1DD26667586000EF129 /* checking.h */,
 				23CAA1DE2666790B000EF129 /* scheduler.h */,
 				23CAA1DF2666799F000EF129 /* scheduler.cc */,
+				23D5A67D26672FE000635ADB /* test-stub-x64.s */,
 			);
 			name = Runtime;
 			sourceTree = "<group>";
@@ -179,7 +194,7 @@
 		2354CD5726439CB400A2FAC3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				2354CD5626439CB400A2FAC3 /* all-tests */,
+				23D5A645266718B400635ADB /* all-tests-x64 */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -256,21 +271,21 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2354CD5526439CB400A2FAC3 /* all-tests */ = {
+		23D5A644266718B400635ADB /* all-tests-x64 */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2354CD5B26439CB400A2FAC3 /* Build configuration list for PBXNativeTarget "all-tests" */;
+			buildConfigurationList = 23D5A649266718B400635ADB /* Build configuration list for PBXNativeTarget "all-tests-x64" */;
 			buildPhases = (
-				2354CD5226439CB400A2FAC3 /* Sources */,
-				2354CD5326439CB400A2FAC3 /* Frameworks */,
-				2354CD5426439CB400A2FAC3 /* CopyFiles */,
+				23D5A641266718B400635ADB /* Sources */,
+				23D5A642266718B400635ADB /* Frameworks */,
+				23D5A643266718B400635ADB /* CopyFiles */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = "all-tests";
-			productName = "all-tests";
-			productReference = 2354CD5626439CB400A2FAC3 /* all-tests */;
+			name = "all-tests-x64";
+			productName = "all-tests-x64";
+			productReference = 23D5A645266718B400635ADB /* all-tests-x64 */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -281,7 +296,7 @@
 			attributes = {
 				LastUpgradeCheck = 1250;
 				TargetAttributes = {
-					2354CD5526439CB400A2FAC3 = {
+					23D5A644266718B400635ADB = {
 						CreatedOnToolsVersion = 12.5;
 					};
 				};
@@ -299,46 +314,65 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				2354CD5526439CB400A2FAC3 /* all-tests */,
+				23D5A644266718B400635ADB /* all-tests-x64 */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
-		2354CD5226439CB400A2FAC3 /* Sources */ = {
+		23D5A641266718B400635ADB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				23A3AB5E2664DB9F00007658 /* stack-test.cc in Sources */,
-				232A47C6264E200F003DCA4F /* io.cc in Sources */,
-				232A47BB264A8433003DCA4F /* env-posix.cc in Sources */,
-				2354CD992644DF1600A2FAC3 /* base.cc in Sources */,
-				2354CD8E2644D46C00A2FAC3 /* arena-test.cc in Sources */,
-				23A3AB612664E32E00007658 /* process.c in Sources */,
-				2351F813266494AE00D337EA /* runtime-test.cc in Sources */,
-				2354CD7F26439E9500A2FAC3 /* reference-count-test.cc in Sources */,
-				2354CD952644DDA400A2FAC3 /* format.cc in Sources */,
-				232A47C4264B8962003DCA4F /* instr-arm64.cc in Sources */,
-				2354CD922644D50B00A2FAC3 /* asm-x64.cc in Sources */,
-				230471B82665B97D00F5682B /* bootstrap-arm64.s in Sources */,
-				2351F81026648D4D00D337EA /* runtime.c in Sources */,
-				2354CD872643C8FD00A2FAC3 /* all-tests.cc in Sources */,
-				2354CD972644DE4700A2FAC3 /* status.cc in Sources */,
-				232A47BF264A8BF1003DCA4F /* asm-x64-test.cc in Sources */,
-				2354CD7C26439E9500A2FAC3 /* sha256-test.cc in Sources */,
-				23EFD488264624D2007222D6 /* asm-arm64.cc in Sources */,
-				2354CD8C2643D34B00A2FAC3 /* status-test.cc in Sources */,
-				2354CD7926439E9500A2FAC3 /* crc32.c in Sources */,
-				23A3AB5C2664C1DB00007658 /* stack.c in Sources */,
-				2354CD7D26439E9500A2FAC3 /* at-exit.cc in Sources */,
-				2354CD7B26439E9500A2FAC3 /* arena-utils.cc in Sources */,
-				230471BA2665BC4600F5682B /* boot-stub-arm64.s in Sources */,
-				2354CD8326439E9500A2FAC3 /* sha256.c in Sources */,
-				2354CD8026439E9500A2FAC3 /* hash.cc in Sources */,
-				2340E6B62648234A006B37F3 /* env-test.cc in Sources */,
-				23EFD48B26466D87007222D6 /* asm-arm64-test.cc in Sources */,
-				2354CD8A2643CC1900A2FAC3 /* gtest-all.cc in Sources */,
-				23CAA1E02666799F000EF129 /* scheduler.cc in Sources */,
+				23D5A65F266718F900635ADB /* arena-utils.cc in Sources */,
+				23D5A660266718F900635ADB /* arena-utils.h in Sources */,
+				23D5A661266718F900635ADB /* arena-test.cc in Sources */,
+				23D5A662266718F900635ADB /* arena.h in Sources */,
+				23D5A663266718F900635ADB /* at-exit.cc in Sources */,
+				23D5A664266718F900635ADB /* at-exit.h in Sources */,
+				23D5A665266718F900635ADB /* base.h in Sources */,
+				23D5A666266718F900635ADB /* base.cc in Sources */,
+				23D5A667266718F900635ADB /* bit-ops.h in Sources */,
+				23D5A668266718F900635ADB /* crc32.c in Sources */,
+				23D5A669266718F900635ADB /* env-test.cc in Sources */,
+				23D5A66A266718F900635ADB /* env-posix.cc in Sources */,
+				23D5A66B266718F900635ADB /* env.h in Sources */,
+				23D5A66C266718F900635ADB /* hash.cc in Sources */,
+				23D5A67E26672FE000635ADB /* test-stub-x64.s in Sources */,
+				23D5A66D266718F900635ADB /* hash.h in Sources */,
+				23D5A66E266718F900635ADB /* io.h in Sources */,
+				23D5A66F266718F900635ADB /* io.cc in Sources */,
+				23D5A670266718F900635ADB /* lazy-instance.h in Sources */,
+				23D5A671266718F900635ADB /* reference-count-test.cc in Sources */,
+				23D5A672266718F900635ADB /* reference-count.h in Sources */,
+				23D5A673266718F900635ADB /* sha256-test.cc in Sources */,
+				23D5A674266718F900635ADB /* sha256.c in Sources */,
+				23D5A675266718F900635ADB /* sha256.h in Sources */,
+				23D5A676266718F900635ADB /* status-test.cc in Sources */,
+				23D5A677266718F900635ADB /* status.h in Sources */,
+				23D5A678266718F900635ADB /* status.cc in Sources */,
+				23D5A679266718F900635ADB /* checking.h in Sources */,
+				23D5A67A266718F900635ADB /* format.h in Sources */,
+				23D5A67B266718F900635ADB /* format.cc in Sources */,
+				23D5A67C266718F900635ADB /* utils.h in Sources */,
+				23D5A64C266718ED00635ADB /* runtime-test.cc in Sources */,
+				23D5A64D266718ED00635ADB /* runtime.h in Sources */,
+				23D5A64E266718ED00635ADB /* runtime.c in Sources */,
+				23D5A64F266718ED00635ADB /* macros.h in Sources */,
+				23D5A651266718ED00635ADB /* stack-test.cc in Sources */,
+				23D5A652266718ED00635ADB /* stack.h in Sources */,
+				23D5A653266718ED00635ADB /* stack.c in Sources */,
+				23D5A654266718ED00635ADB /* process.h in Sources */,
+				23D5A655266718ED00635ADB /* process.c in Sources */,
+				23D5A656266718ED00635ADB /* checking.h in Sources */,
+				23D5A657266718ED00635ADB /* scheduler.h in Sources */,
+				23D5A658266718ED00635ADB /* scheduler.cc in Sources */,
+				23D5A659266718ED00635ADB /* label.h in Sources */,
+				23D5A65A266718ED00635ADB /* asm-x64-test.cc in Sources */,
+				23D5A65B266718ED00635ADB /* asm-x64.cc in Sources */,
+				23D5A65C266718ED00635ADB /* asm-x64.h in Sources */,
+				23D5A65D266718ED00635ADB /* gtest-all.cc in Sources */,
+				23D5A65E266718ED00635ADB /* all-tests.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -350,9 +384,16 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
+				CODE_SIGN_ENTITLEMENTS = "all-tests.entitlements";
 				GCC_C_LANGUAGE_STANDARD = c11;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
+				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
+				HEADER_SEARCH_PATHS = (
+					"../src/**",
+					"../third-party/include/**",
+				);
+				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -361,20 +402,26 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
+				CODE_SIGN_ENTITLEMENTS = "all-tests.entitlements";
 				GCC_C_LANGUAGE_STANDARD = c11;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
+				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
+				HEADER_SEARCH_PATHS = (
+					"../src/**",
+					"../third-party/include/**",
+				);
+				SDKROOT = macosx;
 			};
 			name = Release;
 		};
-		2354CD5C26439CB400A2FAC3 /* Debug */ = {
+		23D5A64A266718B400635ADB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
-				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
@@ -400,10 +447,10 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_ENTITLEMENTS = "all-tests.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 4K8H6RFHFM;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -421,27 +468,21 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = (
-					../src,
-					"../third-party/include",
-				);
 				MACOSX_DEPLOYMENT_TARGET = 11.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
-		2354CD5D26439CB400A2FAC3 /* Release */ = {
+		23D5A64B266718B400635ADB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
-				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
@@ -467,10 +508,10 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_ENTITLEMENTS = "all-tests.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 4K8H6RFHFM;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -482,15 +523,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = (
-					../src,
-					"../third-party/include",
-				);
 				MACOSX_DEPLOYMENT_TARGET = 11.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 			};
 			name = Release;
 		};
@@ -506,11 +543,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		2354CD5B26439CB400A2FAC3 /* Build configuration list for PBXNativeTarget "all-tests" */ = {
+		23D5A649266718B400635ADB /* Build configuration list for PBXNativeTarget "all-tests-x64" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				2354CD5C26439CB400A2FAC3 /* Debug */,
-				2354CD5D26439CB400A2FAC3 /* Release */,
+				23D5A64A266718B400635ADB /* Debug */,
+				23D5A64B266718B400635ADB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

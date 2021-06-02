@@ -27,7 +27,7 @@ TEST_F(X64AssemblerTest, Sanity) {
     __ xorq(rax, rax);
     __ popq(rbp);
     __ ret(0);
-    
+
     auto memory = NewCodeBuffer();
     auto fun = memory.WriteTo<int64_t()>(assembler_.buf(), true/*code*/);
     ASSERT_EQ(0, fun());

@@ -128,7 +128,7 @@ inline Status Env::OSPageAllocate(size_t n, int access, void **result) {
     if (access & (kMemoryWriteable | kMemoryExecuteable)) {
         flags |= MAP_JIT;
     }
-#endif // defined(YALX_OS_DARWIN)
+#endif // defined(YALX_OS_DARWIN) && defined(YALX_ARCH_ARM64)
     auto chunk = ::mmap(nullptr, n, access, flags, -1, 0);
     if (chunk == MAP_FAILED) {
         return ERR_PERROR("mmap fail!");

@@ -8,13 +8,16 @@ TEST(RuntimeTest, Sanity) {
     ASSERT_NE(0, ncpus);
     ASSERT_EQ(0, os_page_size % (4 * KB));
     
-    ASSERT_EQ(0, entry());
     ASSERT_EQ(0, asm_stub1(0, 0));
     ASSERT_EQ(1, asm_stub1(1, 0));
     ASSERT_EQ(2, asm_stub1(1, 1));
     
+    ASSERT_EQ(1, asm_stub3());
+    
     ASSERT_TRUE(strstr(yalx_version.z, "yalx-lang"));
     ASSERT_EQ(16, asm_stub2(&yalx_version));
+    
+    ASSERT_EQ(static_cast<void *>(thread_local_mach), asm_stub5());
 }
 
 
