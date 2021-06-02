@@ -64,6 +64,11 @@ struct coroutine {
     enum coroutine_state state;
     struct stack *stack;
     address_t entry;
+    address_t c_sp;
+    address_t c_fp;
+    address_t n_pc;
+    address_t n_sp;
+    address_t n_fp;
 }; // struct coroutine
 
 

@@ -49,3 +49,8 @@ TEST(RuntimeTest, C0M0) {
     ASSERT_EQ(thread_local_mach, &m0);
     ASSERT_TRUE(yalx_is_m0(&m0));
 }
+
+
+TEST(RuntimeTest, MockRt0Sanity) {
+    yalx_rt0(0, NULL);
+}

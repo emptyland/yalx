@@ -50,6 +50,8 @@ struct yalx_str {
 
 #define YALX_STR(s) { .z = (s), .n = sizeof(s) - 1 }
 
+struct yalx_class;
+
 
 // Version of yalx
 extern const struct yalx_str yalx_version;
@@ -61,8 +63,11 @@ extern int ncpus;
 extern int os_page_size;
 
 
-
 int yalx_runtime_init(void);
+
+void yalx_runtime_eixt(void);
+
+int yalx_rt0(int argc, char *argv[]);
 
 void *fill_memory_zag(void *chunk, size_t n, uint32_t zag);
 
@@ -80,14 +85,20 @@ static inline void dbg_init_zag(void *chunk, size_t n) { fill_memory_zag(chunk, 
 static inline void dbg_free_zag(void *chunk, size_t n) { fill_memory_zag(chunk, n, MEM_FREE_ZAG); }
 #endif
 
-void dbg_output(const char *s);
+void dbg_class_output(const struct yalx_class *klass);
 
-// implements in bootstrap-[Arch].s
+// implements in test-stub-[Arch].s
 int asm_stub1(int, int);
 int asm_stub2(const struct yalx_str *);
 u64_t asm_stub3(void);
 int asm_stub4(void);
 void *asm_stub5(void);
+
+// implements in boot-[Arch].s
+int trampoline(void);
+
+// generated entry symbol: main.main(): unit
+void y2zmain_main(void);
 
 #ifdef __cplusplus
 }

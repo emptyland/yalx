@@ -45,6 +45,7 @@ int yalx_init_machine(struct machine *mach, struct processor *owns) {
 }
 
 int yalx_init_coroutine(const coid_t id, struct coroutine *co, struct stack *stack, address_t entry) {
+    memset(co, 0, sizeof(*co));
     co->entry = entry;
     co->next = co;
     co->prev = co;

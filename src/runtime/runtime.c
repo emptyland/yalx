@@ -1,6 +1,8 @@
 #include "runtime/runtime.h"
 #include "runtime/scheduler.h"
 #include "runtime/process.h"
+#include "runtime/checking.h"
+#include "runtime/object/type.h"
 #include <unistd.h>
 #include <sys/sysctl.h>
 #include <stdlib.h>
@@ -47,6 +49,28 @@ static const struct dev_struct_field coroutine_fields[] = {
     DECLARE_FIELD(coroutine, state),
     DECLARE_FIELD(coroutine, stack),
     DECLARE_FIELD(coroutine, entry),
+    DECLARE_FIELD(coroutine, c_sp),
+    DECLARE_FIELD(coroutine, c_fp),
+    DECLARE_FIELD(coroutine, n_pc),
+    DECLARE_FIELD(coroutine, n_sp),
+    DECLARE_FIELD(coroutine, n_fp),
+    DECLARE_END()
+};
+
+static const struct dev_struct_field machine_fields[] = {
+    DECLARE_FIELD(machine, next),
+    DECLARE_FIELD(machine, prev),
+    DECLARE_FIELD(machine, running),
+    DECLARE_END()
+};
+
+static const struct dev_struct_field stack_fields[] = {
+    DECLARE_FIELD(stack, next),
+    DECLARE_FIELD(stack, prev),
+    DECLARE_FIELD(stack, core),
+    DECLARE_FIELD(stack, top),
+    DECLARE_FIELD(stack, bottom),
+    DECLARE_FIELD(stack, size),
     DECLARE_END()
 };
 
@@ -61,8 +85,12 @@ static void dev_print_fields(const struct dev_struct_field *field) {
 static void dev_print_struct_fields() {
     printf("struct scheduler:\n");
     dev_print_fields(scheduler_fields);
+    printf("struct machine:\n");
+    dev_print_fields(machine_fields);
     printf("struct coroutine:\n");
     dev_print_fields(coroutine_fields);
+    printf("struct stack:\n");
+    dev_print_fields(stack_fields);
 }
 
 #else // #ifndef NDEBUG
@@ -99,7 +127,7 @@ int yalx_runtime_init() {
     }
     coid_t coid;
     coid.value = 0;
-    yalx_init_coroutine(coid, &c0, s0, NULL);
+    yalx_init_coroutine(coid, &c0, s0, (address_t)y2zmain_main);
 
     nprocs = ncpus;
     procs = malloc(nprocs * sizeof(struct processor));
@@ -119,6 +147,29 @@ int yalx_runtime_init() {
     yalx_init_scheduler(&scheduler);
     
     dev_print_struct_fields();
+    return 0;
+}
+
+void yalx_runtime_eixt(void) {
+    yalx_free_scheduler(&scheduler);
+    // TODO:
+}
+
+int yalx_rt0(int argc, char *argv[]) {
+    USE(argc);
+    USE(argv);
+    
+    DCHECK(thread_local_mach != NULL);
+    DCHECK(c0.state != CO_RUNNING);
+    c0.state = CO_RUNNING;
+    m0.state = MACH_RUNNING;
+    
+    m0.running = &c0;
+    // Jump in to yalx lang env:
+    trampoline();
+    
+    m0.state = MACH_IDLE;
+    c0.state = CO_DEAD;
     return 0;
 }
 
@@ -154,4 +205,8 @@ void *fill_memory_zag(void *chunk, size_t n, uint32_t zag) {
     return chunk;
 }
 
-void dbg_output(const char *s) { puts(s); }
+void dbg_class_output(const struct yalx_class *klass) {
+    for (int i = 0; i < klass->n_methods; i++) {
+        printf("%s%s\n", klass->methods[i].name.z, klass->methods[i].prototype_desc.z);
+    }
+}

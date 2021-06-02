@@ -4,6 +4,7 @@
 #if defined(YALX_OS_DARWIN)
 #include <sys/mman.h>
 #endif // defined(YALX_OS_DARWIN)
+#include <stdio.h>
 
 struct scheduler scheduler;
 
@@ -40,4 +41,10 @@ coid_t yalx_next_coid(void) {
     id.value = scheduler.next_coid++;
     pthread_mutex_unlock(&scheduler.mutex);
     return id;
+}
+
+int yalx_schedule() {
+    
+    puts("yalx_schedule");
+    return 0;
 }

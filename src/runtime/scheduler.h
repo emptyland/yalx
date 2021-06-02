@@ -27,6 +27,8 @@ void yalx_free_scheduler(struct scheduler *sched);
 
 coid_t yalx_next_coid(void);
 
+int yalx_schedule();
+
 #ifdef __cplusplus
 }
 #endif

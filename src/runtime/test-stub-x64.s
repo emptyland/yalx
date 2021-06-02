@@ -38,11 +38,23 @@ _asm_stub4:
 // test get thread-local variable
 .global _asm_stub5,_thread_local_mach
 _asm_stub5:
+    //movq %rsp, %rbp
     pushq %rbp
     leaq _thread_local_mach(%rip), %rdi
     callq *(%rdi) // call _thread_local_mach
     movq (%rax), %rax
     popq %rbp
+    //movq %rbp, %rsp
+    ret
+
+.global _y2zmain_main
+_y2zmain_main:
+    movq %rsp, %rbp
+    pushq %rbp
+    leaq msg(%rip), %rdi
+    callq _puts // call stdio.h puts
+    popq %rbp
+    movq %rbp, %rsp
     ret
 
 .data
