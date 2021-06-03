@@ -36,49 +36,39 @@ _trampoline:
     popq %r12
     popq %rbx
     popq %rbp
-    movq %rbp, %rsp;
     ret
 
 
-.global _schedule,yalx_schedule,_thread_local_mach
-_schedule:
+.global _yield,_yalx_schedule,_thread_local_mach
+_yield:
     movq %rsp, %rbp;
     pushq %rbp
-
     callq _current_co // get current-coroutine(thread local)
     movq %rsp, 72(%rax) // RSP -> co->n_sp
     movq %rbp, 80(%rax) // RBP -> co->n_fp
     leaq (%rip), %rdi // RIP -> RDI
-    addq 16, %rdi
+    addq $27, %rdi
     movq %rdi, 64(%rax) // RIP + 16 -> co->n_pc
-
+    callq _yalx_schedule
+    cmpl $0, %eax
+    je yield_exit // yalx_schedule() == 0
+    jmp yield_sched // yalx_schedule() != 0
     nop
     nop
     nop
     nop
 
-    nop
-    nop
-    nop
-    nop
-
-    nop
-    nop
-    nop
-    nop
-
-    nop
-    nop
-    nop
-    nop
-
-    nop
-    nop
-    nop
-    nop
-
-    movq %rbp, %rsp;
+yield_exit:
+    popq %rbp
     ret
+yield_sched:
+    callq _current_co
+    int3
+    movq 72(%rax), %rsp
+    movq 80(%rax), %rbp
+    movq 64(%rax), %rdi
+    jmp *%rdi
+    int3
 
 //------------------------------------------------------------------------------------
 // struct coroutine *current_co()
@@ -88,9 +78,10 @@ _current_co:
     movq %rsp, %rbp;
     pushq %rbp
     
-    movq _thread_local_mach(%rip), %rdi
+    leaq _thread_local_mach(%rip), %rdi
     callq *(%rdi) // get _thread_local_mach
+    movq (%rax), %rax
     movq 272(%rax), %rax // _thread_local_mach->running
 
-    movq %rbp, %rsp;
+    popq %rbp
     ret

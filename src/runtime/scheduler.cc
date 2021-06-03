@@ -46,5 +46,6 @@ coid_t yalx_next_coid(void) {
 int yalx_schedule() {
     
     puts("yalx_schedule");
-    return 0;
+    printf("%p\n", thread_local_mach->running->n_pc);
+    return 1;
 }

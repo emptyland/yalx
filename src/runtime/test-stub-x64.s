@@ -47,14 +47,15 @@ _asm_stub5:
     //movq %rbp, %rsp
     ret
 
-.global _y2zmain_main
+.global _y2zmain_main,_yield
 _y2zmain_main:
     movq %rsp, %rbp
     pushq %rbp
     leaq msg(%rip), %rdi
     callq _puts // call stdio.h puts
+
+    callq _yield
     popq %rbp
-    movq %rbp, %rsp
     ret
 
 .data
