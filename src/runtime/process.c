@@ -38,8 +38,10 @@ int yalx_init_machine(struct machine *mach, struct processor *owns) {
     mach->owns = owns;
     mach->state = MACH_INIT;
     mach->running = NULL;
-    mach->coroutine_head.next = &mach->coroutine_head;
-    mach->coroutine_head.prev = &mach->coroutine_head;
+    mach->waitting_head.next = &mach->waitting_head;
+    mach->waitting_head.prev = &mach->waitting_head;
+    mach->parking_head.next = &mach->parking_head;
+    mach->parking_head.prev = &mach->parking_head;
     yalx_init_stack_pool(&mach->stack_pool, 10 * MB);
     return 0;
 }
@@ -54,4 +56,9 @@ int yalx_init_coroutine(const coid_t id, struct coroutine *co, struct stack *sta
     DCHECK(stack != NULL);
     co->stack = stack;
     return 0;
+}
+
+void yalx_free_coroutine(struct coroutine *co) {
+    //yalx_free
+    // TODO:
 }

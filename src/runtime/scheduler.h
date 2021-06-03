@@ -29,6 +29,8 @@ coid_t yalx_next_coid(void);
 
 int yalx_schedule();
 
+int yalx_install_coroutine(address_t entry, size_t params_bytes, address_t params_begin);
+
 #ifdef __cplusplus
 }
 #endif

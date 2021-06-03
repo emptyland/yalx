@@ -96,6 +96,7 @@ void *asm_stub5(void);
 
 // implements in boot-[Arch].s
 int trampoline(void);
+void coroutine_finalize_stub(void);
 
 // generated entry symbol: main.main(): unit
 void y2zmain_main(void);

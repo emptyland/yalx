@@ -41,6 +41,7 @@ enum machine_state {
 enum coroutine_state {
     CO_INIT,
     CO_PARKING,
+    CO_WAITTING,
     CO_RUNNING,
     CO_SYSCALL,
     CO_DEAD,
@@ -64,11 +65,12 @@ struct coroutine {
     enum coroutine_state state;
     struct stack *stack;
     address_t entry;
-    address_t c_sp;
-    address_t c_fp;
+    address_t c_sp; // Only for c0
+    address_t c_fp; // Only for c0
     address_t n_pc;
     address_t n_sp;
     address_t n_fp;
+    address_t stub; // stub address for none-c0 coroutine
 }; // struct coroutine
 
 
@@ -77,9 +79,10 @@ struct machine {
     struct processor *owns;
     pthread_t thread;
     enum machine_state state;
-    struct stack_pool stack_pool;
-    struct coroutine coroutine_head;
     struct coroutine *running;
+    struct stack_pool stack_pool;
+    struct coroutine waitting_head;
+    struct coroutine parking_head;
     // TODO:
 }; // struct machine
 
@@ -110,6 +113,8 @@ int yalx_init_machine(struct machine *mach, struct processor *owns);
 static inline int yalx_is_m0(struct machine *m) { return m == &m0; }
 
 int yalx_init_coroutine(const coid_t id, struct coroutine *co, struct stack *stack, address_t entry);
+
+void yalx_free_coroutine(struct coroutine *co);
 
 
 #ifdef __cplusplus

@@ -49,17 +49,36 @@ _asm_stub5:
 
 .global _y2zmain_main,_yield
 _y2zmain_main:
-    movq %rsp, %rbp
     pushq %rbp
+    movq %rsp, %rbp
+
     leaq msg(%rip), %rdi
     callq _puts // call stdio.h puts
 
-    callq _yield
+    //callq _yield
+
+    leaq co_dummy_entry1(%rip), %rdi // _spawn_co
+    xorq %rsi, %rsi //
+    callq _spawn_co
+    
+    popq %rbp
+    ret
+
+
+co_dummy_entry1:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    leaq dummy1(%rip), %rdi
+    callq _puts
+
     popq %rbp
     ret
 
 .data
 msg:
-    .ascii "Hello, world!"
-    len = . - msg
-
+    .ascii "Hello, world!\0"
+    // len = . - msg
+dummy1:
+    .ascii "Hello, dummy 1\0"
+    

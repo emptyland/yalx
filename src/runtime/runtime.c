@@ -54,6 +54,7 @@ static const struct dev_struct_field coroutine_fields[] = {
     DECLARE_FIELD(coroutine, n_pc),
     DECLARE_FIELD(coroutine, n_sp),
     DECLARE_FIELD(coroutine, n_fp),
+    DECLARE_FIELD(coroutine, stub),
     DECLARE_END()
 };
 

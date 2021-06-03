@@ -13,6 +13,8 @@ extern "C" {
 #define STACK_RED_ZONE_SIZE 512
 #define STACK_ALIGNMENT_SIZE 16
 
+#define STACK_DEFAULT_SIZE (8 * KB)
+
 // stack:
 // +---------+----------+-------------+--------+
 // | padding | red_zone | frames .... | pading |

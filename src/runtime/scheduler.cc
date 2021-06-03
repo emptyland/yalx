@@ -5,6 +5,7 @@
 #include <sys/mman.h>
 #endif // defined(YALX_OS_DARWIN)
 #include <stdio.h>
+#include <string.h>
 
 struct scheduler scheduler;
 
@@ -43,9 +44,72 @@ coid_t yalx_next_coid(void) {
     return id;
 }
 
-int yalx_schedule() {
+
+int yalx_install_coroutine(address_t entry, size_t params_bytes, address_t params_begin) {
+    DCHECK(params_bytes % STACK_ALIGNMENT_SIZE == 0 && "must be alignment");
+    struct machine *mach = thread_local_mach;
+    struct stack *stack = yalx_new_stack_from_pool(&mach->stack_pool, STACK_DEFAULT_SIZE);
+    if (!stack) {
+        return -1;
+    }
+    address_t top = stack->top - params_bytes;
+    if (params_bytes > 0) {
+        memcpy(top, params_begin, params_bytes);
+        top -= params_bytes;
+    }
+    address_t stub = (address_t)&coroutine_finalize_stub;
+    top -= sizeof(&stub);
+    memcpy(top, &stub, sizeof(&stub));
     
+    struct coroutine *co = (struct coroutine *)malloc(sizeof(struct coroutine));
+    if (!co) {
+        return -1;
+    }
+    coid_t id = { scheduler.next_coid++ };
+    if (yalx_init_coroutine(id, co, stack, entry) < 0) {
+        return -1;
+    }
+    co->state = CO_WAITTING;
+    co->n_pc = entry;
+    co->n_sp = top;
+    co->n_fp = top;
+    co->stub = entry;
+    
+    pthread_mutex_lock(&scheduler.mutex);
+    QUEUE_INSERT_HEAD(&mach->waitting_head, co);
+    pthread_mutex_unlock(&scheduler.mutex);
+    return 0;
+}
+
+
+int yalx_schedule() {
     puts("yalx_schedule");
-    printf("%p\n", thread_local_mach->running->n_pc);
-    return 1;
+    struct machine *mach = thread_local_mach;
+    struct coroutine *old_co = mach->running;
+    DCHECK(old_co != NULL);
+    
+    pthread_mutex_lock(&scheduler.mutex);
+    if (old_co->state == CO_DEAD) {
+        yalx_delete_stack_to_pool(&mach->stack_pool, old_co->stack);
+        free(old_co);
+        old_co = NULL;
+    }
+    
+    if (!QUEUE_EMPTY(&mach->waitting_head)) {
+        struct coroutine *co = mach->waitting_head.next;
+        QUEUE_REMOVE(co);
+        co->state = CO_RUNNING;
+        mach->running = co;
+
+        if (old_co) {
+            old_co->state = CO_WAITTING;
+            QUEUE_INSERT_TAIL(&mach->waitting_head, old_co);
+        }
+        pthread_mutex_unlock(&scheduler.mutex);
+        return 1; /* scheduled */
+    }
+    pthread_mutex_unlock(&scheduler.mutex);
+    
+    //pthread_exit(NULL);
+    return old_co != mach->running;
 }
