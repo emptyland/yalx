@@ -79,6 +79,8 @@ extern struct yalx_class yalx_lang_any_class;
 extern struct yalx_class bool_class;
 extern struct yalx_class i8_class;
 
+extern struct yalx_class string_class;
+
 #ifdef __cplusplus
 }
 #endif

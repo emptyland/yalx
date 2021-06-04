@@ -112,6 +112,51 @@ Safepoint for
 Implements: Like jvm, signal `SIGSEG` break the thread.
 
 
+## Stack Frame
+
+```
+hight     +------------------+
+          | ...              |
+          |                  |
+          | ...              |
+          |                  |
+          +------------------+
+          | params[0]        |
+          +------------------+
+          | params[1]        |
+          +------------------+
+          | ...              |
+          +------------------+
+          | params[n]        |   Caller Frame    |
+          +==================+-------------------+
+          | return address   |   Callee Frame    |
+          +------------------|
+          | saved FP         |
+          +------------------+ <------ FP
+          | fun metadata ptr | -----------------> Pointer to function metadata
+          +------------------+ 
+          | reserved         |
+          +------------------+
+          | prev catch point | -----------------> Pointer to prev catch point
+          +------------------+
+          | saved catch PC   |
+          +------------------+ Catch Point
+          | saved catch SP   |
+          +------------------+
+          | saved catch FP   |
+          +------------------+
+          | local var[0]     |
+          | ...              |
+          |                  |
+          | local var[n]     |
+          +------------------+
+          | tmp var[0]       |
+          | ...              |
+          | tmp var[n]       |
+low       +------------------+ <----- SP
+
+```
+
 ## Garbage Collection
 
 ### Allocator

@@ -16,6 +16,9 @@ extern "C" {
 #define ROUND_DOWN(x, m)   ((x) & -(m))
 #define ROUND_UP(x, m)     ROUND_DOWN(x + m - 1, m)
 
+#define MALLOC(t) ((t *)malloc(sizeof(t)))
+#define MALLOC_N(t, n) ((t *)malloc(n * sizeof(t)))
+
 #define KB 1024
 #define MB (KB * 1024)
 #define GB (MB * 1024)

@@ -165,3 +165,23 @@ struct yalx_class u8_class = {
     .n_vtab = 0,
     // TODO:
 }; // struct yalx_class i8_class
+
+
+struct yalx_class string_class = {
+    .id = 16,
+    .constraint = K_PRIMITIVE,
+    .reference_size = sizeof(yalx_ref_t),
+    .instance_size = 0,
+    .super = &yalx_lang_any_class,
+    .name = YALX_STR("string"),
+    .location = YALX_STR("string"),
+    .n_annotations = 0,
+    .n_fields = 0,
+    .fields = NULL,
+    .ctor = NULL,
+    .n_methods = 4,
+    .methods = NULL,  // TODO:
+    .n_itab = 0,
+    .n_vtab = 0,
+    // TODO:
+}; // struct yalx_class i8_class

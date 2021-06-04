@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		230167692669C5DB007E8322 /* yalx-string.c in Sources */ = {isa = PBXBuildFile; fileRef = 230167682669C5DB007E8322 /* yalx-string.c */; };
+		2301676B266A27CF007E8322 /* heap-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2301676A266A27CF007E8322 /* heap-test.cc */; };
 		23D5A64C266718ED00635ADB /* runtime-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2351F812266494AE00D337EA /* runtime-test.cc */; };
 		23D5A64D266718ED00635ADB /* runtime.h in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80E26648CB200D337EA /* runtime.h */; };
 		23D5A64E266718ED00635ADB /* runtime.c in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80F26648D4D00D337EA /* runtime.c */; };
@@ -76,6 +78,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		230167672669C575007E8322 /* yalx-string.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "yalx-string.h"; path = "../src/runtime/object/yalx-string.h"; sourceTree = "<group>"; };
+		230167682669C5DB007E8322 /* yalx-string.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "yalx-string.c"; path = "../src/runtime/object/yalx-string.c"; sourceTree = "<group>"; };
+		2301676A266A27CF007E8322 /* heap-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "heap-test.cc"; path = "../src/runtime/heap/heap-test.cc"; sourceTree = "<group>"; };
 		232A47BA264A83D4003DCA4F /* env-posix.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-posix.cc"; path = "../src/base/env-posix.cc"; sourceTree = "<group>"; };
 		232A47BE264A8BF1003DCA4F /* asm-x64-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-x64-test.cc"; path = "../src/x64/asm-x64-test.cc"; sourceTree = "<group>"; };
 		232A47C1264B6DFD003DCA4F /* label.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = label.h; path = ../src/arch/label.h; sourceTree = "<group>"; };
@@ -274,6 +279,7 @@
 		23D5A67F26676B1F00635ADB /* Heap */ = {
 			isa = PBXGroup;
 			children = (
+				2301676A266A27CF007E8322 /* heap-test.cc */,
 				23D5A68126676B4A00635ADB /* heap.h */,
 				23D5A68226676BDC00635ADB /* heap.c */,
 			);
@@ -288,6 +294,8 @@
 				23D5A6872667719200635ADB /* type.h */,
 				23D5A6882667734A00635ADB /* builtin-types.c */,
 				23D5A68A26677D4B00635ADB /* type-test.cc */,
+				230167672669C575007E8322 /* yalx-string.h */,
+				230167682669C5DB007E8322 /* yalx-string.c */,
 			);
 			name = Object;
 			sourceTree = "<group>";
@@ -384,12 +392,14 @@
 				23D5A670266718F900635ADB /* lazy-instance.h in Sources */,
 				23D5A671266718F900635ADB /* reference-count-test.cc in Sources */,
 				23D5A672266718F900635ADB /* reference-count.h in Sources */,
+				2301676B266A27CF007E8322 /* heap-test.cc in Sources */,
 				23D5A673266718F900635ADB /* sha256-test.cc in Sources */,
 				23D5A674266718F900635ADB /* sha256.c in Sources */,
 				23D5A675266718F900635ADB /* sha256.h in Sources */,
 				23D5A68626676DFC00635ADB /* any.c in Sources */,
 				23D5A676266718F900635ADB /* status-test.cc in Sources */,
 				23D5A677266718F900635ADB /* status.h in Sources */,
+				230167692669C5DB007E8322 /* yalx-string.c in Sources */,
 				23D5A678266718F900635ADB /* status.cc in Sources */,
 				23D5A679266718F900635ADB /* checking.h in Sources */,
 				23D5A67A266718F900635ADB /* format.h in Sources */,
