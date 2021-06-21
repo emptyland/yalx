@@ -86,7 +86,7 @@ struct yalx_value_number_w *yalx_new_f64(struct heap *heap, f64_t value) {
 struct yalx_value_number_l *yalx_new_small_boxing_number(struct heap *heap, const struct yalx_class *klass) {
     enum yalx_builtin_type ty = yalx_builtin_type(klass);
     DCHECK(ty >= Type_Bool && ty <= Type_F64 && "klass not a number");
-    DCHECK(klass->instance_size <= sizeof(u32_t) && "klass size too big");
+    //DCHECK(klass->instance_size <= sizeof(u32_t) && "klass size too big");
     USE(ty);
     
     struct allocate_result result = yalx_heap_allocate(heap, klass, sizeof(struct yalx_value_number_l), 0);
@@ -101,7 +101,7 @@ struct yalx_value_number_l *yalx_new_small_boxing_number(struct heap *heap, cons
 struct yalx_value_number_w *yalx_new_big_boxing_number(struct heap *heap, const struct yalx_class *klass) {
     enum yalx_builtin_type ty = yalx_builtin_type(klass);
     DCHECK(ty >= Type_Bool && ty <= Type_F64 && "klass not a number");
-    DCHECK(klass->instance_size == sizeof(u64_t) && "klass size too small");
+    //DCHECK(klass->instance_size == sizeof(u64_t) && "klass size too small");
     USE(ty);
     
     struct allocate_result result = yalx_heap_allocate(heap, klass, sizeof(struct yalx_value_number_w), 0);

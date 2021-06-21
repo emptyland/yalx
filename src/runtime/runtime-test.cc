@@ -2,6 +2,11 @@
 #include "runtime/process.h"
 #include <gtest/gtest.h>
 
+void *stup(void *p) {
+    //printf("%d\n", p == thread_local_mach);
+    return thread_local_mach + 1;
+}
+
 TEST(RuntimeTest, Sanity) {
     //ASSERT_EQ(0, yalx_runtime_init());
     
@@ -17,6 +22,7 @@ TEST(RuntimeTest, Sanity) {
     ASSERT_TRUE(strstr(yalx_version.z, "yalx-lang"));
     ASSERT_EQ(16, asm_stub2(&yalx_version));
     
+    stup(0);
     ASSERT_EQ(static_cast<void *>(thread_local_mach), asm_stub5());
 }
 
@@ -52,5 +58,5 @@ TEST(RuntimeTest, C0M0) {
 
 
 TEST(RuntimeTest, MockRt0Sanity) {
-    yalx_rt0(0, NULL);
+    //yalx_rt0(0, NULL);
 }

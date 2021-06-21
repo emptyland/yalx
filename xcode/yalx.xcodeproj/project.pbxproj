@@ -12,6 +12,72 @@
 		232FDB0926802E4700D52154 /* yalx-string-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0826802E4700D52154 /* yalx-string-posix-x64.s */; };
 		232FDB0C26806D8B00D52154 /* number.c in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0B26806D8B00D52154 /* number.c */; };
 		232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0D2680775600D52154 /* any-posix-x64.s */; };
+		23D4A4462680D17D0090C631 /* any.h in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68426676DEF00635ADB /* any.h */; };
+		23D4A4472680D17D0090C631 /* number.c in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0B26806D8B00D52154 /* number.c */; };
+		23D4A4482680D17D0090C631 /* number.h in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0A26806CDB00D52154 /* number.h */; };
+		23D4A4492680D17D0090C631 /* type.h in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A6872667719200635ADB /* type.h */; };
+		23D4A44A2680D17D0090C631 /* builtin-types.c in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A6882667734A00635ADB /* builtin-types.c */; };
+		23D4A44B2680D17D0090C631 /* type-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68A26677D4B00635ADB /* type-test.cc */; };
+		23D4A44C2680D17D0090C631 /* yalx-string.h in Sources */ = {isa = PBXBuildFile; fileRef = 230167672669C575007E8322 /* yalx-string.h */; };
+		23D4A44D2680D17D0090C631 /* yalx-string.c in Sources */ = {isa = PBXBuildFile; fileRef = 230167682669C5DB007E8322 /* yalx-string.c */; };
+		23D4A44E2680D17D0090C631 /* heap-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2301676A266A27CF007E8322 /* heap-test.cc */; };
+		23D4A44F2680D17D0090C631 /* heap.h in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68126676B4A00635ADB /* heap.h */; };
+		23D4A4502680D17D0090C631 /* heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68226676BDC00635ADB /* heap.c */; };
+		23D4A4512680D17D0090C631 /* runtime-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2351F812266494AE00D337EA /* runtime-test.cc */; };
+		23D4A4522680D17D0090C631 /* runtime.h in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80E26648CB200D337EA /* runtime.h */; };
+		23D4A4532680D17D0090C631 /* runtime.c in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80F26648D4D00D337EA /* runtime.c */; };
+		23D4A4542680D17D0090C631 /* macros.h in Sources */ = {isa = PBXBuildFile; fileRef = 2351F8112664939700D337EA /* macros.h */; };
+		23D4A4552680D17D0090C631 /* stack-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5D2664DB9F00007658 /* stack-test.cc */; };
+		23D4A4562680D17D0090C631 /* stack.h in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5A2664BAE800007658 /* stack.h */; };
+		23D4A4572680D17D0090C631 /* stack.c in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5B2664C1DB00007658 /* stack.c */; };
+		23D4A4582680D17D0090C631 /* process.h in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB5F2664DE4D00007658 /* process.h */; };
+		23D4A4592680D17D0090C631 /* process.c in Sources */ = {isa = PBXBuildFile; fileRef = 23A3AB602664E32E00007658 /* process.c */; };
+		23D4A45A2680D17D0090C631 /* checking.h in Sources */ = {isa = PBXBuildFile; fileRef = 23CAA1DD26667586000EF129 /* checking.h */; };
+		23D4A45B2680D17D0090C631 /* scheduler.h in Sources */ = {isa = PBXBuildFile; fileRef = 23CAA1DE2666790B000EF129 /* scheduler.h */; };
+		23D4A45C2680D17D0090C631 /* scheduler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23CAA1DF2666799F000EF129 /* scheduler.cc */; };
+		23D4A45D2680D17D0090C631 /* label.h in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C1264B6DFD003DCA4F /* label.h */; };
+		23D4A45E2680D17D0090C631 /* asm-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD48A26466D87007222D6 /* asm-arm64-test.cc */; };
+		23D4A45F2680D17D0090C631 /* asm-arm64.h in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD486264624BD007222D6 /* asm-arm64.h */; };
+		23D4A4602680D17D0090C631 /* asm-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD487264624D2007222D6 /* asm-arm64.cc */; };
+		23D4A4612680D17D0090C631 /* const-arm64.h in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD48926463962007222D6 /* const-arm64.h */; };
+		23D4A4622680D17D0090C631 /* instr-arm64.h in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C2264B7D28003DCA4F /* instr-arm64.h */; };
+		23D4A4632680D17D0090C631 /* instr-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C3264B8962003DCA4F /* instr-arm64.cc */; };
+		23D4A4642680D17D0090C631 /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD892643CC1900A2FAC3 /* gtest-all.cc */; };
+		23D4A4652680D17D0090C631 /* all-tests.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD862643C8FD00A2FAC3 /* all-tests.cc */; };
+		23D4A4662680D17D0090C631 /* arena-utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6426439E9500A2FAC3 /* arena-utils.cc */; };
+		23D4A4672680D17D0090C631 /* arena-utils.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6726439E9500A2FAC3 /* arena-utils.h */; };
+		23D4A4682680D17D0090C631 /* arena-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD8D2644D3F200A2FAC3 /* arena-test.cc */; };
+		23D4A4692680D17D0090C631 /* arena.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7626439E9500A2FAC3 /* arena.h */; };
+		23D4A46A2680D17D0090C631 /* at-exit.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6926439E9500A2FAC3 /* at-exit.cc */; };
+		23D4A46B2680D17D0090C631 /* at-exit.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7426439E9500A2FAC3 /* at-exit.h */; };
+		23D4A46C2680D17D0090C631 /* base.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7826439E9500A2FAC3 /* base.h */; };
+		23D4A46D2680D17D0090C631 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD982644DF1600A2FAC3 /* base.cc */; };
+		23D4A46E2680D17D0090C631 /* bit-ops.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7226439E9500A2FAC3 /* bit-ops.h */; };
+		23D4A46F2680D17D0090C631 /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6226439E9500A2FAC3 /* crc32.c */; };
+		23D4A4702680D17D0090C631 /* env-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2340E6B52648234A006B37F3 /* env-test.cc */; };
+		23D4A4712680D17D0090C631 /* env-posix.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47BA264A83D4003DCA4F /* env-posix.cc */; };
+		23D4A4722680D17D0090C631 /* env.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6526439E9500A2FAC3 /* env.h */; };
+		23D4A4732680D17D0090C631 /* hash.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6F26439E9500A2FAC3 /* hash.cc */; };
+		23D4A4742680D17D0090C631 /* hash.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6126439E9500A2FAC3 /* hash.h */; };
+		23D4A4752680D17D0090C631 /* io.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6A26439E9500A2FAC3 /* io.h */; };
+		23D4A4762680D17D0090C631 /* io.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47C5264E1EEC003DCA4F /* io.cc */; };
+		23D4A4772680D17D0090C631 /* lazy-instance.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7126439E9500A2FAC3 /* lazy-instance.h */; };
+		23D4A4782680D17D0090C631 /* reference-count-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6E26439E9500A2FAC3 /* reference-count-test.cc */; };
+		23D4A4792680D17D0090C631 /* reference-count.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6B26439E9500A2FAC3 /* reference-count.h */; };
+		23D4A47A2680D17D0090C631 /* sha256-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6626439E9500A2FAC3 /* sha256-test.cc */; };
+		23D4A47B2680D17D0090C631 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7726439E9500A2FAC3 /* sha256.c */; };
+		23D4A47C2680D17D0090C631 /* sha256.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6C26439E9500A2FAC3 /* sha256.h */; };
+		23D4A47D2680D17D0090C631 /* status-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD8B2643D34B00A2FAC3 /* status-test.cc */; };
+		23D4A47E2680D17D0090C631 /* status.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6026439E9500A2FAC3 /* status.h */; };
+		23D4A47F2680D17D0090C631 /* status.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD962644DE4700A2FAC3 /* status.cc */; };
+		23D4A4802680D17D0090C631 /* checking.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD882643CA5000A2FAC3 /* checking.h */; };
+		23D4A4812680D17D0090C631 /* format.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD932644DCF200A2FAC3 /* format.h */; };
+		23D4A4822680D17D0090C631 /* format.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD942644DDA400A2FAC3 /* format.cc */; };
+		23D4A4832680D17D0090C631 /* utils.h in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD48C26467FB5007222D6 /* utils.h */; };
+		23D4A4852680D1FD0090C631 /* boot-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23D4A4842680D1FD0090C631 /* boot-posix-arm64.s */; };
+		23D4A4872680D22C0090C631 /* test-stub-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23D4A4862680D22C0090C631 /* test-stub-posix-arm64.s */; };
+		23D4A4892680D2F60090C631 /* any-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23D4A4882680D2F60090C631 /* any-posix-arm64.s */; };
+		23D4A48B2680D33F0090C631 /* yalx-string-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23D4A48A2680D33F0090C631 /* yalx-string-posix-arm64.s */; };
 		23D5A64C266718ED00635ADB /* runtime-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2351F812266494AE00D337EA /* runtime-test.cc */; };
 		23D5A64D266718ED00635ADB /* runtime.h in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80E26648CB200D337EA /* runtime.h */; };
 		23D5A64E266718ED00635ADB /* runtime.c in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80F26648D4D00D337EA /* runtime.c */; };
@@ -69,6 +135,15 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		23D4A43D2680D1440090C631 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		23D5A643266718B400635ADB /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -137,6 +212,11 @@
 		23CAA1DD26667586000EF129 /* checking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = checking.h; path = ../src/runtime/checking.h; sourceTree = "<group>"; };
 		23CAA1DE2666790B000EF129 /* scheduler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scheduler.h; path = ../src/runtime/scheduler.h; sourceTree = "<group>"; };
 		23CAA1DF2666799F000EF129 /* scheduler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scheduler.cc; path = ../src/runtime/scheduler.cc; sourceTree = "<group>"; };
+		23D4A43F2680D1440090C631 /* all-tests-arm64 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "all-tests-arm64"; sourceTree = BUILT_PRODUCTS_DIR; };
+		23D4A4842680D1FD0090C631 /* boot-posix-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; path = "boot-posix-arm64.s"; sourceTree = "<group>"; };
+		23D4A4862680D22C0090C631 /* test-stub-posix-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; path = "test-stub-posix-arm64.s"; sourceTree = "<group>"; };
+		23D4A4882680D2F60090C631 /* any-posix-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; path = "any-posix-arm64.s"; sourceTree = "<group>"; };
+		23D4A48A2680D33F0090C631 /* yalx-string-posix-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; path = "yalx-string-posix-arm64.s"; sourceTree = "<group>"; };
 		23D5A645266718B400635ADB /* all-tests-x64 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "all-tests-x64"; sourceTree = BUILT_PRODUCTS_DIR; };
 		23D5A67D26672FE000635ADB /* test-stub-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "test-stub-posix-x64.s"; path = "../src/runtime/test-stub-posix-x64.s"; sourceTree = "<group>"; };
 		23D5A68126676B4A00635ADB /* heap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = heap.h; path = ../src/runtime/heap/heap.h; sourceTree = "<group>"; };
@@ -156,6 +236,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		23D4A43C2680D1440090C631 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		23D5A642266718B400635ADB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -192,7 +279,9 @@
 				23CAA1DE2666790B000EF129 /* scheduler.h */,
 				23CAA1DF2666799F000EF129 /* scheduler.cc */,
 				23D5A67D26672FE000635ADB /* test-stub-posix-x64.s */,
+				23D4A4862680D22C0090C631 /* test-stub-posix-arm64.s */,
 				23D5A68C2667861900635ADB /* boot-posix-x64.s */,
+				23D4A4842680D1FD0090C631 /* boot-posix-arm64.s */,
 			);
 			name = Runtime;
 			sourceTree = "<group>";
@@ -223,6 +312,7 @@
 			isa = PBXGroup;
 			children = (
 				23D5A645266718B400635ADB /* all-tests-x64 */,
+				23D4A43F2680D1440090C631 /* all-tests-arm64 */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -299,6 +389,7 @@
 				23D5A68526676DFC00635ADB /* any.c */,
 				23D5A68426676DEF00635ADB /* any.h */,
 				232FDB0D2680775600D52154 /* any-posix-x64.s */,
+				23D4A4882680D2F60090C631 /* any-posix-arm64.s */,
 				232FDB0B26806D8B00D52154 /* number.c */,
 				232FDB0A26806CDB00D52154 /* number.h */,
 				23D5A6872667719200635ADB /* type.h */,
@@ -307,6 +398,7 @@
 				230167672669C575007E8322 /* yalx-string.h */,
 				230167682669C5DB007E8322 /* yalx-string.c */,
 				232FDB0826802E4700D52154 /* yalx-string-posix-x64.s */,
+				23D4A48A2680D33F0090C631 /* yalx-string-posix-arm64.s */,
 			);
 			name = Object;
 			sourceTree = "<group>";
@@ -327,6 +419,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		23D4A43E2680D1440090C631 /* all-tests-arm64 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 23D4A4452680D1440090C631 /* Build configuration list for PBXNativeTarget "all-tests-arm64" */;
+			buildPhases = (
+				23D4A43B2680D1440090C631 /* Sources */,
+				23D4A43C2680D1440090C631 /* Frameworks */,
+				23D4A43D2680D1440090C631 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "all-tests-arm64";
+			productName = "all-tests-arm64";
+			productReference = 23D4A43F2680D1440090C631 /* all-tests-arm64 */;
+			productType = "com.apple.product-type.tool";
+		};
 		23D5A644266718B400635ADB /* all-tests-x64 */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 23D5A649266718B400635ADB /* Build configuration list for PBXNativeTarget "all-tests-x64" */;
@@ -352,6 +461,9 @@
 			attributes = {
 				LastUpgradeCheck = 1250;
 				TargetAttributes = {
+					23D4A43E2680D1440090C631 = {
+						CreatedOnToolsVersion = 12.5;
+					};
 					23D5A644266718B400635ADB = {
 						CreatedOnToolsVersion = 12.5;
 					};
@@ -371,11 +483,85 @@
 			projectRoot = "";
 			targets = (
 				23D5A644266718B400635ADB /* all-tests-x64 */,
+				23D4A43E2680D1440090C631 /* all-tests-arm64 */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		23D4A43B2680D1440090C631 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				23D4A4462680D17D0090C631 /* any.h in Sources */,
+				23D4A4472680D17D0090C631 /* number.c in Sources */,
+				23D4A4482680D17D0090C631 /* number.h in Sources */,
+				23D4A4492680D17D0090C631 /* type.h in Sources */,
+				23D4A44A2680D17D0090C631 /* builtin-types.c in Sources */,
+				23D4A44B2680D17D0090C631 /* type-test.cc in Sources */,
+				23D4A44C2680D17D0090C631 /* yalx-string.h in Sources */,
+				23D4A44D2680D17D0090C631 /* yalx-string.c in Sources */,
+				23D4A44E2680D17D0090C631 /* heap-test.cc in Sources */,
+				23D4A44F2680D17D0090C631 /* heap.h in Sources */,
+				23D4A4502680D17D0090C631 /* heap.c in Sources */,
+				23D4A4512680D17D0090C631 /* runtime-test.cc in Sources */,
+				23D4A4522680D17D0090C631 /* runtime.h in Sources */,
+				23D4A4532680D17D0090C631 /* runtime.c in Sources */,
+				23D4A4542680D17D0090C631 /* macros.h in Sources */,
+				23D4A4552680D17D0090C631 /* stack-test.cc in Sources */,
+				23D4A4562680D17D0090C631 /* stack.h in Sources */,
+				23D4A4572680D17D0090C631 /* stack.c in Sources */,
+				23D4A4582680D17D0090C631 /* process.h in Sources */,
+				23D4A4592680D17D0090C631 /* process.c in Sources */,
+				23D4A45A2680D17D0090C631 /* checking.h in Sources */,
+				23D4A45B2680D17D0090C631 /* scheduler.h in Sources */,
+				23D4A45C2680D17D0090C631 /* scheduler.cc in Sources */,
+				23D4A45D2680D17D0090C631 /* label.h in Sources */,
+				23D4A45E2680D17D0090C631 /* asm-arm64-test.cc in Sources */,
+				23D4A45F2680D17D0090C631 /* asm-arm64.h in Sources */,
+				23D4A4872680D22C0090C631 /* test-stub-posix-arm64.s in Sources */,
+				23D4A4602680D17D0090C631 /* asm-arm64.cc in Sources */,
+				23D4A4612680D17D0090C631 /* const-arm64.h in Sources */,
+				23D4A4622680D17D0090C631 /* instr-arm64.h in Sources */,
+				23D4A4632680D17D0090C631 /* instr-arm64.cc in Sources */,
+				23D4A4642680D17D0090C631 /* gtest-all.cc in Sources */,
+				23D4A4652680D17D0090C631 /* all-tests.cc in Sources */,
+				23D4A4662680D17D0090C631 /* arena-utils.cc in Sources */,
+				23D4A4672680D17D0090C631 /* arena-utils.h in Sources */,
+				23D4A4682680D17D0090C631 /* arena-test.cc in Sources */,
+				23D4A4692680D17D0090C631 /* arena.h in Sources */,
+				23D4A46A2680D17D0090C631 /* at-exit.cc in Sources */,
+				23D4A46B2680D17D0090C631 /* at-exit.h in Sources */,
+				23D4A46C2680D17D0090C631 /* base.h in Sources */,
+				23D4A46D2680D17D0090C631 /* base.cc in Sources */,
+				23D4A48B2680D33F0090C631 /* yalx-string-posix-arm64.s in Sources */,
+				23D4A46E2680D17D0090C631 /* bit-ops.h in Sources */,
+				23D4A46F2680D17D0090C631 /* crc32.c in Sources */,
+				23D4A4702680D17D0090C631 /* env-test.cc in Sources */,
+				23D4A4712680D17D0090C631 /* env-posix.cc in Sources */,
+				23D4A4722680D17D0090C631 /* env.h in Sources */,
+				23D4A4732680D17D0090C631 /* hash.cc in Sources */,
+				23D4A4742680D17D0090C631 /* hash.h in Sources */,
+				23D4A4752680D17D0090C631 /* io.h in Sources */,
+				23D4A4762680D17D0090C631 /* io.cc in Sources */,
+				23D4A4772680D17D0090C631 /* lazy-instance.h in Sources */,
+				23D4A4782680D17D0090C631 /* reference-count-test.cc in Sources */,
+				23D4A4892680D2F60090C631 /* any-posix-arm64.s in Sources */,
+				23D4A4792680D17D0090C631 /* reference-count.h in Sources */,
+				23D4A47A2680D17D0090C631 /* sha256-test.cc in Sources */,
+				23D4A47B2680D17D0090C631 /* sha256.c in Sources */,
+				23D4A47C2680D17D0090C631 /* sha256.h in Sources */,
+				23D4A47D2680D17D0090C631 /* status-test.cc in Sources */,
+				23D4A47E2680D17D0090C631 /* status.h in Sources */,
+				23D4A47F2680D17D0090C631 /* status.cc in Sources */,
+				23D4A4802680D17D0090C631 /* checking.h in Sources */,
+				23D4A4852680D1FD0090C631 /* boot-posix-arm64.s in Sources */,
+				23D4A4812680D17D0090C631 /* format.h in Sources */,
+				23D4A4822680D17D0090C631 /* format.cc in Sources */,
+				23D4A4832680D17D0090C631 /* utils.h in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		23D5A641266718B400635ADB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -478,6 +664,117 @@
 					"../third-party/include/**",
 				);
 				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		23D4A4432680D1440090C631 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = c11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 11.3;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		23D4A4442680D1440090C631 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = c11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 11.3;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
 		};
@@ -606,6 +903,15 @@
 			buildConfigurations = (
 				2354CD302643994A00A2FAC3 /* Debug */,
 				2354CD312643994A00A2FAC3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		23D4A4452680D1440090C631 /* Build configuration list for PBXNativeTarget "all-tests-arm64" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				23D4A4432680D1440090C631 /* Debug */,
+				23D4A4442680D1440090C631 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
