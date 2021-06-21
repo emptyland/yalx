@@ -88,100 +88,114 @@ static struct yalx_class_method *any_class_vitabs[] = {
     &any_class_methods[4]
 };
 
-struct yalx_class yalx_lang_any_class = {
-    .id = 0,
-    .constraint = K_CLASS,
-    .reference_size = sizeof(yalx_ref_t),
-    .instance_size = sizeof(struct yalx_value_any),
-    .super = NULL,
-    .name = YALX_STR("any"),
-    .location = YALX_STR("yalx.lang.any"),
-    .n_annotations = 0,
-    .n_fields = 0,
-    .fields = NULL,
-    .ctor = NULL,
-    .n_methods = 5,
-    .methods = any_class_methods,
-    .n_itab = 5,
-    .n_vtab = 5,
-    .itab = any_class_vitabs,
-    .vtab = any_class_vitabs,
-    // TODO:
-}; // struct yalx_class any_class
 
-struct yalx_class bool_class = {
-    .id = 1,
-    .constraint = K_PRIMITIVE,
-    .reference_size = sizeof(char),
-    .instance_size = sizeof(char),
-    .super = &yalx_lang_any_class,
-    .name = YALX_STR("bool"),
-    .location = YALX_STR("bool"),
-    .n_annotations = 0,
-    .n_fields = 0,
-    .fields = NULL,
-    .ctor = NULL,
-    .n_methods = 4,
-    .methods = NULL, // TODO:
-    .n_itab = 0,
-    .n_vtab = 0,
-    // TODO:
-}; // struct yalx_class bool_class
+struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
+    [Type_any] = {
+        .id = 0,
+        .constraint = K_CLASS,
+        .reference_size = sizeof(yalx_ref_t),
+        .instance_size = sizeof(struct yalx_value_any),
+        .super = NULL,
+        .name = YALX_STR("any"),
+        .location = YALX_STR("yalx.lang.any"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 5,
+        .methods = any_class_methods,
+        .n_itab = 5,
+        .n_vtab = 5,
+        .itab = any_class_vitabs,
+        .vtab = any_class_vitabs,
+        // TODO:
+    }, // any
+    
+    [Type_bool] = {
+        .id = 1,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(char),
+        .instance_size = sizeof(char),
+        .super = &yalx_lang_any_class,
+        .name = YALX_STR("bool"),
+        .location = YALX_STR("bool"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 4,
+        .methods = NULL, // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // bool
+    
+    [Type_i8] = {
+        .id = 2,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(i8_t),
+        .instance_size = sizeof(i8_t),
+        .super = &yalx_lang_any_class,
+        .name = YALX_STR("i8"),
+        .location = YALX_STR("i8"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 4,
+        .methods = NULL,  // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // i8
+    
+    [Type_u8] = {
+        .id = 2,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(u8_t),
+        .instance_size = sizeof(u8_t),
+        .super = &yalx_lang_any_class,
+        .name = YALX_STR("u8"),
+        .location = YALX_STR("u8"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 4,
+        .methods = NULL,  // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // u8
+    
+    //------------------------------------------------------------------------------------------------------------------
+    // Boxing types:
+    //------------------------------------------------------------------------------------------------------------------
 
-struct yalx_class i8_class = {
-    .id = 2,
-    .constraint = K_PRIMITIVE,
-    .reference_size = sizeof(i8_t),
-    .instance_size = sizeof(i8_t),
-    .super = &yalx_lang_any_class,
-    .name = YALX_STR("i8"),
-    .location = YALX_STR("i8"),
-    .n_annotations = 0,
-    .n_fields = 0,
-    .fields = NULL,
-    .ctor = NULL,
-    .n_methods = 4,
-    .methods = NULL,  // TODO:
-    .n_itab = 0,
-    .n_vtab = 0,
-    // TODO:
-}; // struct yalx_class i8_class
-
-struct yalx_class u8_class = {
-    .id = 2,
-    .constraint = K_PRIMITIVE,
-    .reference_size = sizeof(u8_t),
-    .instance_size = sizeof(u8_t),
-    .super = &yalx_lang_any_class,
-    .name = YALX_STR("u8"),
-    .location = YALX_STR("u8"),
-    .n_annotations = 0,
-    .n_fields = 0,
-    .fields = NULL,
-    .ctor = NULL,
-    .n_methods = 4,
-    .methods = NULL,  // TODO:
-    .n_itab = 0,
-    .n_vtab = 0,
-    // TODO:
-}; // struct yalx_class i8_class
+    [Type_string] = {
+        .id = 16,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(yalx_ref_t),
+        .instance_size = 0,
+        .super = &yalx_lang_any_class,
+        .name = YALX_STR("string"),
+        .location = YALX_STR("string"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 4,
+        .methods = NULL,  // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // string
+};
 
 
-struct yalx_class string_class = {
-    .id = 16,
-    .constraint = K_PRIMITIVE,
-    .reference_size = sizeof(yalx_ref_t),
-    .instance_size = 0,
-    .super = &yalx_lang_any_class,
-    .name = YALX_STR("string"),
-    .location = YALX_STR("string"),
-    .n_annotations = 0,
-    .n_fields = 0,
-    .fields = NULL,
-    .ctor = NULL,
-    .n_methods = 4,
-    .methods = NULL,  // TODO:
-    .n_itab = 0,
-    .n_vtab = 0,
-    // TODO:
-}; // struct yalx_class i8_class
+const struct yalx_class *const yalx_lang_any_class = &builtin_classes[Type_any];
+const struct yalx_class *const bool_class = &builtin_classes[Type_bool];
+const struct yalx_class *const i8_class = &builtin_classes[Type_i8];
+const struct yalx_class *const u8_class = &builtin_classes[Type_u8];
+
+const struct yalx_class *const string_class = &builtin_classes[Type_string];

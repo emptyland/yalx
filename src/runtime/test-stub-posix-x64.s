@@ -47,7 +47,7 @@ _asm_stub5:
     //movq %rbp, %rsp
     ret
 
-.global _y2zmain_main,_yield
+.global _y2zmain_main,_yield,_yalx_new_string,_heap,_y2zlang_debugOutput
 _y2zmain_main:
     pushq %rbp
     movq %rsp, %rbp
@@ -60,7 +60,18 @@ _y2zmain_main:
     leaq co_dummy_entry1(%rip), %rdi // _spawn_co
     xorq %rsi, %rsi //
     callq _spawn_co
-    
+
+    leaq _heap(%rip), %rdi
+    leaq msg(%rip), %rsi
+    movq $13, %rdx
+    callq _yalx_new_string
+
+    xorq %rdi, %rdi
+    pushq %rdi
+    pushq %rax
+    callq _y2zlang_debugOutput
+    addq $16, %rsp
+
     popq %rbp
     ret
 
@@ -71,6 +82,21 @@ co_dummy_entry1:
 
     leaq dummy1(%rip), %rdi
     callq _puts
+
+    popq %rbp
+    ret
+
+//----------------------------------------------------------------------------------------------------------------------
+// yalx.lang.debugOutput(a: any)
+//----------------------------------------------------------------------------------------------------------------------
+.global _y2zlang_debugOutput,_dbg_output
+_y2zlang_debugOutput:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq 16(%rbp), %rdi
+    callq _dbg_output
+    xorq %rax, %rax
 
     popq %rbp
     ret

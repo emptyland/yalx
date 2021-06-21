@@ -3,6 +3,7 @@
 #define YALX_RUNTIME_OBJECT_TYPE_H_
 
 #include "runtime/runtime.h"
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,13 +74,52 @@ struct yalx_class_method {
     address_t entry;
 }; // struct yalx_class_method
 
+enum yalx_builtin_type {
+    Type_any,
+    Type_bool,
+    Type_i8,
+    Type_u8,
+    Type_i16,
+    Type_u16,
+    Type_i32,
+    Type_u32,
+    Type_i64,
+    Type_u64,
+    Type_f32,
+    Type_f64,
+    Type_Bool,
+    Type_I8,
+    Type_U8,
+    Type_I16,
+    Type_U16,
+    Type_I32,
+    Type_U32,
+    Type_I64,
+    Type_U64,
+    Type_F32,
+    Type_F64,
+    Type_string,
+    MAX_BUILTIN_TYPES,
+    NOT_BUILTIN_TYPE,
+};
+
+extern struct yalx_class builtin_classes[MAX_BUILTIN_TYPES];
+
+static inline enum yalx_builtin_type yalx_builtin_type(const struct yalx_class * klass) {
+    ptrdiff_t diff = klass - builtin_classes;
+    if (diff < 0 || diff >= MAX_BUILTIN_TYPES) {
+        return NOT_BUILTIN_TYPE;
+    }
+    return (enum yalx_builtin_type)diff;
+}
 
 // builtin-types:
-extern struct yalx_class yalx_lang_any_class;
-extern struct yalx_class bool_class;
-extern struct yalx_class i8_class;
+extern const struct yalx_class *const yalx_lang_any_class;
+extern const struct yalx_class *const bool_class;
+extern const struct yalx_class *const i8_class;
+extern const struct yalx_class *const u8_class;
 
-extern struct yalx_class string_class;
+extern const struct yalx_class *const string_class;
 
 #ifdef __cplusplus
 }

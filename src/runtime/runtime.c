@@ -2,7 +2,9 @@
 #include "runtime/scheduler.h"
 #include "runtime/process.h"
 #include "runtime/checking.h"
+#include "runtime/heap/heap.h"
 #include "runtime/object/type.h"
+#include "runtime/object/yalx-string.h"
 #include <unistd.h>
 #include <sys/sysctl.h>
 #include <stdlib.h>
@@ -75,6 +77,13 @@ static const struct dev_struct_field stack_fields[] = {
     DECLARE_END()
 };
 
+static const struct dev_struct_field string_fields[] = {
+    DECLARE_FIELD(yalx_value_str, hash_code),
+    DECLARE_FIELD(yalx_value_str, len),
+    DECLARE_FIELD(yalx_value_str, bytes),
+    DECLARE_END()
+};
+
 #undef DECLARE_FIELD
 
 static void dev_print_fields(const struct dev_struct_field *field) {
@@ -92,6 +101,8 @@ static void dev_print_struct_fields() {
     dev_print_fields(coroutine_fields);
     printf("struct stack:\n");
     dev_print_fields(stack_fields);
+    printf("struct string:\n");
+    dev_print_fields(string_fields);
 }
 
 #else // #ifndef NDEBUG
@@ -114,6 +125,10 @@ int yalx_runtime_init() {
     }
     ncpus = (int)cpu_count;
 #endif // defined(YALX_OS_DARWIN)
+    
+    if (yalx_init_heap(&heap) < 0) {
+        return -1;
+    }
     
     yalx_init_stack_pool(&stack_pool, 10 * MB);
     
@@ -209,5 +224,24 @@ void *fill_memory_zag(void *chunk, size_t n, uint32_t zag) {
 void dbg_class_output(const struct yalx_class *klass) {
     for (int i = 0; i < klass->n_methods; i++) {
         printf("%s%s\n", klass->methods[i].name.z, klass->methods[i].prototype_desc.z);
+    }
+}
+
+// reference by yalx.lang.debugOutput
+void dbg_output(yalx_ref_t obj) {
+    DCHECK(obj != NULL);
+    struct yalx_class *klass = CLASS(obj);
+    //dbg_class_output(klass);
+
+    switch (yalx_builtin_type(klass)) {
+        case Type_string: {
+            struct yalx_value_str *str = (struct yalx_value_str *)obj;
+            printf("DBG %s\n", str->bytes);
+        } break;
+            
+        case NOT_BUILTIN_TYPE:
+        default:
+            DCHECK("Noreachable");
+            break;
     }
 }

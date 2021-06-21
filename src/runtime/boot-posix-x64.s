@@ -140,3 +140,4 @@ _coroutine_finalize_stub:
     movq 64(%rax), %rdi
     jmp *%rdi
     int3
+

@@ -17,6 +17,10 @@ struct yalx_value_any {
     YALX_VALUE_HEADER;
 }; // struct yalx_value_any
 
+struct yalx_class;
+
+#define CLASS(ptr) ((struct yalx_class *)(((yalx_ref_t)ptr)->klass & (~0x1)))
+
 typedef struct yalx_value_any *yalx_ref_t;
 
 

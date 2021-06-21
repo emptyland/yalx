@@ -10,6 +10,7 @@ extern "C" {
 
 #define IN_POOL_STR_LEN 64
 
+// Global heap
 struct heap;
 
 struct yalx_value_str {
@@ -25,7 +26,7 @@ struct yalx_value_str *yalx_new_string(struct heap *heap, const char *z, size_t 
 // Directly new string object
 struct yalx_value_str *yalx_new_string_direct(struct heap *heap, const char *z, size_t n);
 
-static inline size_t yalx_reserve_string_size(const char *z, size_t n) {
+static inline size_t yalx_reserve_string_bytes(const char *z, size_t n) {
     if (!z || !n) {
         return sizeof(struct yalx_value_str);
     }
