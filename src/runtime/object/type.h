@@ -47,12 +47,14 @@ struct yalx_class {
 
 struct yalx_class_field {
     // tags
-    uint8_t access; // yalx_access_desc
+    uint32_t access: 2; // yalx_access_desc
+    uint32_t constraint: 2; // val? var?
+    
     uint32_t n_annotations;
     //yalx_annotation *annotation;
     struct yalx_str name;
     struct yalx_class *type;
-    uint32_t offset_of_object;
+    uint32_t offset_of_head;
 }; // struct yalx_class_field
 
 
@@ -118,6 +120,18 @@ extern const struct yalx_class *const yalx_lang_any_class;
 extern const struct yalx_class *const bool_class;
 extern const struct yalx_class *const i8_class;
 extern const struct yalx_class *const u8_class;
+
+extern const struct yalx_class *const Bool_class;
+extern const struct yalx_class *const I8_class;
+extern const struct yalx_class *const U8_class;
+extern const struct yalx_class *const I16_class;
+extern const struct yalx_class *const U16_class;
+extern const struct yalx_class *const I32_class;
+extern const struct yalx_class *const U32_class;
+extern const struct yalx_class *const I64_class;
+extern const struct yalx_class *const U64_class;
+extern const struct yalx_class *const F32_class;
+extern const struct yalx_class *const F64_class;
 
 extern const struct yalx_class *const string_class;
 

@@ -1,6 +1,8 @@
 #include "runtime/heap/heap.h"
 #include "runtime/object/yalx-string.h"
+#include "runtime/object/number.h"
 #include "runtime/object/any.h"
+#include "runtime/object/type.h"
 #include "runtime/checking.h"
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +36,62 @@ static struct allocate_result allocate_from_pool(struct heap *heap, size_t size,
 static void finalize_for_pool(struct heap *heap) {
     dbg_free_zag(heap->one_time_pool.chunk, heap->one_time_pool.size);
     free(heap->one_time_pool.chunk);
+}
+
+static f32_t fast_boxing_f32_table[] = {
+    -1.0,
+    0,
+    1.0,
+};
+
+static f64_t fast_boxing_f64_table[] = {
+    -1.0,
+    0,
+    1.0,
+};
+
+static int boxing_number_pool_init(struct heap *heap, struct boxing_number_pool *pool) {
+    pool->bool_values[0] = yalx_new_small_boxing_number(heap, Bool_class);
+    pool->bool_values[1] = yalx_new_small_boxing_number(heap, Bool_class);
+    pool->bool_values[0]->box.u32 = 0;
+    pool->bool_values[1]->box.u32 = 1;
+    
+    for (int i = 0; i < 256; i++) {
+        pool->u8_values[i] = yalx_new_small_boxing_number(heap, U8_class);
+        pool->u8_values[i]->box.u32 = i;
+        
+        pool->i8_values[i] = yalx_new_small_boxing_number(heap, I8_class);
+        pool->i8_values[i]->box.i8 = ((int8_t)(i - 128));
+    }
+    for (int i = 0; i < 201; i++) {
+        pool->u16_values[i] = yalx_new_small_boxing_number(heap, U16_class);
+        pool->u16_values[i]->box.u32 = i;
+        
+        pool->i16_values[i] = yalx_new_small_boxing_number(heap, I16_class);
+        pool->i16_values[i]->box.i16 = ((int16_t)(i - 100));
+        
+        pool->u32_values[i] = yalx_new_small_boxing_number(heap, U32_class);
+        pool->u32_values[i]->box.u32 = i;
+        
+        pool->i32_values[i] = yalx_new_small_boxing_number(heap, I32_class);
+        pool->i32_values[i]->box.i32 = i - 100;
+        
+        pool->u64_values[i] = yalx_new_small_boxing_number(heap, U64_class);
+        pool->u64_values[i]->box.u64 = i;
+        
+        pool->i64_values[i] = yalx_new_small_boxing_number(heap, I64_class);
+        pool->i64_values[i]->box.i64 = i - 100;
+    }
+    
+    for (int i = 0; i < arraysize(fast_boxing_f32_table); i++) {
+        pool->f32_values[i] = yalx_new_small_boxing_number(heap, F32_class);
+        pool->f32_values[i]->box.f32 = fast_boxing_f32_table[i];
+    }
+    for (int i = 0; i < arraysize(fast_boxing_f64_table); i++) {
+        pool->f64_values[i] = yalx_new_small_boxing_number(heap, F64_class);
+        pool->f64_values[i]->box.f64 = fast_boxing_f64_table[i];
+    }
+    return 0;
 }
 
 void string_pool_init(struct string_pool *pool, int slots_shift) {
@@ -145,6 +203,7 @@ int yalx_init_heap(struct heap *heap) {
         string_pool_init(&heap->kpool_stripes[i], 4);
     }
     
+    boxing_number_pool_init(heap, &heap->fast_boxing_numbers);
     pthread_mutex_init(&heap->mutex, NULL);
     return 0;
 }

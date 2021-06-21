@@ -3,8 +3,9 @@
 #include "runtime/process.h"
 #include "runtime/checking.h"
 #include "runtime/heap/heap.h"
-#include "runtime/object/type.h"
 #include "runtime/object/yalx-string.h"
+#include "runtime/object/number.h"
+#include "runtime/object/type.h"
 #include <unistd.h>
 #include <sys/sysctl.h>
 #include <stdlib.h>
@@ -238,6 +239,22 @@ void dbg_output(yalx_ref_t obj) {
             struct yalx_value_str *str = (struct yalx_value_str *)obj;
             printf("DBG %s\n", str->bytes);
         } break;
+            
+        case Type_I8:
+            printf("DBG %d\n", ((struct yalx_value_number_l *)obj)->box.i8);
+            break;
+            
+        case Type_U8:
+            printf("DBG %u\n", ((struct yalx_value_number_l *)obj)->box.u8);
+            break;
+            
+        case Type_I16:
+            printf("DBG %d\n", ((struct yalx_value_number_l *)obj)->box.i16);
+            break;
+            
+        case Type_U16:
+            printf("DBG %u\n", ((struct yalx_value_number_l *)obj)->box.u16);
+            break;
             
         case NOT_BUILTIN_TYPE:
         default:

@@ -11,6 +11,7 @@
 		2301676B266A27CF007E8322 /* heap-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2301676A266A27CF007E8322 /* heap-test.cc */; };
 		232FDB0926802E4700D52154 /* yalx-string-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0826802E4700D52154 /* yalx-string-posix-x64.s */; };
 		232FDB0C26806D8B00D52154 /* number.c in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0B26806D8B00D52154 /* number.c */; };
+		232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0D2680775600D52154 /* any-posix-x64.s */; };
 		23D5A64C266718ED00635ADB /* runtime-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2351F812266494AE00D337EA /* runtime-test.cc */; };
 		23D5A64D266718ED00635ADB /* runtime.h in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80E26648CB200D337EA /* runtime.h */; };
 		23D5A64E266718ED00635ADB /* runtime.c in Sources */ = {isa = PBXBuildFile; fileRef = 2351F80F26648D4D00D337EA /* runtime.c */; };
@@ -92,6 +93,7 @@
 		232FDB0826802E4700D52154 /* yalx-string-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "yalx-string-posix-x64.s"; path = "../src/runtime/object/yalx-string-posix-x64.s"; sourceTree = "<group>"; };
 		232FDB0A26806CDB00D52154 /* number.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = number.h; path = ../src/runtime/object/number.h; sourceTree = "<group>"; };
 		232FDB0B26806D8B00D52154 /* number.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = number.c; path = ../src/runtime/object/number.c; sourceTree = "<group>"; };
+		232FDB0D2680775600D52154 /* any-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "any-posix-x64.s"; path = "../src/runtime/object/any-posix-x64.s"; sourceTree = "<group>"; };
 		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
 		2351F80E26648CB200D337EA /* runtime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = runtime.h; path = ../src/runtime/runtime.h; sourceTree = "<group>"; };
 		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
@@ -294,8 +296,9 @@
 		23D5A68026676B2600635ADB /* Object */ = {
 			isa = PBXGroup;
 			children = (
-				23D5A68426676DEF00635ADB /* any.h */,
 				23D5A68526676DFC00635ADB /* any.c */,
+				23D5A68426676DEF00635ADB /* any.h */,
+				232FDB0D2680775600D52154 /* any-posix-x64.s */,
 				232FDB0B26806D8B00D52154 /* number.c */,
 				232FDB0A26806CDB00D52154 /* number.h */,
 				23D5A6872667719200635ADB /* type.h */,
@@ -390,6 +393,7 @@
 				23D5A669266718F900635ADB /* env-test.cc in Sources */,
 				23D5A66A266718F900635ADB /* env-posix.cc in Sources */,
 				23D5A66B266718F900635ADB /* env.h in Sources */,
+				232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */,
 				232FDB0926802E4700D52154 /* yalx-string-posix-x64.s in Sources */,
 				23D5A6892667734A00635ADB /* builtin-types.c in Sources */,
 				23D5A66C266718F900635ADB /* hash.cc in Sources */,

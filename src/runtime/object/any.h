@@ -18,11 +18,15 @@ struct yalx_value_any {
 }; // struct yalx_value_any
 
 struct yalx_class;
+struct yalx_value_str;
 
 #define CLASS(ptr) ((struct yalx_class *)(((yalx_ref_t)ptr)->klass & (~0x1)))
 
 typedef struct yalx_value_any *yalx_ref_t;
 
+
+// reference by any-[os]-[arch].s
+struct yalx_value_str *yalx_any_to_string(struct yalx_value_any *any);
 
 //struct yalx_value_any EmptyTag;
 

@@ -21,6 +21,10 @@ struct yalx_class;
 struct yalx_value_number_l {
     YALX_VALUE_HEADER;
     union {
+        i8_t  i8;
+        u8_t  u8;
+        i16_t i16;
+        u16_t u16;
         i32_t i32;
         u32_t u32;
         f32_t f32;
@@ -37,7 +41,6 @@ struct yalx_value_number_w {
         f64_t f64;
     } box;
 }; // struct yalx_value_number_w
-
 
 struct yalx_value_number_l *yalx_new_i16(struct heap *heap, i16_t value);
 struct yalx_value_number_l *yalx_new_u16(struct heap *heap, u16_t value);

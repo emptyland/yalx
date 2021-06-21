@@ -2,6 +2,7 @@
 #ifndef YALX_RUNTIME_HEAP_HEAP_H_
 #define YALX_RUNTIME_HEAP_HEAP_H_
 
+//#include "runtime/object/number.h"
 #include "runtime/runtime.h"
 #include <pthread.h>
 #include <stdlib.h>
@@ -10,6 +11,8 @@
 extern "C" {
 #endif
 
+struct yalx_value_number_l;
+struct yalx_value_number_w;
 struct yalx_value_any;
 struct yalx_value_str;
 struct yalx_class;
@@ -49,11 +52,28 @@ struct string_pool {
     pthread_mutex_t mutex;
 }; // struct string_pool
 
+
+// For number boxing:
+struct boxing_number_pool {
+    struct yalx_value_number_l *bool_values[2]; // true and false
+    struct yalx_value_number_l *i8_values[256]; // all i8
+    struct yalx_value_number_l *u8_values[256]; // all u8
+    struct yalx_value_number_l *i16_values[201]; // -100~100 i16
+    struct yalx_value_number_l *u16_values[201]; // 0~200 u16
+    struct yalx_value_number_l *i32_values[201]; // -100~100 i32
+    struct yalx_value_number_l *u32_values[201]; // 0~200 u32
+    struct yalx_value_number_w *i64_values[201]; // -100~100 i32
+    struct yalx_value_number_w *u64_values[201]; // 0~200 u32
+    struct yalx_value_number_l *f32_values[3]; // -1.0 0 1.0
+    struct yalx_value_number_w *f64_values[3]; // -1.0 0 1.0
+}; // struct number_pool
+
 struct heap {
     // 1 pad allocation memory pool.
     // Only for no-gc model.
     struct one_time_memory_pool one_time_pool;
     struct string_pool kpool_stripes[KPOOL_STRIPES_SIZE];
+    struct boxing_number_pool fast_boxing_numbers;
     
     pthread_mutex_t mutex;
     struct allocate_result (*allocate)(struct heap *, size_t, u32_t);
