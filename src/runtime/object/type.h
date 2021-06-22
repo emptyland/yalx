@@ -25,7 +25,7 @@ struct yalx_class {
     // unique identifer
     uint64_t id;
     /* class tags */
-    uint8_t constraint;
+    uint8_t constraint; // enum yalx_class_constraint
     int32_t reference_size;
     int32_t instance_size;
     struct yalx_class *super;

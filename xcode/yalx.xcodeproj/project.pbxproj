@@ -12,6 +12,8 @@
 		232FDB0926802E4700D52154 /* yalx-string-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0826802E4700D52154 /* yalx-string-posix-x64.s */; };
 		232FDB0C26806D8B00D52154 /* number.c in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0B26806D8B00D52154 /* number.c */; };
 		232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0D2680775600D52154 /* any-posix-x64.s */; };
+		232FDB1026818CF900D52154 /* number-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0F26818CF900D52154 /* number-test.cc */; };
+		232FDB1126818CF900D52154 /* number-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0F26818CF900D52154 /* number-test.cc */; };
 		23D4A4462680D17D0090C631 /* any.h in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68426676DEF00635ADB /* any.h */; };
 		23D4A4472680D17D0090C631 /* number.c in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0B26806D8B00D52154 /* number.c */; };
 		23D4A4482680D17D0090C631 /* number.h in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0A26806CDB00D52154 /* number.h */; };
@@ -169,6 +171,7 @@
 		232FDB0A26806CDB00D52154 /* number.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = number.h; path = ../src/runtime/object/number.h; sourceTree = "<group>"; };
 		232FDB0B26806D8B00D52154 /* number.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = number.c; path = ../src/runtime/object/number.c; sourceTree = "<group>"; };
 		232FDB0D2680775600D52154 /* any-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "any-posix-x64.s"; path = "../src/runtime/object/any-posix-x64.s"; sourceTree = "<group>"; };
+		232FDB0F26818CF900D52154 /* number-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "number-test.cc"; path = "../src/runtime/object/number-test.cc"; sourceTree = "<group>"; };
 		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
 		2351F80E26648CB200D337EA /* runtime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = runtime.h; path = ../src/runtime/runtime.h; sourceTree = "<group>"; };
 		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
@@ -390,6 +393,7 @@
 				23D5A68426676DEF00635ADB /* any.h */,
 				232FDB0D2680775600D52154 /* any-posix-x64.s */,
 				23D4A4882680D2F60090C631 /* any-posix-arm64.s */,
+				232FDB0F26818CF900D52154 /* number-test.cc */,
 				232FDB0B26806D8B00D52154 /* number.c */,
 				232FDB0A26806CDB00D52154 /* number.h */,
 				23D5A6872667719200635ADB /* type.h */,
@@ -496,6 +500,7 @@
 				23D4A4462680D17D0090C631 /* any.h in Sources */,
 				23D4A4472680D17D0090C631 /* number.c in Sources */,
 				23D4A4482680D17D0090C631 /* number.h in Sources */,
+				232FDB1126818CF900D52154 /* number-test.cc in Sources */,
 				23D4A4492680D17D0090C631 /* type.h in Sources */,
 				23D4A44A2680D17D0090C631 /* builtin-types.c in Sources */,
 				23D4A44B2680D17D0090C631 /* type-test.cc in Sources */,
@@ -578,6 +583,7 @@
 				23D5A668266718F900635ADB /* crc32.c in Sources */,
 				23D5A669266718F900635ADB /* env-test.cc in Sources */,
 				23D5A66A266718F900635ADB /* env-posix.cc in Sources */,
+				232FDB1026818CF900D52154 /* number-test.cc in Sources */,
 				23D5A66B266718F900635ADB /* env.h in Sources */,
 				232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */,
 				232FDB0926802E4700D52154 /* yalx-string-posix-x64.s in Sources */,

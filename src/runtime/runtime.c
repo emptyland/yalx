@@ -256,6 +256,30 @@ void dbg_output(yalx_ref_t obj) {
             printf("DBG %u\n", ((struct yalx_value_number_l *)obj)->box.u16);
             break;
             
+        case Type_I32:
+            printf("DBG %d\n", ((struct yalx_value_number_l *)obj)->box.i32);
+            break;
+            
+        case Type_U32:
+            printf("DBG %u\n", ((struct yalx_value_number_l *)obj)->box.u32);
+            break;
+            
+        case Type_I64:
+            printf("DBG %ld\n", ((struct yalx_value_number_w *)obj)->box.i64);
+            break;
+            
+        case Type_U64:
+            printf("DBG %lu\n", ((struct yalx_value_number_w *)obj)->box.u64);
+            break;
+            
+        case Type_F32:
+            printf("DBG %f\n", ((struct yalx_value_number_l *)obj)->box.f32);
+            break;
+
+        case Type_F64:
+            printf("DBG %f\n", ((struct yalx_value_number_w *)obj)->box.f64);
+            break;
+            
         case NOT_BUILTIN_TYPE:
         default:
             DCHECK("Noreachable");

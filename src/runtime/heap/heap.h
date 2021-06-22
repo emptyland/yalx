@@ -98,6 +98,18 @@ void string_pool_rehash(struct string_pool *pool, int slot_shift);
 
 struct allocate_result yalx_heap_allocate(struct heap *heap, const struct yalx_class *klass, size_t size, u32_t flags);
 
+#define yalx_bool_value(b) (heap.fast_boxing_numbers.bool_values[(b) ? 1 : 0])
+#define yalx_true_value() (heap.fast_boxing_numbers.bool_values[1])
+#define yalx_false_value() (heap.fast_boxing_numbers.bool_values[0])
+
+static inline struct yalx_value_number_l *yalx_i8_value(i8_t value) {
+    int i = (int)value + 128;
+    return heap.fast_boxing_numbers.i8_values[i];
+}
+
+static inline struct yalx_value_number_l *
+yalx_u8_value(u8_t value) { return heap.fast_boxing_numbers.u8_values[value]; }
+
 #ifdef __cplusplus
 }
 #endif
