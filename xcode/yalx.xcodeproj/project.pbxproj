@@ -14,6 +14,8 @@
 		232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0D2680775600D52154 /* any-posix-x64.s */; };
 		232FDB1026818CF900D52154 /* number-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0F26818CF900D52154 /* number-test.cc */; };
 		232FDB1126818CF900D52154 /* number-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0F26818CF900D52154 /* number-test.cc */; };
+		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
+		2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		23D4A4462680D17D0090C631 /* any.h in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68426676DEF00635ADB /* any.h */; };
 		23D4A4472680D17D0090C631 /* number.c in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0B26806D8B00D52154 /* number.c */; };
 		23D4A4482680D17D0090C631 /* number.h in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0A26806CDB00D52154 /* number.h */; };
@@ -207,6 +209,8 @@
 		2354CD942644DDA400A2FAC3 /* format.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = format.cc; path = ../src/base/format.cc; sourceTree = "<group>"; };
 		2354CD962644DE4700A2FAC3 /* status.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = status.cc; path = ../src/base/status.cc; sourceTree = "<group>"; };
 		2354CD982644DF1600A2FAC3 /* base.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = base.cc; path = ../src/base/base.cc; sourceTree = "<group>"; };
+		2387EF9D2681C80D002E6DCF /* compiler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = compiler.h; path = ../src/compiler/compiler.h; sourceTree = "<group>"; };
+		2387EF9E2681C8D3002E6DCF /* compiler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = compiler.cc; path = ../src/compiler/compiler.cc; sourceTree = "<group>"; };
 		23A3AB5A2664BAE800007658 /* stack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = stack.h; path = ../src/runtime/stack.h; sourceTree = "<group>"; };
 		23A3AB5B2664C1DB00007658 /* stack.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = stack.c; path = ../src/runtime/stack.c; sourceTree = "<group>"; };
 		23A3AB5D2664DB9F00007658 /* stack-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "stack-test.cc"; path = "../src/runtime/stack-test.cc"; sourceTree = "<group>"; };
@@ -301,6 +305,7 @@
 		2354CD3226439A1400A2FAC3 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				2387EF9C2681C56B002E6DCF /* Compiler */,
 				2351F80D26648C8200D337EA /* Runtime */,
 				232A47C0264B6DE7003DCA4F /* Arch */,
 				23EFD48526462489007222D6 /* Arm64 */,
@@ -374,6 +379,15 @@
 				2354CD912644D50B00A2FAC3 /* asm-x64.h */,
 			);
 			name = X64;
+			sourceTree = "<group>";
+		};
+		2387EF9C2681C56B002E6DCF /* Compiler */ = {
+			isa = PBXGroup;
+			children = (
+				2387EF9D2681C80D002E6DCF /* compiler.h */,
+				2387EF9E2681C8D3002E6DCF /* compiler.cc */,
+			);
+			name = Compiler;
 			sourceTree = "<group>";
 		};
 		23D5A67F26676B1F00635ADB /* Heap */ = {
@@ -511,6 +525,7 @@
 				23D4A4502680D17D0090C631 /* heap.c in Sources */,
 				23D4A4512680D17D0090C631 /* runtime-test.cc in Sources */,
 				23D4A4522680D17D0090C631 /* runtime.h in Sources */,
+				2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */,
 				23D4A4532680D17D0090C631 /* runtime.c in Sources */,
 				23D4A4542680D17D0090C631 /* macros.h in Sources */,
 				23D4A4552680D17D0090C631 /* stack-test.cc in Sources */,
@@ -626,6 +641,7 @@
 				23D5A658266718ED00635ADB /* scheduler.cc in Sources */,
 				23D5A659266718ED00635ADB /* label.h in Sources */,
 				23D5A65A266718ED00635ADB /* asm-x64-test.cc in Sources */,
+				2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */,
 				23D5A65B266718ED00635ADB /* asm-x64.cc in Sources */,
 				23D5A65C266718ED00635ADB /* asm-x64.h in Sources */,
 				23D5A65D266718ED00635ADB /* gtest-all.cc in Sources */,
