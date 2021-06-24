@@ -224,6 +224,7 @@
 		2387EFA726846309002E6DCF /* source-position-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "source-position-test.cc"; path = "../src/compiler/source-position-test.cc"; sourceTree = "<group>"; };
 		2387EFAA26846417002E6DCF /* token.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = token.h; path = ../src/compiler/token.h; sourceTree = "<group>"; };
 		2387EFAB2684643A002E6DCF /* token.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = token.cc; path = ../src/compiler/token.cc; sourceTree = "<group>"; };
+		2387EFAE268468DB002E6DCF /* syntax-feedback.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "syntax-feedback.h"; path = "../src/compiler/syntax-feedback.h"; sourceTree = "<group>"; };
 		23A3AB5A2664BAE800007658 /* stack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = stack.h; path = ../src/runtime/stack.h; sourceTree = "<group>"; };
 		23A3AB5B2664C1DB00007658 /* stack.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = stack.c; path = ../src/runtime/stack.c; sourceTree = "<group>"; };
 		23A3AB5D2664DB9F00007658 /* stack-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "stack-test.cc"; path = "../src/runtime/stack-test.cc"; sourceTree = "<group>"; };
@@ -405,6 +406,7 @@
 				2387EFA6268462A9002E6DCF /* source-position.h */,
 				2387EFAA26846417002E6DCF /* token.h */,
 				2387EFAB2684643A002E6DCF /* token.cc */,
+				2387EFAE268468DB002E6DCF /* syntax-feedback.h */,
 			);
 			name = Compiler;
 			sourceTree = "<group>";

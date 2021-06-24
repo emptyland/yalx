@@ -11,9 +11,9 @@ namespace cpl {
 
 class SourcePosition final {
 public:
-    SourcePosition(int column, int line) : SourcePosition(column, line, column, line) {}
+    SourcePosition(int line, int column) : SourcePosition(column, line, column, line) {}
     
-    SourcePosition(int begin_column, int begin_line, int end_column, int end_line)
+    SourcePosition(int begin_line, int begin_column, int end_line, int end_column)
         : begin_column_(begin_column)
         , begin_line_(begin_line)
         , end_column_(end_column)
@@ -24,7 +24,7 @@ public:
     DEF_VAL_GETTER(int, end_column);
     DEF_VAL_GETTER(int, end_line);
 
-    void SetEnd(int end_column, int end_line) {
+    void SetEnd(int end_line, int end_column) {
         end_column_ = end_column;
         end_line_   = end_line;
     }
