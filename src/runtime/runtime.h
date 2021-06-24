@@ -89,6 +89,8 @@ static inline void dbg_init_zag(void *chunk, size_t n) { fill_memory_zag(chunk, 
 static inline void dbg_free_zag(void *chunk, size_t n) { fill_memory_zag(chunk, n, MEM_FREE_ZAG); }
 #endif
 
+void die(const char *fmt, ...);
+
 void dbg_class_output(const struct yalx_class *klass);
 
 // implements in test-stub-[Arch].s

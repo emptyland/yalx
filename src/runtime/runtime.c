@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 int ncpus = 0;
 
@@ -28,6 +29,11 @@ struct coroutine c0;
 _Thread_local struct machine *thread_local_mach;
 
 struct stack_pool stack_pool;
+
+
+// External symbol from generated code
+extern uint32_t yalx_magic_number1;
+extern uint32_t yalx_magic_number2;
 
 #ifndef NDEBUG
 
@@ -94,6 +100,8 @@ static void dev_print_fields(const struct dev_struct_field *field) {
 }
 
 static void dev_print_struct_fields() {
+    printf("magic numbers: %u, %u\n", yalx_magic_number1, yalx_magic_number2);
+    
     printf("struct scheduler:\n");
     dev_print_fields(scheduler_fields);
     printf("struct machine:\n");
@@ -176,6 +184,15 @@ int yalx_rt0(int argc, char *argv[]) {
     USE(argc);
     USE(argv);
     
+    if (yalx_magic_number1 != 1347046214) {
+        die("bad magic number.");
+        return -1;
+    }
+    if (yalx_magic_number2 != 1465142347) {
+        die("bad magic number.");
+        return -1;
+    }
+    
     DCHECK(thread_local_mach != NULL);
     DCHECK(c0.state != CO_RUNNING);
     c0.state = CO_RUNNING;
@@ -190,6 +207,13 @@ int yalx_rt0(int argc, char *argv[]) {
     return 0;
 }
 
+void die(const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    exit(-1);
+}
 
 void *fill_memory_zag(void *chunk, size_t n, uint32_t zag) {
     if (!chunk) {

@@ -14,7 +14,7 @@ struct Option {
 };
 
 struct Options {
-    std::string base_dir;
+    std::string base_lib;
     std::string project_dir;
     int optimization = 0;
 };
@@ -23,9 +23,9 @@ namespace {
 
 const Option options_conf[] = {
     {
-        offsetof(Options, base_dir),
+        offsetof(Options, base_lib),
         "string",
-        "base-dir",
+        "base-lib",
         ""
     }, {
         offsetof(Options, project_dir),
@@ -48,6 +48,37 @@ const Option options_conf[] = {
 template<class T>
 inline T *OffsetOf(Options *options, ptrdiff_t offset) {
     return reinterpret_cast<T *>(reinterpret_cast<Address>(options) + offset);
+}
+
+base::Status ParseOption(const Option *conf, const std::string_view value, Options *options) {
+    switch (conf->type[0]) {
+        case 's': { // string
+            *OffsetOf<std::string>(options, conf->offset) = value;
+        } break;
+        case 'i': { // int
+            *OffsetOf<int>(options, conf->offset) = ::atoi(value.data());
+        } break;
+        case 'b': { // bool
+            if (value.empty()) {
+                *OffsetOf<bool>(options, conf->offset) = true;
+            } else {
+                bool incoming = false;
+                if (value == "true") {
+                    incoming == true;
+                } else if (value == "false") {
+                    incoming == false;
+                } else if (value == "1") {
+                    incoming == true;
+                } else if (value == "0") {
+                    incoming == false;
+                }
+                *OffsetOf<bool>(options, conf->offset) = incoming;
+            }
+        } break;
+        default:
+            UNREACHABLE();
+            break;
+    }
 }
 
 base::Status ParseOptions(int argc, char *argv[], const Option options_conf[], Options *options) {
@@ -80,45 +111,34 @@ base::Status ParseOptions(int argc, char *argv[], const Option options_conf[], O
             value = std::string_view(p + 1);
         }
         
-        switch (iter->second->type[0]) {
-            case 's': { // string
-                *OffsetOf<std::string>(options, iter->second->offset) = value;
-            } break;
-            case 'i': { // int
-                *OffsetOf<int>(options, iter->second->offset) = ::atoi(value.data());
-            } break;
-            case 'b': { // bool
-                if (value.empty()) {
-                    *OffsetOf<bool>(options, iter->second->offset) = true;
-                } else {
-                    bool incoming = false;
-                    if (value == "true") {
-                        incoming == true;
-                    } else if (value == "false") {
-                        incoming == false;
-                    } else if (value == "1") {
-                        incoming == true;
-                    } else if (value == "0") {
-                        incoming == false;
-                    }
-                    *OffsetOf<bool>(options, iter->second->offset) = incoming;
-                }
-            } break;
-            default:
-                UNREACHABLE();
-                break;
+        if (auto rs = ParseOption(iter->second, value, options); rs.fail()) {
+            return rs;
         }
     }
-    
     return base::Status::OK();
 }
 
 } // namespace
 
 
-// yalx --dir=./ --base-dir=/usr/bin --optimization=0
+// yalx --dir=./ --base-lib=/usr/bin --optimization=0
 /*static*/ int Compiler::Main(int argc, char *argv[]) {
+    Options options;
+    if (auto rs = ParseOptions(argc, argv, options_conf, &options); rs.fail()) {
+        printf("%s\n", rs.ToString().c_str());
+        return -1;
+    }
     
+    
+    return 0;
+}
+
+static base::Status Build(const std::string &project_dir,
+                          const std::string &base_lib,
+                          int optimization) {
+    
+    
+    return base::Status::OK();
 }
 
 

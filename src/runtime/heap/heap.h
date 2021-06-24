@@ -16,6 +16,7 @@ struct yalx_value_number_w;
 struct yalx_value_any;
 struct yalx_value_str;
 struct yalx_class;
+struct yalx_root_visitor;
 
 #define KPOOL_STRIPES_SIZE  16
 #define KPOOL_REHASH_FACTOR 0.8
@@ -42,7 +43,7 @@ struct one_time_memory_pool {
 
 struct string_pool_entry {
     QUEUE_HEADER(struct string_pool_entry);
-    struct yalx_value_str *value;
+    struct yalx_value_str *value; // NOTICE: [strong ref]
 }; // struct string_pool_entry
 
 struct string_pool {
@@ -53,7 +54,7 @@ struct string_pool {
 }; // struct string_pool
 
 
-// For number boxing:
+// [strong ref] For number boxing:
 struct boxing_number_pool {
     struct yalx_value_number_l *bool_values[2]; // true and false
     struct yalx_value_number_l *i8_values[256]; // all i8
@@ -84,6 +85,9 @@ extern struct heap heap;
 
 int yalx_init_heap(struct heap *heap);
 void yalx_free_heap(struct heap *heap);
+
+// For GC root marking~
+void yalx_heap_visit_root(struct heap *heap, struct yalx_root_visitor *visitor);
 
 // Find a string from string-pool
 // If string value exists, return pointer of it.

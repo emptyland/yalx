@@ -4,7 +4,8 @@
 
 #include "base/status.h"
 #include "base/base.h"
-
+#include <string>
+#include <string_view>
 
 namespace yalx {
     
@@ -17,6 +18,10 @@ public:
      * Pragma entry
      */
     static int Main(int argc, char *argv[]);
+    
+    static base::Status Build(const std::string &project_dir,
+                              const std::string &base_lib,
+                              int optimization);
     
     DISALLOW_ALL_CONSTRUCTORS(Compiler);
 }; // class Compiler

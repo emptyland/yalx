@@ -101,10 +101,14 @@ _y2zlang_debugOutput:
     popq %rbp
     ret
 
+.global _yalx_magic_number1,_yalx_magic_number2
 .data
 msg:
     .ascii "Hello, world!\0"
     // len = . - msg
 dummy1:
     .ascii "Hello, dummy 1\0"
-    
+_yalx_magic_number1:
+    .ascii "FKJP"
+_yalx_magic_number2:
+    .ascii "KLTW"

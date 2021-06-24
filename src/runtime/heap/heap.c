@@ -1,4 +1,5 @@
 #include "runtime/heap/heap.h"
+#include "runtime/heap/object-visitor.h"
 #include "runtime/object/yalx-string.h"
 #include "runtime/object/number.h"
 #include "runtime/object/any.h"
@@ -244,4 +245,37 @@ struct string_pool_entry *yalx_ensure_space_kpool(struct heap *heap, const char 
     struct string_pool_entry *space =string_pool_ensure_space(kpool, z, n);
     pthread_mutex_unlock(&kpool->mutex);
     return space;
+}
+
+
+void yalx_heap_visit_root(struct heap *heap, struct yalx_root_visitor *visitor) {
+    {
+    #define VISIT(ty)                        \
+        visitor->visit_pointers(visitor,     \
+            (yalx_ref_t *)pool->ty##_values, \
+            (yalx_ref_t *)pool->ty##_values + arraysize(pool->ty##_values))
+        
+        struct boxing_number_pool *pool = &heap->fast_boxing_numbers;
+        VISIT(bool);
+        VISIT(i8);
+        VISIT(u8);
+        VISIT(i16);
+        VISIT(u16);
+        VISIT(i32);
+        VISIT(u32);
+        VISIT(i64);
+        VISIT(u64);
+        VISIT(f32);
+        VISIT(f64);
+    #undef VISIT
+    }
+    for (int i = 0; i < arraysize(heap->kpool_stripes); i++) {
+        struct string_pool *pool = &heap->kpool_stripes[i];
+        for (int j = 0; j < (1u << pool->slots_shift); j++) {
+            struct string_pool_entry *slot = &pool->slots[j];
+            for (struct string_pool_entry *n = slot->next; n != slot; n = n->next) {
+                visitor->visit_pointer(visitor, (yalx_ref_t *)&n->value);
+            }
+        }
+    }
 }
