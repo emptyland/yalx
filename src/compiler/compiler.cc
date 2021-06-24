@@ -1,6 +1,9 @@
 #include "compiler/compiler.h"
 #include "base/checking.h"
+#include "base/arena.h"
 #include <map>
+#include <filesystem>
+#include <vector>
 
 namespace yalx {
     
@@ -17,6 +20,8 @@ struct Options {
     std::string base_lib;
     std::string project_dir;
     int optimization = 0;
+    bool dont_generate_code = false;
+    bool just_checking = false;
 };
 
 namespace {
@@ -37,6 +42,16 @@ const Option options_conf[] = {
         "int",
         "optimization",
         "[0, 3]"
+    }, {
+        offsetof(Options, dont_generate_code),
+        "bool",
+        "dont-generate-code",
+        "Do not generated binary code, just checking syntax."
+    }, {
+        offsetof(Options, just_checking),
+        "bool",
+        "just-checking",
+        "Do not generated binary code, just checking syntax."
     }, { // End of configuration
         0,
         nullptr,
@@ -129,18 +144,62 @@ base::Status ParseOptions(int argc, char *argv[], const Option options_conf[], O
         return -1;
     }
     
-    
+    if (auto rs = Build(options.project_dir, options.base_lib, options.optimization); rs.fail()) {
+        printf("%s\n", rs.ToString().c_str());
+        return -1;
+    }
     return 0;
 }
 
-static base::Status Build(const std::string &project_dir,
-                          const std::string &base_lib,
-                          int optimization) {
+namespace fs = std::filesystem;
+
+base::Status Compiler::Build(const std::string &project_dir,
+                             const std::string &base_lib,
+                             int optimization) {
+    fs::path dir = project_dir.empty() ? fs::current_path() : fs::path(project_dir);
+    if (base_lib.empty()) {
+        return ERR_INVALID_ARGUMENT("Base library dir has not specified.");
+    }
+    fs::path base_dir(base_lib);
+    if (!fs::exists(base_dir) || !fs::is_directory(base_dir)) {
+        return ERR_CORRUPTION("Base library is not a directory.");
+    }
+    if (!fs::exists(dir) || !fs::is_directory(dir)) {
+        return ERR_CORRUPTION("Project dir is not a directory.");
+    }
+    
+    std::vector<std::string> source_files;
+    for(auto& entry: fs::recursive_directory_iterator(dir)) {
+        if (fs::is_directory(entry.path())) {
+            continue;
+        }
+        const auto name = entry.path().string();
+        if (name.rfind(kSourceExtendedName) == name.size() - strlen(kSourceExtendedName)) {
+            source_files.push_back(name);
+        }
+    }
+    
+    for(auto& entry: fs::recursive_directory_iterator(base_dir)) {
+        if (fs::is_directory(entry.path())) {
+            continue;
+        }
+        const auto name = entry.path().string();
+        if (name.rfind(kSourceExtendedName) == name.size() - strlen(kSourceExtendedName)) {
+            source_files.push_back(name);
+        }
+    }
+    
+    base::Arena arena;
     
     
     return base::Status::OK();
 }
 
+
+base::Status Compiler::ParseAllSourceFiles(const std::vector<std::string> files) {
+    
+    return base::Status::OK();
+}
 
 } // namespace cpl
 

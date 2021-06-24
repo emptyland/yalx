@@ -131,11 +131,11 @@ private:
     const char *state_;
 }; // class Status
 
-#define ERR_NOT_FOUND()           Status::NotFound(__FILE__, __LINE__)
-#define ERR_CORRUPTION(msg)       Status::Corruption(__FILE__, __LINE__, msg)
-#define ERR_PERROR(msg)           Status::PError(__FILE__, __LINE__, msg)
-#define ERR_NOT_SUPPORTED()       Status::NotSupported(__FILE__, __LINE__)
-#define ERR_INVALID_ARGUMENT(msg) Status::InvalidArgument(__FILE__, __LINE__, msg)
+#define ERR_NOT_FOUND()           ::yalx::base::Status::NotFound(__FILE__, __LINE__)
+#define ERR_CORRUPTION(msg)       ::yalx::base::Status::Corruption(__FILE__, __LINE__, msg)
+#define ERR_PERROR(msg)           ::yalx::base::Status::PError(__FILE__, __LINE__, msg)
+#define ERR_NOT_SUPPORTED()       ::yalx::base::Status::NotSupported(__FILE__, __LINE__)
+#define ERR_INVALID_ARGUMENT(msg) ::yalx::base::Status::InvalidArgument(__FILE__, __LINE__, msg)
 
 } // namespace base
 

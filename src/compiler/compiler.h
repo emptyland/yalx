@@ -6,6 +6,7 @@
 #include "base/base.h"
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace yalx {
     
@@ -19,9 +20,11 @@ public:
      */
     static int Main(int argc, char *argv[]);
     
-    static base::Status Build(const std::string &project_dir,
-                              const std::string &base_lib,
-                              int optimization);
+    static base::Status Build(const std::string &project_dir, const std::string &base_lib, int optimization);
+
+    static base::Status ParseAllSourceFiles(const std::vector<std::string> files);
+    
+    static constexpr char kSourceExtendedName[] = ".yalx";
     
     DISALLOW_ALL_CONSTRUCTORS(Compiler);
 }; // class Compiler
