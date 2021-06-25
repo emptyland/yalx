@@ -28,11 +28,15 @@ public:
         end_column_ = end_column;
         end_line_   = end_line;
     }
+    
+    SourcePosition Concat(const SourcePosition &end) const {
+        return {begin_line_, begin_column_, end.end_line(), end.end_column()};
+    }
 private:
-    int begin_column_ = 0;
     int begin_line_ = 0;
-    int end_column_ = 0;
+    int begin_column_ = 0;
     int end_line_ = 0;
+    int end_column_ = 0;
 }; // class SourcePosition
 
 } // namespace cpl

@@ -160,6 +160,9 @@ public:
     DEF_VAL_PROP_RW(int64_t, i64_val);
     DEF_VAL_PROP_RW(uint64_t, u64_val);
     
+    bool Is(Kind expect) const { return kind() == expect; }
+    bool IsNot(Kind expect) const { return !Is(expect); }
+    
     struct NamePair {
         const char *const name;
         const char *const literal;

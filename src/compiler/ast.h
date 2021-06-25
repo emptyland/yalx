@@ -1,3 +1,4 @@
+#pragma once
 #ifndef YALX_COMPILER_AST_H_
 #define YALX_COMPILER_AST_H_
 
@@ -28,14 +29,17 @@ public:
 }; // class AstVisitor
 
 
+#define DECLARE_AST_NODE(name) \
+    void Accept(AstVisitor *visitor) override { return visitor->Visit##name(this); }
+
 //----------------------------------------------------------------------------------------------------------------------
 // FileUnit
-
+//----------------------------------------------------------------------------------------------------------------------
 class FileUnit : public AstNode {
 public:
     class ImportEntry : public AstNode {
     public:
-        ImportEntry(String *original_package_name, String *package_path, String *alias,
+        ImportEntry(const String *original_package_name, const String *package_path, const String *alias,
                     SourcePosition source_position)
             : AstNode(Node::kMaxKinds, source_position)
             , original_package_name_(DCHECK_NOTNULL(original_package_name))
@@ -44,13 +48,13 @@ public:
         
         void Accept(AstVisitor *visitor) override {}
         
-        DEF_PTR_PROP_RW(String, original_package_name);
-        DEF_PTR_PROP_RW(String, package_path);
-        DEF_PTR_PROP_RW(String, alias);
+        DEF_PTR_PROP_RW(const String, original_package_name);
+        DEF_PTR_PROP_RW(const String, package_path);
+        DEF_PTR_PROP_RW(const String, alias);
     private:
-        String *original_package_name_;
-        String *package_path_;
-        String *alias_;
+        const String *original_package_name_;
+        const String *package_path_;
+        const String *alias_;
     }; // class ImportEntry
     
     
@@ -60,11 +64,16 @@ public:
         , file_full_path_(DCHECK_NOTNULL(file_full_path))
         , imports_(arena) {}
     
+    DEF_PTR_PROP_RW(const String, file_name);
+    DEF_PTR_PROP_RW(const String, file_full_path);
+    DEF_PTR_PROP_RW(const String, package_name);
+    DEF_ARENA_VECTOR_GETTER(ImportEntry *, import);
     
+    DECLARE_AST_NODE(FileUnit);
 private:
-    String *file_name_;
-    String *file_full_path_;
-    String *package_name_ = nullptr;
+    const String *file_name_;
+    const String *file_full_path_;
+    const String *package_name_ = nullptr;
     base::ArenaVector<ImportEntry *> imports_;
 }; // class FileUnit
 

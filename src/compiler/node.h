@@ -1,3 +1,4 @@
+#pragma once
 #ifndef YALX_COMPILER_NODE_H_
 #define YALX_COMPILER_NODE_H_
 
