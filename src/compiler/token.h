@@ -73,6 +73,7 @@ using String = base::ArenaString;
     V(NotEqual, "!=", none) \
     V(Assign, "=", none) \
     V(Dollar, "$", none) \
+    V(AtOutlined, "@", none) \
     DECLARE_KEYWORDS_TOKEN(V)
 
 #define DECLARE_KEYWORDS_TOKEN(V) \

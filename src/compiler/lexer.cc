@@ -121,6 +121,9 @@ Token Lexer::Next() {
             case '$':
                 return MatchOne(Token::kDollar);
                 
+            case '@':
+                return MatchOne(Token::kAtOutlined);
+                
             case '!': {
                 SourcePosition loc{line_, column_};
                 if (ch = MoveNext(); ch == '=') {
@@ -723,6 +726,7 @@ int Lexer::Peek() {
         case '\\':
         case '|':
         case '$':
+        case '@':
         case ' ':
         case '\t':
         case '\r':

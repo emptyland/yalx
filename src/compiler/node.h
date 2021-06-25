@@ -1,0 +1,158 @@
+#ifndef YALX_COMPILER_NODE_H_
+#define YALX_COMPILER_NODE_H_
+
+#include "compiler/source-position.h"
+#include "base/arena.h"
+
+namespace yalx {
+
+namespace cpl {
+
+// Node
+//    +: il
+//    +- FileUnit
+//    +- Statement
+//        +- Block
+//        +- BreakStatement
+//        +- ContinueStatement
+//        +- ReturnStatement
+//        +- ThrowStatement
+//        +- WhileStatement
+//        +- ForEachStatement
+//        +- ForStepStatement
+//        +- Declaration
+//            +- VariableDeclaration
+//            +- FunctionDeclaration
+//            +- ObjectDeclaration
+//        +- Definition
+//            +- InterfaceDefinition
+//            +- ClassDefinition
+//            +- AnnotationDefinition
+//        +- Expression
+//            +- Identifier
+//            +- Literal
+//                +- UnitLiteral
+//                +- ActualLiteral<T>
+//                +- LambdaLiteral
+//                    +- IntLiteral
+//                    +- UIntLiteral
+//                    +- I64Literal
+//                    +- U64Literal
+//                    +- BoolLiteral
+//                    +- StringLiteral
+//            +- ExpressionWithOperands<N>
+//                +- BinaryExpression
+//                    +- Add
+//                    +- Sub
+//                    +- Mul
+//                    +- Div
+//                    +- Mod
+//                    +- Equal
+//                    +- NotEqual
+//                    +- Less
+//                    +- LessEqual
+//                    +- Greater
+//                    +- GreaterEqual
+//                    +- And
+//                    +- Or
+//                    +- BitwiseAnd
+//                    +- BitwiseOr
+//                    +- BitwiseXor
+//                    +- ChannelWrite
+//                    +- IndexedGet
+//                +- UnaryExpression
+//                    +- Negative
+//                    +- Not
+//                    +- BitwiseNegative
+//                    +- ChannelRead
+//            +- Dot
+//            +- Casting
+//            +- Calling
+//            +- IfExpression
+//            +- WhenExpression
+//            +- TryCatchExpression
+//            +- ChannelInitializer
+//            +- ArrayInitializer
+//            +- ArrayDimension
+//    +- Annotation
+//    +- Type
+//        +- ArrayType
+//        +- ClassType
+//        +- InterfaceType
+//        +- FunctionPrototype
+//    +- Operand
+//        +- Argument
+//        +- StackAllocate
+//        +- HeapAllocate
+//        +- StackLoad
+//        +- StackStore
+//        +- GlobalLoad
+//        +- GlobalStore
+//        +- CallRuntime
+//        +- CallDirect
+//        +- CallIndirect
+//        +- CallVirtual
+//        +- Arithmetic<N>
+//            +- I8{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Sar}
+//            +- U8{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Shr}
+//            +- I16{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Sar}
+//            +- U16{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Shr}
+//            +- I32{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Sar}
+//            +- U32{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Shr}
+//            +- I64{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Sar}
+//            +- U64{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Shr}
+//            +- F32{Add/Sub/Mul/Div}
+//            +- F64{Add/Sub/Mul/Div}
+
+#define DECLARE_ALL_NODES(V) \
+    DECLARE_AST_NODES(V)
+
+#define DECLARE_AST_NODES(V) \
+    V(FileUnit) \
+    V(Block) \
+    V(BreakStatement) \
+    V(ContinueStatement)
+
+#define DEFINE_PREDECL_CLASSES(name) class name;
+DECLARE_ALL_NODES(DEFINE_PREDECL_CLASSES)
+#undef DEFINE_PREDECL_CLASSES
+
+
+class Node : public base::ArenaObject {
+public:
+    enum Kind {
+#define DEFINE_ENUM(name) k##name,
+        DECLARE_ALL_NODES(DEFINE_ENUM)
+#undef DEFINE_ENUM
+        kMaxKinds,
+    }; // enum Kind
+
+#define DEFINE_METHODS(name) \
+    bool Is##name() const { return kind() == k##name; } \
+    name *As##name() { return !Is##name() ? nullptr : reinterpret_cast<name *>(this); } \
+    const name *As##name() const { return !Is##name() ? nullptr : reinterpret_cast<const name *>(this); }
+    DECLARE_ALL_NODES(DEFINE_METHODS)
+#undef DEFINE_METHODS
+
+    DEF_VAL_GETTER(Kind, kind);
+    DEF_VAL_PROP_RM(SourcePosition, source_position);
+    
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Node);
+protected:
+    Node(Kind kind, SourcePosition source_position): kind_(kind), source_position_(source_position) {}
+    
+private:
+    Kind kind_;
+    SourcePosition source_position_;
+}; // class Node
+
+
+class Visitation {
+    // TODO:
+}; // class Visitation
+
+} // namespace cpl
+
+} // namespace yalx
+
+#endif // YALX_COMPILER_NODE_H_

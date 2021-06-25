@@ -11,7 +11,7 @@ namespace cpl {
 
 class SourcePosition final {
 public:
-    SourcePosition(int line, int column) : SourcePosition(column, line, column, line) {}
+    SourcePosition(int line, int column) : SourcePosition(line, column, line, column) {}
     
     SourcePosition(int begin_line, int begin_column, int end_line, int end_column)
         : begin_column_(begin_column)

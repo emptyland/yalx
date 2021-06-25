@@ -45,8 +45,9 @@ private:
     Token MatchSimpleTemplateString();
     Token MatchIdentifier();
     Token MatchOne(Token::Kind kind) {
+        int column = column_;
         MoveNext();
-        return Token(kind, SourcePosition{line_, column_});
+        return Token(kind, SourcePosition{line_, column});
     }
     
     Token MatchNumber(int sign, int line, int row);
