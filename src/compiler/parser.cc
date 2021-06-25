@@ -156,7 +156,7 @@ const String *Parser::MatchText(Token::Kind kind, bool *ok) {
 }
 
 void Parser::Match(Token::Kind kind, bool *ok) {
-    if (lookahead_.kind() != kind) {
+    if (lookahead_.IsNot(kind)) {
         error_feedback_->Printf(lookahead_.source_position(), "Unexpected: %s, expected: %s",
                                 Token::ToString(kind).c_str(), lookahead_.ToString().c_str());
         *ok = false;
@@ -166,7 +166,7 @@ void Parser::Match(Token::Kind kind, bool *ok) {
 }
 
 bool Parser::Test(Token::Kind kind) {
-    if (lookahead_.kind() == kind) {
+    if (lookahead_.Is(kind)) {
         lookahead_ = lexer_->Next();
         return true;
     }
