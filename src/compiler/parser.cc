@@ -98,8 +98,8 @@ const String *Parser::ParsePackageName(bool *ok) {
     return package_name;
 }
 
-// import_statement := `import' identifier ( `.' identifier )* ( `as' alias )?
-// import_statement := `import' `{' ( identifier ( `.' identifier )* ( `as' alias )? )+ `}'
+// import_statement := `import' string_literal ( `as' alias )?
+// import_statement := `import' `{' ( string_literal ( `as' alias )? )+ `}'
 // alias := `*' | identifier
 const String *Parser::ParseImportStatement(bool *ok) {
     auto begin = Peek().source_position();
@@ -111,6 +111,7 @@ const String *Parser::ParseImportStatement(bool *ok) {
         const String *alias = ParseAliasOrNull(CHECK_OK);
         auto import = new (arena_) FileUnit::ImportEntry(nullptr, path, alias, ConcatNow(begin));
         file_unit_->mutable_imports()->push_back(import);
+        return path;
     }
     
     Match(Token::kLBrace, CHECK_OK);
@@ -133,9 +134,8 @@ const String *Parser::ParseAliasOrNull(bool *ok) {
         case Token::kIdentifier:
             return MatchText(Token::kIdentifier, CHECK_OK);
         case Token::kStar: {
-            alias = Peek().text_val();
             MoveNext();
-            return alias;
+            return String::New(arena_, "*", 1);
         } break;
         default:
             break;
@@ -144,7 +144,7 @@ const String *Parser::ParseAliasOrNull(bool *ok) {
 }
 
 const String *Parser::MatchText(Token::Kind kind, bool *ok) {
-    if (Peek().IsNot(Token::kStringLine)) {
+    if (Peek().IsNot(kind)) {
         error_feedback_->Printf(Peek().source_position(), "Unexpected: `%s', expected: `%s'",
                                 Token::ToString(kind).c_str(), Peek().ToString().c_str());
         *ok = false;

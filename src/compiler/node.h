@@ -6,7 +6,9 @@
 #include "base/arena.h"
 
 namespace yalx {
-
+namespace base {
+class ArenaString;
+} // namespace base
 namespace cpl {
 
 // Node
@@ -106,18 +108,34 @@ namespace cpl {
 //            +- F64{Add/Sub/Mul/Div}
 
 #define DECLARE_ALL_NODES(V) \
-    DECLARE_AST_NODES(V)
+    DECLARE_AST_NODES(V) \
+    DECLARE_TYPE_NODES(V)
 
 #define DECLARE_AST_NODES(V) \
     V(FileUnit) \
     V(Block) \
     V(BreakStatement) \
-    V(ContinueStatement)
+    V(ContinueStatement) \
+    V(ClassDefinition) \
+    V(StructDefinition) \
+    V(InterfaceDefinition) \
+    V(AnnotationDefinition) \
+    V(Identifier)
+
+#define DECLARE_TYPE_NODES(V) \
+    V(Type) \
+    V(ArrayType) \
+    V(ChannelType) \
+    V(ClassType) \
+    V(StructType) \
+    V(InterfaceType)
 
 #define DEFINE_PREDECL_CLASSES(name) class name;
 DECLARE_ALL_NODES(DEFINE_PREDECL_CLASSES)
 #undef DEFINE_PREDECL_CLASSES
 
+
+using String = base::ArenaString;
 
 class Node : public base::ArenaObject {
 public:
@@ -140,13 +158,28 @@ public:
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(Node);
 protected:
-    Node(Kind kind, SourcePosition source_position): kind_(kind), source_position_(source_position) {}
+    Node(Kind kind, const SourcePosition &source_position): kind_(kind), source_position_(source_position) {}
     
 private:
     Kind kind_;
     SourcePosition source_position_;
 }; // class Node
 
+
+class Symbol : public Node {
+public:
+    Symbol(const String *name, const SourcePosition &source_position = {0, 0})
+        : Symbol(nullptr, name, source_position) {}
+
+    Symbol(const String *prefix_name, const String *name, const SourcePosition &source_position = {0, 0})
+        : Node(kMaxKinds, source_position)
+        , prefix_name_(prefix_name)
+        , name_(name) {}
+
+private:
+    const String *prefix_name_;
+    const String *name_;
+}; // class Symbol
 
 class Visitation {
     // TODO:
