@@ -193,16 +193,16 @@ public:
         Field(const String *name, Expression *value, const SourcePosition &source_position)
             : Node(Node::kMaxKinds, source_position)
             , name_(name)
-            , value_of_nested_(true)
+            , value_or_nested_(true)
             , value_(DCHECK_NOTNULL(value)) {}
         
         Field(const String *name, Annotation *nested, const SourcePosition &source_position)
             : Node(Node::kMaxKinds, source_position)
             , name_(name)
-            , value_of_nested_(false)
+            , value_or_nested_(false)
             , nested_(DCHECK_NOTNULL(nested)) {}
         
-        bool IsValue() const { return value_of_nested_; }
+        bool IsValue() const { return value_or_nested_; }
         bool IsNested() const { return !IsValue(); }
         
         Expression *value() const {
@@ -227,7 +227,7 @@ public:
             Expression *value_;
             Annotation *nested_;
         };
-        const bool value_of_nested_;
+        const bool value_or_nested_;
     }; // class Field
     
     Annotation(base::Arena *arena, Symbol *name, const SourcePosition &source_position)
