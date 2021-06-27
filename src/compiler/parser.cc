@@ -125,6 +125,102 @@ const String *Parser::ParseImportStatement(bool *ok) {
     return nullptr;
 }
 
+// annotation_declaration ::= annotation_using+
+AnnotationDeclaration *Parser::ParseAnnotationDeclaration(bool *ok) {
+    auto location = Peek().source_position();
+    auto decl = new (arena_) AnnotationDeclaration(arena_, location);
+    while (Peek().Is(Token::kAtOutlined)) {
+        auto annotation = ParseAnnotation(false /*skip_at*/, CHECK_OK);
+        decl->mutable_annotations()->push_back(annotation);
+        *decl->mutable_source_position() = location.Concat(annotation->source_position());
+    }
+    return decl;
+}
+
+// annotation_using ::= `@' symbol ( `(' annotation_value_list `)' )?
+// annotation_value_list ::= annotation_value (`,' annotation_value)+
+// annotation_value ::= literal | `(' annotation_value_list `)'
+Annotation *Parser::ParseAnnotation(bool skip_at, bool *ok) {
+    auto location = Peek().source_position();
+    if (!skip_at) {
+        Match(Token::kAtOutlined, CHECK_OK); // @
+    }
+    auto symbol = ParseSymbol(CHECK_OK);
+    auto annotation = new (arena_) Annotation(arena_, symbol, location);
+    if (Test(Token::kLParen)) {
+        do {
+            auto field_location = Peek().source_position();
+            auto name = MatchText(Token::kIdentifier, CHECK_OK);
+            Match(Token::kAssign, CHECK_OK);
+            Annotation::Field *field = nullptr;
+            if (Peek().Is(Token::kIdentifier)) {
+                auto nested = ParseAnnotation(true /*skip_at*/, CHECK_OK);
+                field = new (arena_) Annotation::Field(name, nested, field_location.Concat(nested->source_position()));
+            } else {
+                auto value = ParseStaticLiteral(CHECK_OK);
+                field = new (arena_) Annotation::Field(name, value, field_location.Concat(value->source_position()));
+            }
+            annotation->mutable_fields()->push_back(field);
+        } while (Test(Token::kComma));
+        Match(Token::kRParen, CHECK_OK);
+    }
+    
+    *annotation->mutable_source_position() = ConcatNow(location);
+    return annotation;
+}
+
+Expression *Parser::ParseStaticLiteral(bool *ok) {
+    Expression *literal = nullptr;
+    auto location = Peek().source_position();
+    switch (Peek().kind()) {
+        case Token::kIntVal:
+            literal = new (arena_) IntLiteral(static_cast<int>(Peek().i64_val()), location);
+            MoveNext();
+            break;
+        case Token::kUIntVal:
+            literal = new (arena_) UIntLiteral(static_cast<unsigned>(Peek().u64_val()), location);
+            MoveNext();
+            break;
+        case Token::kF32Val:
+            literal = new (arena_) F32Literal(Peek().f32_val(), location);
+            MoveNext();
+            break;
+        case Token::kF64Val:
+            literal = new (arena_) F64Literal(Peek().f64_val(), location);
+            MoveNext();
+            break;
+        case Token::kStringLine:
+            literal = new (arena_) StringLiteral(Peek().text_val(), location);
+            MoveNext();
+            break;
+        case Token::kTrue:
+            literal = new (arena_) BoolLiteral(true, location);
+            MoveNext();
+            break;
+        case Token::kFalse:
+            literal = new (arena_) BoolLiteral(false, location);
+            MoveNext();
+            break;
+        default:
+            error_feedback_->Printf(location, "Unexpected 'static literal value', expected: `%s'",
+                                    Peek().ToString().c_str());
+            *ok = false;
+            break;
+    }
+    return literal;
+}
+
+// symbol ::= identifier | identifier `.' identifier
+Symbol *Parser::ParseSymbol(bool *ok) {
+    auto location = Peek().source_position();
+    auto prefix_or_name = MatchText(Token::kIdentifier, CHECK_OK);
+    if (Test(Token::kDot)) {
+        auto name = MatchText(Token::kIdentifier, CHECK_OK);
+        return new (arena_) Symbol(prefix_or_name, name, ConcatNow(location));
+    }
+    return new (arena_) Symbol(prefix_or_name, ConcatNow(location));
+}
+
 const String *Parser::ParseAliasOrNull(bool *ok) {
     const String *alias = nullptr;
     if (!Test(Token::kAs)) {

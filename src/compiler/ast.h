@@ -31,6 +31,10 @@ public:
 #define DECLARE_AST_NODE(name) \
     void Accept(AstVisitor *visitor) override { return visitor->Visit##name(this); }
 
+class Statement;
+class Declaration;
+class Expression;
+
 //----------------------------------------------------------------------------------------------------------------------
 // FileUnit
 //----------------------------------------------------------------------------------------------------------------------
@@ -76,6 +80,315 @@ private:
     base::ArenaVector<ImportEntry *> imports_;
 }; // class FileUnit
 
+
+//----------------------------------------------------------------------------------------------------------------------
+// Statement
+//----------------------------------------------------------------------------------------------------------------------
+class Statement : public AstNode {
+protected:
+    Statement(Kind kind, const SourcePosition &source_position): AstNode(kind, source_position) {}
+}; // class Statement
+
+
+//----------------------------------------------------------------------------------------------------------------------
+// Declaration
+//----------------------------------------------------------------------------------------------------------------------
+class Declaration : public Statement {
+public:
+    enum Access {
+        kExport, kPublic, kProtected, kPrivate, kDefault
+    };
+    
+    DEF_VAL_PROP_RW(Access, access);
+    DEF_PTR_PROP_RW(AnnotationDeclaration, annotations);
+
+    virtual Identifier *Identifier() const = 0;
+    virtual Type *Type() const = 0;
+    virtual Declaration *AtItem(size_t i) const = 0;
+    virtual size_t ItemSize() const = 0;
+    
+protected:
+    Declaration(base::Arena *arena, Kind kind, const SourcePosition &source_position)
+        : Statement(kind, source_position) {}
+
+private:
+    AnnotationDeclaration *annotations_ = nullptr;
+    Access access_ = kDefault;
+}; // class Declaration
+
+
+//----------------------------------------------------------------------------------------------------------------------
+// VariableDeclaration
+//----------------------------------------------------------------------------------------------------------------------
+class VariableDeclaration : public Declaration {
+public:
+    class Item : public Declaration {
+    public:
+        Item(base::Arena *arena, class Identifier *identifier, class Type *type, const SourcePosition &source_position)
+            : Declaration(arena, Node::kMaxKinds, source_position)
+            , identifier_(identifier)
+            , type_(type) {}
+        
+        DEF_PTR_PROP_RW(class Identifier, identifier);
+        DEF_PTR_PROP_RW(class Type, type);
+        
+        class Identifier *Identifier() const override { return identifier(); }
+        class Type *Type() const override { return type(); }
+        Declaration *AtItem(size_t i) const override { return nullptr; }
+        size_t ItemSize() const override { return 0; }
+        
+        void Accept(AstVisitor *v) override {}
+    private:
+        class Identifier *identifier_;
+        class Type *type_;
+    }; // class Item
+    
+    enum Constraint { kVal, kVar };
+    
+    VariableDeclaration(base::Arena *arena, bool is_volatile, Constraint constraint,
+                        const SourcePosition &source_position)
+        : Declaration(arena, Node::kVariableDeclaration, source_position)
+        , constraint_(constraint)
+        , is_volatile_(is_volatile)
+        , variables_(arena)
+        , initilaizers_(arena) {}
+
+    DEF_VAL_PROP_RW(Constraint, constraint);
+    DEF_VAL_PROP_RW(bool, is_volatile);
+    DEF_ARENA_VECTOR_GETTER(Item *, variable);
+    DEF_ARENA_VECTOR_GETTER(Expression *, initilaizer);
+    
+    class Identifier *Identifier() const override { return variable(0)->identifier(); }
+    class Type *Type() const override { return variable(0)->type(); }
+    Declaration *AtItem(size_t i) const override { return variable(i); }
+    size_t ItemSize() const override { return variables_size(); }
+    
+    DECLARE_AST_NODE(VariableDeclaration);
+private:
+    Constraint constraint_;
+    bool is_volatile_ = false;
+    base::ArenaVector<Item *> variables_;
+    base::ArenaVector<Expression *> initilaizers_;
+}; // class VariableDeclaration
+
+//----------------------------------------------------------------------------------------------------------------------
+// Annotation
+//----------------------------------------------------------------------------------------------------------------------
+class AnnotationDeclaration : public AstNode {
+public:
+    AnnotationDeclaration(base::Arena *arena, const SourcePosition &source_position)
+        : AstNode(Node::kAnnotationDeclaration, source_position)
+        , annotations_(arena) {}
+
+    DEF_ARENA_VECTOR_GETTER(Annotation *, annotation);
+    DECLARE_AST_NODE(AnnotationDeclaration);
+private:
+    base::ArenaVector<Annotation *> annotations_;
+}; // class AnnotationDeclaration
+
+class Annotation : public AstNode {
+public:
+    class Field : public Node {
+    public:
+        Field(const String *name, Expression *value, const SourcePosition &source_position)
+            : Node(Node::kMaxKinds, source_position)
+            , name_(name)
+            , value_of_nested_(true)
+            , value_(DCHECK_NOTNULL(value)) {}
+        
+        Field(const String *name, Annotation *nested, const SourcePosition &source_position)
+            : Node(Node::kMaxKinds, source_position)
+            , name_(name)
+            , value_of_nested_(false)
+            , nested_(DCHECK_NOTNULL(nested)) {}
+        
+        bool IsValue() const { return value_of_nested_; }
+        bool IsNested() const { return !IsValue(); }
+        
+        Expression *value() const {
+            assert(IsValue());
+            return value_;
+        }
+        
+        void set_value(Expression *value) {
+            assert(IsValue());
+            value_ = DCHECK_NOTNULL(value);
+        }
+        
+        Annotation *nested() const {
+            assert(IsNested());
+            return nested_;
+        }
+        
+        DEF_PTR_GETTER(const String, name);
+    private:
+        const String *name_;
+        union {
+            Expression *value_;
+            Annotation *nested_;
+        };
+        const bool value_of_nested_;
+    }; // class Field
+    
+    Annotation(base::Arena *arena, Symbol *name, const SourcePosition &source_position)
+        : AstNode(Node::kAnnotation, source_position)
+        , name_(DCHECK_NOTNULL(name))
+        , fields_(arena) {}
+
+    DEF_PTR_PROP_RW(Symbol, name);
+    DEF_ARENA_VECTOR_GETTER(Field *, field);
+    
+    DECLARE_AST_NODE(Annotation);
+private:
+    Symbol *name_;
+    base::ArenaVector<Field *> fields_;
+}; // class Annotation
+
+//----------------------------------------------------------------------------------------------------------------------
+// Expressions
+//----------------------------------------------------------------------------------------------------------------------
+class Expression : public Statement {
+public:
+    DEF_VAL_GETTER(bool, is_lval);
+    DEF_VAL_GETTER(bool, is_rval);
+    
+    bool is_only_lval() const { return is_lval() && !is_rval(); }
+    bool is_only_rval() const { return !is_lval() && is_rval(); }
+    
+protected:
+    Expression(Kind kind, bool is_lval, bool is_rval, const SourcePosition &source_position)
+        : Statement(kind, source_position)
+        , is_lval_(is_lval)
+        , is_rval_(is_rval) {}
+    
+    bool is_lval_;
+    bool is_rval_;
+}; //class Expression
+
+
+class Literal : public Expression {
+public:
+    DEF_PTR_PROP_RW(Type, type);
+    
+protected:
+    Literal(Kind kind, Type *type, const SourcePosition &source_position)
+        : Expression(kind, false/*is_lval*/, true/*is_rval*/, source_position)
+        , type_(type) {
+        assert(is_only_rval());
+    }
+    
+    Type *type_;
+}; // class Literal
+
+
+class UnitLiteral : public Literal {
+public:
+    UnitLiteral(const SourcePosition &source_position): Literal(Node::kUnitLiteral, nullptr, source_position) {}
+    DECLARE_AST_NODE(UnitLiteral);
+}; // class UnitLiteral
+
+class EmptyLiteral : public Literal {
+public:
+    EmptyLiteral(const SourcePosition &source_position): Literal(Node::kEmptyLiteral, nullptr, source_position) {}
+    DECLARE_AST_NODE(EmptyLiteral);
+}; // class EmptyLiteral
+
+
+template<class T>
+struct LiteralTraits {
+    static constexpr Node::Kind kKind = Node::kMaxKinds;
+    using NodeType = Node;
+    
+    static void Accept(NodeType *node, AstVisitor *visitor) {}
+}; // struct LiteralTraits
+
+template<> struct LiteralTraits<int> {
+    static constexpr Node::Kind kKind = Node::kIntLiteral;
+    using NodeType = IntLiteral;
+    
+    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitIntLiteral(node); }
+}; // struct LiteralTraits<int>
+
+template<> struct LiteralTraits<unsigned> {
+    static constexpr Node::Kind kKind = Node::kUIntLiteral;
+    using NodeType = UIntLiteral;
+    
+    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitUIntLiteral(node); }
+}; // struct LiteralTraits<unsigned>
+
+template<> struct LiteralTraits<int64_t> {
+    static constexpr Node::Kind kKind = Node::kI64Literal;
+    using NodeType = I64Literal;
+    
+    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitI64Literal(node); }
+}; // struct LiteralTraits<int64_t>
+
+template<> struct LiteralTraits<uint64_t> {
+    static constexpr Node::Kind kKind = Node::kU64Literal;
+    using NodeType = U64Literal;
+    
+    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitU64Literal(node); }
+}; // struct LiteralTraits<uint64_t>
+
+template<> struct LiteralTraits<float> {
+    static constexpr Node::Kind kKind = Node::kF32Literal;
+    using NodeType = F32Literal;
+    
+    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitF32Literal(node); }
+}; // struct LiteralTraits<float>
+
+template<> struct LiteralTraits<double> {
+    static constexpr Node::Kind kKind = Node::kF64Literal;
+    using NodeType = F64Literal;
+    
+    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitF64Literal(node); }
+}; // struct LiteralTraits<double>
+
+template<> struct LiteralTraits<bool> {
+    static constexpr Node::Kind kKind = Node::kBoolLiteral;
+    using NodeType = BoolLiteral;
+    
+    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitBoolLiteral(node); }
+}; // struct LiteralTraits<bool>
+
+template<> struct LiteralTraits<const String *> {
+    static constexpr Node::Kind kKind = Node::kStringLiteral;
+    using NodeType = StringLiteral;
+    
+    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitStringLiteral(node); }
+}; // struct LiteralTraits<bool>
+
+template<class T>
+class ActualLiteral : public Literal {
+public:
+    DEF_VAL_PROP_RW(T, value);
+    
+    void Accept(AstVisitor *visitor) override {
+        LiteralTraits<T>::Accept(static_cast<typename LiteralTraits<T>::NodeType *>(this), visitor);
+    }
+protected:
+    inline ActualLiteral(T value, const SourcePosition &source_position)
+        : Literal(LiteralTraits<T>::kKind, nullptr, source_position)
+        , value_(value) {}
+    
+    T value_;
+}; // template<class T> class ActualLiteral
+
+
+#define DEFINE_ACTUAL_LITERAL(name, type) \
+    class name##Literal : public ActualLiteral<type> { \
+    public: \
+        name##Literal(type value, const SourcePosition &source_position): ActualLiteral<type>(value, source_position) {} \
+    }
+
+DEFINE_ACTUAL_LITERAL(Int, int);
+DEFINE_ACTUAL_LITERAL(UInt, unsigned);
+DEFINE_ACTUAL_LITERAL(I64, int64_t);
+DEFINE_ACTUAL_LITERAL(U64, uint64_t);
+DEFINE_ACTUAL_LITERAL(F32, float);
+DEFINE_ACTUAL_LITERAL(F64, double);
+DEFINE_ACTUAL_LITERAL(Bool, bool);
+DEFINE_ACTUAL_LITERAL(String, const String *);
 
 //----------------------------------------------------------------------------------------------------------------------
 // Types

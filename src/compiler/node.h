@@ -116,11 +116,24 @@ namespace cpl {
     V(Block) \
     V(BreakStatement) \
     V(ContinueStatement) \
+    V(VariableDeclaration) \
     V(ClassDefinition) \
     V(StructDefinition) \
     V(InterfaceDefinition) \
     V(AnnotationDefinition) \
-    V(Identifier)
+    V(AnnotationDeclaration) \
+    V(Annotation) \
+    V(Identifier) \
+    V(UnitLiteral) \
+    V(EmptyLiteral) \
+    V(IntLiteral) \
+    V(UIntLiteral) \
+    V(I64Literal) \
+    V(U64Literal) \
+    V(F32Literal) \
+    V(F64Literal) \
+    V(BoolLiteral) \
+    V(StringLiteral)
 
 #define DECLARE_TYPE_NODES(V) \
     V(Type) \
@@ -136,6 +149,9 @@ DECLARE_ALL_NODES(DEFINE_PREDECL_CLASSES)
 
 
 using String = base::ArenaString;
+class Literal;
+class Expression;
+class Statement;
 
 class Node : public base::ArenaObject {
 public:
@@ -146,10 +162,12 @@ public:
         kMaxKinds,
     }; // enum Kind
 
+//#define DEFINE_METHODS(name) \
+//    bool Is##name() const { return kind() == k##name; } \
+//    name *As##name() { return !Is##name() ? nullptr : static_cast<name *>(this); } \
+//    const name *As##name() const { return !Is##name() ? nullptr : static_cast<const name *>(this); }
 #define DEFINE_METHODS(name) \
-    bool Is##name() const { return kind() == k##name; } \
-    name *As##name() { return !Is##name() ? nullptr : reinterpret_cast<name *>(this); } \
-    const name *As##name() const { return !Is##name() ? nullptr : reinterpret_cast<const name *>(this); }
+    bool Is##name() const { return kind() == k##name; }
     DECLARE_ALL_NODES(DEFINE_METHODS)
 #undef DEFINE_METHODS
 
@@ -176,6 +194,8 @@ public:
         , prefix_name_(prefix_name)
         , name_(name) {}
 
+    DEF_PTR_GETTER(const String, prefix_name);
+    DEF_PTR_GETTER(const String, name);
 private:
     const String *prefix_name_;
     const String *name_;

@@ -77,6 +77,67 @@ TEST_F(ParserTest, ImportStatements) {
     EXPECT_STREQ("*", file_unit->import(1)->alias()->data());
 }
 
+TEST_F(ParserTest, Annotation) {
+    SwitchInput("@Foo\n"
+                "@foo.Bar\n"
+                "@Foo(id=1)\n"
+                "@Bar(name=\"John\")\n");
+    bool ok = true;
+    auto annotation = parser_.ParseAnnotation(false /*skip_at*/, &ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, annotation);
+    
+    ASSERT_STREQ("Foo", annotation->name()->name()->data());
+    EXPECT_EQ(nullptr, annotation->name()->prefix_name());
+    
+    annotation = parser_.ParseAnnotation(false /*skip_at*/, &ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, annotation);
+    
+    EXPECT_STREQ("foo", annotation->name()->prefix_name()->data());
+    EXPECT_STREQ("Bar", annotation->name()->name()->data());
+    
+    annotation = parser_.ParseAnnotation(false /*skip_at*/, &ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, annotation);
+    
+    EXPECT_STREQ("Foo", annotation->name()->name()->data());
+    EXPECT_EQ(nullptr, annotation->name()->prefix_name());
+    ASSERT_EQ(1, annotation->fields_size());
+    auto field = annotation->field(0);
+    auto value = static_cast<IntLiteral *>(field->value());
+    EXPECT_STREQ("id", field->name()->data());
+    ASSERT_EQ(Node::kIntLiteral, value->kind());
+    EXPECT_EQ(1, value->value());
+}
+
+TEST_F(ParserTest, AnnotationDeclaration) {
+    SwitchInput("@Foo\n"
+                "@foo.Bar(foo=Foo(id=1))\n"
+                "@Foo(id=1)\n"
+                "@Bar(name=\"John\")\n");
+    bool ok = true;
+    auto decl = parser_.ParseAnnotationDeclaration(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, decl);
+    
+    ASSERT_EQ(4, decl->annotations_size());
+    auto anno = decl->annotation(1);
+    auto field = anno->field(0);
+    EXPECT_STREQ("foo", field->name()->data());
+    ASSERT_TRUE(field->IsNested());
+    anno = field->nested();
+    EXPECT_STREQ("Foo", anno->name()->name()->data());
+    ASSERT_EQ(1, anno->fields_size());
+    field = anno->field(0);
+    EXPECT_STREQ("id", field->name()->data());
+    ASSERT_TRUE(field->IsValue());
+    ASSERT_TRUE(field->value()->IsIntLiteral());
+    EXPECT_EQ(1, static_cast<IntLiteral *>(field->value())->value());
+    
+    
+}
+
 } // namespace cpl
 
 } // namespace yalx

@@ -29,8 +29,12 @@ public:
     FileUnit *Parse(bool *ok);
     const String *ParsePackageName(bool *ok);
     const String *ParseImportStatement(bool *ok);
+    AnnotationDeclaration *ParseAnnotationDeclaration(bool *ok);
+    Annotation *ParseAnnotation(bool skip_at, bool *ok);
     
 private:
+    Symbol *ParseSymbol(bool *ok);
+    Expression *ParseStaticLiteral(bool *ok);
     const String *ParseAliasOrNull(bool *ok);
     
     const String *MatchText(Token::Kind kind, bool *ok);
