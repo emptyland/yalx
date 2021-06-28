@@ -65,12 +65,14 @@ public:
         : AstNode(Node::kFileUnit, source_position)
         , file_name_(DCHECK_NOTNULL(file_name))
         , file_full_path_(DCHECK_NOTNULL(file_full_path))
-        , imports_(arena) {}
+        , imports_(arena)
+        , statements_(arena) {}
     
     DEF_PTR_PROP_RW(const String, file_name);
     DEF_PTR_PROP_RW(const String, file_full_path);
     DEF_PTR_PROP_RW(const String, package_name);
     DEF_ARENA_VECTOR_GETTER(ImportEntry *, import);
+    DEF_ARENA_VECTOR_GETTER(Statement *, statement);
     
     DECLARE_AST_NODE(FileUnit);
 private:
@@ -78,6 +80,7 @@ private:
     const String *file_full_path_;
     const String *package_name_ = nullptr;
     base::ArenaVector<ImportEntry *> imports_;
+    base::ArenaVector<Statement *> statements_;
 }; // class FileUnit
 
 
@@ -88,6 +91,27 @@ class Statement : public AstNode {
 protected:
     Statement(Kind kind, const SourcePosition &source_position): AstNode(kind, source_position) {}
 }; // class Statement
+
+
+class Block : public Statement {
+public:
+    Block(base::Arena *arena, const SourcePosition &source_position)
+        : Statement(Node::kBlock, source_position)
+        , statements_(arena) {}
+    
+    DEF_ARENA_VECTOR_GETTER(Statement *, statement);
+    DECLARE_AST_NODE(Block);
+private:
+    base::ArenaVector<Statement *> statements_;
+}; // class Block
+
+
+class BreakStatement : public Statement {}; // TODO:
+class ContinueStatement : public Statement {}; // TODO:
+class ClassDefinition : public Statement {}; // TODO:
+class StructDefinition : public Statement {}; // TODO:
+class InterfaceDefinition : public Statement {}; // TODO:
+class AnnotationDefinition : public Statement {}; // TODO:
 
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -102,7 +126,7 @@ public:
     DEF_VAL_PROP_RW(Access, access);
     DEF_PTR_PROP_RW(AnnotationDeclaration, annotations);
 
-    virtual Identifier *Identifier() const = 0;
+    virtual const String *Identifier() const = 0;
     virtual Type *Type() const = 0;
     virtual Declaration *AtItem(size_t i) const = 0;
     virtual size_t ItemSize() const = 0;
@@ -124,22 +148,22 @@ class VariableDeclaration : public Declaration {
 public:
     class Item : public Declaration {
     public:
-        Item(base::Arena *arena, class Identifier *identifier, class Type *type, const SourcePosition &source_position)
+        Item(base::Arena *arena, const String *identifier, class Type *type, const SourcePosition &source_position)
             : Declaration(arena, Node::kMaxKinds, source_position)
             , identifier_(identifier)
             , type_(type) {}
         
-        DEF_PTR_PROP_RW(class Identifier, identifier);
+        DEF_PTR_PROP_RW(const String, identifier);
         DEF_PTR_PROP_RW(class Type, type);
         
-        class Identifier *Identifier() const override { return identifier(); }
+        const String *Identifier() const override { return identifier(); }
         class Type *Type() const override { return type(); }
         Declaration *AtItem(size_t i) const override { return nullptr; }
         size_t ItemSize() const override { return 0; }
         
         void Accept(AstVisitor *v) override {}
     private:
-        class Identifier *identifier_;
+        const String *identifier_;
         class Type *type_;
     }; // class Item
     
@@ -158,7 +182,7 @@ public:
     DEF_ARENA_VECTOR_GETTER(Item *, variable);
     DEF_ARENA_VECTOR_GETTER(Expression *, initilaizer);
     
-    class Identifier *Identifier() const override { return variable(0)->identifier(); }
+    const String *Identifier() const override { return variable(0)->identifier(); }
     class Type *Type() const override { return variable(0)->type(); }
     Declaration *AtItem(size_t i) const override { return variable(i); }
     size_t ItemSize() const override { return variables_size(); }
@@ -256,26 +280,28 @@ public:
     bool is_only_rval() const { return !is_lval() && is_rval(); }
     
 protected:
-    Expression(Kind kind, bool is_lval, bool is_rval, const SourcePosition &source_position)
-        : Statement(kind, source_position)
-        , is_lval_(is_lval)
-        , is_rval_(is_rval) {}
+    Expression(Kind kind, bool is_lval, bool is_rval, const SourcePosition &source_position);
     
     bool is_lval_;
     bool is_rval_;
 }; //class Expression
 
 
+class Identifier : public Expression {
+public:
+    Identifier(const String *name, const SourcePosition &source_position);
+    
+    DECLARE_AST_NODE(Identifier);
+private:
+    const String *name_;
+}; // class Identifier
+
 class Literal : public Expression {
 public:
     DEF_PTR_PROP_RW(Type, type);
     
 protected:
-    Literal(Kind kind, Type *type, const SourcePosition &source_position)
-        : Expression(kind, false/*is_lval*/, true/*is_rval*/, source_position)
-        , type_(type) {
-        assert(is_only_rval());
-    }
+    Literal(Kind kind, Type *type, const SourcePosition &source_position);
     
     Type *type_;
 }; // class Literal
@@ -390,6 +416,139 @@ DEFINE_ACTUAL_LITERAL(F64, double);
 DEFINE_ACTUAL_LITERAL(Bool, bool);
 DEFINE_ACTUAL_LITERAL(String, const String *);
 
+
+class LambdaLiteral : public Literal{
+public:
+    LambdaLiteral(FunctionPrototype *prototype, Statement *body, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(FunctionPrototype, prototype);
+    DEF_PTR_PROP_RW(Statement, body);
+    
+    DECLARE_AST_NODE(LambdaLiteral);
+private:
+    FunctionPrototype *prototype_;
+    Statement *body_;
+}; // class LambdaLiteral
+
+class ArrayInitializer : public Literal {
+public:
+    ArrayInitializer(base::Arena *arena, Type *type, int dimension_count, const SourcePosition &source_position);
+    
+    DEF_VAL_PROP_RW(int, dimension_count);
+    DEF_ARENA_VECTOR_GETTER(AstNode *, dimension);
+
+    DECLARE_AST_NODE(ArrayInitializer);
+private:
+    int dimension_count_;
+    base::ArenaVector<AstNode *> dimensions_;
+}; // class ArrayInitializer
+
+
+//class ExpressionWithOperands<N>(rval = true, lval = false) : Expression
+//    = lhs(): Expression *
+//    = rhs(): Expression *
+//    = operand(i: int): Expression *
+//    + operand_count: int
+//    + operands: Expression *[N]
+template<int N>
+class ExpressionWithOperands : public Expression {
+public:
+    Expression *operand(int i) {
+        assert(i >= 0 && i < operands_count_);
+        return DCHECK_NOTNULL(operands_[i]);
+    }
+    
+    void set_operand(int i, Expression *expr) {
+        assert(i >= 0 && i < operands_count_);
+        operands_[i] = DCHECK_NOTNULL(expr);
+    }
+    
+protected:
+    inline ExpressionWithOperands(Kind kind, const SourcePosition &source_position)
+        : Expression(kind, false, true, source_position)
+        , operands_count_(N) {
+        int i = operands_count_;
+        while (i-- > 0) {
+            operands_[i] = nullptr;
+        }
+    }
+
+    int operands_count_;
+    Expression *operands_[N];
+}; // class ExpressionWithOperands
+
+class BinaryExpression : public ExpressionWithOperands<2> {
+public:
+    BinaryExpression(Kind kind, Expression *lhs, Expression *rhs, const SourcePosition &source_position);
+    
+    Expression *lhs() { return operands_[0]; }
+
+    Expression *rhs() {
+        assert(operands_count_ > 1);
+        return operands_[1];
+    }
+}; // class BinaryExpression
+
+class UnaryExpression : public ExpressionWithOperands<1> {
+public:
+    UnaryExpression(Kind kind, Expression *operand, const SourcePosition &source_position);
+    Expression *operand() { return DCHECK_NOTNULL(operands_[0]); }
+}; // class UnaryExpression
+
+#define Unary_VARGS   Expression *operand
+#define Unary_PARAMS  operand
+#define Binary_VARGS  Expression *lhs, Expression *rhs
+#define Binary_PARAMS lhs, rhs
+
+#define DECLARE_EXPRESSION_WITH_OPERANDS(V) \
+    V(Negative,        Unary)  \
+    V(Add,             Binary) \
+    V(Sub,             Binary) \
+    V(Mul,             Binary) \
+    V(Div,             Binary) \
+    V(Mod,             Binary) \
+    V(Equal,           Binary) \
+    V(NotEqual,        Binary) \
+    V(Less,            Binary) \
+    V(LessEqual,       Binary) \
+    V(Greater,         Binary) \
+    V(GreaterEqual,    Binary) \
+    V(And,             Binary) \
+    V(Or,              Binary) \
+    V(Not,             Unary)  \
+    V(BitwiseAnd,      Binary) \
+    V(BitwiseOr,       Binary) \
+    V(BitwiseXor,      Binary) \
+    V(BitwiseNegative, Unary)  \
+    V(BitwiseShl,      Binary) \
+    V(BitwiseShr,      Binary) \
+    V(Recv,            Unary)  \
+    V(Send,            Binary) \
+    V(IndexedGet,      Binary)
+
+#define DEFINE_CLASS(name, base) \
+    class name : public base##Expression { \
+    public: \
+        name (base##_VARGS, const SourcePosition &source_position); \
+        DECLARE_AST_NODE(name); \
+    };
+DECLARE_EXPRESSION_WITH_OPERANDS(DEFINE_CLASS)
+#undef DEFINE_CLASS
+
+
+class Dot : public Expression {
+public:
+    Dot(Expression *primary, const String *field, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Expression, primary);
+    DEF_PTR_PROP_RW(const String, field);
+
+    DECLARE_AST_NODE(Dot);
+private:
+    Expression *primary_;
+    const String *field_;
+}; // class Dot
+
 //----------------------------------------------------------------------------------------------------------------------
 // Types
 //----------------------------------------------------------------------------------------------------------------------
@@ -399,9 +558,11 @@ DEFINE_ACTUAL_LITERAL(String, const String *);
     V(Array,     ArrayType) \
     V(Class,     ClassType) \
     V(Struct,    StructType) \
-    V(Interface, InterfaceType)
+    V(Interface, InterfaceType) \
+    V(Function,  FunctionPrototype)
 
 #define DECLARE_PRIMARY_TYPE(V) \
+    V(unit) \
     V(any) \
     V(bool) \
     V(char) \
@@ -421,6 +582,7 @@ DEFINE_ACTUAL_LITERAL(String, const String *);
     V(class) \
     V(struct) \
     V(interface) \
+    V(function) \
     V(symbol)
 
 class Type : public Node {
@@ -503,12 +665,25 @@ private:
 
 class ChannelType : public Type {
 public:
-    ChannelType(base::Arena *arena, Type *element_type, const SourcePosition &source_position)
-        : Type(arena, Type::kChannel, element_type->primary_type(), nullptr, source_position) {
+    static constexpr int kInbility = 1;
+    static constexpr int kOutbility = 2;
+    
+    ChannelType(base::Arena *arena, int ability, Type *element_type, const SourcePosition &source_position)
+        : Type(arena, Type::kChannel, element_type->primary_type(), nullptr, source_position)
+        , ability_(ability) {
         mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
+        assert(ability_ > 0);
     }
 
     Type *element_type() const { return generic_arg(0); }
+    
+    bool CanRead() const { return ability_ & kInbility; }
+    bool CanWrite() const { return ability_ & kOutbility; }
+    bool CanIO() const { return ability_ & (kInbility | kOutbility); }
+    bool Readonly() const { return ability_ == kInbility; }
+
+private:
+    int ability_ = kInbility | kOutbility;
 }; // class ChannelType
 
 template<class T>
@@ -565,6 +740,31 @@ public:
     InterfaceType(base::Arena *arena, InterfaceDefinition *definition, const SourcePosition &source_position)
         : UDTType<InterfaceDefinition>(arena, definition, source_position) {}
 }; // class InterfaceType
+
+class FunctionPrototype : public Type {
+public:
+    FunctionPrototype(base::Arena *arena, bool vargs, const SourcePosition &source_position)
+        : Type(arena, Type::kFunction, Type::kType_function, nullptr, source_position)
+        , params_(arena)
+        , return_types_(arena)
+        , vargs_(vargs) {}
+
+    DEF_VAL_PROP_RW(bool, vargs);
+    DEF_ARENA_VECTOR_GETTER(Node *, param);
+    DEF_ARENA_VECTOR_GETTER(Type *, return_type);
+private:
+    base::ArenaVector<Node *> params_; // <VariableDeclaration | Type>
+    base::ArenaVector<Type *> return_types_;
+    bool vargs_;
+}; // class FunctionPrototype
+
+
+#define DEFINE_METHODS(name) \
+    inline name *Node::As##name() { return static_cast<name *>(this); } \
+    inline const name *Node::As##name() const { return static_cast<const name *>(this); }
+    DECLARE_AST_NODES(DEFINE_METHODS)
+    DECLARE_TYPE_NODES(DEFINE_METHODS)
+#undef DEFINE_METHODS
 
 } // namespace cpl
 

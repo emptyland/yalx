@@ -81,14 +81,16 @@ using String = base::ArenaString;
     V(False, "false", none) \
     V(Val, "val", none) \
     V(Var, "var", none) \
+    V(Volatile, "volatile", none) \
     V(Native, "native", none) \
     V(Struct, "struct", none) \
     V(Class, "class", none) \
     V(Object, "object", none) \
     V(Interface, "interface", none) \
     V(Fun, "fun", none) \
-    V(Channel, "channel", none) \
+    V(Chan, "chan", none) \
     V(In, "in", none) \
+    V(Out, "out", none) \
     V(Run, "run", none) \
     V(Spwan, "spwan", none) \
     V(Import, "import", none) \

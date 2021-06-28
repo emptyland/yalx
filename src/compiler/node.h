@@ -133,7 +133,34 @@ namespace cpl {
     V(F32Literal) \
     V(F64Literal) \
     V(BoolLiteral) \
-    V(StringLiteral)
+    V(StringLiteral) \
+    V(LambdaLiteral) \
+    V(ArrayInitializer) \
+    V(Negative) \
+    V(Add) \
+    V(Sub) \
+    V(Mul) \
+    V(Div) \
+    V(Mod) \
+    V(Equal) \
+    V(NotEqual) \
+    V(Less) \
+    V(LessEqual) \
+    V(Greater) \
+    V(GreaterEqual) \
+    V(And) \
+    V(Or) \
+    V(Not) \
+    V(BitwiseAnd) \
+    V(BitwiseOr) \
+    V(BitwiseXor) \
+    V(BitwiseNegative) \
+    V(BitwiseShl) \
+    V(BitwiseShr) \
+    V(Recv) \
+    V(Send) \
+    V(IndexedGet) \
+    V(Dot)
 
 #define DECLARE_TYPE_NODES(V) \
     V(Type) \
@@ -141,7 +168,8 @@ namespace cpl {
     V(ChannelType) \
     V(ClassType) \
     V(StructType) \
-    V(InterfaceType)
+    V(InterfaceType) \
+    V(FunctionPrototype)
 
 #define DEFINE_PREDECL_CLASSES(name) class name;
 DECLARE_ALL_NODES(DEFINE_PREDECL_CLASSES)
@@ -167,7 +195,9 @@ public:
 //    name *As##name() { return !Is##name() ? nullptr : static_cast<name *>(this); } \
 //    const name *As##name() const { return !Is##name() ? nullptr : static_cast<const name *>(this); }
 #define DEFINE_METHODS(name) \
-    bool Is##name() const { return kind() == k##name; }
+    bool Is##name() const { return kind() == k##name; } \
+    inline name *As##name(); \
+    inline const name *As##name() const; 
     DECLARE_ALL_NODES(DEFINE_METHODS)
 #undef DEFINE_METHODS
 

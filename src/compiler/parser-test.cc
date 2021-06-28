@@ -111,6 +111,14 @@ TEST_F(ParserTest, Annotation) {
     EXPECT_EQ(1, value->value());
 }
 
+TEST_F(ParserTest, AnnotationArray) {
+    SwitchInput("@Foo(vars={1,2,3})\n");
+    bool ok = true;
+    auto annotation = parser_.ParseAnnotation(false /*skip_at*/, &ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, annotation);
+}
+
 TEST_F(ParserTest, AnnotationDeclaration) {
     SwitchInput("@Foo\n"
                 "@foo.Bar(foo=Foo(id=1))\n"
@@ -136,6 +144,56 @@ TEST_F(ParserTest, AnnotationDeclaration) {
     EXPECT_EQ(1, static_cast<IntLiteral *>(field->value())->value());
     
     
+}
+
+TEST_F(ParserTest, SimpleFunctionPrototype) {
+    SwitchInput("()->unit\n");
+    bool ok = true;
+    auto ast = parser_.ParseType(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsFunctionPrototype());
+    auto fun = ast->AsFunctionPrototype();
+    EXPECT_FALSE(fun->vargs());
+    ASSERT_EQ(0, fun->params_size());
+    ASSERT_EQ(1, fun->return_types_size());
+    EXPECT_EQ(Type::kType_unit, fun->return_type(0)->primary_type());
+}
+
+TEST_F(ParserTest, MutliParamsFunctionPrototype) {
+    SwitchInput("(int, string, ...)->unit\n");
+    bool ok = true;
+    auto ast = parser_.ParseType(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsFunctionPrototype());
+    auto fun = ast->AsFunctionPrototype();
+    ASSERT_EQ(2, fun->params_size());
+    EXPECT_EQ(Type::kType_i32, fun->param(0)->AsType()->primary_type());
+    EXPECT_EQ(Type::kType_string, fun->param(1)->AsType()->primary_type());
+    EXPECT_TRUE(fun->vargs());
+    ASSERT_EQ(1, fun->return_types_size());
+    EXPECT_EQ(Type::kType_unit, fun->return_type(0)->primary_type());
+}
+
+TEST_F(ParserTest, MutliReturnsFunctionPrototype) {
+    SwitchInput("(...)->(i8[],i8,i16)\n");
+    bool ok = true;
+    auto ast = parser_.ParseType(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsFunctionPrototype());
+    auto fun = ast->AsFunctionPrototype();
+    ASSERT_EQ(0, fun->params_size());
+    EXPECT_TRUE(fun->vargs());
+    ASSERT_EQ(3, fun->return_types_size());
+    EXPECT_EQ(Type::kArray, fun->return_type(0)->category());
+    EXPECT_EQ(Type::kType_i8, fun->return_type(0)->generic_arg(0)->primary_type());
+    EXPECT_EQ(Type::kType_i8, fun->return_type(1)->primary_type());
+    EXPECT_EQ(Type::kType_i16, fun->return_type(2)->primary_type());
 }
 
 } // namespace cpl

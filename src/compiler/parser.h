@@ -18,6 +18,7 @@ namespace cpl {
 
 class SyntaxFeedback;
 class Lexer;
+class Operator;
 
 using String = base::ArenaString;
 
@@ -31,11 +32,19 @@ public:
     const String *ParseImportStatement(bool *ok);
     AnnotationDeclaration *ParseAnnotationDeclaration(bool *ok);
     Annotation *ParseAnnotation(bool skip_at, bool *ok);
+    VariableDeclaration *ParseVariableDeclaration(bool *ok);
     
+    Expression *ParseExpression(bool *ok) { return ParseExpression(0, nullptr, ok); }
+    Expression *ParseExpression(int limit, Operator *receiver, bool *ok);
+    Expression *ParseSimple(bool *ok);
+    Type *ParseType(bool *ok);
 private:
     Symbol *ParseSymbol(bool *ok);
     Expression *ParseStaticLiteral(bool *ok);
+    ArrayInitializer *ParseStaticArrayLiteral(bool *ok);
     const String *ParseAliasOrNull(bool *ok);
+    
+    Expression *NewUnaryExpression(const Operator &op, Expression *operand, const SourcePosition &location);
     
     const String *MatchText(Token::Kind kind, bool *ok);
     void Match(Token::Kind kind, bool *ok);

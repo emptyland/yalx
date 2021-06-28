@@ -364,7 +364,7 @@ floating_literal ::= `-' [0-9]* `.' [0-9]+ (`F' | `f')
                    | `-' [0-9]* `.' [0-9]+ (`E' | `e') ? [0-9]+
                    | `NaN'
 boolean_literal := `true' | `false'
-array_initializer ::= array_type? array_dimension_initializer
+array_initializer ::= array_type? array_initializer_dimension
 array_initializer_dimension ::= `{' `}'
                               | `{' expression? ( `,' expression )+ `}'
                               | `{' array_initializer_dimension? ( `,' array_initializer_dimension )+ `}'
