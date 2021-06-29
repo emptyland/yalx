@@ -43,11 +43,7 @@ public:
     class ImportEntry : public AstNode {
     public:
         ImportEntry(const String *original_package_name, const String *package_path, const String *alias,
-                    SourcePosition source_position)
-            : AstNode(Node::kMaxKinds, source_position)
-            , original_package_name_(original_package_name)
-            , package_path_(DCHECK_NOTNULL(package_path))
-            , alias_(alias) {}
+                    const SourcePosition &source_position);
         
         void Accept(AstVisitor *visitor) override {}
         
@@ -61,12 +57,7 @@ public:
     }; // class ImportEntry
     
     
-    FileUnit(base::Arena *arena, String *file_name, String *file_full_path, const SourcePosition &source_position)
-        : AstNode(Node::kFileUnit, source_position)
-        , file_name_(DCHECK_NOTNULL(file_name))
-        , file_full_path_(DCHECK_NOTNULL(file_full_path))
-        , imports_(arena)
-        , statements_(arena) {}
+    FileUnit(base::Arena *arena, String *file_name, String *file_full_path, const SourcePosition &source_position);
     
     DEF_PTR_PROP_RW(const String, file_name);
     DEF_PTR_PROP_RW(const String, file_full_path);
@@ -89,15 +80,13 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 class Statement : public AstNode {
 protected:
-    Statement(Kind kind, const SourcePosition &source_position): AstNode(kind, source_position) {}
+    Statement(Kind kind, const SourcePosition &source_position);
 }; // class Statement
 
 
 class Block : public Statement {
 public:
-    Block(base::Arena *arena, const SourcePosition &source_position)
-        : Statement(Node::kBlock, source_position)
-        , statements_(arena) {}
+    Block(base::Arena *arena, const SourcePosition &source_position);
     
     DEF_ARENA_VECTOR_GETTER(Statement *, statement);
     DECLARE_AST_NODE(Block);
@@ -108,9 +97,7 @@ private:
 
 class List : public Statement {
 public:
-    List(base::Arena *arena, const SourcePosition &source_position)
-        : Statement(Node::kList, source_position)
-        , expressions_(arena) {}
+    List(base::Arena *arena, const SourcePosition &source_position);
     
     DEF_ARENA_VECTOR_GETTER(Expression *, expression);
     DECLARE_AST_NODE(List);
@@ -118,6 +105,27 @@ private:
     base::ArenaVector<Expression *> expressions_;
 }; // class Block
 
+class Assignment : public Statement {
+public:
+    Assignment(base::Arena *arena, const SourcePosition &source_position);
+    
+    DEF_ARENA_VECTOR_GETTER(Expression *, lval);
+    DEF_ARENA_VECTOR_GETTER(Expression *, rval);
+    DECLARE_AST_NODE(Assignment);
+private:
+    base::ArenaVector<Expression *> lvals_;
+    base::ArenaVector<Expression *> rvals_;
+}; // class Assignment
+
+class Return : public Statement {
+public:
+    Return(base::Arena *arena, const SourcePosition &source_position);
+    
+    DEF_ARENA_VECTOR_GETTER(Expression *, returnning_val);
+    DECLARE_AST_NODE(Return);
+private:
+    base::ArenaVector<Expression *> returnning_vals_;
+}; // class Return
 
 class BreakStatement : public Statement {}; // TODO:
 class ContinueStatement : public Statement {}; // TODO:
@@ -145,8 +153,7 @@ public:
     virtual size_t ItemSize() const = 0;
     
 protected:
-    Declaration(base::Arena *arena, Kind kind, const SourcePosition &source_position)
-        : Statement(kind, source_position) {}
+    Declaration(base::Arena *arena, Kind kind, const SourcePosition &source_position);
 
 private:
     AnnotationDeclaration *annotations_ = nullptr;
@@ -183,12 +190,7 @@ public:
     enum Constraint { kVal, kVar };
     
     VariableDeclaration(base::Arena *arena, bool is_volatile, Constraint constraint,
-                        const SourcePosition &source_position)
-        : Declaration(arena, Node::kVariableDeclaration, source_position)
-        , constraint_(constraint)
-        , is_volatile_(is_volatile)
-        , variables_(arena)
-        , initilaizers_(arena) {}
+                        const SourcePosition &source_position);
 
     DEF_VAL_PROP_RW(Constraint, constraint);
     DEF_VAL_PROP_RW(bool, is_volatile);
@@ -213,9 +215,7 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 class AnnotationDeclaration : public AstNode {
 public:
-    AnnotationDeclaration(base::Arena *arena, const SourcePosition &source_position)
-        : AstNode(Node::kAnnotationDeclaration, source_position)
-        , annotations_(arena) {}
+    AnnotationDeclaration(base::Arena *arena, const SourcePosition &source_position);
 
     DEF_ARENA_VECTOR_GETTER(Annotation *, annotation);
     DECLARE_AST_NODE(AnnotationDeclaration);
@@ -267,10 +267,7 @@ public:
         const bool value_or_nested_;
     }; // class Field
     
-    Annotation(base::Arena *arena, Symbol *name, const SourcePosition &source_position)
-        : AstNode(Node::kAnnotation, source_position)
-        , name_(DCHECK_NOTNULL(name))
-        , fields_(arena) {}
+    Annotation(base::Arena *arena, Symbol *name, const SourcePosition &source_position);
 
     DEF_PTR_PROP_RW(Symbol, name);
     DEF_ARENA_VECTOR_GETTER(Field *, field);
@@ -564,6 +561,45 @@ private:
     const String *field_;
 }; // class Dot
 
+class Casting : public Expression {
+public:
+    Casting(Expression *source, Type *destination, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Expression, source);
+    DEF_PTR_PROP_RW(Type, destination);
+    
+    DECLARE_AST_NODE(Casting);
+private:
+    Expression *source_;
+    Type *destination_;
+}; // class Casting
+
+class Testing : public Expression {
+public:
+    Testing(Expression *source, Type *destination, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Expression, source);
+    DEF_PTR_PROP_RW(Type, destination);
+    
+    DECLARE_AST_NODE(Testing);
+private:
+    Expression *source_;
+    Type *destination_;
+}; // class Testing
+
+class Calling : public Expression {
+public:
+    Calling(base::Arena *arena, Expression *callee, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Expression, callee);
+    DEF_ARENA_VECTOR_GETTER(Expression *, arg);
+    
+    DECLARE_AST_NODE(Calling);
+private:
+    Expression *callee_;
+    base::ArenaVector<Expression *> args_;
+}; // class Calling
+
 //----------------------------------------------------------------------------------------------------------------------
 // Types
 //----------------------------------------------------------------------------------------------------------------------
@@ -626,6 +662,9 @@ public:
     DEF_VAL_PROP_RW(Primary, primary_type);
     DEF_PTR_PROP_RW(const Symbol, identifier);
     DEF_ARENA_VECTOR_GETTER(Type *, generic_arg);
+    
+    static bool IsNot(Node *node) { return !Is(node); }
+    static bool Is(Node *node);
     
 #define DEFINE_METHOD(name, node) \
     bool Is##name##Type() const { return category_ == k##name; }

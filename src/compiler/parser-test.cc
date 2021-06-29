@@ -196,6 +196,146 @@ TEST_F(ParserTest, MutliReturnsFunctionPrototype) {
     EXPECT_EQ(Type::kType_i16, fun->return_type(2)->primary_type());
 }
 
+TEST_F(ParserTest, SimpleNumberLiteral) {
+    SwitchInput("1 2 3 \"ok\"\n");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_EQ(Node::kIntLiteral, ast->kind());
+    ASSERT_TRUE(ast->IsIntLiteral());
+    EXPECT_EQ(1, ast->AsIntLiteral()->value());
+    
+    ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    ASSERT_EQ(Node::kIntLiteral, ast->kind());
+    ASSERT_TRUE(ast->IsIntLiteral());
+    EXPECT_EQ(2, ast->AsIntLiteral()->value());
+    
+    ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    ASSERT_EQ(Node::kIntLiteral, ast->kind());
+    ASSERT_TRUE(ast->IsIntLiteral());
+    EXPECT_EQ(3, ast->AsIntLiteral()->value());
+    
+    ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(ast->IsStringLiteral());
+    EXPECT_STREQ("ok", ast->AsStringLiteral()->value()->data());
+}
+
+TEST_F(ParserTest, ParenOrLambdaLiteral) {
+    SwitchInput("(1)\n");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsIntLiteral());
+    EXPECT_EQ(1, ast->AsIntLiteral()->value());
+    
+    SwitchInput("()->1,2\n");
+    ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsLambdaLiteral());
+    auto lambda = ast->AsLambdaLiteral();
+    EXPECT_TRUE(lambda->body()->IsList());
+    EXPECT_EQ(0, lambda->prototype()->params_size());
+    EXPECT_EQ(0, lambda->prototype()->return_types_size());
+}
+
+TEST_F(ParserTest, LambdaLiteral) {
+    SwitchInput("(a:int, b:int)->a+b\n");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsLambdaLiteral());
+    auto lambda = ast->AsLambdaLiteral();
+    ASSERT_EQ(2, lambda->prototype()->params_size());
+    ASSERT_FALSE(Type::Is(lambda->prototype()->param(0)));
+    auto param = static_cast<VariableDeclaration::Item *>(lambda->prototype()->param(0));
+    EXPECT_STREQ("a", param->identifier()->data());
+    EXPECT_EQ(Type::kType_i32, param->type()->primary_type());
+}
+
+TEST_F(ParserTest, SimpleArithmetic) {
+    SwitchInput("a + b - c / 100\n");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsSub());
+    auto lhs = ast->AsSub()->lhs();
+    ASSERT_TRUE(lhs->IsAdd());
+    ASSERT_TRUE(lhs->AsAdd()->lhs()->IsIdentifier());
+    ASSERT_TRUE(lhs->AsAdd()->rhs()->IsIdentifier());
+    
+    auto rhs = ast->AsSub()->rhs();
+    ASSERT_TRUE(rhs->IsDiv());
+    ASSERT_TRUE(rhs->AsDiv()->lhs()->IsIdentifier());
+    ASSERT_TRUE(rhs->AsDiv()->rhs()->IsIntLiteral());
+}
+
+TEST_F(ParserTest, Assigment) {
+    SwitchInput("a = 1\n");
+    bool ok = true;
+    auto ast = parser_.ParseStatement(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsAssignment());
+    auto stmt = ast->AsAssignment();
+    ASSERT_EQ(1, stmt->lvals_size());
+    ASSERT_TRUE(stmt->lval(0)->IsIdentifier());
+    ASSERT_EQ(1, stmt->rvals_size());
+    ASSERT_TRUE(stmt->rval(0)->IsIntLiteral());
+}
+
+TEST_F(ParserTest, AssigmentMultiLVal) {
+    SwitchInput("a, b, c = 1\n");
+    bool ok = true;
+    auto ast = parser_.ParseStatement(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsAssignment());
+    auto stmt = ast->AsAssignment();
+    ASSERT_EQ(3, stmt->lvals_size());
+    ASSERT_TRUE(stmt->lval(0)->IsIdentifier());
+    ASSERT_TRUE(stmt->lval(1)->IsIdentifier());
+    ASSERT_TRUE(stmt->lval(2)->IsIdentifier());
+    ASSERT_EQ(1, stmt->rvals_size());
+    ASSERT_TRUE(stmt->rval(0)->IsIntLiteral());
+}
+
+TEST_F(ParserTest, AssigmentMultiRVal) {
+    SwitchInput("a, b, c = 1, 2, 3\n");
+    bool ok = true;
+    auto ast = parser_.ParseStatement(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsAssignment());
+    auto stmt = ast->AsAssignment();
+    ASSERT_EQ(3, stmt->lvals_size());
+    ASSERT_TRUE(stmt->lval(0)->IsIdentifier());
+    ASSERT_TRUE(stmt->lval(1)->IsIdentifier());
+    ASSERT_TRUE(stmt->lval(2)->IsIdentifier());
+    ASSERT_EQ(3, stmt->rvals_size());
+    ASSERT_TRUE(stmt->rval(0)->IsIntLiteral());
+    ASSERT_TRUE(stmt->rval(1)->IsIntLiteral());
+    ASSERT_TRUE(stmt->rval(2)->IsIntLiteral());
+}
+
 } // namespace cpl
 
 } // namespace yalx

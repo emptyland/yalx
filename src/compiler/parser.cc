@@ -361,26 +361,39 @@ Statement *Parser::ParseStatement(bool *ok) {
         case Token::kVar:
             return ParseVariableDeclaration(ok);
             
+        case Token::kReturn: {
+            auto stmt = new (arena_) Return(arena_, location);
+            // return Unit
+            if (Peek().Is(Token::kRBrace) || Peek().Is(Token::kSemi)) {
+                MoveNext();
+                return stmt;
+            }
+            ParseCommaSplittedExpressions(stmt->mutable_returnning_vals(), CHECK_OK);
+            *stmt->mutable_source_position() = location.Concat(stmt->returnning_vals().back()->source_position());
+            return stmt;
+        } break;
         // TODO:
             
         default: {
-            Expression *tmp[2] = {nullptr, nullptr};
-            List *list = nullptr;
-            int i = 0;
-            do {
-                auto expr = ParseExpression(CHECK_OK);
-                if (i > 0) {
-                    if (!list) {
-                        list = new (arena_) List(arena_, location);
-                        list->mutable_expressions()->push_back(tmp[0]);
-                    }
-                    list->mutable_expressions()->push_back(expr);
-                    *list->mutable_source_position() = location.Concat(expr->source_position());
+            Expression *tmp[2];
+            auto lvals = ParseCommaSplittedExpressions(tmp, CHECK_OK);
+            
+            if (Test(Token::kAssign)) { //
+                Assignment *stmt = new (arena_) Assignment(arena_, location);
+                if (!lvals.empty()) {
+                    *stmt->mutable_lvals() = std::move(lvals);
                 } else {
-                    tmp[i++] = expr;
+                    stmt->mutable_lvals()->push_back(tmp[0]);
                 }
-            } while (Test(Token::kComma));
-            return !list ? static_cast<Statement *>(tmp[0]) : static_cast<Statement *>(list);
+                ParseCommaSplittedExpressions(stmt->mutable_rvals(), CHECK_OK);
+                return stmt;
+            }
+            if (!lvals.empty()) {
+                auto list = new (arena_) List(arena_, location.Concat(lvals.back()->source_position()));
+                *list->mutable_expressions() = std::move(lvals);
+                return list;
+            }
+            return tmp[0];
         } break;
     }
 }
@@ -460,11 +473,11 @@ Expression *Parser::ParseSimple(bool *ok) {
             return literal;
         } break;
 
-        case Token::kIf:
+        case Token::kIf: // TODO:
             UNREACHABLE();
             break;
             
-        case Token::kWhen:
+        case Token::kWhen: // TODO:
             UNREACHABLE();
             break;
 
@@ -495,21 +508,33 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                 
             case Token::kLParen: { // (
                 MoveNext();
-                base::ArenaVector<Expression *> argv(arena_);
-                if (Peek().kind() == Token::kRParen) { // call()
-                    
+                auto call_location = Peek().source_position();
+                if (Test(Token::kRParen)) { // call()
+                    expr = new (arena_) Calling(arena_, expr, location.Concat(call_location));
                 } else {
+                    auto call = new (arena_) Calling(arena_, expr, location.Concat(call_location));
+                    do {
+                        auto arg = ParseExpression(CHECK_OK);
+                        call->mutable_args()->push_back(arg);
+                    } while (Test(Token::kComma));
                     
+                    call_location = Peek().source_position();
+                    Match(Token::kRParen, CHECK_OK);
+                    *call->mutable_source_position() = location.Concat(call_location);
+                    expr = call;
                 }
-                UNREACHABLE(); // TODO:
             } break;
 
             case Token::kIs: { // is
-                UNREACHABLE(); // TODO:
+                MoveNext();
+                auto type = ParseType(CHECK_OK);
+                expr = new (arena_) Testing(expr, type, location.Concat(type->source_position()));
             } break;
 
             case Token::kAs: { // as
-                UNREACHABLE(); // TODO:
+                MoveNext();
+                auto type = ParseType(CHECK_OK);
+                expr = new (arena_) Casting(expr, type, location.Concat(type->source_position()));
             } break;
 
             default:
@@ -621,6 +646,36 @@ Expression *Parser::ParseParenOrLambdaLiteral(bool *ok) {
     
     Match(Token::kRParen, CHECK_OK);
     return expr; // Just only paren expression: `(' expr `)'
+}
+
+base::ArenaVector<Expression *> Parser::ParseCommaSplittedExpressions(Expression *receiver[2], bool *ok) {
+    base::ArenaVector<Expression *> list(arena_);
+    int i = 0;
+    do {
+        auto expr = ParseExpression(ok);
+        if (!*ok) {
+            break;
+        }
+        if (i == 1) {
+            list.push_back(receiver[0]);
+        } else {
+            receiver[i] = expr;
+        }
+        if (i > 0) {
+            list.push_back(expr);
+        }
+        i++;
+    } while (Test(Token::kComma));
+    return list;
+}
+
+Expression *Parser::ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *receiver, bool *ok) {
+    Expression *expr = nullptr;
+    do {
+        expr = ParseExpression(CHECK_OK);
+        receiver->push_back(expr);
+    } while (Test(Token::kComma));
+    return expr;
 }
 
 Expression *Parser::ParseRemainLambdaLiteral(FunctionPrototype *prototype, const SourcePosition &location, bool *ok) {

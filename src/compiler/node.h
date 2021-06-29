@@ -115,6 +115,8 @@ namespace cpl {
     V(FileUnit) \
     V(Block) \
     V(List) \
+    V(Assignment) \
+    V(Return) \
     V(BreakStatement) \
     V(ContinueStatement) \
     V(VariableDeclaration) \
@@ -161,7 +163,10 @@ namespace cpl {
     V(Recv) \
     V(Send) \
     V(IndexedGet) \
-    V(Dot)
+    V(Dot) \
+    V(Casting) \
+    V(Testing) \
+    V(Calling)
 
 #define DECLARE_TYPE_NODES(V) \
     V(Type) \
