@@ -106,6 +106,19 @@ private:
 }; // class Block
 
 
+class List : public Statement {
+public:
+    List(base::Arena *arena, const SourcePosition &source_position)
+        : Statement(Node::kList, source_position)
+        , expressions_(arena) {}
+    
+    DEF_ARENA_VECTOR_GETTER(Expression *, expression);
+    DECLARE_AST_NODE(List);
+private:
+    base::ArenaVector<Expression *> expressions_;
+}; // class Block
+
+
 class BreakStatement : public Statement {}; // TODO:
 class ContinueStatement : public Statement {}; // TODO:
 class ClassDefinition : public Statement {}; // TODO:
@@ -290,6 +303,8 @@ protected:
 class Identifier : public Expression {
 public:
     Identifier(const String *name, const SourcePosition &source_position);
+    
+    DEF_PTR_GETTER(const String, name);
     
     DECLARE_AST_NODE(Identifier);
 private:
@@ -753,7 +768,7 @@ public:
     DEF_ARENA_VECTOR_GETTER(Node *, param);
     DEF_ARENA_VECTOR_GETTER(Type *, return_type);
 private:
-    base::ArenaVector<Node *> params_; // <VariableDeclaration | Type>
+    base::ArenaVector<Node *> params_; // <VariableDeclaration::Item | Type>
     base::ArenaVector<Type *> return_types_;
     bool vargs_;
 }; // class FunctionPrototype

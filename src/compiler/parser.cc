@@ -342,6 +342,49 @@ VariableDeclaration *Parser::ParseVariableDeclaration(bool *ok) {
     return decl;
 }
 
+Statement *Parser::ParseStatement(bool *ok) {
+    auto location = Peek().source_position();
+    switch (Peek().kind()) {
+        case Token::kLBrace: {
+            MoveNext();
+            auto block = new (arena_) Block(arena_, location);
+            while (!Test(Token::kRBrace)) {
+                auto stmt = ParseStatement(CHECK_OK);
+                block->mutable_statements()->push_back(stmt);
+                
+                *block->mutable_source_position() = location.Concat(Peek().source_position());
+            }
+        } break;
+            
+        case Token::kVolatile:
+        case Token::kVal:
+        case Token::kVar:
+            return ParseVariableDeclaration(ok);
+            
+        // TODO:
+            
+        default: {
+            Expression *tmp[2] = {nullptr, nullptr};
+            List *list = nullptr;
+            int i = 0;
+            do {
+                auto expr = ParseExpression(CHECK_OK);
+                if (i > 0) {
+                    if (!list) {
+                        list = new (arena_) List(arena_, location);
+                        list->mutable_expressions()->push_back(tmp[0]);
+                    }
+                    list->mutable_expressions()->push_back(expr);
+                    *list->mutable_source_position() = location.Concat(expr->source_position());
+                } else {
+                    tmp[i++] = expr;
+                }
+            } while (Test(Token::kComma));
+            return !list ? static_cast<Statement *>(tmp[0]) : static_cast<Statement *>(list);
+        } break;
+    }
+}
+
 // expression ::= primary | suffix | unary | binary | statement | block
 // block ::= `{' expression* `}'
 // primary ::= identifer | literal | `(' expression `)'
@@ -394,8 +437,8 @@ Expression *Parser::ParseExpression(int limit, Operator *receiver, bool *ok) {
             Operator next_op;
             Expression *rhs = ParseExpression(op.right, &next_op, CHECK_OK);
             
-//            expr = new (arena_) BinaryExpression(position, op, expr, rhs);
-//            op = next_op;
+            expr = NewBinaryExpression(op, expr, rhs, location);
+            op = next_op;
         }
     }
     if (receiver) { *receiver = op; }
@@ -403,9 +446,208 @@ Expression *Parser::ParseExpression(int limit, Operator *receiver, bool *ok) {
 }
 
 Expression *Parser::ParseSimple(bool *ok) {
-    // TODO:
-    UNREACHABLE();
-    return nullptr;
+    auto location = Peek().source_position();
+    switch (Peek().kind()) {
+        case Token::kTrue: {
+            auto literal = new (arena_) BoolLiteral(true, location);
+            MoveNext();
+            return literal;
+        } break;
+
+        case Token::kFalse: {
+            auto literal = new (arena_) BoolLiteral(false, location);
+            MoveNext();
+            return literal;
+        } break;
+
+        case Token::kIf:
+            UNREACHABLE();
+            break;
+            
+        case Token::kWhen:
+            UNREACHABLE();
+            break;
+
+        default:
+            return ParseSuffixed(ok);
+    }
+}
+
+Expression *Parser::ParseSuffixed(bool *ok) {
+    auto location = Peek().source_position();
+    Expression *expr = ParsePrimary(CHECK_OK);
+    for (;;) {
+        switch (Peek().kind()) {
+            case Token::kDot: { // .
+                MoveNext();
+                auto dot_location = location.Concat(Peek().source_position());
+                auto field = MatchText(Token::kIdentifier, CHECK_OK);
+                expr = new (arena_) Dot(expr, field, dot_location);
+            } break;
+                
+            case Token::kLBrack: { // [
+                MoveNext();
+                Expression *index = ParseExpression(CHECK_OK);
+                auto idx_location = location.Concat(Peek().source_position());
+                Match(Token::kRBrack, CHECK_OK);
+                expr = new (arena_) IndexedGet(expr, index, idx_location);
+            } break;
+                
+            case Token::kLParen: { // (
+                MoveNext();
+                base::ArenaVector<Expression *> argv(arena_);
+                if (Peek().kind() == Token::kRParen) { // call()
+                    
+                } else {
+                    
+                }
+                UNREACHABLE(); // TODO:
+            } break;
+
+            case Token::kIs: { // is
+                UNREACHABLE(); // TODO:
+            } break;
+
+            case Token::kAs: { // as
+                UNREACHABLE(); // TODO:
+            } break;
+
+            default:
+                return expr;
+        }
+    }
+}
+
+Expression *Parser::ParsePrimary(bool *ok) {
+    auto location = Peek().source_position();
+    Expression *expr = nullptr;
+    switch (Peek().kind()) {
+        case Token::kLParen:
+            return ParseParenOrLambdaLiteral(ok);
+        case Token::kIdentifier:
+            expr = new (arena_) Identifier(Peek().text_val(), location);
+            MoveNext();
+            break;
+        case Token::kIntVal:
+            expr = new (arena_) IntLiteral(static_cast<int>(Peek().i64_val()), location);
+            MoveNext();
+            break;
+        case Token::kUIntVal:
+            expr = new (arena_) UIntLiteral(static_cast<unsigned>(Peek().u64_val()), location);
+            MoveNext();
+            break;
+        case Token::kF32Val:
+            expr = new (arena_) F32Literal(Peek().f32_val(), location);
+            MoveNext();
+            break;
+        case Token::kF64Val:
+            expr = new (arena_) F64Literal(Peek().f64_val(), location);
+            MoveNext();
+            break;
+        case Token::kStringLine:
+        case Token::kStringBlock:
+            expr = new (arena_) StringLiteral(Peek().text_val(), location);
+            MoveNext();
+            break;
+        case Token::kStringTempletePrefix: // TODO:
+            UNREACHABLE();
+            break;
+        default:
+            error_feedback_->Printf(Peek().source_position(), "Unexpected primary expression, expected: %s",
+                                    Peek().ToString().c_str());
+            *ok = false;
+            return nullptr;
+    }
+    return expr;
+}
+
+Expression *Parser::ParseParenOrLambdaLiteral(bool *ok) {
+    auto location = Peek().source_position();
+    Match(Token::kLParen, CHECK_OK);
+    // lambda_literal ::= `(' argument_list `)' `->' expression
+    // () -> expression
+    if (Test(Token::kRParen)) {
+        Match(Token::kRArrow, CHECK_OK);
+        auto stmt = ParseStatement(CHECK_OK);
+        auto prototype = new (arena_) FunctionPrototype(arena_, false, location);
+        return new (arena_) LambdaLiteral(prototype, stmt, location.Concat(stmt->source_position()));
+    }
+    
+    // (...) -> expression
+    if (Test(Token::kVargs)) { // `...'
+        location = location.Concat(Peek().source_position());
+        Match(Token::kRParen, CHECK_OK);
+        Match(Token::kRArrow, CHECK_OK);
+        auto stmt = ParseStatement(CHECK_OK);
+        auto prototype = new (arena_) FunctionPrototype(arena_, true, location);
+        return new (arena_) LambdaLiteral(prototype, stmt, location.Concat(stmt->source_position()));
+    }
+    
+    Expression *expr = nullptr;
+    
+    auto maybe_expr_location = Peek().source_position();
+    // (id:type)->expression
+    if (Peek().Is(Token::kIdentifier)) {
+        auto id = MatchText(Token::kIdentifier, CHECK_OK);
+        if (Test(Token::kColon)) {
+            auto type = ParseType(CHECK_OK);
+            
+            auto prototype = new (arena_) FunctionPrototype(arena_, false, location);
+            auto param = new (arena_) VariableDeclaration::Item(arena_, id, type, maybe_expr_location);
+            prototype->mutable_params()->push_back(param);
+            
+            return ParseRemainLambdaLiteral(prototype, location, CHECK_OK);
+        }
+        expr = new (arena_) Identifier(id, maybe_expr_location);
+    } else {
+        expr = ParseExpression(CHECK_OK);
+    }
+    
+    // (a,b,c...) -> expression
+    if (Peek().Is(Token::kComma)) { // `,'
+        auto prototype = new (arena_) FunctionPrototype(arena_, false, location);
+        if (!expr->IsIdentifier()) {
+            *ok = false;
+            error_feedback_->Printf(expr->source_position(), "Unexpected 'argument' in function prototype");
+            return nullptr;
+        }
+        
+        auto param = new (arena_) VariableDeclaration::Item(arena_, expr->AsIdentifier()->name(), nullptr,
+                                                            expr->source_position());
+        prototype->mutable_params()->push_back(param);
+        return ParseRemainLambdaLiteral(prototype, location, CHECK_OK);
+    }
+    
+    
+    Match(Token::kRParen, CHECK_OK);
+    return expr; // Just only paren expression: `(' expr `)'
+}
+
+Expression *Parser::ParseRemainLambdaLiteral(FunctionPrototype *prototype, const SourcePosition &location, bool *ok) {
+    while (!Test(Token::kRParen)) {
+        Match(Token::kComma, CHECK_OK);
+        
+        auto param_location = Peek().source_position();
+        if (Test(Token::kVargs)) {
+            prototype->set_vargs(true);
+            Match(Token::kRParen, CHECK_OK);
+            break;
+        }
+        
+        auto name = MatchText(Token::kIdentifier, CHECK_OK);
+        Type *type = nullptr;
+        if (Test(Token::kColon)) {
+            type = ParseType(CHECK_OK);
+        } else {
+            type = nullptr;
+        }
+        auto param = new (arena_) VariableDeclaration::Item(arena_, name, type, param_location);
+        prototype->mutable_params()->push_back(param);
+    }
+    
+    Match(Token::kRArrow, CHECK_OK);
+    auto stmt = ParseStatement(CHECK_OK);
+    return new (arena_) LambdaLiteral(prototype, stmt, location.Concat(stmt->source_position()));
 }
 
 // type_ref ::= `bool' | `i8' | `u8' | `i16' | `u16' | `i32' | `u32' | `i64' | `u64' | `f32' | `f64'
@@ -659,18 +901,21 @@ const String *Parser::ParseAliasOrNull(bool *ok) {
     return nullptr;
 }
 
-Expression *Parser::NewUnaryExpression(const Operator &op, Expression *operand, const SourcePosition &begin) {
-    auto location = begin.Concat(operand->source_position());
-    assert(op.operands == 1);
+Expression *Parser::NewExpressionWithOperands(const Operator &op, Expression *lhs, Expression *rhs,
+                                              const SourcePosition &begin) {
+    
+    assert(op.operands == 2 || op.operands == 1);
+    auto location = op.operands == 2 ? begin.Concat(rhs->source_position()) : begin.Concat(lhs->source_position());
+    Expression *operand = op.operands == 1 ? lhs : nullptr;
     switch (op.kind) {
-        case Node::kNegative:
-            return new (arena_) Negative(operand, location);
-        case Node::kNot:
-            return new (arena_) Not(operand, location);
-        case Node::kBitwiseNegative:
-            return new (arena_) BitwiseNegative(operand, location);
-        case Node::kRecv:
-            return new (arena_) Recv(operand, location);
+    #define DEFINE_CASE(name, base) \
+        case Node::k##name: \
+            return new (arena_) name (base##_PARAMS, location);
+        
+        DECLARE_EXPRESSION_WITH_OPERANDS(DEFINE_CASE)
+            
+    #undef DEFINE_CASE
+            
         default:
             UNREACHABLE();
             break;

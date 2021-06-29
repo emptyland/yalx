@@ -79,6 +79,8 @@ using String = base::ArenaString;
 #define DECLARE_KEYWORDS_TOKEN(V) \
     V(True, "true", none) \
     V(False, "false", none) \
+    V(EmptyVal, "Empty", none) \
+    V(UnitVal, "Unit", none) \
     V(Val, "val", none) \
     V(Var, "var", none) \
     V(Volatile, "volatile", none) \

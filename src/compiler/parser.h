@@ -34,17 +34,29 @@ public:
     Annotation *ParseAnnotation(bool skip_at, bool *ok);
     VariableDeclaration *ParseVariableDeclaration(bool *ok);
     
+    Statement *ParseStatement(bool *ok);
     Expression *ParseExpression(bool *ok) { return ParseExpression(0, nullptr, ok); }
     Expression *ParseExpression(int limit, Operator *receiver, bool *ok);
     Expression *ParseSimple(bool *ok);
+    Expression *ParseSuffixed(bool *ok);
+    Expression *ParsePrimary(bool *ok);
+    Expression *ParseParenOrLambdaLiteral(bool *ok);
     Type *ParseType(bool *ok);
 private:
+    Expression *ParseRemainLambdaLiteral(FunctionPrototype *prototype, const SourcePosition &location, bool *ok);
     Symbol *ParseSymbol(bool *ok);
     Expression *ParseStaticLiteral(bool *ok);
     ArrayInitializer *ParseStaticArrayLiteral(bool *ok);
     const String *ParseAliasOrNull(bool *ok);
     
-    Expression *NewUnaryExpression(const Operator &op, Expression *operand, const SourcePosition &location);
+    Expression *NewUnaryExpression(const Operator &op, Expression *operand, const SourcePosition &location) {
+        return NewExpressionWithOperands(op, operand, nullptr, location);
+    }
+    Expression *NewBinaryExpression(const Operator &op, Expression *lhs, Expression *rhs, const SourcePosition &location) {
+        return NewExpressionWithOperands(op, lhs, rhs, location);
+    }
+    Expression *NewExpressionWithOperands(const Operator &op, Expression *lhs, Expression *rhs,
+                                          const SourcePosition &location);
     
     const String *MatchText(Token::Kind kind, bool *ok);
     void Match(Token::Kind kind, bool *ok);

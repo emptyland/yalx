@@ -114,6 +114,7 @@ namespace cpl {
 #define DECLARE_AST_NODES(V) \
     V(FileUnit) \
     V(Block) \
+    V(List) \
     V(BreakStatement) \
     V(ContinueStatement) \
     V(VariableDeclaration) \
