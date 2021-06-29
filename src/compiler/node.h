@@ -166,7 +166,10 @@ namespace cpl {
     V(Dot) \
     V(Casting) \
     V(Testing) \
-    V(Calling)
+    V(Calling) \
+    V(IfExpression) \
+    V(WhenExpression) \
+    V(TryCatchExpression)
 
 #define DECLARE_TYPE_NODES(V) \
     V(Type) \

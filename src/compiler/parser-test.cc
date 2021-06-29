@@ -285,6 +285,53 @@ TEST_F(ParserTest, SimpleArithmetic) {
     ASSERT_TRUE(rhs->AsDiv()->rhs()->IsIntLiteral());
 }
 
+TEST_F(ParserTest, SimpleIfExpression) {
+    SwitchInput("if (a > 0) -1 else 1");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsIfExpression());
+    EXPECT_EQ(nullptr, ast->AsIfExpression()->initializer());
+    EXPECT_TRUE(ast->AsIfExpression()->condition()->IsGreater());
+    EXPECT_TRUE(ast->AsIfExpression()->then_clause()->IsIntLiteral());
+    EXPECT_TRUE(ast->AsIfExpression()->else_clause()->IsIntLiteral());
+}
+
+TEST_F(ParserTest, IfExpressionWithInitializer) {
+    SwitchInput("if (val a = foo(); a > 0) -1 else 1");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsIfExpression());
+    auto expr = ast->AsIfExpression();
+    EXPECT_TRUE(expr->initializer()->IsVariableDeclaration());
+    EXPECT_TRUE(expr->condition()->IsGreater());
+    EXPECT_TRUE(expr->then_clause()->IsIntLiteral());
+    EXPECT_TRUE(expr->else_clause()->IsIntLiteral());
+}
+
+TEST_F(ParserTest, IfExpressionWithElseIf) {
+    SwitchInput("if (a > 0) -1 else if (a < 0) 1 else 0");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsIfExpression());
+    auto expr = ast->AsIfExpression();
+    EXPECT_TRUE(expr->else_clause()->IsIfExpression());
+    expr = expr->else_clause()->AsIfExpression();
+    EXPECT_TRUE(expr->condition()->IsLess());
+    EXPECT_TRUE(expr->then_clause()->IsIntLiteral());
+    EXPECT_EQ(1, expr->then_clause()->AsIntLiteral()->value());
+    EXPECT_TRUE(expr->else_clause()->IsIntLiteral());
+    EXPECT_EQ(0, expr->else_clause()->AsIntLiteral()->value());
+}
+
 TEST_F(ParserTest, Assigment) {
     SwitchInput("a = 1\n");
     bool ok = true;

@@ -79,6 +79,8 @@ private:
 // Statement
 //----------------------------------------------------------------------------------------------------------------------
 class Statement : public AstNode {
+public:
+    virtual bool IsExplicitExpression() const { return false; }
 protected:
     Statement(Kind kind, const SourcePosition &source_position);
 }; // class Statement
@@ -289,6 +291,7 @@ public:
     bool is_only_lval() const { return is_lval() && !is_rval(); }
     bool is_only_rval() const { return !is_lval() && is_rval(); }
     
+    bool IsExplicitExpression() const override { return true; }
 protected:
     Expression(Kind kind, bool is_lval, bool is_rval, const SourcePosition &source_position);
     
@@ -599,6 +602,56 @@ private:
     Expression *callee_;
     base::ArenaVector<Expression *> args_;
 }; // class Calling
+
+class IfExpression : public Expression {
+public:
+    IfExpression(Statement *initializer, Expression *condition, Statement *then_clause, Statement *else_clause,
+                 const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Statement, initializer);
+    DEF_PTR_PROP_RW(Expression, condition);
+    DEF_PTR_PROP_RW(Statement, then_clause);
+    DEF_PTR_PROP_RW(Statement, else_clause);
+    
+    DECLARE_AST_NODE(IfExpression);
+private:
+    Statement *initializer_;
+    Expression *condition_;
+    Statement *then_clause_;
+    Statement *else_clause_;
+}; // class IfExpression
+
+
+class WhenExpression : public Expression {
+public:
+    class Case : public Node {
+    public:
+        Case(Expression *pattern, Statement *then_clause, const SourcePosition &source_position);
+        
+        DEF_PTR_PROP_RW(Expression, pattern);
+        DEF_PTR_PROP_RW(Statement, then_clause);
+    private:
+        Expression *pattern_; // <Testing | Expression>
+        Statement *then_clause_;
+    }; // class Case
+    
+    WhenExpression(base::Arena *arena, Statement *initializer, Expression *destination,
+                   const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Statement, initializer);
+    DEF_PTR_PROP_RW(Expression, destination);
+    DEF_ARENA_VECTOR_GETTER(Case *, case_clause);
+    DEF_PTR_PROP_RW(Statement, else_clause);
+    
+    DECLARE_AST_NODE(WhenExpression);
+private:
+    Statement *initializer_;
+    Expression *destination_;
+    base::ArenaVector<Case *> case_clauses_;
+    Statement *else_clause_ = nullptr;
+}; // class WhenExpression
+
+class TryCatchExpression : public Expression {};
 
 //----------------------------------------------------------------------------------------------------------------------
 // Types

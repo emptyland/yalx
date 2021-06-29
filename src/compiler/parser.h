@@ -42,9 +42,10 @@ public:
     Expression *ParseSuffixed(bool *ok);
     Expression *ParsePrimary(bool *ok);
     Expression *ParseParenOrLambdaLiteral(bool *ok);
+    IfExpression *ParseIfExpression(bool *ok);
     Type *ParseType(bool *ok);
 private:
-    base::ArenaVector<Expression *> ParseCommaSplittedExpressions(Expression *receiver[2], bool *ok);
+    Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *list, Expression *receiver[2], bool *ok);
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *receiver, bool *ok);
     Expression *ParseRemainLambdaLiteral(FunctionPrototype *prototype, const SourcePosition &location, bool *ok);
     Symbol *ParseSymbol(bool *ok);

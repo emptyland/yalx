@@ -134,6 +134,29 @@ Calling::Calling(base::Arena *arena, Expression *callee, const SourcePosition &s
     , args_(arena) {
 }
 
+IfExpression::IfExpression(Statement *initializer, Expression *condition, Statement *then_clause, Statement *else_clause,
+                           const SourcePosition &source_position)
+    : Expression(Node::kIfExpression, false /*is_lval*/, true /*ls_rval*/, source_position)
+    , initializer_(initializer)
+    , condition_(DCHECK_NOTNULL(condition))
+    , then_clause_(then_clause)
+    , else_clause_(else_clause) {
+}
+
+WhenExpression::WhenExpression(base::Arena *arena, Statement *initializer, Expression *destination,
+                               const SourcePosition &source_position)
+    : Expression(Node::kWhenExpression, false /*is_lval*/, true /*ls_rval*/, source_position)
+    , initializer_(initializer)
+    , destination_(destination)
+    , case_clauses_(arena) {
+}
+
+WhenExpression::Case::Case(Expression *pattern, Statement *then_clause, const SourcePosition &source_position)
+    : Node(Node::kMaxKinds, source_position)
+    , pattern_(pattern)
+    , then_clause_(DCHECK_NOTNULL(then_clause)) {
+}
+
 bool Type::Is(Node *node) {
     switch (node->kind()) {
     #define DEFINE_CASE(_, clazz) case Node::k##clazz:

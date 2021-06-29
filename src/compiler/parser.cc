@@ -375,8 +375,9 @@ Statement *Parser::ParseStatement(bool *ok) {
         // TODO:
             
         default: {
-            Expression *tmp[2];
-            auto lvals = ParseCommaSplittedExpressions(tmp, CHECK_OK);
+            Expression *tmp[2] = {nullptr,nullptr};
+            base::ArenaVector<Expression *> lvals(arena_);
+            ParseCommaSplittedExpressions(&lvals, tmp, CHECK_OK);
             
             if (Test(Token::kAssign)) { //
                 Assignment *stmt = new (arena_) Assignment(arena_, location);
@@ -473,9 +474,8 @@ Expression *Parser::ParseSimple(bool *ok) {
             return literal;
         } break;
 
-        case Token::kIf: // TODO:
-            UNREACHABLE();
-            break;
+        case Token::kIf:
+            return ParseIfExpression(ok);
             
         case Token::kWhen: // TODO:
             UNREACHABLE();
@@ -648,25 +648,68 @@ Expression *Parser::ParseParenOrLambdaLiteral(bool *ok) {
     return expr; // Just only paren expression: `(' expr `)'
 }
 
-base::ArenaVector<Expression *> Parser::ParseCommaSplittedExpressions(Expression *receiver[2], bool *ok) {
-    base::ArenaVector<Expression *> list(arena_);
+// if_statement ::= `if' `(' condition_clause `)' statement else_if_clause* eles_clause?
+// condition_clause ::= variable_declaration `;' expression
+//                    | expression
+// else_if_clause ::= `else' `if' `(' condition_clause `)' statement
+// eles_clause ::= `else' statement
+IfExpression *Parser::ParseIfExpression(bool *ok) {
+    auto location = Peek().source_position();
+
+    Match(Token::kIf, CHECK_OK);
+    Expression *condition = nullptr;
+    Match(Token::kLParen, CHECK_OK);
+    Statement *initializer_of_condition = ParseStatement(CHECK_OK);
+    if (initializer_of_condition->IsAssignment() ||
+        initializer_of_condition->IsVariableDeclaration()) {
+        // Must be initializer
+        Match(Token::kSemi, CHECK_OK);
+        condition = ParseExpression(CHECK_OK);
+    } else {
+        if (!initializer_of_condition->IsExplicitExpression()) {
+            *ok = false;
+            error_feedback_->Printf(initializer_of_condition->source_position(), "Condition of if expression"
+                                    " must be a expression.");
+            return nullptr;
+        }
+        condition = static_cast<Expression *>(initializer_of_condition);
+        initializer_of_condition = nullptr;
+    }
+    Match(Token::kRParen, CHECK_OK);
+    
+    auto then_clause = ParseStatement(CHECK_OK);
+    location = location.Concat(then_clause->source_position());
+    
+    Statement *else_clause = nullptr;
+    if (Test(Token::kElse)) {
+        else_clause = ParseStatement(CHECK_OK);
+        location = location.Concat(else_clause->source_position());
+    }
+    
+    return new (arena_) IfExpression(initializer_of_condition, condition, then_clause, else_clause, location);
+}
+
+Expression *Parser::ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *list, Expression *receiver[2],
+                                                  bool *ok) {
+    Expression *expr = nullptr;
     int i = 0;
     do {
-        auto expr = ParseExpression(ok);
+        expr = ParseExpression(ok);
         if (!*ok) {
             break;
         }
-        if (i == 1) {
-            list.push_back(receiver[0]);
-        } else {
+        if (i == 0) {
             receiver[i] = expr;
         }
+        if (i == 1) {
+            list->push_back(receiver[0]);
+        }
         if (i > 0) {
-            list.push_back(expr);
+            list->push_back(expr);
         }
         i++;
     } while (Test(Token::kComma));
-    return list;
+    return expr;
 }
 
 Expression *Parser::ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *receiver, bool *ok) {
