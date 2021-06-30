@@ -96,6 +96,34 @@ Declaration *FunctionDeclaration::AtItem(size_t i) const {
 
 size_t FunctionDeclaration::ItemSize() const { return prototype()->params_size(); }
 
+bool Definition::Is(AstNode *node) {
+    switch (node->kind()) {
+        case Node::kStructDefinition:
+        case Node::kClassDefinition:
+        case Node::kInterfaceDefinition:
+        case Node::kAnnotationDefinition:
+            return true;
+            
+        default:
+            return false;
+    }
+}
+
+Definition::Definition(base::Arena *arena, Kind kind, const SourcePosition &source_position)
+    : Statement(kind, source_position)
+    , generic_params_(arena) {
+}
+
+InterfaceDefinition::InterfaceDefinition(base::Arena *arena, const SourcePosition &source_position)
+    : Definition(arena, Node::kInterfaceDefinition, source_position)
+    , methods_(arena) {
+}
+
+AnnotationDefinition::AnnotationDefinition(base::Arena *arena, const SourcePosition &source_position)
+    : Definition(arena, Node::kAnnotationDefinition, source_position)
+    , members_(arena) {
+}
+
 AnnotationDeclaration::AnnotationDeclaration(base::Arena *arena, const SourcePosition &source_position)
     : AstNode(Node::kAnnotationDeclaration, source_position)
     , annotations_(arena) {        
@@ -117,6 +145,12 @@ Identifier::Identifier(const String *name, const SourcePosition &source_position
     : Expression(Node::kIdentifier, true, true, source_position)
     , name_(name) {        
 }
+
+Instantiation::Instantiation(base::Arena *arena, Expression *primary, const SourcePosition &source_position)
+    : Expression(Node::kIdentifier, false/*is_lval*/, true/*is_rval*/, source_position)
+    , generic_args_(arena) {
+}
+
 
 Literal::Literal(Kind kind, Type *type, const SourcePosition &source_position)
     : Expression(kind, false/*is_lval*/, true/*is_rval*/, source_position)

@@ -133,9 +133,6 @@ class BreakStatement : public Statement {}; // TODO:
 class ContinueStatement : public Statement {}; // TODO:
 class ClassDefinition : public Statement {}; // TODO:
 class StructDefinition : public Statement {}; // TODO:
-class InterfaceDefinition : public Statement {}; // TODO:
-class AnnotationDefinition : public Statement {}; // TODO:
-class Definition : public Statement {}; // TODO:
 
 // class GenericParameter : Node
 //     = Identifier(): Symbol *
@@ -147,9 +144,11 @@ public:
     
     DEF_PTR_GETTER(const String, name);
     DEF_PTR_PROP_RW(Type, constraint);
+    DEF_PTR_PROP_RW(Type, instantiation);
 private:
     const String *const name_;
     Type *constraint_;
+    Type *instantiation_ = nullptr;
 }; // class GenericParameter
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -287,6 +286,58 @@ private:
 
 
 class ObjectDeclaration : public Declaration{}; // TODO:
+
+//----------------------------------------------------------------------------------------------------------------------
+// Definitions
+//----------------------------------------------------------------------------------------------------------------------
+class Definition : public Statement {
+public:
+    DEF_PTR_GETTER(const String, name);
+    DEF_PTR_PROP_RW(AnnotationDeclaration, annotations);
+    DEF_VAL_PROP_RW(Access, access);
+    DEF_VAL_PROP_RW(bool, has_instantiated);
+    DEF_ARENA_VECTOR_GETTER(GenericParameter *, generic_param);
+    
+    static bool IsNot(AstNode *node) { return !Is(node); }
+    static bool Is(AstNode *node);
+protected:
+    Definition(base::Arena *arena, Kind kind, const SourcePosition &source_position);
+    
+private:
+    const String *name_;
+    base::ArenaVector<GenericParameter *> generic_params_;
+    AnnotationDeclaration *annotations_ = nullptr;
+    Access access_ = kDefault;
+    bool has_instantiated_ = false;
+}; // class Definition
+
+class InterfaceDefinition : public Definition {
+public:
+    InterfaceDefinition(base::Arena *arena, const SourcePosition &source_position);
+    
+    DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, method);
+    
+    DECLARE_AST_NODE(InterfaceDefinition);
+private:
+    base::ArenaVector<FunctionDeclaration *> methods_;
+}; // class InterfaceDefinition
+
+class AnnotationDefinition : public Definition {
+public:
+    struct Member {
+        VariableDeclaration::Item *field = nullptr;
+        Expression *default_value = nullptr;
+    }; // struct Member
+    
+    AnnotationDefinition(base::Arena *arena, const SourcePosition &source_position);
+    
+    DEF_ARENA_VECTOR_GETTER(Member, member);
+    
+    DECLARE_AST_NODE(AnnotationDefinition);
+private:
+    base::ArenaVector<Member> members_;
+}; // class AnnotationDefinition
+
 //----------------------------------------------------------------------------------------------------------------------
 // Annotation
 //----------------------------------------------------------------------------------------------------------------------
@@ -385,6 +436,19 @@ public:
 private:
     const String *name_;
 }; // class Identifier
+
+class Instantiation : public Expression {
+public:
+    Instantiation(base::Arena *arena, Expression *primary, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Expression, primary);
+    DEF_ARENA_VECTOR_GETTER(Type *, generic_arg);
+    
+    DECLARE_AST_NODE(Instantiation);
+private:
+    Expression *primary_; // <Identifer | Dot>
+    base::ArenaVector<Type *> generic_args_;
+}; // class Instantiation
 
 class Literal : public Expression {
 public:

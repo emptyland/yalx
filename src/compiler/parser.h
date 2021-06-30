@@ -26,6 +26,8 @@ using String = base::ArenaString;
 
 class Parser final {
 public:
+    static constexpr int kMaxRollbackDepth = 128;
+    
     Parser(base::Arena *arena, SyntaxFeedback *error_feedback);
     base::Status SwitchInputFile(const std::string &name, base::SequentialFile *file);
     
@@ -39,6 +41,8 @@ public:
     Statement *ParseOutsideStatement(bool *ok);
     FunctionDeclaration *ParseFunctionDeclaration(bool *ok);
     FunctionPrototype *ParseFunctionPrototype(bool *ok);
+    InterfaceDefinition *ParseInterfaceDefinition(bool *ok);
+    AnnotationDefinition *ParseAnnotationDefinition(bool *ok);
     Statement *ParseStatement(bool *ok);
     Expression *ParseExpression(bool *ok) { return ParseExpression(0, nullptr, ok); }
     Expression *ParseExpression(int limit, Operator *receiver, bool *ok);
@@ -50,6 +54,7 @@ public:
     WhenExpression *ParseWhenExpression(bool *ok);
     Type *ParseType(bool *ok);
 private:
+    bool ProbeInstantiation();
     void *ParseGenericParameters(base::ArenaVector<GenericParameter *> *params, bool *ok);
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *list, Expression *receiver[2], bool *ok);
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *receiver, bool *ok);
@@ -77,12 +82,16 @@ private:
     
     SourcePosition ConcatNow(const SourcePosition &begin) { return begin.Concat(Peek().source_position()); }
     
+    void MoveNext();
 
     base::Arena *arena_; // Memory arena allocator
     SyntaxFeedback *error_feedback_; // Error feedback interface
     std::unique_ptr<Lexer> lexer_; // Lexer of parser
     Token lookahead_ = Token(Token::kError, {0, 0}); // Look a head token
     FileUnit *file_unit_ = nullptr;
+    Token *rollback_;
+    int rollback_depth_ = 0;
+    int rollback_pos_ = 0;
 }; // class Parser
 
 } // namespace cpl

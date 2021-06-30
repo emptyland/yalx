@@ -128,6 +128,7 @@ namespace cpl {
     V(AnnotationDefinition) \
     V(AnnotationDeclaration) \
     V(Annotation) \
+    V(Instantiation) \
     V(Identifier) \
     V(UnitLiteral) \
     V(EmptyLiteral) \
@@ -203,10 +204,6 @@ public:
         kMaxKinds,
     }; // enum Kind
 
-//#define DEFINE_METHODS(name) \
-//    bool Is##name() const { return kind() == k##name; } \
-//    name *As##name() { return !Is##name() ? nullptr : static_cast<name *>(this); } \
-//    const name *As##name() const { return !Is##name() ? nullptr : static_cast<const name *>(this); }
 #define DEFINE_METHODS(name) \
     bool Is##name() const { return kind() == k##name; } \
     inline name *As##name(); \

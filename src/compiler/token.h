@@ -89,6 +89,7 @@ using String = base::ArenaString;
     V(Class, "class", none) \
     V(Object, "object", none) \
     V(Interface, "interface", none) \
+    V(Annotation, "annotation", none) \
     V(Fun, "fun", none) \
     V(Chan, "chan", none) \
     V(In, "in", none) \
@@ -119,6 +120,7 @@ using String = base::ArenaString;
     V(Try, "try", none) \
     V(Catch, "catch", none) \
     V(Finally, "finally", none) \
+    V(Default, "default", none) \
     DECLARE_BASE_TYPE_TOKEN(V)
 
 #define DECLARE_BASE_TYPE_TOKEN(V) \

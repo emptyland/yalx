@@ -9,7 +9,7 @@ namespace cpl {
 
 #define CHECK_OK ok); if (!*ok) { return 0; } ((void)0
 
-#define MoveNext() lookahead_ = lexer_->Next()
+//#define MoveNext() lookahead_ = lexer_->Next()
 
 struct Operator {
     Node::Kind kind;
@@ -143,7 +143,8 @@ static Operator GetPostfixOp(Token::Kind kind) {
 Parser::Parser(base::Arena *arena, SyntaxFeedback *error_feedback)
     : arena_(arena)
     , error_feedback_(error_feedback)
-    , lexer_(new Lexer(arena, error_feedback)) {
+    , lexer_(new Lexer(arena, error_feedback))
+    , rollback_(arena->NewArray<Token>(kMaxRollbackDepth)){
 }
 
 base::Status Parser::SwitchInputFile(const std::string &name, base::SequentialFile *file) {
@@ -364,6 +365,86 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool *ok) {
         }
     }
     return prototype;
+}
+
+InterfaceDefinition *Parser::ParseInterfaceDefinition(bool *ok) {
+    auto location = Peek().source_position();
+    auto access = static_cast<Access>(ParseDeclarationAccess());
+    
+    Match(Token::kInterface, CHECK_OK);
+    auto name = MatchText(Token::kIdentifier, CHECK_OK);
+    auto def = new (arena_) InterfaceDefinition(arena_, location);
+    
+    if (Peek().Is(Token::kLess)) {
+        ParseGenericParameters(def->mutable_generic_params(), CHECK_OK);
+    }
+    
+    Match(Token::kLBrace, CHECK_OK);
+    do {
+        AnnotationDeclaration *anno = nullptr;
+        if (Peek().Is(Token::kAtOutlined)) {
+            anno = ParseAnnotationDeclaration(CHECK_OK);
+        }
+        
+        auto decl = ParseFunctionDeclaration(CHECK_OK);
+        if (decl->access() != kDefault && decl->access() != kPublic) {
+            *ok = false;
+            error_feedback_->Printf(decl->source_position(), "Incorrect member access, should be `public' or none");
+            return nullptr;
+        }
+        
+        if (decl->body() != nullptr) {
+            *ok = false;
+            error_feedback_->Printf(decl->source_position(), "Method of interface don't need body");
+            return nullptr;
+        }
+        
+        decl->set_annotations(anno);
+        def->mutable_methods()->push_back(decl);
+        
+        location = location.Concat(Peek().source_position());
+    } while (!Test(Token::kRBrace));
+    
+    *def->mutable_source_position() = location;
+    return def;
+}
+
+// annotation Foo {
+//     name: i8[] default {1,2,3}
+//     id: string default "ok"
+// }
+AnnotationDefinition *Parser::ParseAnnotationDefinition(bool *ok) {
+    auto location = Peek().source_position();
+    auto access = static_cast<Access>(ParseDeclarationAccess());
+    
+    Match(Token::kAnnotation, CHECK_OK);
+    auto name = MatchText(Token::kIdentifier, CHECK_OK);
+    
+    Match(Token::kLBrace, CHECK_OK);
+    auto def = new (arena_) AnnotationDefinition(arena_, location);
+    while (!Test(Token::kRBrace)) {
+        auto member_location = Peek().source_position();
+        
+        auto id = MatchText(Token::kIdentifier, CHECK_OK);
+        Match(Token::kColon, CHECK_OK);
+        auto type = ParseType(CHECK_OK);
+        member_location = member_location.Concat(type->source_position());
+        
+        Expression *default_value = nullptr;
+        if (Test(Token::kDefault)) {
+            default_value = ParseStaticLiteral(CHECK_OK);
+            member_location = member_location.Concat(default_value->source_position());
+        }
+        
+        auto field = new (arena_) VariableDeclaration::Item(arena_, id, type, member_location);
+        def->mutable_members()->push_back({field, default_value});
+        
+        location = location.Concat(Peek().source_position());
+    }
+    
+    def->set_access(access);
+    *def->mutable_source_position() = location;
+    return def;
 }
 
 // package_declaration ::= identifier
@@ -642,6 +723,24 @@ Expression *Parser::ParseSuffixed(bool *ok) {
     Expression *expr = ParsePrimary(CHECK_OK);
     for (;;) {
         switch (Peek().kind()) {
+            case Token::kLess: {
+                if (!expr->IsIdentifier() && !expr->IsDot()) {
+                    return expr;
+                }
+                if (!ProbeInstantiation()) {
+                    return expr;
+                }
+                
+                auto inst = new (arena_) Instantiation(arena_, expr, location);
+                MoveNext();
+                do {
+                    auto type = ParseType(CHECK_OK);
+                    inst->mutable_generic_args()->push_back(type);
+                } while (Test(Token::kComma));
+                Match(Token::kGreater, CHECK_OK);
+                expr = inst;
+            } break;
+                
             case Token::kDot: { // .
                 MoveNext();
                 auto dot_location = location.Concat(Peek().source_position());
@@ -926,6 +1025,63 @@ WhenExpression *Parser::ParseWhenExpression(bool *ok) {
     
     *when->mutable_source_position() = location;
     return when;
+}
+
+static bool EnsureType(Token::Kind kind) {
+    switch (kind) {
+        case Token::kUnit:
+        case Token::kBool:
+        case Token::kI8:
+        case Token::kU8:
+        case Token::kI16:
+        case Token::kU16:
+        case Token::kI32:
+        case Token::kU32:
+        case Token::kI64:
+        case Token::kU64:
+        case Token::kF32:
+        case Token::kF64:
+        case Token::kInt:
+        case Token::kUInt:
+        case Token::kString:
+        case Token::kIn:
+        case Token::kOut:
+        case Token::kChan:
+        case Token::kLParen:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool Parser::ProbeInstantiation() {
+    //rollback_[rollback_depth_++] = Peek();
+    int depth = 1;
+    while(depth > 0) {
+        auto token = lexer_->Next();
+        rollback_[rollback_depth_++] = token;
+        
+        if (token.Is(Token::kDot)) {
+            if (rollback_depth_ == 0 || rollback_[rollback_depth_ - 1].IsNot(Token::kIdentifier)) {
+                break;
+            }
+        } else if (token.Is(Token::kLess)) {
+            depth++;
+        } else if (token.Is(Token::kGreater)) {
+            depth--;
+        } else if (EnsureType(token.kind())) {
+            return true;
+        } else if (token.IsNot(Token::kIdentifier)) {
+            return false;
+        }
+        
+        if (rollback_depth_ >= kMaxRollbackDepth - 1) {
+            return false;
+        }
+    }
+    auto token = lexer_->Next();
+    rollback_[rollback_depth_++] = token;
+    return token.Is(Token::kLParen);
 }
 
 void *Parser::ParseGenericParameters(base::ArenaVector<GenericParameter *> *params, bool *ok) {
@@ -1327,15 +1483,31 @@ void Parser::Match(Token::Kind kind, bool *ok) {
         *ok = false;
         return;
     }
-    lookahead_ = lexer_->Next();
+    MoveNext();
 }
 
 bool Parser::Test(Token::Kind kind) {
     if (lookahead_.Is(kind)) {
-        lookahead_ = lexer_->Next();
+        MoveNext();
         return true;
     }
     return false;
+}
+
+void Parser::MoveNext() {
+    if (rollback_pos_ < rollback_depth_) {
+        assert(rollback_depth_ > 0);
+        
+        lookahead_ = rollback_[rollback_pos_++];
+        if (rollback_pos_ >= rollback_depth_) {
+            rollback_pos_ = 0;
+            rollback_depth_ = 0;
+            // Rollback finish
+        }
+        return;
+    }
+    
+    lookahead_ = lexer_->Next();
 }
 
 } // namespace cpl

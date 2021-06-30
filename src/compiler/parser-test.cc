@@ -17,7 +17,8 @@ public:
     class MockErrorFeedback : public SyntaxFeedback {
     public:
         void DidFeedback(const SourcePosition &location, const char *z, size_t n) override {
-            ::printf("[%s:%d] %s\n", file_name().data(), location.begin_line(), z);
+            ::printf("[%s:(%d,%d)-(%d,%d)] %s\n", file_name().data(), location.begin_line(), location.begin_column(),
+                     location.end_line(), location.end_column(), z);
         }
         
         void DidFeedback(const char *z) override {
@@ -314,7 +315,9 @@ TEST_F(ParserTest, IfExpressionWithInitializer) {
     EXPECT_TRUE(expr->else_clause()->IsIntLiteral());
 }
 
-TEST_F(ParserTest, IfExpressionWithElseIf) {
+// a<b<c<int>>>
+// a < b < c + 
+TEST_F(ParserTest, IfExpressionWithElseIf) { // a<b<c<int>>() foo.Foo[~int,int]()
     SwitchInput("if (a > 0) -1 else if (a < 0) 1 else 0");
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
