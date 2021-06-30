@@ -477,9 +477,8 @@ Expression *Parser::ParseSimple(bool *ok) {
         case Token::kIf:
             return ParseIfExpression(ok);
             
-        case Token::kWhen: // TODO:
-            UNREACHABLE();
-            break;
+        case Token::kWhen:
+            return ParseWhenExpression(ok);
 
         default:
             return ParseSuffixed(ok);
@@ -659,21 +658,21 @@ IfExpression *Parser::ParseIfExpression(bool *ok) {
     Match(Token::kIf, CHECK_OK);
     Expression *condition = nullptr;
     Match(Token::kLParen, CHECK_OK);
-    Statement *initializer_of_condition = ParseStatement(CHECK_OK);
-    if (initializer_of_condition->IsAssignment() ||
-        initializer_of_condition->IsVariableDeclaration()) {
+    Statement *initializer_or_condition = ParseStatement(CHECK_OK);
+    if (initializer_or_condition->IsAssignment() ||
+        initializer_or_condition->IsVariableDeclaration()) {
         // Must be initializer
         Match(Token::kSemi, CHECK_OK);
         condition = ParseExpression(CHECK_OK);
     } else {
-        if (!initializer_of_condition->IsExplicitExpression()) {
+        if (!initializer_or_condition->IsExplicitExpression()) {
             *ok = false;
-            error_feedback_->Printf(initializer_of_condition->source_position(), "Condition of if expression"
+            error_feedback_->Printf(initializer_or_condition->source_position(), "Condition of if expression"
                                     " must be a expression.");
             return nullptr;
         }
-        condition = static_cast<Expression *>(initializer_of_condition);
-        initializer_of_condition = nullptr;
+        condition = static_cast<Expression *>(initializer_or_condition);
+        initializer_or_condition = nullptr;
     }
     Match(Token::kRParen, CHECK_OK);
     
@@ -686,7 +685,95 @@ IfExpression *Parser::ParseIfExpression(bool *ok) {
         location = location.Concat(else_clause->source_position());
     }
     
-    return new (arena_) IfExpression(initializer_of_condition, condition, then_clause, else_clause, location);
+    return new (arena_) IfExpression(initializer_or_condition, condition, then_clause, else_clause, location);
+}
+
+// when_statement ::= `when' `{' when_condition_clause+ when_else_clause? `}'
+//                  | `when' `(' expression `)' `{' when_casting_clause+ when_else_clause? `}'
+// when_condition_clause ::= expression `->' expression
+// when_casting_clause ::= identifer `:' type_ref `->' expression
+// when_between_to_clause ::= `in' expression `..' expression `->' expression
+// when_else_clause ::= `else' `->' expression
+WhenExpression *Parser::ParseWhenExpression(bool *ok) {
+    auto location = Peek().source_position();
+    
+    Match(Token::kWhen, CHECK_OK);
+    Statement *initializer_or_destination = nullptr;
+    Expression *destination = nullptr;
+    if (Test(Token::kLParen)) {
+        initializer_or_destination = ParseStatement(CHECK_OK);
+        if (initializer_or_destination->IsAssignment() ||
+            initializer_or_destination->IsVariableDeclaration()) {
+            // Must be initializer
+            Match(Token::kSemi, CHECK_OK);
+            destination = ParseExpression(CHECK_OK);
+        } else {
+            if (!initializer_or_destination->IsExplicitExpression()) {
+                *ok = false;
+                error_feedback_->Printf(initializer_or_destination->source_position(), "Destination of when expression"
+                                        " must be a expression");
+                return nullptr;
+            }
+            destination = static_cast<Expression *>(initializer_or_destination);
+            initializer_or_destination = nullptr;
+        }
+        Match(Token::kRParen, CHECK_OK);
+    }
+    
+    Match(Token::kLBrace, CHECK_OK);
+    auto when = new (arena_) WhenExpression(arena_, initializer_or_destination, destination, location);
+    while (!Test(Token::kRBrace)) {
+        auto case_location = Peek().source_position();
+        
+        WhenExpression::Case *case_clause = nullptr;
+        if (Test(Token::kIn)) { // `in' expression `..' expression -> statement
+            auto lower = ParseExpression(CHECK_OK);
+            bool close = false;
+            if (Test(Token::kMore)) {
+                close = true;
+            } else {
+                Match(Token::kUntil, CHECK_OK);
+                close = false;
+            }
+            auto upper = ParseExpression(CHECK_OK);
+            case_clause = new (arena_) WhenExpression::BetweenToCase(lower, upper, nullptr, close, location);
+        } else if (Test(Token::kElse)) {
+            Match(Token::kRArrow, CHECK_OK);
+            auto else_clause = ParseStatement(CHECK_OK);
+            when->set_else_clause(else_clause);
+            Match(Token::kRBrace, CHECK_OK);
+            break; // else clause mut be finally case.
+        } else {
+            auto match_value_or_id = ParseExpression(CHECK_OK);
+            if (Test(Token::kColon)) { // id `:' type -> statement
+                if (!match_value_or_id->IsIdentifier()) {
+                    *ok = false;
+                    error_feedback_->Printf(match_value_or_id->source_position(),
+                                            "Type casting case must be a identifier");
+                    return nullptr;
+                }
+                
+                auto type = ParseType(CHECK_OK);
+                case_clause = new (arena_) WhenExpression::TypeTestingCase(match_value_or_id->AsIdentifier(), type,
+                                                                           nullptr, location);
+            } else {
+                case_clause = new (arena_) WhenExpression::ExpectValueCase(match_value_or_id, nullptr, location);
+            }
+        }
+
+        DCHECK_NOTNULL(case_clause);
+        Match(Token::kRArrow, CHECK_OK);
+        auto then_clause = ParseStatement(CHECK_OK);
+        case_clause->set_then_clause(then_clause);
+        
+        *case_clause->mutable_source_position() = case_location.Concat(then_clause->source_position());
+        when->mutable_case_clauses()->push_back(case_clause);
+        
+        location = location.Concat(Peek().source_position());
+    }
+    
+    *when->mutable_source_position() = location;
+    return when;
 }
 
 Expression *Parser::ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *list, Expression *receiver[2],

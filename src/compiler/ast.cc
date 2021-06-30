@@ -143,6 +143,12 @@ IfExpression::IfExpression(Statement *initializer, Expression *condition, Statem
     , else_clause_(else_clause) {
 }
 
+CaseWhenPattern::CaseWhenPattern(Pattern pattern, Statement *then_clause, const SourcePosition &source_position)
+    : Node(Node::kMaxKinds, source_position)
+    , pattern_(pattern)
+    , then_clause_(then_clause) {
+}
+
 WhenExpression::WhenExpression(base::Arena *arena, Statement *initializer, Expression *destination,
                                const SourcePosition &source_position)
     : Expression(Node::kWhenExpression, false /*is_lval*/, true /*ls_rval*/, source_position)
@@ -151,10 +157,25 @@ WhenExpression::WhenExpression(base::Arena *arena, Statement *initializer, Expre
     , case_clauses_(arena) {
 }
 
-WhenExpression::Case::Case(Expression *pattern, Statement *then_clause, const SourcePosition &source_position)
-    : Node(Node::kMaxKinds, source_position)
-    , pattern_(pattern)
-    , then_clause_(DCHECK_NOTNULL(then_clause)) {
+WhenExpression::ExpectValueCase::ExpectValueCase(Expression *match_value, Statement *then_clause,
+                                                 const SourcePosition &source_position)
+    : Case(kExpectValue, then_clause, source_position)
+    , match_value_(DCHECK_NOTNULL(match_value)) {
+}
+
+WhenExpression::TypeTestingCase::TypeTestingCase(Identifier *name, Type *match_type, Statement *then_clause,
+                                                 const SourcePosition &source_position)
+    : Case(kTypeTesting, then_clause, source_position)
+    , name_(DCHECK_NOTNULL(name))
+    , match_type_(DCHECK_NOTNULL(match_type)) {
+}
+
+WhenExpression::BetweenToCase::BetweenToCase(Expression *lower, Expression *upper, Statement *then_clause, bool is_close,
+                                             const SourcePosition &source_position)
+    : Case(kBetweenTo, then_clause, source_position)
+    , lower_(DCHECK_NOTNULL(lower))
+    , upper_(DCHECK_NOTNULL(upper))
+    , is_close_(is_close) {
 }
 
 bool Type::Is(Node *node) {

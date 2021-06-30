@@ -621,19 +621,79 @@ private:
     Statement *else_clause_;
 }; // class IfExpression
 
+class CaseWhenPattern : public Node {
+public:
+    enum Pattern {
+        kExpectValue,
+        kTypeTesting,
+        kBetweenTo,
+    };
+    CaseWhenPattern(Pattern pattern, Statement *then_clause, const SourcePosition &source_position);
+    
+    DEF_VAL_GETTER(Pattern, pattern);
+    DEF_PTR_PROP_RW(Statement, then_clause);
+private:
+    Pattern pattern_;
+    Statement *then_clause_;
+}; // class WhenCasePattern
 
 class WhenExpression : public Expression {
 public:
-    class Case : public Node {
+    using Case = CaseWhenPattern;
+
+    #define DEFINE_CASE_METHODS(name) \
+        static name##Case *Cast(Case *from) { \
+            return from->pattern() == k##name ? static_cast<name##Case *>(from) : nullptr; \
+        } \
+        static const name##Case *Cast(const Case *from) { \
+            return from->pattern() == k##name ? static_cast<const name##Case *>(from) : nullptr; \
+        }
+    
+    // value -> then_clause
+    class ExpectValueCase : public Case {
     public:
-        Case(Expression *pattern, Statement *then_clause, const SourcePosition &source_position);
+        ExpectValueCase(Expression *match_value, Statement *then_clause, const SourcePosition &source_position);
         
-        DEF_PTR_PROP_RW(Expression, pattern);
-        DEF_PTR_PROP_RW(Statement, then_clause);
+        DEF_PTR_PROP_RW(Expression, match_value);
+        
+        DEFINE_CASE_METHODS(ExpectValue);
     private:
-        Expression *pattern_; // <Testing | Expression>
-        Statement *then_clause_;
-    }; // class Case
+        Expression *match_value_;
+    }; // class ExpectValueCase
+    
+    // variable: type -> then_clause
+    class TypeTestingCase : public Case {
+    public:
+        TypeTestingCase(Identifier *name, Type *match_type, Statement *then_clause,
+                        const SourcePosition &source_position);
+        
+        DEF_PTR_GETTER(Identifier, name);
+        DEF_PTR_PROP_RW(Type, match_type);
+        
+        DEFINE_CASE_METHODS(TypeTesting);
+    private:
+        Identifier *name_;
+        Type *match_type_;
+    }; // class TypeTestingCase
+    
+    // `in' literal..literal
+    class BetweenToCase : public Case {
+    public:
+        BetweenToCase(Expression *lower, Expression *upper, Statement *then_clause,
+                      bool is_close, const SourcePosition &source_position);
+
+        DEF_PTR_PROP_RW(Expression, lower);
+        DEF_PTR_PROP_RW(Expression, upper);
+        DEF_VAL_GETTER(bool, is_close);
+        
+        DEFINE_CASE_METHODS(BetweenTo);
+    private:
+        Expression *lower_;
+        Expression *upper_;
+        bool is_close_;
+    }; // class BetweenToCase
+    
+    #undef DEFINE_CASE_METHODS
     
     WhenExpression(base::Arena *arena, Statement *initializer, Expression *destination,
                    const SourcePosition &source_position);

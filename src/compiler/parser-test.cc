@@ -332,6 +332,33 @@ TEST_F(ParserTest, IfExpressionWithElseIf) {
     EXPECT_EQ(0, expr->else_clause()->AsIntLiteral()->value());
 }
 
+TEST_F(ParserTest, WhenExpression) {
+    SwitchInput("when {\n"
+                "   a > 0 -> 0\n"
+                "   a < 0 -> 1\n"
+                "   a == 0 -> 2\n"
+                "   else -> 3"
+                "}\n");
+    bool ok = true;
+    auto ast = parser_.ParseWhenExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsWhenExpression());
+    EXPECT_EQ(nullptr, ast->initializer());
+    EXPECT_EQ(nullptr, ast->destination());
+    ASSERT_EQ(3, ast->case_clauses_size());
+    ASSERT_EQ(CaseWhenPattern::kExpectValue, ast->case_clause(0)->pattern());
+    auto case_clause = WhenExpression::ExpectValueCase::Cast(ast->case_clause(0));
+    ASSERT_TRUE(case_clause->match_value()->IsGreater());
+    ASSERT_TRUE(case_clause->then_clause()->IsIntLiteral());
+    EXPECT_EQ(0, case_clause->then_clause()->AsIntLiteral()->value());
+    
+    ASSERT_NE(nullptr, ast->else_clause());
+    ASSERT_TRUE(ast->else_clause()->IsIntLiteral());
+    EXPECT_EQ(3, ast->else_clause()->AsIntLiteral()->value());
+}
+
 TEST_F(ParserTest, Assigment) {
     SwitchInput("a = 1\n");
     bool ok = true;

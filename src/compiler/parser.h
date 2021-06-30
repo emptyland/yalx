@@ -43,6 +43,7 @@ public:
     Expression *ParsePrimary(bool *ok);
     Expression *ParseParenOrLambdaLiteral(bool *ok);
     IfExpression *ParseIfExpression(bool *ok);
+    WhenExpression *ParseWhenExpression(bool *ok);
     Type *ParseType(bool *ok);
 private:
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *list, Expression *receiver[2], bool *ok);
