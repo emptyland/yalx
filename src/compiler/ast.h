@@ -135,16 +135,33 @@ class ClassDefinition : public Statement {}; // TODO:
 class StructDefinition : public Statement {}; // TODO:
 class InterfaceDefinition : public Statement {}; // TODO:
 class AnnotationDefinition : public Statement {}; // TODO:
+class Definition : public Statement {}; // TODO:
 
+// class GenericParameter : Node
+//     = Identifier(): Symbol *
+//     + identifier: Type *
+//     + constraint: Type *
+class GenericParameter : public Node {
+public:
+    GenericParameter(const String *name, Type *constraint, const SourcePosition &source_position);
+    
+    DEF_PTR_GETTER(const String, name);
+    DEF_PTR_PROP_RW(Type, constraint);
+private:
+    const String *const name_;
+    Type *constraint_;
+}; // class GenericParameter
 
 //----------------------------------------------------------------------------------------------------------------------
 // Declaration
 //----------------------------------------------------------------------------------------------------------------------
+enum Access {
+    kDefault, kExport, kPublic, kProtected, kPrivate
+};
+
 class Declaration : public Statement {
 public:
-    enum Access {
-        kExport, kPublic, kProtected, kPrivate, kDefault
-    };
+    using Access = Access;
     
     DEF_VAL_PROP_RW(Access, access);
     DEF_PTR_PROP_RW(AnnotationDeclaration, annotations);
@@ -154,6 +171,9 @@ public:
     virtual Declaration *AtItem(size_t i) const = 0;
     virtual size_t ItemSize() const = 0;
     
+    static bool IsNot(AstNode *node) { return !Is(node); }
+    static bool Is(AstNode *node);
+
 protected:
     Declaration(base::Arena *arena, Kind kind, const SourcePosition &source_position);
 
@@ -212,6 +232,61 @@ private:
     base::ArenaVector<Expression *> initilaizers_;
 }; // class VariableDeclaration
 
+
+
+//----------------------------------------------------------------------------------------------------------------------
+// FunctionDeclaration
+//----------------------------------------------------------------------------------------------------------------------
+//class FunctionDeclaration : Declaration
+//    + name: NString *
+//    + decoration: {kNative, kAbstract, kOverride}
+//    + is_reduce: bool // 'fun foo(): xxx {...}' or 'fun foo() -> xxx' syntax
+//    + define_for: Definition *
+//    + defined: LambdaLiteral *
+
+class FunctionDeclaration : public Declaration {
+public:
+    enum Decoration {
+        kDefault,
+        kNative,
+        kAbstract,
+        kOverride,
+    };
+    
+    FunctionDeclaration(base::Arena *arena, Decoration decoration, const String *name, FunctionPrototype *prototype,
+                        bool is_reduce, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(const String, name);
+    DEF_VAL_GETTER(Decoration, decoration);
+    DEF_VAL_GETTER(bool, is_reduce);
+    DEF_PTR_PROP_RW(Definition, define_for);
+    DEF_PTR_PROP_RW(FunctionPrototype, prototype);
+    DEF_PTR_PROP_RW(Statement, body);
+    DEF_ARENA_VECTOR_GETTER(GenericParameter *, generic_param);
+    
+    bool IsDefault() const { return decoration() == kDefault; }
+    bool IsNative() const { return decoration() == kNative; }
+    bool IsAbstract() const { return decoration() == kAbstract; }
+    bool IsOverride() const { return decoration() == kOverride; }
+    
+    const String *Identifier() const override;
+    class Type *Type() const override;
+    Declaration *AtItem(size_t i) const override;
+    size_t ItemSize() const override;
+    
+    DECLARE_AST_NODE(FunctionDeclaration);
+private:
+    const String *name_;
+    Decoration decoration_;
+    FunctionPrototype *prototype_;
+    Statement *body_ = nullptr;
+    Definition *define_for_ = nullptr;
+    base::ArenaVector<GenericParameter *> generic_params_;
+    bool is_reduce_;
+}; // class FunctionDeclaration
+
+
+class ObjectDeclaration : public Declaration{}; // TODO:
 //----------------------------------------------------------------------------------------------------------------------
 // Annotation
 //----------------------------------------------------------------------------------------------------------------------

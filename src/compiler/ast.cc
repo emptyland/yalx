@@ -45,8 +45,26 @@ Return::Return(base::Arena *arena, const SourcePosition &source_position)
     , returnning_vals_(arena) {
 }
 
+GenericParameter::GenericParameter(const String *name, Type *constraint, const SourcePosition &source_position)
+    : Node(Node::kMaxKinds, source_position)
+    , name_(DCHECK_NOTNULL(name))
+    , constraint_(constraint) {
+}
+
 Declaration::Declaration(base::Arena *arena, Kind kind, const SourcePosition &source_position)
     : Statement(kind, source_position) {        
+}
+
+bool Declaration::Is(AstNode *node) {
+    switch (node->kind()) {
+        case Node::kVariableDeclaration:
+        case Node::kFunctionDeclaration:
+        case Node::kObjectDeclaration:
+            return true;
+            
+        default:
+            return false;
+    }
 }
 
 VariableDeclaration::VariableDeclaration(base::Arena *arena, bool is_volatile, Constraint constraint,
@@ -57,6 +75,26 @@ VariableDeclaration::VariableDeclaration(base::Arena *arena, bool is_volatile, C
     , variables_(arena)
     , initilaizers_(arena) {        
 }
+
+FunctionDeclaration::FunctionDeclaration(base::Arena *arena, Decoration decoration, const String *name,
+                                         FunctionPrototype *prototype, bool is_reduce,
+                                         const SourcePosition &source_position)
+    : Declaration(arena, Node::kFunctionDeclaration, source_position)
+    , decoration_(decoration)
+    , name_(name)
+    , prototype_(prototype)
+    , generic_params_(arena)
+    , is_reduce_(is_reduce) {
+}
+
+const String *FunctionDeclaration::Identifier() const { return name(); }
+class Type *FunctionDeclaration::Type() const { return prototype(); }
+
+Declaration *FunctionDeclaration::AtItem(size_t i) const {
+    return static_cast<Declaration *>(prototype()->param(i));
+}
+
+size_t FunctionDeclaration::ItemSize() const { return prototype()->params_size(); }
 
 AnnotationDeclaration::AnnotationDeclaration(base::Arena *arena, const SourcePosition &source_position)
     : AstNode(Node::kAnnotationDeclaration, source_position)

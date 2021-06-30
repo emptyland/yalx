@@ -20,6 +20,7 @@ namespace cpl {
 class SyntaxFeedback;
 class Lexer;
 class Operator;
+class GenericParameter;
 
 using String = base::ArenaString;
 
@@ -35,6 +36,9 @@ public:
     Annotation *ParseAnnotation(bool skip_at, bool *ok);
     VariableDeclaration *ParseVariableDeclaration(bool *ok);
     
+    Statement *ParseOutsideStatement(bool *ok);
+    FunctionDeclaration *ParseFunctionDeclaration(bool *ok);
+    FunctionPrototype *ParseFunctionPrototype(bool *ok);
     Statement *ParseStatement(bool *ok);
     Expression *ParseExpression(bool *ok) { return ParseExpression(0, nullptr, ok); }
     Expression *ParseExpression(int limit, Operator *receiver, bool *ok);
@@ -46,6 +50,7 @@ public:
     WhenExpression *ParseWhenExpression(bool *ok);
     Type *ParseType(bool *ok);
 private:
+    void *ParseGenericParameters(base::ArenaVector<GenericParameter *> *params, bool *ok);
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *list, Expression *receiver[2], bool *ok);
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *receiver, bool *ok);
     Expression *ParseRemainLambdaLiteral(FunctionPrototype *prototype, const SourcePosition &location, bool *ok);
@@ -62,6 +67,8 @@ private:
     }
     Expression *NewExpressionWithOperands(const Operator &op, Expression *lhs, Expression *rhs,
                                           const SourcePosition &location);
+    
+    int ParseDeclarationAccess();
     
     const String *MatchText(Token::Kind kind, bool *ok);
     void Match(Token::Kind kind, bool *ok);

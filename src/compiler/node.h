@@ -120,6 +120,8 @@ namespace cpl {
     V(BreakStatement) \
     V(ContinueStatement) \
     V(VariableDeclaration) \
+    V(FunctionDeclaration) \
+    V(ObjectDeclaration) \
     V(ClassDefinition) \
     V(StructDefinition) \
     V(InterfaceDefinition) \
@@ -189,6 +191,8 @@ using String = base::ArenaString;
 class Literal;
 class Expression;
 class Statement;
+class Declaration;
+class Definition;
 
 class Node : public base::ArenaObject {
 public:

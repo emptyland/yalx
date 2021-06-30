@@ -186,15 +186,25 @@ FileUnit *Parser::Parse(bool *ok) {
             } break;
                 
             case Token::kAtOutlined: {
-                // TODO:
+                auto anno = ParseAnnotationDeclaration(CHECK_OK);
+                auto stmt = ParseOutsideStatement(CHECK_OK);
+                if (Declaration::Is(stmt)) {
+                    static_cast<Declaration *>(stmt)->set_annotations(anno);
+                    // Declaration should has annotations.
+                    // TODO: Definition
+                } else {
+                    error_feedback_->Printf(anno->source_position(), "Incorrect annotation declaration, wrong position");
+                    *ok = false;
+                    return nullptr;
+                }
             } break;
 
-            case Token::kNative: {
-                // TODO:
-            } break;
-
+            case Token::kNative:
+            case Token::kPublic:
+            case Token::kExport:
             case Token::kFun: {
-                // TODO:
+                auto fun = ParseFunctionDeclaration(ok);
+                file_unit_->mutable_statements()->push_back(fun);
             } break;
 
             case Token::kVolatile:
@@ -214,10 +224,152 @@ FileUnit *Parser::Parse(bool *ok) {
     return file_unit_;
 }
 
+Statement *Parser::ParseOutsideStatement(bool *ok) {
+    auto location = Peek().source_position();
+    switch (Peek().kind()) {
+        case Token::kNative:
+        case Token::kPublic:
+        case Token::kExport:
+        case Token::kFun:
+            return ParseFunctionDeclaration(ok);
+            
+        default:
+            error_feedback_->Printf(Peek().source_position(), "Unexpected token %s", Peek().ToString().c_str());
+            *ok = false;
+            return nullptr;
+    }
+}
+
+// function_definition ::= `fun' generic_declaration? identifier function_prototype block
+//                       | `fun' generic_declaration? identifier `(' argument_list? `)' `->' expression
+// function_declaration ::= `native' `fun' identifier function_prototype
+// function_prototype ::= `(' argument_list? `)' ( `:'  return_types )?
+// return_types ::= type_ref | `(' type_list `)'
+// argument_list ::= argument+ ( `,' vargs )?
+//                  | vargs
+// argument ::= identifier `:' type_ref
+// vargs ::= `...'
+//
+// generic_declaration ::= `<' generic_symbol_list `>'
+// generic_symbol_list ::= identifer ( `,' identifer )*
+FunctionDeclaration *Parser::ParseFunctionDeclaration(bool *ok) {
+    auto location = Peek().source_position();
+    
+    auto access = static_cast<Declaration::Access>(ParseDeclarationAccess());
+    FunctionDeclaration::Decoration decoration = FunctionDeclaration::kDefault;
+    
+    switch (Peek().kind()) {
+        case Token::kNative:
+            decoration = FunctionDeclaration::kNative;
+            MoveNext();
+            break;
+        case Token::kOverride:
+            decoration = FunctionDeclaration::kOverride;
+            MoveNext();
+            break;
+        case Token::kAbstract:
+            decoration = FunctionDeclaration::kAbstract;
+            MoveNext();
+            break;
+        default:
+            break;
+    }
+    
+    // `fun' `<' .. `>'
+    Match(Token::kFun, CHECK_OK);
+    
+    base::ArenaVector<GenericParameter *> generic_params(arena_);
+    if (Peek().Is(Token::kLess)) {
+        ParseGenericParameters(&generic_params, CHECK_OK);
+    }
+    
+    auto name = MatchText(Token::kIdentifier, CHECK_OK);
+    
+    auto prototype = ParseFunctionPrototype(CHECK_OK);
+    auto is_reduce = Test(Token::kRArrow);
+    auto decl = new (arena_) FunctionDeclaration(arena_, decoration, name, prototype, is_reduce, location);
+    *decl->mutable_generic_params() = std::move(generic_params);
+    
+    if (decoration == FunctionDeclaration::kNative || decoration == FunctionDeclaration::kAbstract) {
+        return decl;
+    }
+    
+    if (!is_reduce) {
+        if (Peek().IsNot(Token::kLBrace)) {
+            return decl;
+        }
+        
+        auto body = ParseStatement(CHECK_OK);
+        if (!body->IsBlock()) {
+            error_feedback_->Printf(body->source_position(), "Incorrect function body");
+            *ok = false;
+            return nullptr;
+        }
+        *decl->mutable_source_position() = location.Concat(body->source_position());
+        decl->set_body(body);
+        return decl;
+    }
+    
+    auto body = ParseStatement(CHECK_OK);
+    *decl->mutable_source_position() = location.Concat(body->source_position());
+    decl->set_body(body);
+    return decl;
+}
+
+FunctionPrototype *Parser::ParseFunctionPrototype(bool *ok) {
+    auto location = Peek().source_position();
+    
+    Match(Token::kLParen, CHECK_OK);
+    
+    auto prototype = new (arena_) FunctionPrototype(arena_, false, location);
+    if (!Test(Token::kRParen)) {
+        do {
+            auto param_location = Peek().source_position();
+
+            if (Test(Token::kVargs)) {
+                prototype->set_vargs(true);
+                Match(Token::kRParen, CHECK_OK);
+                break;
+            }
+            
+            AnnotationDeclaration *anno = nullptr;
+            if (Peek().Is(Token::kAtOutlined)) {
+                anno = ParseAnnotationDeclaration(CHECK_OK);
+            }
+            
+            auto name = MatchText(Token::kIdentifier, CHECK_OK);
+            Match(Token::kColon, CHECK_OK);
+            auto type = ParseType(CHECK_OK);
+            
+            auto param = new (arena_) VariableDeclaration::Item(arena_, name, type,
+                                                                param_location.Concat(type->source_position()));
+            param->set_annotations(anno);
+            
+            prototype->mutable_params()->push_back(param);
+        } while (Test(Token::kComma));
+        
+        Match(Token::kRParen, CHECK_OK);
+    }
+
+    if (Test(Token::kColon)) {
+        if (Test(Token::kLParen)) {
+            do {
+                auto type = ParseType(CHECK_OK);
+                prototype->mutable_return_types()->push_back(type);
+            } while (Test(Token::kComma));
+            Match(Token::kRParen, CHECK_OK);
+        } else {
+            auto type = ParseType(CHECK_OK);
+            prototype->mutable_return_types()->push_back(type);
+        }
+    }
+    return prototype;
+}
+
 // package_declaration ::= identifier
 const String *Parser::ParsePackageName(bool *ok) {
     if (file_unit_->package_name() != nullptr) {
-        error_feedback_->Printf(lookahead_.source_position(), "Duplicated package name declaration.");
+        error_feedback_->Printf(Peek().source_position(), "Duplicated package name declaration.");
         *ok = false;
         return nullptr;
     }
@@ -776,6 +928,27 @@ WhenExpression *Parser::ParseWhenExpression(bool *ok) {
     return when;
 }
 
+void *Parser::ParseGenericParameters(base::ArenaVector<GenericParameter *> *params, bool *ok) {
+    Match(Token::kLess, CHECK_OK);
+    
+    do {
+        auto location = Peek().source_position();
+        auto name = MatchText(Token::kIdentifier, CHECK_OK);
+        Type *type = nullptr;
+        if (Test(Token::kColon)) {
+            type = ParseType(CHECK_OK);
+        }
+        
+        if (type) {
+            location = location.Concat(type->source_position());
+        }
+        params->push_back(new (arena_) GenericParameter(name, type, location));
+    } while (Test(Token::kComma));
+    
+    Match(Token::kGreater, CHECK_OK);
+    return nullptr;
+}
+
 Expression *Parser::ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *list, Expression *receiver[2],
                                                   bool *ok) {
     Expression *expr = nullptr;
@@ -1106,6 +1279,33 @@ Expression *Parser::NewExpressionWithOperands(const Operator &op, Expression *lh
             break;
     }
     return nullptr;
+}
+
+int Parser::ParseDeclarationAccess() {
+    Declaration::Access access = Access::kDefault;
+    
+    switch (Peek().kind()) {
+        case Token::kExport:
+            access = Access::kExport;
+            MoveNext();
+            break;
+        case Token::kPublic:
+            access = Access::kPublic;
+            MoveNext();
+            break;
+        case Token::kPrivate:
+            access = Access::kPrivate;
+            MoveNext();
+            break;
+        case Token::kProtected:
+            access = Access::kProtected;
+            MoveNext();
+            break;
+        default:
+            break;
+    }
+    
+    return static_cast<int>(access);
 }
 
 const String *Parser::MatchText(Token::Kind kind, bool *ok) {

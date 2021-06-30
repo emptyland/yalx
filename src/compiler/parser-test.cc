@@ -359,6 +359,23 @@ TEST_F(ParserTest, WhenExpression) {
     EXPECT_EQ(3, ast->else_clause()->AsIntLiteral()->value());
 }
 
+TEST_F(ParserTest, WhenExpressionTypeCastingCases) {
+    SwitchInput("when (val a = foo(); a) {\n"
+                "   in 1 ..2 -> 0\n"
+                "   v: int -> 1\n"
+                "   v: f32 -> 2\n"
+                "   else -> 3"
+                "}\n");
+    bool ok = true;
+    auto ast = parser_.ParseWhenExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsWhenExpression());
+    ASSERT_NE(nullptr, ast->AsWhenExpression()->initializer());
+    ASSERT_TRUE(ast->AsWhenExpression()->initializer()->IsVariableDeclaration());
+}
+
 TEST_F(ParserTest, Assigment) {
     SwitchInput("a = 1\n");
     bool ok = true;
@@ -408,6 +425,34 @@ TEST_F(ParserTest, AssigmentMultiRVal) {
     ASSERT_TRUE(stmt->rval(0)->IsIntLiteral());
     ASSERT_TRUE(stmt->rval(1)->IsIntLiteral());
     ASSERT_TRUE(stmt->rval(2)->IsIntLiteral());
+}
+
+TEST_F(ParserTest, FunctionDeclaration) {
+    SwitchInput("native fun foo()\n"
+                "fun bar(@Foo a: int)->1\n");
+    bool ok = true;
+    auto ast = parser_.ParseFunctionDeclaration(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    EXPECT_TRUE(ast->IsNative());
+    EXPECT_STREQ("foo", ast->name()->data());
+    EXPECT_EQ(0, ast->generic_params_size());
+    EXPECT_EQ(0, ast->prototype()->params_size());
+    EXPECT_EQ(0, ast->prototype()->return_types_size());
+    
+    ast = parser_.ParseFunctionDeclaration(&ok);
+    ASSERT_TRUE(ok);
+    EXPECT_TRUE(ast->IsDefault());
+    EXPECT_STREQ("bar", ast->name()->data());
+    
+    auto param = static_cast<VariableDeclaration::Item *>(ast->prototype()->param(0));
+    EXPECT_STREQ("a", param->identifier()->data());
+    ASSERT_NE(nullptr, param->annotations());
+    ASSERT_EQ(1, param->annotations()->annotations_size());
+    auto anno = param->annotations()->annotation(0);
+    EXPECT_STREQ("Foo", anno->name()->name()->data());
+    
 }
 
 } // namespace cpl

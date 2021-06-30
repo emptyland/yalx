@@ -97,9 +97,12 @@ using String = base::ArenaString;
     V(Spwan, "spwan", none) \
     V(Import, "import", none) \
     V(Package, "package", none) \
+    V(Export, "export", none) \
     V(Public, "public", none) \
     V(Protected, "protected", none) \
     V(Private, "private", none) \
+    V(Override, "override", none) \
+    V(Abstract, "abstract", none) \
     V(Is, "is", none) \
     V(As, "as", none) \
     V(If, "if", none) \
