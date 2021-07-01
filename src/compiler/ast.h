@@ -35,6 +35,20 @@ class Statement;
 class Declaration;
 class Expression;
 
+struct FieldOfStructure {
+    bool in_constructor; // in constructor
+    int  as_constructor; // index of constructor parameter
+    VariableDeclaration *declaration;
+}; // struct Field
+
+struct ParameterOfConstructor {
+    bool field_declaration;
+    union {
+        int as_field; // index of field
+        VariableDeclaration *as_parameter;
+    };
+}; // struct Field
+
 //----------------------------------------------------------------------------------------------------------------------
 // FileUnit
 //----------------------------------------------------------------------------------------------------------------------
@@ -131,8 +145,6 @@ private:
 
 class BreakStatement : public Statement {}; // TODO:
 class ContinueStatement : public Statement {}; // TODO:
-class ClassDefinition : public Statement {}; // TODO:
-class StructDefinition : public Statement {}; // TODO:
 
 // class GenericParameter : Node
 //     = Identifier(): Symbol *
@@ -232,7 +244,6 @@ private:
 }; // class VariableDeclaration
 
 
-
 //----------------------------------------------------------------------------------------------------------------------
 // FunctionDeclaration
 //----------------------------------------------------------------------------------------------------------------------
@@ -284,8 +295,26 @@ private:
     bool is_reduce_;
 }; // class FunctionDeclaration
 
+class ObjectDeclaration : public Declaration {
+public:
+    ObjectDeclaration(base::Arena *arena, const String *name, const SourcePosition &source_position);
 
-class ObjectDeclaration : public Declaration{}; // TODO:
+    DEF_PTR_PROP_RW(const String, name);
+    DEF_ARENA_VECTOR_GETTER(VariableDeclaration *, field);
+    DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, method);
+    
+    const String *Identifier() const override;
+    class Type *Type() const override;
+    Declaration *AtItem(size_t i) const override;
+    size_t ItemSize() const override;
+    
+    DECLARE_AST_NODE(ObjectDeclaration);
+private:
+    const String *name_;
+    base::ArenaVector<VariableDeclaration *> fields_;
+    base::ArenaVector<FunctionDeclaration *> methods_;
+    class Type *dummy_ = nullptr;
+}; // class ObjectDeclaration
 
 //----------------------------------------------------------------------------------------------------------------------
 // Definitions
@@ -337,6 +366,43 @@ public:
 private:
     base::ArenaVector<Member> members_;
 }; // class AnnotationDefinition
+
+class IncompletableDefinition : public Definition {
+public:
+    using Field = FieldOfStructure;
+    using Parameter = ParameterOfConstructor;
+    
+    DEF_ARENA_VECTOR_GETTER(Field, field);
+    DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, method);
+    DEF_ARENA_VECTOR_GETTER(Parameter, parameter);
+    DEF_PTR_PROP_RW(Symbol, base_symbol);
+    DEF_ARENA_VECTOR_GETTER(Expression *, argument);
+protected:
+    IncompletableDefinition(Node::Kind kind, base::Arena *arena, const String *name,
+                            const SourcePosition &source_position);
+    
+    base::ArenaVector<Parameter> parameters_;
+    base::ArenaMap<std::string_view, size_t> named_parameters_;
+    base::ArenaVector<Field> fields_;
+    base::ArenaVector<FunctionDeclaration *> methods_;
+    Symbol *base_symbol_ = nullptr;
+    base::ArenaVector<Expression *> arguments_;
+}; // class IncompletableDefinition
+
+
+class StructDefinition : public IncompletableDefinition {
+public:
+    StructDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
+    
+    DECLARE_AST_NODE(StructDefinition);
+}; // class StructDefinition
+
+class ClassDefinition : public IncompletableDefinition {
+public:
+    ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
+    
+    DECLARE_AST_NODE(ClassDefinition);
+}; // class ClassDefinition
 
 //----------------------------------------------------------------------------------------------------------------------
 // Annotation
@@ -766,6 +832,7 @@ public:
         kExpectValue,
         kTypeTesting,
         kBetweenTo,
+        kStructMatching,
     };
     CaseWhenPattern(Pattern pattern, Statement *then_clause, const SourcePosition &source_position);
     
@@ -818,8 +885,8 @@ public:
     // `in' literal..literal
     class BetweenToCase : public Case {
     public:
-        BetweenToCase(Expression *lower, Expression *upper, Statement *then_clause,
-                      bool is_close, const SourcePosition &source_position);
+        BetweenToCase(Expression *lower, Expression *upper, Statement *then_clause, bool is_close,
+                      const SourcePosition &source_position);
 
         DEF_PTR_PROP_RW(Expression, lower);
         DEF_PTR_PROP_RW(Expression, upper);
@@ -831,6 +898,21 @@ public:
         Expression *upper_;
         bool is_close_;
     }; // class BetweenToCase
+    
+    // Foo { name, id } -> name, ... id, ...
+    class StructMatchingCase : public Case {
+    public:
+        StructMatchingCase(base::Arena *arena, const Symbol *symbol, Statement *then_clause,
+                           const SourcePosition &source_position);
+        
+        DEF_PTR_PROP_RW(const Symbol, symbol);
+        DEF_ARENA_VECTOR_GETTER(Identifier *, expected);
+        
+        DEFINE_CASE_METHODS(StructMatching);
+    private:
+        const Symbol *symbol_;
+        base::ArenaVector<Identifier *> expecteds_;
+    }; // case StructMatchingCase
     
     #undef DEFINE_CASE_METHODS
     

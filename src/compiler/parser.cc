@@ -183,26 +183,48 @@ FileUnit *Parser::Parse(bool *ok) {
             } break;
 
             case Token::kInterface: {
-                // TODO:
+                auto stmt = ParseInterfaceDefinition(CHECK_OK);
+                file_unit_->mutable_statements()->push_back(stmt);
             } break;
                 
             case Token::kAtOutlined: {
                 auto anno = ParseAnnotationDeclaration(CHECK_OK);
+                auto access = static_cast<Access>(ParseDeclarationAccess());
                 auto stmt = ParseOutsideStatement(CHECK_OK);
                 if (Declaration::Is(stmt)) {
                     static_cast<Declaration *>(stmt)->set_annotations(anno);
+                    static_cast<Declaration *>(stmt)->set_access(access);
                     // Declaration should has annotations.
-                    // TODO: Definition
+                } else if (Definition::Is(stmt)) {
+                    static_cast<Definition *>(stmt)->set_annotations(anno);
+                    static_cast<Definition *>(stmt)->set_access(access);
                 } else {
                     error_feedback_->Printf(anno->source_position(), "Incorrect annotation declaration, wrong position");
                     *ok = false;
                     return nullptr;
                 }
             } break;
+                
+            case Token::kExport:
+            case Token::kPublic:
+            case Token::kProtected:
+            case Token::kPrivate: {
+                auto access = static_cast<Access>(ParseDeclarationAccess());
+                auto stmt = ParseOutsideStatement(CHECK_OK);
+                if (Declaration::Is(stmt)) {
+                    static_cast<Declaration *>(stmt)->set_access(access);
+                    // Declaration should has annotations.
+                } else if (Definition::Is(stmt)) {
+                    static_cast<Definition *>(stmt)->set_access(access);
+                } else {
+                    error_feedback_->Printf(stmt->source_position(), "Incorrect access declaration, wrong position");
+                    *ok = false;
+                    return nullptr;
+                }
+                file_unit_->mutable_statements()->push_back(stmt);
+            } break;
 
             case Token::kNative:
-            case Token::kPublic:
-            case Token::kExport:
             case Token::kFun: {
                 auto fun = ParseFunctionDeclaration(ok);
                 file_unit_->mutable_statements()->push_back(fun);
@@ -228,11 +250,20 @@ FileUnit *Parser::Parse(bool *ok) {
 Statement *Parser::ParseOutsideStatement(bool *ok) {
     auto location = Peek().source_position();
     switch (Peek().kind()) {
+        case Token::kInterface:
+            return ParseInterfaceDefinition(ok);
+            
+        case Token::kAnnotation:
+            return ParseAnnotationDefinition(ok);
+            
         case Token::kNative:
-        case Token::kPublic:
-        case Token::kExport:
         case Token::kFun:
             return ParseFunctionDeclaration(ok);
+            
+        case Token::kVolatile:
+        case Token::kVal:
+        case Token::kVar:
+            return ParseVariableDeclaration(ok);
             
         default:
             error_feedback_->Printf(Peek().source_position(), "Unexpected token %s", Peek().ToString().c_str());
@@ -256,9 +287,7 @@ Statement *Parser::ParseOutsideStatement(bool *ok) {
 FunctionDeclaration *Parser::ParseFunctionDeclaration(bool *ok) {
     auto location = Peek().source_position();
     
-    auto access = static_cast<Declaration::Access>(ParseDeclarationAccess());
     FunctionDeclaration::Decoration decoration = FunctionDeclaration::kDefault;
-    
     switch (Peek().kind()) {
         case Token::kNative:
             decoration = FunctionDeclaration::kNative;
@@ -369,7 +398,6 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool *ok) {
 
 InterfaceDefinition *Parser::ParseInterfaceDefinition(bool *ok) {
     auto location = Peek().source_position();
-    auto access = static_cast<Access>(ParseDeclarationAccess());
     
     Match(Token::kInterface, CHECK_OK);
     auto name = MatchText(Token::kIdentifier, CHECK_OK);
@@ -415,7 +443,6 @@ InterfaceDefinition *Parser::ParseInterfaceDefinition(bool *ok) {
 // }
 AnnotationDefinition *Parser::ParseAnnotationDefinition(bool *ok) {
     auto location = Peek().source_position();
-    auto access = static_cast<Access>(ParseDeclarationAccess());
     
     Match(Token::kAnnotation, CHECK_OK);
     auto name = MatchText(Token::kIdentifier, CHECK_OK);
@@ -442,9 +469,15 @@ AnnotationDefinition *Parser::ParseAnnotationDefinition(bool *ok) {
         location = location.Concat(Peek().source_position());
     }
     
-    def->set_access(access);
     *def->mutable_source_position() = location;
     return def;
+}
+
+StructDefinition *Parser::ParseStructDefinition(bool *ok) {
+    auto location = Peek().source_position();
+    Match(Token::kStruct, CHECK_OK);
+    auto name = MatchText(Token::kIdentifier, CHECK_OK);
+    // TODO:
 }
 
 // package_declaration ::= identifier

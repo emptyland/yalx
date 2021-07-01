@@ -96,6 +96,20 @@ Declaration *FunctionDeclaration::AtItem(size_t i) const {
 
 size_t FunctionDeclaration::ItemSize() const { return prototype()->params_size(); }
 
+ObjectDeclaration::ObjectDeclaration(base::Arena *arena, const String *name, const SourcePosition &source_position)
+    : Declaration(arena, Node::kObjectDeclaration, source_position)
+    , name_(DCHECK_NOTNULL(name))
+    , fields_(arena)
+    , methods_(arena) {
+    auto symbol = new (arena) Symbol(name, source_position);
+    dummy_ = new (arena) class Type(arena, symbol, source_position);
+}
+
+const String *ObjectDeclaration::Identifier() const { return name(); }
+class Type *ObjectDeclaration::Type() const { return dummy_; }
+Declaration *ObjectDeclaration::AtItem(size_t i) const { return field(i); }
+size_t ObjectDeclaration::ItemSize() const { return fields_size(); }
+
 bool Definition::Is(AstNode *node) {
     switch (node->kind()) {
         case Node::kStructDefinition:
@@ -122,6 +136,24 @@ InterfaceDefinition::InterfaceDefinition(base::Arena *arena, const SourcePositio
 AnnotationDefinition::AnnotationDefinition(base::Arena *arena, const SourcePosition &source_position)
     : Definition(arena, Node::kAnnotationDefinition, source_position)
     , members_(arena) {
+}
+
+IncompletableDefinition::IncompletableDefinition(Node::Kind kind, base::Arena *arena, const String *name,
+                                                 const SourcePosition &source_position)
+    : Definition(arena, kind, source_position)
+    , parameters_(arena)
+    , named_parameters_(arena)
+    , fields_(arena)
+    , methods_(arena)
+    , arguments_(arena) {
+}
+
+StructDefinition::StructDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
+    : IncompletableDefinition(Node::kStructDefinition, arena, name, source_position) {
+}
+
+ClassDefinition::ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
+    : IncompletableDefinition(Node::kClassDefinition, arena, name, source_position) {
 }
 
 AnnotationDeclaration::AnnotationDeclaration(base::Arena *arena, const SourcePosition &source_position)
@@ -249,6 +281,13 @@ WhenExpression::BetweenToCase::BetweenToCase(Expression *lower, Expression *uppe
     , lower_(DCHECK_NOTNULL(lower))
     , upper_(DCHECK_NOTNULL(upper))
     , is_close_(is_close) {
+}
+
+WhenExpression::StructMatchingCase::StructMatchingCase(base::Arena *arena, const Symbol *symbol, Statement *then_clause,
+                                                       const SourcePosition &source_position)
+    : Case(kStructMatching, then_clause, source_position)
+    , symbol_(DCHECK_NOTNULL(symbol))
+    , expecteds_(arena) {
 }
 
 bool Type::Is(Node *node) {

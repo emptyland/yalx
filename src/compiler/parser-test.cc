@@ -482,6 +482,22 @@ TEST_F(ParserTest, FunctionDeclaration) {
     
 }
 
+TEST_F(ParserTest, InterfaceDefinition) {
+    SwitchInput("interface Foo {\n"
+                "   fun bar(): int\n"
+                "   fun baz(a: int)\n"
+                "}\n");
+    bool ok = true;
+    auto ast = parser_.ParseInterfaceDefinition(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsInterfaceDefinition());
+    ASSERT_EQ(2, ast->methods_size());
+    EXPECT_STREQ("bar", ast->method(0)->name()->data());
+    EXPECT_STREQ("baz", ast->method(1)->name()->data());
+}
+
 } // namespace cpl
 
 } // namespace yalx
