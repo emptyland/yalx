@@ -24,6 +24,8 @@
 		232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0D2680775600D52154 /* any-posix-x64.s */; };
 		232FDB1026818CF900D52154 /* number-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0F26818CF900D52154 /* number-test.cc */; };
 		232FDB1126818CF900D52154 /* number-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0F26818CF900D52154 /* number-test.cc */; };
+		2331FFA6268DC66B00F69508 /* ast-utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2331FFA5268DC66B00F69508 /* ast-utils.cc */; };
+		2331FFA7268DC66B00F69508 /* ast-utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2331FFA5268DC66B00F69508 /* ast-utils.cc */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA42684627B002E6DCF /* lexer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFA32684627B002E6DCF /* lexer.cc */; };
@@ -202,6 +204,7 @@
 		232FDB0B26806D8B00D52154 /* number.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = number.c; path = ../src/runtime/object/number.c; sourceTree = "<group>"; };
 		232FDB0D2680775600D52154 /* any-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "any-posix-x64.s"; path = "../src/runtime/object/any-posix-x64.s"; sourceTree = "<group>"; };
 		232FDB0F26818CF900D52154 /* number-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "number-test.cc"; path = "../src/runtime/object/number-test.cc"; sourceTree = "<group>"; };
+		2331FFA5268DC66B00F69508 /* ast-utils.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "ast-utils.cc"; path = "../src/compiler/ast-utils.cc"; sourceTree = "<group>"; };
 		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
 		2351F80E26648CB200D337EA /* runtime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = runtime.h; path = ../src/runtime/runtime.h; sourceTree = "<group>"; };
 		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
@@ -436,6 +439,7 @@
 				232A9FFF26861A060098E6A3 /* ast-test.cc */,
 				2387EFBA2685BEAD002E6DCF /* ast.cc */,
 				2387EFB92685BE66002E6DCF /* ast.h */,
+				2331FFA5268DC66B00F69508 /* ast-utils.cc */,
 				2387EFB52685BB43002E6DCF /* node.h */,
 				2387EFB62685BB99002E6DCF /* node-test.cc */,
 				232AA00626861D5D0098E6A3 /* parser-test.cc */,
@@ -641,6 +645,7 @@
 				23D4A47E2680D17D0090C631 /* status.h in Sources */,
 				23D4A47F2680D17D0090C631 /* status.cc in Sources */,
 				23D4A4802680D17D0090C631 /* checking.h in Sources */,
+				2331FFA7268DC66B00F69508 /* ast-utils.cc in Sources */,
 				2387EFBC2685BEAD002E6DCF /* ast.cc in Sources */,
 				23D4A4812680D17D0090C631 /* format.h in Sources */,
 				23D4A4822680D17D0090C631 /* format.cc in Sources */,
@@ -658,6 +663,7 @@
 				23D5A662266718F900635ADB /* arena.h in Sources */,
 				232AA00426861D4C0098E6A3 /* parser.cc in Sources */,
 				23D5A663266718F900635ADB /* at-exit.cc in Sources */,
+				2331FFA6268DC66B00F69508 /* ast-utils.cc in Sources */,
 				23D5A664266718F900635ADB /* at-exit.h in Sources */,
 				2387EFBB2685BEAD002E6DCF /* ast.cc in Sources */,
 				2387EFB0268581AD002E6DCF /* token-test.cc in Sources */,
