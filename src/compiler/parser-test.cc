@@ -379,6 +379,30 @@ TEST_F(ParserTest, WhenExpressionTypeCastingCases) {
     ASSERT_TRUE(ast->AsWhenExpression()->initializer()->IsVariableDeclaration());
 }
 
+TEST_F(ParserTest, Instantiation) {
+    SwitchInput("foo.Foo<int>()\n");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsCalling());
+    ASSERT_TRUE(ast->AsCalling()->callee()->IsInstantiation());
+    auto inst = ast->AsCalling()->callee()->AsInstantiation();
+    ASSERT_TRUE(inst->primary()->IsDot());
+    ASSERT_EQ(1, inst->generic_args_size());
+    EXPECT_EQ(Type::kType_i32, inst->generic_arg(0)->primary_type());
+}
+
+TEST_F(ParserTest, InstantiationNested) {
+    SwitchInput("foo.Foo<Bar<int, Baz<int, string> > >()\n");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+}
+
+
 TEST_F(ParserTest, Assigment) {
     SwitchInput("a = 1\n");
     bool ok = true;

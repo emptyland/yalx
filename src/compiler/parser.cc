@@ -1027,8 +1027,45 @@ WhenExpression *Parser::ParseWhenExpression(bool *ok) {
     return when;
 }
 
-static bool EnsureType(Token::Kind kind) {
-    switch (kind) {
+//static bool EnsureType(Token::Kind kind) {
+//    switch (kind) {
+//        case Token::kUnit:
+//        case Token::kBool:
+//        case Token::kI8:
+//        case Token::kU8:
+//        case Token::kI16:
+//        case Token::kU16:
+//        case Token::kI32:
+//        case Token::kU32:
+//        case Token::kI64:
+//        case Token::kU64:
+//        case Token::kF32:
+//        case Token::kF64:
+//        case Token::kInt:
+//        case Token::kUInt:
+//        case Token::kString:
+//        case Token::kIn:
+//        case Token::kOut:
+//        case Token::kChan:
+//        case Token::kLParen:
+//            return true;
+//        default:
+//            return false;
+//    }
+//}
+
+bool Parser::ProbeInstantiation(bool *ok) {
+    ProbeNext();
+    do {
+        ProbeType(CHECK_OK);
+    } while (Test(Token::kComma));
+    Probe(Token::kGreater, CHECK_OK);
+    Probe(Token::kLParen, CHECK_OK);
+    return true;
+}
+
+bool Parser::ProbeType(bool *ok) {
+    switch (Peek().kind()) {
         case Token::kUnit:
         case Token::kBool:
         case Token::kI8:
@@ -1044,44 +1081,65 @@ static bool EnsureType(Token::Kind kind) {
         case Token::kInt:
         case Token::kUInt:
         case Token::kString:
+            ProbeNext();
+            break;
         case Token::kIn:
         case Token::kOut:
+            ProbeNext();
+            Probe(Token::kChan, CHECK_OK);
+            Probe(Token::kLess, CHECK_OK);
+            ProbeType(CHECK_OK);
+            Probe(Token::kGreater, CHECK_OK);
+            break;
         case Token::kChan:
+            ProbeNext();
+            Probe(Token::kLess, CHECK_OK);
+            ProbeType(CHECK_OK);
+            Probe(Token::kGreater, CHECK_OK);
+            break;
         case Token::kLParen:
-            return true;
-        default:
-            return false;
-    }
-}
-
-bool Parser::ProbeInstantiation() {
-    //rollback_[rollback_depth_++] = Peek();
-    int depth = 1;
-    while(depth > 0) {
-        auto token = lexer_->Next();
-        rollback_[rollback_depth_++] = token;
-        
-        if (token.Is(Token::kDot)) {
-            if (rollback_depth_ == 0 || rollback_[rollback_depth_ - 1].IsNot(Token::kIdentifier)) {
-                break;
+            ProbeNext();
+            if (!Probe(Token::kRParen)) {
+                do {
+                    if (Probe(Token::kVargs)) {
+                        break;
+                    }
+                } while (Probe(Token::kComma));
+                Probe(Token::kRParen, CHECK_OK);
             }
-        } else if (token.Is(Token::kLess)) {
-            depth++;
-        } else if (token.Is(Token::kGreater)) {
-            depth--;
-        } else if (EnsureType(token.kind())) {
+            Probe(Token::kRArrow, CHECK_OK);
+            if (Probe(Token::kLParen)) {
+                do {
+                    ProbeType(CHECK_OK);
+                } while (Probe(Token::kComma));
+                Probe(Token::kRParen, CHECK_OK);
+            } else {
+                ProbeType(CHECK_OK);
+            }
+            break;
+        case Token::kIdentifier: {
+            ProbeNext();
+            if (Probe(Token::kDot)) {
+                Probe(Token::kIdentifier, CHECK_OK);
+            }
+            if (Probe(Token::kLess)) {
+                do {
+                    ProbeType(CHECK_OK);
+                } while (Probe(Token::kComma));
+                Probe(Token::kGreater, CHECK_OK);
+            }
+        } break;
+        default:
+            *ok = false;
             return true;
-        } else if (token.IsNot(Token::kIdentifier)) {
-            return false;
-        }
-        
-        if (rollback_depth_ >= kMaxRollbackDepth - 1) {
-            return false;
+    }
+    
+    if (Peek().Is(Token::kLBrack)) {
+        while (Probe(Token::kLBrack)) {
+            Probe(Token::kRBrack, CHECK_OK);
         }
     }
-    auto token = lexer_->Next();
-    rollback_[rollback_depth_++] = token;
-    return token.Is(Token::kLParen);
+    return false;
 }
 
 void *Parser::ParseGenericParameters(base::ArenaVector<GenericParameter *> *params, bool *ok) {
@@ -1508,6 +1566,31 @@ void Parser::MoveNext() {
     }
     
     lookahead_ = lexer_->Next();
+}
+
+void Parser::Probe(Token::Kind kind, bool *ok) {
+    if (rollback_depth_ >= kMaxRollbackDepth) {
+        *ok = false;
+        return;
+    }
+    if (lookahead_.IsNot(kind)) {
+        *ok = false;
+        return;
+    }
+    ProbeNext();
+}
+
+bool Parser::Probe(Token::Kind kind) {
+    if (Peek().Is(kind)) {
+        ProbeNext();
+        return true;
+    }
+    return false;
+}
+
+void Parser::ProbeNext() {
+    lookahead_ = lexer_->Next();
+    rollback_[rollback_depth_++] = lookahead_;
 }
 
 } // namespace cpl

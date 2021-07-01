@@ -54,7 +54,15 @@ public:
     WhenExpression *ParseWhenExpression(bool *ok);
     Type *ParseType(bool *ok);
 private:
-    bool ProbeInstantiation();
+    bool ProbeInstantiation() {
+        auto saved = lookahead_;
+        bool dummy = true;
+        auto rv = ProbeInstantiation(&dummy);
+        lookahead_ = saved;
+        return rv;
+    }
+    bool ProbeInstantiation(bool *ok);
+    bool ProbeType(bool *ok);
     void *ParseGenericParameters(base::ArenaVector<GenericParameter *> *params, bool *ok);
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *list, Expression *receiver[2], bool *ok);
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *receiver, bool *ok);
@@ -83,6 +91,9 @@ private:
     SourcePosition ConcatNow(const SourcePosition &begin) { return begin.Concat(Peek().source_position()); }
     
     void MoveNext();
+    void Probe(Token::Kind kind, bool *ok);
+    bool Probe(Token::Kind kind);
+    void ProbeNext();
 
     base::Arena *arena_; // Memory arena allocator
     SyntaxFeedback *error_feedback_; // Error feedback interface

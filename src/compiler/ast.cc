@@ -147,8 +147,9 @@ Identifier::Identifier(const String *name, const SourcePosition &source_position
 }
 
 Instantiation::Instantiation(base::Arena *arena, Expression *primary, const SourcePosition &source_position)
-    : Expression(Node::kIdentifier, false/*is_lval*/, true/*is_rval*/, source_position)
-    , generic_args_(arena) {
+    : Expression(Node::kInstantiation, false/*is_lval*/, true/*is_rval*/, source_position)
+    , generic_args_(arena)
+    , primary_(DCHECK_NOTNULL(primary)) {
 }
 
 
@@ -201,7 +202,7 @@ Testing::Testing(Expression *source, Type *destination, const SourcePosition &so
 }
 
 Calling::Calling(base::Arena *arena, Expression *callee, const SourcePosition &source_position)
-    : Expression(Node::kTesting, false /*is_lval*/, true /*ls_rval*/, source_position)
+    : Expression(Node::kCalling, false /*is_lval*/, true /*ls_rval*/, source_position)
     , callee_(DCHECK_NOTNULL(callee))
     , args_(arena) {
 }
