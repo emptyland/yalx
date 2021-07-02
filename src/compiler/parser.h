@@ -44,6 +44,8 @@ public:
     InterfaceDefinition *ParseInterfaceDefinition(bool *ok);
     AnnotationDefinition *ParseAnnotationDefinition(bool *ok);
     StructDefinition *ParseStructDefinition(bool *ok);
+    ClassDefinition *ParseClassDefinition(bool *ok);
+    IncompletableDefinition *ParseIncompletableDefinition(IncompletableDefinition *receiver, bool *ok);
     Statement *ParseStatement(bool *ok);
     Expression *ParseExpression(bool *ok) { return ParseExpression(0, nullptr, ok); }
     Expression *ParseExpression(int limit, Operator *receiver, bool *ok);

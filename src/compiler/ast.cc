@@ -144,8 +144,7 @@ IncompletableDefinition::IncompletableDefinition(Node::Kind kind, base::Arena *a
     , parameters_(arena)
     , named_parameters_(arena)
     , fields_(arena)
-    , methods_(arena)
-    , arguments_(arena) {
+    , methods_(arena) {
 }
 
 StructDefinition::StructDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)

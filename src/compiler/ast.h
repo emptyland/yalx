@@ -35,19 +35,6 @@ class Statement;
 class Declaration;
 class Expression;
 
-struct FieldOfStructure {
-    bool in_constructor; // in constructor
-    int  as_constructor; // index of constructor parameter
-    VariableDeclaration *declaration;
-}; // struct Field
-
-struct ParameterOfConstructor {
-    bool field_declaration;
-    union {
-        int as_field; // index of field
-        VariableDeclaration *as_parameter;
-    };
-}; // struct Field
 
 //----------------------------------------------------------------------------------------------------------------------
 // FileUnit
@@ -319,6 +306,20 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 // Definitions
 //----------------------------------------------------------------------------------------------------------------------
+struct FieldOfStructure {
+    bool in_constructor; // in constructor
+    int  as_constructor; // index of constructor parameter
+    VariableDeclaration *declaration;
+}; // struct Field
+
+struct ParameterOfConstructor {
+    bool field_declaration;
+    union {
+        int as_field; // index of field
+        VariableDeclaration::Item *as_parameter;
+    };
+}; // struct Field
+
 class Definition : public Statement {
 public:
     DEF_PTR_GETTER(const String, name);
@@ -375,8 +376,7 @@ public:
     DEF_ARENA_VECTOR_GETTER(Field, field);
     DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, method);
     DEF_ARENA_VECTOR_GETTER(Parameter, parameter);
-    DEF_PTR_PROP_RW(Symbol, base_symbol);
-    DEF_ARENA_VECTOR_GETTER(Expression *, argument);
+    DEF_PTR_PROP_RW(Calling, super_calling);
 protected:
     IncompletableDefinition(Node::Kind kind, base::Arena *arena, const String *name,
                             const SourcePosition &source_position);
@@ -385,8 +385,7 @@ protected:
     base::ArenaMap<std::string_view, size_t> named_parameters_;
     base::ArenaVector<Field> fields_;
     base::ArenaVector<FunctionDeclaration *> methods_;
-    Symbol *base_symbol_ = nullptr;
-    base::ArenaVector<Expression *> arguments_;
+    Calling *super_calling_ = nullptr;
 }; // class IncompletableDefinition
 
 

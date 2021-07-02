@@ -179,8 +179,10 @@ TEST_F(ParserTest, MutliParamsFunctionPrototype) {
     EXPECT_EQ(Type::kType_unit, fun->return_type(0)->primary_type());
 }
 
+// val f: (...)->int,int,string = (...)->1,2,"3"
+// val foo = Foo<(...)->int,int,string>()
 TEST_F(ParserTest, MutliReturnsFunctionPrototype) {
-    SwitchInput("(...)->(i8[],i8,i16)\n");
+    SwitchInput("(...)->i8[],i8,i16\n");
     bool ok = true;
     auto ast = parser_.ParseType(&ok);
     ASSERT_TRUE(ok);

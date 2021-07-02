@@ -171,11 +171,13 @@ FileUnit *Parser::Parse(bool *ok) {
                 break;
                 
             case Token::kStruct: {
-                // TODO:
+                auto stmt = ParseStructDefinition(CHECK_OK);
+                file_unit_->mutable_statements()->push_back(stmt);
             } break;
 
             case Token::kClass: {
-                // TODO:
+                auto stmt = ParseClassDefinition(CHECK_OK);
+                file_unit_->mutable_statements()->push_back(stmt);
             } break;
 
             case Token::kObject: {
@@ -252,6 +254,12 @@ Statement *Parser::ParseOutsideStatement(bool *ok) {
     switch (Peek().kind()) {
         case Token::kInterface:
             return ParseInterfaceDefinition(ok);
+            
+        case Token::kStruct:
+            return ParseStructDefinition(ok);
+            
+        case Token::kClass:
+            return ParseClassDefinition(ok);
             
         case Token::kAnnotation:
             return ParseAnnotationDefinition(ok);
@@ -382,20 +390,18 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool *ok) {
     }
 
     if (Test(Token::kColon)) {
-        if (Test(Token::kLParen)) {
-            do {
-                auto type = ParseType(CHECK_OK);
-                prototype->mutable_return_types()->push_back(type);
-            } while (Test(Token::kComma));
-            Match(Token::kRParen, CHECK_OK);
-        } else {
+        do {
             auto type = ParseType(CHECK_OK);
             prototype->mutable_return_types()->push_back(type);
-        }
+        } while (Test(Token::kComma));
     }
     return prototype;
 }
 
+
+// interface_definition ::= `interface' identifer generic_declaration? udi_block
+// udi_block ::= `{' udi_item+ `}'
+// udi_item ::= identifier function_prototype
 InterfaceDefinition *Parser::ParseInterfaceDefinition(bool *ok) {
     auto location = Peek().source_position();
     
@@ -473,11 +479,157 @@ AnnotationDefinition *Parser::ParseAnnotationDefinition(bool *ok) {
     return def;
 }
 
+// class_definition ::= `class' identifer generic_declaration? constructor? super_declaration? udt_block
+// struct_definition ::= `struct' identifer generic_declaration? constructor? super_declaration? udt_block
+// object_definition ::= `object' identifer udt_block
+// constructor ::= `(' constructor_member_definition* `)'
+// constructor_member_definition ::= annotation_declaration? access_description? (`val' | `var') identifer `:' type_ref
+//                                | argument
+// super_declaration ::= `:' symbol ( `(' expression_list? `)' )?
+// udt_block ::= `{' udt_item* `}'
+// udt_item ::= member_definition | method_definition
+// member_definition ::= annotation_declaration? access_description? `override' variable_declaration
+// method_definition ::= annotation_declaration? `override'?  access_description? ( function_definition | function_declaration)
+// access_description ::= `public' | `private' | `protected'
 StructDefinition *Parser::ParseStructDefinition(bool *ok) {
     auto location = Peek().source_position();
     Match(Token::kStruct, CHECK_OK);
     auto name = MatchText(Token::kIdentifier, CHECK_OK);
-    // TODO:
+    auto def = new (arena_) StructDefinition(arena_, name, location);
+    ParseIncompletableDefinition(def, CHECK_OK);
+    return def;
+}
+
+ClassDefinition *Parser::ParseClassDefinition(bool *ok) {
+    auto location = Peek().source_position();
+    Match(Token::kStruct, CHECK_OK);
+    auto name = MatchText(Token::kIdentifier, CHECK_OK);
+    auto def = new (arena_) ClassDefinition(arena_, name, location);
+    ParseIncompletableDefinition(def, CHECK_OK);
+    return def;
+}
+
+IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefinition *def, bool *ok) {
+    auto location = def->source_position();
+    
+    if (Peek().Is(Token::kLess)) {
+        ParseGenericParameters(def->mutable_generic_params(), CHECK_OK);
+    }
+
+    if (Test(Token::kLParen)) {
+        do {
+            auto arg_location = Peek().source_position();
+            AnnotationDeclaration *anno = nullptr;
+            if (Peek().Is(Token::kAtOutlined)) {
+                anno = ParseAnnotationDeclaration(CHECK_OK);
+            }
+            
+            IncompletableDefinition::Parameter param;
+            auto access = static_cast<Access>(ParseDeclarationAccess());
+            if (Peek().Is(Token::kVal) || Peek().Is(Token::kVar) || Peek().Is(Token::kVolatile)) {
+                auto var = ParseVariableDeclaration(CHECK_OK);
+                if (var->variables_size() > 1) {
+                    *ok = false;
+                    error_feedback_->Printf(var->source_position(), "Incorrect constructor field declaration");
+                    return nullptr;
+                }
+                if (var->initilaizers_size() > 0) {
+                    *ok = false;
+                    error_feedback_->Printf(var->source_position(), "Incorrect constructor field declaration");
+                    return nullptr;
+                }
+                IncompletableDefinition::Field field;
+                field.as_constructor = def->parameters_size();
+                field.in_constructor = true;
+                field.declaration = var;
+                
+                param.field_declaration = true;
+                param.as_field = def->fields_size();
+                
+                def->mutable_fields()->push_back(field);
+            } else {
+                auto id = MatchText(Token::kIdentifier, CHECK_OK);
+                Match(Token::kColon, CHECK_OK);
+                auto type = ParseType(CHECK_OK);
+                
+                param.field_declaration = false;
+                param.as_parameter = new (arena_) VariableDeclaration::Item(arena_, id, type,
+                                                                            arg_location.Concat(type->source_position()));
+            }
+            
+            // TODO:
+            def->mutable_parameters()->push_back(param);
+        } while (Test(Token::kComma));
+    }
+    
+    if (Test(Token::kColon)) {
+        auto symbol = ParseSymbol(CHECK_OK);
+        Expression *callee = nullptr;
+        if (symbol->prefix_name()) {
+            auto id = new (arena_) Identifier(symbol->prefix_name(), symbol->source_position());
+            callee = new (arena_) Dot(id, symbol->name(), symbol->source_position());
+        } else {
+            callee = new (arena_) Identifier(symbol->name(), symbol->source_position());
+        }
+        
+        auto inst_location = Peek().source_position();
+        if (Test(Token::kLess)) {
+            auto inst = new (arena_) Instantiation(arena_, callee, inst_location);
+            do {
+                auto type = ParseType(CHECK_OK);
+                inst->mutable_generic_args()->push_back(type);
+            } while (Test(Token::kComma));
+            callee = inst;
+            Match(Token::kGreater, CHECK_OK);
+        }
+        
+        Match(Token::kLParen, CHECK_OK);
+        auto calling = new (arena_) Calling(arena_, callee, symbol->source_position().Concat(Peek().source_position()));
+        if (!Test(Token::kRParen)) {
+            do {
+                auto arg = ParseExpression(CHECK_OK);
+                calling->mutable_args()->push_back(arg);
+            } while (Test(Token::kComma));
+            
+            *calling->mutable_source_position() = symbol->source_position().Concat(Peek().source_position());
+            Match(Token::kRParen, CHECK_OK);
+        }
+        def->set_super_calling(calling);
+    }
+    
+    if (Test(Token::kLBrace)) {
+        while (!Test(Token::kRBrace)) {
+            AnnotationDeclaration *anno = nullptr;
+            if (Peek().Is(Token::kAtOutlined)) {
+                anno = ParseAnnotationDeclaration(CHECK_OK);
+            }
+            auto access = static_cast<Access>(ParseDeclarationAccess());
+            
+            switch (Peek().kind()) {
+                // val a, b, c = 1, 2, 3
+                // private val name, alias = "setup", "dom"
+                case Token::kVolatile:
+                case Token::kVal:
+                case Token::kVar: {
+                    auto var = ParseVariableDeclaration(CHECK_OK);
+                    var->set_access(access);
+                    var->set_annotations(anno);
+                    IncompletableDefinition::Field field;
+                    field.in_constructor = false;
+                    field.declaration = var;
+                    def->mutable_fields()->push_back(field);
+                } break;
+                    
+                default: {
+                    auto fun = ParseFunctionDeclaration(CHECK_OK);
+                    fun->set_access(access);
+                    fun->set_annotations(anno);
+                    def->mutable_methods()->push_back(fun);
+                } break;
+            }
+        }
+    }
+    return def;
 }
 
 // package_declaration ::= identifier
@@ -1377,16 +1529,10 @@ Type *Parser::ParseType(bool *ok) {
                 Match(Token::kRParen, CHECK_OK);
             }
             Match(Token::kRArrow, CHECK_OK);
-            if (Test(Token::kLParen)) {
-                do {
-                    auto ret = ParseType(CHECK_OK);
-                    fun->mutable_return_types()->push_back(ret);
-                } while (Test(Token::kComma));
-                Match(Token::kRParen, CHECK_OK);
-            } else {
+            do {
                 auto ret = ParseType(CHECK_OK);
                 fun->mutable_return_types()->push_back(ret);
-            }
+            } while (Test(Token::kComma));
             type = fun;
         } break;
         default:

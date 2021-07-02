@@ -194,6 +194,7 @@ class Expression;
 class Statement;
 class Declaration;
 class Definition;
+class IncompletableDefinition;
 
 class Node : public base::ArenaObject {
 public:
