@@ -500,6 +500,45 @@ TEST_F(ParserTest, InterfaceDefinition) {
     EXPECT_STREQ("baz", ast->method(1)->name()->data());
 }
 
+TEST_F(ParserTest, StructDefinition) {
+    SwitchInput("struct Foo(val a: int, val b: int)\n");
+    bool ok = true;
+    auto ast = parser_.ParseStructDefinition(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_EQ(2, ast->parameters_size());
+    ASSERT_TRUE(ast->parameter(0).field_declaration);
+    ASSERT_EQ(0, ast->parameter(0).as_field);
+    ASSERT_TRUE(ast->parameter(1).field_declaration);
+    ASSERT_EQ(1, ast->parameter(1).as_field);
+    ASSERT_EQ(2, ast->fields_size());
+    ASSERT_EQ(0, ast->methods_size());
+}
+
+TEST_F(ParserTest, StructDefinitionWithSuperCall) {
+    SwitchInput("struct Foo<T, P>(val a: int, val b: int): bar.Bar<T>()\n");
+    bool ok = true;
+    auto ast = parser_.ParseStructDefinition(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_EQ(2, ast->generic_params_size());
+    EXPECT_STREQ("T", ast->generic_param(0)->name()->data());
+    EXPECT_STREQ("P", ast->generic_param(1)->name()->data());
+    
+    ASSERT_NE(nullptr, ast->super_calling());
+    ASSERT_TRUE(ast->super_calling()->IsCalling());
+    EXPECT_EQ(0, ast->super_calling()->args_size());
+    auto callee = ast->super_calling()->callee()->AsInstantiation();
+    ASSERT_NE(nullptr, callee);
+    ASSERT_TRUE(callee->primary()->IsDot());
+    auto symbol = callee->primary()->AsDot();
+    EXPECT_STREQ("bar", symbol->primary()->AsIdentifier()->name()->data());
+    EXPECT_STREQ("Bar", symbol->field()->data());
+    
+}
+
 } // namespace cpl
 
 } // namespace yalx

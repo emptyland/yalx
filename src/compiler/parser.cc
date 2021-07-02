@@ -527,17 +527,25 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
             IncompletableDefinition::Parameter param;
             auto access = static_cast<Access>(ParseDeclarationAccess());
             if (Peek().Is(Token::kVal) || Peek().Is(Token::kVar) || Peek().Is(Token::kVolatile)) {
-                auto var = ParseVariableDeclaration(CHECK_OK);
-                if (var->variables_size() > 1) {
-                    *ok = false;
-                    error_feedback_->Printf(var->source_position(), "Incorrect constructor field declaration");
-                    return nullptr;
+                bool is_volatile = false;
+                VariableDeclaration::Constraint constraint;
+                if (Test(Token::kVolatile)) {
+                    Match(Token::kVar, CHECK_OK);
+                    constraint = VariableDeclaration::kVar;
+                    is_volatile = true;
+                } else {
+                    if (Test(Token::kVal)) {
+                        constraint = VariableDeclaration::kVal;
+                    } else {
+                        Match(Token::kVar, CHECK_OK);
+                        constraint = VariableDeclaration::kVar;
+                    }
                 }
-                if (var->initilaizers_size() > 0) {
-                    *ok = false;
-                    error_feedback_->Printf(var->source_position(), "Incorrect constructor field declaration");
-                    return nullptr;
-                }
+                auto id = MatchText(Token::kIdentifier, CHECK_OK);
+                Match(Token::kColon, CHECK_OK);
+                auto type = ParseType(CHECK_OK);
+                auto var = new (arena_) VariableDeclaration(arena_, is_volatile, constraint, id, type, location);
+                
                 IncompletableDefinition::Field field;
                 field.as_constructor = def->parameters_size();
                 field.in_constructor = true;
@@ -560,6 +568,7 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
             // TODO:
             def->mutable_parameters()->push_back(param);
         } while (Test(Token::kComma));
+        Match(Token::kRParen, CHECK_OK);
     }
     
     if (Test(Token::kColon)) {

@@ -188,10 +188,7 @@ class VariableDeclaration : public Declaration {
 public:
     class Item : public Declaration {
     public:
-        Item(base::Arena *arena, const String *identifier, class Type *type, const SourcePosition &source_position)
-            : Declaration(arena, Node::kMaxKinds, source_position)
-            , identifier_(identifier)
-            , type_(type) {}
+        Item(base::Arena *arena, const String *identifier, class Type *type, const SourcePosition &source_position);
         
         DEF_PTR_PROP_RW(const String, identifier);
         DEF_PTR_PROP_RW(class Type, type);
@@ -211,6 +208,9 @@ public:
     
     VariableDeclaration(base::Arena *arena, bool is_volatile, Constraint constraint,
                         const SourcePosition &source_position);
+    
+    VariableDeclaration(base::Arena *arena, bool is_volatile, Constraint constraint, const String *identifier,
+                        class Type *type, const SourcePosition &source_position);
 
     DEF_VAL_PROP_RW(Constraint, constraint);
     DEF_VAL_PROP_RW(bool, is_volatile);

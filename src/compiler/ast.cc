@@ -76,6 +76,20 @@ VariableDeclaration::VariableDeclaration(base::Arena *arena, bool is_volatile, C
     , initilaizers_(arena) {        
 }
 
+VariableDeclaration::VariableDeclaration(base::Arena *arena, bool is_volatile, Constraint constraint,
+                                         const String *identifier, class Type *type,
+                                         const SourcePosition &source_position)
+    : VariableDeclaration(arena, is_volatile, constraint, source_position) {
+    variables_.push_back(new (arena) Item(arena, identifier, type, source_position));
+}
+
+VariableDeclaration::Item::Item(base::Arena *arena, const String *identifier, class Type *type,
+                                const SourcePosition &source_position)
+    : Declaration(arena, Node::kMaxKinds, source_position)
+    , identifier_(identifier)
+    , type_(type) {        
+}
+
 FunctionDeclaration::FunctionDeclaration(base::Arena *arena, Decoration decoration, const String *name,
                                          FunctionPrototype *prototype, bool is_reduce,
                                          const SourcePosition &source_position)
@@ -221,7 +235,9 @@ DECLARE_EXPRESSION_WITH_OPERANDS(DEFINE_CTOR)
 #undef DEFINE_CTOR
 
 Dot::Dot(Expression *primary, const String *field, const SourcePosition &source_position)
-    : Expression(Node::kDot, true /*is_lval*/, true /*is_rval*/, source_position) {
+    : Expression(Node::kDot, true /*is_lval*/, true /*is_rval*/, source_position)
+    , primary_(primary)
+    , field_(field) {
 }
 
 Casting::Casting(Expression *source, Type *destination, const SourcePosition &source_position)
