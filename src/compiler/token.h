@@ -109,6 +109,7 @@ using String = base::ArenaString;
     V(If, "if", none) \
     V(Else, "else", none) \
     V(When, "when", none) \
+    V(Do, "do", none) \
     V(While, "while", none) \
     V(Unless, "unless", none) \
     V(Until, "until", none) \

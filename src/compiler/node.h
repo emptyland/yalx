@@ -119,6 +119,9 @@ namespace cpl {
     V(Return) \
     V(BreakStatement) \
     V(ContinueStatement) \
+    V(WhileLoop) \
+    V(UnlessLoop) \
+    V(ForeachLoop) \
     V(VariableDeclaration) \
     V(FunctionDeclaration) \
     V(ObjectDeclaration) \
@@ -195,6 +198,8 @@ class Statement;
 class Declaration;
 class Definition;
 class IncompletableDefinition;
+class Circulation;
+class ConditionLoop;
 
 class Node : public base::ArenaObject {
 public:

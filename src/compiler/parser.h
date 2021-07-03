@@ -8,6 +8,7 @@
 #include "base/arena-utils.h"
 #include <string>
 #include <memory>
+#include <tuple>
 
 namespace yalx {
 namespace base {
@@ -47,6 +48,11 @@ public:
     ClassDefinition *ParseClassDefinition(bool *ok);
     IncompletableDefinition *ParseIncompletableDefinition(IncompletableDefinition *receiver, bool *ok);
     Statement *ParseStatement(bool *ok);
+    WhileLoop *ParseWhileLoop(bool *ok);
+    UnlessLoop *ParseUnlessLoop(bool *ok);
+    ConditionLoop *ParseConditionLoop(ConditionLoop *loop, bool *ok);
+    ConditionLoop *ParseDoConditionLoop(bool *ok);
+    ForeachLoop *ParseForeachLoop(bool *ok);
     Expression *ParseExpression(bool *ok) { return ParseExpression(0, nullptr, ok); }
     Expression *ParseExpression(int limit, Operator *receiver, bool *ok);
     Expression *ParseSimple(bool *ok);
@@ -70,6 +76,7 @@ private:
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *list, Expression *receiver[2], bool *ok);
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *receiver, bool *ok);
     Expression *ParseRemainLambdaLiteral(FunctionPrototype *prototype, const SourcePosition &location, bool *ok);
+    Statement *ParseInitializerIfExistsWithCondition(Expression **condition, bool *ok);
     Symbol *ParseSymbol(bool *ok);
     Expression *ParseStaticLiteral(bool *ok);
     ArrayInitializer *ParseStaticArrayLiteral(bool *ok);

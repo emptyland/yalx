@@ -769,6 +769,17 @@ VariableDeclaration *Parser::ParseVariableDeclaration(bool *ok) {
     return decl;
 }
 
+// block ::= `{' statement* `}'
+// statement ::= if_statement
+//             | when_statement
+//             | for_statement
+//             | while_statement
+//             | `run` call
+//             | `return' expression_list?
+//             | `throw' expression
+//             | `break'
+//             | `continue'
+//             | expression `<-' expression
 Statement *Parser::ParseStatement(bool *ok) {
     auto location = Peek().source_position();
     switch (Peek().kind()) {
@@ -781,6 +792,7 @@ Statement *Parser::ParseStatement(bool *ok) {
                 
                 *block->mutable_source_position() = location.Concat(Peek().source_position());
             }
+            return block;
         } break;
             
         case Token::kVolatile:
@@ -799,7 +811,18 @@ Statement *Parser::ParseStatement(bool *ok) {
             *stmt->mutable_source_position() = location.Concat(stmt->returnning_vals().back()->source_position());
             return stmt;
         } break;
-        // TODO:
+        
+        case Token::kWhile:
+            return ParseWhileLoop(ok);
+            
+        case Token::kUnless:
+            return ParseUnlessLoop(ok);
+            
+        case Token::kFor:
+            return ParseForeachLoop(ok);
+            
+        case Token::kDo:
+            return ParseDoConditionLoop(ok);
             
         default: {
             Expression *tmp[2] = {nullptr,nullptr};
@@ -823,6 +846,127 @@ Statement *Parser::ParseStatement(bool *ok) {
             }
             return tmp[0];
         } break;
+    }
+}
+
+WhileLoop *Parser::ParseWhileLoop(bool *ok) {
+    auto location = Peek().source_position();
+    Match(Token::kWhile, CHECK_OK);
+    auto loop = new (arena_) WhileLoop(nullptr/*init*/, false/*execute_first*/, nullptr/*condition*/, nullptr/*body*/,
+                                       location);
+    ParseConditionLoop(loop, CHECK_OK);
+    *loop->mutable_source_position() = location.Concat(loop->body()->source_position());
+    return loop;
+}
+
+UnlessLoop *Parser::ParseUnlessLoop(bool *ok) {
+    auto location = Peek().source_position();
+    Match(Token::kUnless, CHECK_OK);
+    auto loop = new (arena_) UnlessLoop(nullptr/*init*/, false/*execute_first*/, nullptr/*condition*/, nullptr/*body*/,
+                                        location);
+    ParseConditionLoop(loop, CHECK_OK);
+    *loop->mutable_source_position() = location.Concat(loop->body()->source_position());
+    return loop;
+}
+
+ConditionLoop *Parser::ParseConditionLoop(ConditionLoop *loop, bool *ok) {
+    auto location = Peek().source_position();
+    Match(Token::kLParen, CHECK_OK);
+    Expression *condition = nullptr;
+    Statement *initializer = ParseInitializerIfExistsWithCondition(&condition, CHECK_OK);
+    Match(Token::kRParen, CHECK_OK);
+    
+    loop->set_condition(condition);
+    loop->set_initializer(initializer);
+    
+    auto stmt = ParseStatement(CHECK_OK);
+    if (!stmt->IsBlock()) {
+        *ok = false;
+        error_feedback_->Printf(stmt->source_position(), "Unexpected 'block' for loop body");
+        return nullptr;
+    }
+    
+    loop->set_body(DCHECK_NOTNULL(stmt->AsBlock()));
+    return loop;
+}
+
+ConditionLoop *Parser::ParseDoConditionLoop(bool *ok) {
+    auto location = Peek().source_position();
+    Match(Token::kDo, CHECK_OK);
+    
+    auto maybe_body = ParseStatement(CHECK_OK);
+    if (!maybe_body->IsBlock()) {
+        *ok = false;
+        error_feedback_->Printf(maybe_body->source_position(), "Unexpected 'block' for loop body");
+        return nullptr;
+    }
+    
+    bool while_or_unless = false;
+    if (Test(Token::kWhile)) {
+        while_or_unless = true;
+    } else {
+        Match(Token::kUnless, CHECK_OK);
+        while_or_unless = false;
+    }
+    
+    Match(Token::kLParen, CHECK_OK);
+    auto condition = ParseExpression(CHECK_OK);
+    location = location.Concat(Peek().source_position());
+    Match(Token::kRParen, CHECK_OK);
+    
+    ConditionLoop *loop = nullptr;
+    if (while_or_unless) {
+        loop = new (arena_) WhileLoop(nullptr/*init*/, true/*execute_first*/, condition, maybe_body->AsBlock(),
+                                      location);
+    } else {
+        loop = new (arena_) UnlessLoop(nullptr/*init*/, true/*execute_first*/, condition, maybe_body->AsBlock(),
+                                       location);
+    }
+    return loop;
+}
+
+// for_statement ::= `for' `(' identifer `in' expression `)' block
+//                 | `for' `(' identifer `in' expression `until' expression `)' block
+//                 | `for' `(' identifer `in' expression `..' expression `)' block
+ForeachLoop *Parser::ParseForeachLoop(bool *ok) {
+    auto location = Peek().source_position();
+    
+    Match(Token::kFor, CHECK_OK);
+    Match(Token::kLParen, CHECK_OK);
+    
+    auto id_location = Peek().source_position();
+    auto name = MatchText(Token::kIdentifier, CHECK_OK);
+    auto id = new (arena_) Identifier(name, id_location);
+    
+    Match(Token::kIn, CHECK_OK);
+    
+    auto iterable_or_lower = ParseExpression(CHECK_OK);
+    ForeachLoop::IntRange range;
+    if (Peek().Is(Token::kUntil) || Peek().Is(Token::kMore)) {
+        if (Test(Token::kUntil)) {
+            range.close = false;
+        } else {
+            MoveNext();
+            range.close = true;
+        }
+        range.lower = iterable_or_lower;
+        range.upper = ParseExpression(CHECK_OK);
+    }
+    
+    Match(Token::kRParen, CHECK_OK);
+    
+    auto maybe_body = ParseStatement(CHECK_OK);
+    if (!maybe_body->IsBlock()) {
+        *ok = false;
+        error_feedback_->Printf(maybe_body->source_position(), "Unexpected 'block' for loop body");
+        return nullptr;
+    }
+    
+    location.Concat(maybe_body->source_position());
+    if (range.lower != nullptr && range.upper != nullptr) {
+        return new (arena_) ForeachLoop(id, range, maybe_body->AsBlock(), location);
+    } else {
+        return new (arena_) ForeachLoop(id, iterable_or_lower, maybe_body->AsBlock(), location);
     }
 }
 
@@ -1101,24 +1245,9 @@ IfExpression *Parser::ParseIfExpression(bool *ok) {
     auto location = Peek().source_position();
 
     Match(Token::kIf, CHECK_OK);
-    Expression *condition = nullptr;
     Match(Token::kLParen, CHECK_OK);
-    Statement *initializer_or_condition = ParseStatement(CHECK_OK);
-    if (initializer_or_condition->IsAssignment() ||
-        initializer_or_condition->IsVariableDeclaration()) {
-        // Must be initializer
-        Match(Token::kSemi, CHECK_OK);
-        condition = ParseExpression(CHECK_OK);
-    } else {
-        if (!initializer_or_condition->IsExplicitExpression()) {
-            *ok = false;
-            error_feedback_->Printf(initializer_or_condition->source_position(), "Condition of if expression"
-                                    " must be a expression.");
-            return nullptr;
-        }
-        condition = static_cast<Expression *>(initializer_or_condition);
-        initializer_or_condition = nullptr;
-    }
+    Expression *condition = nullptr;
+    Statement *initializer = ParseInitializerIfExistsWithCondition(&condition, CHECK_OK);
     Match(Token::kRParen, CHECK_OK);
     
     auto then_clause = ParseStatement(CHECK_OK);
@@ -1130,7 +1259,7 @@ IfExpression *Parser::ParseIfExpression(bool *ok) {
         location = location.Concat(else_clause->source_position());
     }
     
-    return new (arena_) IfExpression(initializer_or_condition, condition, then_clause, else_clause, location);
+    return new (arena_) IfExpression(initializer, condition, then_clause, else_clause, location);
 }
 
 // when_statement ::= `when' `{' when_condition_clause+ when_else_clause? `}'
@@ -1143,30 +1272,15 @@ WhenExpression *Parser::ParseWhenExpression(bool *ok) {
     auto location = Peek().source_position();
     
     Match(Token::kWhen, CHECK_OK);
-    Statement *initializer_or_destination = nullptr;
+    Statement *initializer = nullptr;
     Expression *destination = nullptr;
     if (Test(Token::kLParen)) {
-        initializer_or_destination = ParseStatement(CHECK_OK);
-        if (initializer_or_destination->IsAssignment() ||
-            initializer_or_destination->IsVariableDeclaration()) {
-            // Must be initializer
-            Match(Token::kSemi, CHECK_OK);
-            destination = ParseExpression(CHECK_OK);
-        } else {
-            if (!initializer_or_destination->IsExplicitExpression()) {
-                *ok = false;
-                error_feedback_->Printf(initializer_or_destination->source_position(), "Destination of when expression"
-                                        " must be a expression");
-                return nullptr;
-            }
-            destination = static_cast<Expression *>(initializer_or_destination);
-            initializer_or_destination = nullptr;
-        }
+        initializer = ParseInitializerIfExistsWithCondition(&destination, CHECK_OK);
         Match(Token::kRParen, CHECK_OK);
     }
     
     Match(Token::kLBrace, CHECK_OK);
-    auto when = new (arena_) WhenExpression(arena_, initializer_or_destination, destination, location);
+    auto when = new (arena_) WhenExpression(arena_, initializer, destination, location);
     while (!Test(Token::kRBrace)) {
         auto case_location = Peek().source_position();
         
@@ -1220,33 +1334,6 @@ WhenExpression *Parser::ParseWhenExpression(bool *ok) {
     *when->mutable_source_position() = location;
     return when;
 }
-
-//static bool EnsureType(Token::Kind kind) {
-//    switch (kind) {
-//        case Token::kUnit:
-//        case Token::kBool:
-//        case Token::kI8:
-//        case Token::kU8:
-//        case Token::kI16:
-//        case Token::kU16:
-//        case Token::kI32:
-//        case Token::kU32:
-//        case Token::kI64:
-//        case Token::kU64:
-//        case Token::kF32:
-//        case Token::kF64:
-//        case Token::kInt:
-//        case Token::kUInt:
-//        case Token::kString:
-//        case Token::kIn:
-//        case Token::kOut:
-//        case Token::kChan:
-//        case Token::kLParen:
-//            return true;
-//        default:
-//            return false;
-//    }
-//}
 
 bool Parser::ProbeInstantiation(bool *ok) {
     ProbeNext();
@@ -1414,6 +1501,26 @@ Expression *Parser::ParseRemainLambdaLiteral(FunctionPrototype *prototype, const
     Match(Token::kRArrow, CHECK_OK);
     auto stmt = ParseStatement(CHECK_OK);
     return new (arena_) LambdaLiteral(prototype, stmt, location.Concat(stmt->source_position()));
+}
+
+Statement *Parser::ParseInitializerIfExistsWithCondition(Expression **condition, bool *ok) {
+    auto initializer_or_condition = ParseStatement(CHECK_OK);
+    if (initializer_or_condition->IsAssignment() ||
+        initializer_or_condition->IsVariableDeclaration()) {
+        // Must be initializer
+        Match(Token::kSemi, CHECK_OK);
+        *condition = ParseExpression(CHECK_OK);
+    } else {
+        if (!initializer_or_condition->IsExplicitExpression()) {
+            *ok = false;
+            error_feedback_->Printf(initializer_or_condition->source_position(), "Destination of when expression"
+                                    " must be a expression");
+            return nullptr;
+        }
+        *condition = static_cast<Expression *>(initializer_or_condition);
+        initializer_or_condition = nullptr;
+    }
+    return initializer_or_condition;
 }
 
 // type_ref ::= `bool' | `i8' | `u8' | `i16' | `u16' | `i32' | `u32' | `i64' | `u64' | `f32' | `f64'

@@ -456,6 +456,42 @@ TEST_F(ParserTest, AssigmentMultiRVal) {
     ASSERT_TRUE(stmt->rval(2)->IsIntLiteral());
 }
 
+TEST_F(ParserTest, WhileUnlessLoop) {
+    SwitchInput("while(a) {}\n"
+                "unless(b) {}\n");
+    bool ok = true;
+    auto ast = parser_.ParseWhileLoop(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsWhileLoop());
+    EXPECT_EQ(nullptr, ast->initializer());
+    ASSERT_TRUE(ast->condition()->IsIdentifier());
+    EXPECT_STREQ("a", ast->condition()->AsIdentifier()->name()->data());
+    
+    auto unless = parser_.ParseUnlessLoop(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, unless);
+    ASSERT_TRUE(unless->IsUnlessLoop());
+    EXPECT_EQ(nullptr, unless->initializer());
+    ASSERT_TRUE(unless->condition()->IsIdentifier());
+    EXPECT_STREQ("b", unless->condition()->AsIdentifier()->name()->data());
+}
+
+TEST_F(ParserTest, WhileUnlessWithInitializerLoop) {
+    SwitchInput("while(val a, b = foo(); a > b) {}\n");
+    bool ok = true;
+    auto ast = parser_.ParseWhileLoop(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    
+    ASSERT_TRUE(ast->IsWhileLoop());
+    ASSERT_NE(nullptr, ast->initializer());
+    ASSERT_TRUE(ast->initializer()->IsVariableDeclaration());
+    ASSERT_NE(nullptr, ast->condition());
+    ASSERT_TRUE(ast->condition()->IsGreater());
+}
+
 TEST_F(ParserTest, FunctionDeclaration) {
     SwitchInput("native fun foo()\n"
                 "fun bar(@Foo a: int)->1\n");

@@ -150,6 +150,87 @@ private:
     Type *instantiation_ = nullptr;
 }; // class GenericParameter
 
+
+class Circulation : public Statement {
+public:
+    DEF_PTR_PROP_RW(Block, body);
+
+    static bool Is(const AstNode *node);
+    static bool IsNot(const AstNode *node) { return !Is(node); }
+protected:
+    Circulation(Node::Kind kind, Block *body, const SourcePosition &source_position);
+    
+    Block *body_;
+}; // class Circulation
+
+
+class ConditionLoop : public Circulation {
+public:
+    DEF_PTR_PROP_RW(Statement, initializer);
+    DEF_PTR_PROP_RW(Expression, condition);
+    DEF_VAL_GETTER(bool, execute_first); // do { ... } while(cond) or do {...} unless(cond)
+    bool test_first() { return !execute_first(); } // while (cond) {...} or unless(cond) {...}
+
+protected:
+    ConditionLoop(Node::Kind kind, Block *body, bool execute_first, Statement *initializer, Expression *condition,
+                  const SourcePosition &source_position);
+    
+    Statement *initializer_;
+    Expression *condition_;
+    const bool execute_first_;
+}; // class ConditionLoop
+
+
+class WhileLoop : public ConditionLoop {
+public:
+    WhileLoop(Statement *initializer, bool execute_first, Expression *condition, Block *body,
+              const SourcePosition &source_position);
+    DECLARE_AST_NODE(WhileLoop);
+}; // class WhileLoop
+
+
+class UnlessLoop : public ConditionLoop {
+public:
+    UnlessLoop(Statement *initializer, bool execute_first, Expression *condition, Block *body,
+               const SourcePosition &source_position);
+    DECLARE_AST_NODE(UnlessLoop);
+}; // class UnlessLoop
+
+
+class ForeachLoop : public Circulation {
+public:
+    enum Iteration {
+        kIterator,
+        kCloseBound,
+        kOpenBound,
+    };
+    
+    struct IntRange {
+        Expression *lower = nullptr;
+        Expression *upper = nullptr;
+        bool close = true;
+    };
+    
+    ForeachLoop(Identifier *iterative_destination, Expression *iterable, Block *body,
+                const SourcePosition &source_position);
+    ForeachLoop(Identifier *iterative_destination, IntRange range, Block *body, const SourcePosition &source_position);
+    
+    DEF_PTR_GETTER(Identifier, iterative_destination);
+    DEF_VAL_GETTER(Iteration, iteration);
+    Expression *iterable() const { assert(iteration() == kIterator); return iterable_; }
+    const IntRange &range() const { assert(iteration() != kIterator); return range_; }
+    IntRange *mutable_range() { assert(iteration() != kIterator); return &range_; }
+    
+    DECLARE_AST_NODE(ForeachLoop);
+private:
+    Identifier *iterative_destination_;
+    union {
+        Expression *iterable_;
+        IntRange    range_;
+    };
+    Iteration iteration_;
+}; // class ForLoop
+
 //----------------------------------------------------------------------------------------------------------------------
 // Declaration
 //----------------------------------------------------------------------------------------------------------------------

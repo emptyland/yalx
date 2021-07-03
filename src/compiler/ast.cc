@@ -51,6 +51,54 @@ GenericParameter::GenericParameter(const String *name, Type *constraint, const S
     , constraint_(constraint) {
 }
 
+Circulation::Circulation(Node::Kind kind, Block *body, const SourcePosition &source_position)
+    : Statement(kind, source_position)
+    , body_(body) {
+}
+
+bool Circulation::Is(const AstNode *node) {
+    switch (node->kind()) {
+        case Node::kWhileLoop:
+        case Node::kUnlessLoop:
+        case Node::kForeachLoop:
+            return true;
+        default:
+            return false;
+    }
+}
+
+ConditionLoop::ConditionLoop(Node::Kind kind, Block *body, bool execute_first, Statement *initializer,
+                             Expression *condition, const SourcePosition &source_position)
+    : Circulation(kind, body, source_position)
+    , initializer_(initializer)
+    , condition_(condition)
+    , execute_first_(execute_first) {
+}
+
+WhileLoop::WhileLoop(Statement *initializer, bool execute_first, Expression *condition, Block *body,
+                     const SourcePosition &source_position)
+    : ConditionLoop(Node::kWhileLoop, body, execute_first, initializer, condition, source_position) {}
+
+UnlessLoop::UnlessLoop(Statement *initializer, bool execute_first, Expression *condition, Block *body,
+                       const SourcePosition &source_position)
+    : ConditionLoop(Node::kUnlessLoop, body, execute_first, initializer, condition, source_position) {}
+
+ForeachLoop::ForeachLoop(Identifier *iterative_destination, Expression *iterable, Block *body,
+                         const SourcePosition &source_position)
+    : Circulation(Node::kForeachLoop, body, source_position)
+    , iteration_(kIterator)
+    , iterative_destination_(iterative_destination_)
+    , iterable_(iterable) {    
+}
+
+ForeachLoop::ForeachLoop(Identifier *iterative_destination, IntRange range, Block *body,
+                         const SourcePosition &source_position)
+    : Circulation(Node::kForeachLoop, body, source_position)
+    , iteration_(range.close ? kCloseBound : kOpenBound)
+    , iterative_destination_(iterative_destination)
+    , range_(range) {
+}
+
 Declaration::Declaration(base::Arena *arena, Kind kind, const SourcePosition &source_position)
     : Statement(kind, source_position) {        
 }
