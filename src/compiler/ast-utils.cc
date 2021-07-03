@@ -86,6 +86,7 @@ public:
     void VisitWhileLoop(WhileLoop *ast) override {}
     void VisitUnlessLoop(UnlessLoop *node) override {}
     void VisitForeachLoop(ForeachLoop *node) override {}
+    void VisitStringTemplate(StringTemplate *node) override {}
     
     void VisitInstantiation(Instantiation *node) override {
         

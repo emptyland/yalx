@@ -1180,9 +1180,8 @@ Expression *Parser::ParsePrimary(bool *ok) {
             expr = new (arena_) StringLiteral(Peek().text_val(), location);
             MoveNext();
             break;
-        case Token::kStringTempletePrefix: // TODO:
-            UNREACHABLE();
-            break;
+        case Token::kStringTempletePrefix:
+            return ParseStringTemplate(ok);
         default:
             error_feedback_->Printf(Peek().source_position(), "Unexpected primary expression, expected: %s",
                                     Peek().ToString().c_str());
@@ -1405,6 +1404,52 @@ TryCatchExpression *Parser::ParseTryCatchExpression(bool *ok) {
         return nullptr;
     }
     return try_catch;
+}
+
+StringTemplate *Parser::ParseStringTemplate(bool *ok) {
+    auto location = Peek().source_position();
+    
+    auto literal = MatchText(Token::kStringTempletePrefix, CHECK_OK);
+    auto tmpl = new (arena_) StringTemplate(arena_, location);
+    tmpl->mutable_parts()->push_back(new (arena_) StringLiteral(literal, location));
+    for (;;) {
+        auto part_location = Peek().source_position();
+        Expression *part = nullptr;
+        switch (Peek().kind()) {
+            case Token::kStringTempletePart: {
+                literal = Peek().text_val();
+                MoveNext();
+                part = new (arena_) StringLiteral(literal, part_location);
+            } break;
+                
+            case Token::kIdentifier:
+                part = ParseExpression(CHECK_OK);
+                break;
+                
+            case Token::kStringTempleteExpressBegin: {
+                MoveNext();
+                part = ParseExpression(CHECK_OK);
+                Match(Token::kStringTempleteExpressEnd, CHECK_OK);
+            } break;
+
+            case Token::kStringTempleteSuffix: {
+                literal = Peek().text_val();
+                MoveNext();
+                if (literal->size() > 0) {
+                    part = new (arena_) StringLiteral(literal, part_location);
+                    tmpl->mutable_parts()->push_back(part);
+                }
+            } goto done;
+
+            default:
+                UNREACHABLE();
+                break;
+        }
+        tmpl->mutable_parts()->push_back(part);
+    }
+done:
+    *tmpl->mutable_source_position() = location.Concat(tmpl->parts().back()->source_position());
+    return tmpl;
 }
 
 bool Parser::ProbeInstantiation(bool *ok) {
@@ -1762,6 +1807,7 @@ Expression *Parser::ParseStaticLiteral(bool *ok) {
             MoveNext();
             break;
         case Token::kStringLine:
+        case Token::kStringBlock:
             literal = new (arena_) StringLiteral(Peek().text_val(), location);
             MoveNext();
             break;

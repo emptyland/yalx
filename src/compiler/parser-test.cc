@@ -389,6 +389,24 @@ TEST_F(ParserTest, WhenExpressionTypeCastingCases) {
     ASSERT_TRUE(ast->AsWhenExpression()->initializer()->IsVariableDeclaration());
 }
 
+TEST_F(ParserTest, StringTemplate) {
+    SwitchInput("\"a=$a,b=${foo() + 1}\"\n");
+    bool ok = true;
+    auto ast = parser_.ParseStringTemplate(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+ 
+    ASSERT_TRUE(ast->IsStringTemplate());
+    ASSERT_EQ(4, ast->parts_size());
+    ASSERT_TRUE(ast->part(0)->IsStringLiteral());
+    EXPECT_STREQ("a=", ast->part(0)->AsStringLiteral()->value()->data());
+    ASSERT_TRUE(ast->part(1)->IsIdentifier());
+    EXPECT_STREQ("a", ast->part(1)->AsIdentifier()->name()->data());
+    ASSERT_TRUE(ast->part(2)->IsStringLiteral());
+    EXPECT_STREQ(",b=", ast->part(2)->AsStringLiteral()->value()->data());
+    ASSERT_TRUE(ast->part(3)->IsAdd());
+}
+
 TEST_F(ParserTest, Instantiation) {
     SwitchInput("foo.Foo<int>()\n");
     bool ok = true;

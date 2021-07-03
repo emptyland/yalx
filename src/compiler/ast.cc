@@ -379,6 +379,11 @@ TryCatchExpression::TryCatchExpression(base::Arena *arena, Block *try_block, Blo
     , catch_clauses_(arena) {
 }
 
+StringTemplate::StringTemplate(base::Arena *arena, const SourcePosition &source_position)
+    : Expression(Node::kStringTemplate, false /*is_lval*/, true /*ls_rval*/, source_position)
+    , parts_(arena) {
+}
+
 bool Type::Is(Node *node) {
     switch (node->kind()) {
     #define DEFINE_CASE(_, clazz) case Node::k##clazz:

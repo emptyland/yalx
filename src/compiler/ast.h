@@ -1060,6 +1060,17 @@ private:
     base::ArenaVector<CatchClause *> catch_clauses_;
 }; // class TryCatchExpression
 
+class StringTemplate : public Expression {
+public:
+    StringTemplate(base::Arena *arena, const SourcePosition &source_position);
+    
+    DEF_ARENA_VECTOR_GETTER(Expression *, part);
+    
+    DECLARE_AST_NODE(StringTemplate);
+private:
+    base::ArenaVector<Expression *> parts_;
+}; // class StringTemplate
+
 //----------------------------------------------------------------------------------------------------------------------
 // Types
 //----------------------------------------------------------------------------------------------------------------------

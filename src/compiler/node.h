@@ -177,7 +177,8 @@ namespace cpl {
     V(Calling) \
     V(IfExpression) \
     V(WhenExpression) \
-    V(TryCatchExpression)
+    V(TryCatchExpression) \
+    V(StringTemplate)
 
 #define DECLARE_TYPE_NODES(V) \
     V(Type) \

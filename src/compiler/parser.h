@@ -64,6 +64,7 @@ public:
     IfExpression *ParseIfExpression(bool *ok);
     WhenExpression *ParseWhenExpression(bool *ok);
     TryCatchExpression *ParseTryCatchExpression(bool *ok);
+    StringTemplate *ParseStringTemplate(bool *ok);
     Type *ParseType(bool *ok);
 private:
     bool ProbeInstantiation() {
