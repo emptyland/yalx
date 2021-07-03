@@ -45,6 +45,24 @@ Return::Return(base::Arena *arena, const SourcePosition &source_position)
     , returnning_vals_(arena) {
 }
 
+Throw::Throw(Expression *throwing_val, const SourcePosition &source_position)
+    : Statement(Node::kThrow, source_position)
+    , throwing_val_(throwing_val) {
+}
+
+Break::Break(const SourcePosition &source_position)
+    : Statement(Node::kBreak, source_position) {
+}
+
+Continue::Continue(const SourcePosition &source_position)
+    : Statement(Node::kContinue, source_position) {
+}
+
+RunCoroutine::RunCoroutine(Calling *entry, const SourcePosition &source_position)
+    : Statement(Node::kRunCoroutine, source_position)
+    , entry_(entry) {
+}
+
 GenericParameter::GenericParameter(const String *name, Type *constraint, const SourcePosition &source_position)
     : Node(Node::kMaxKinds, source_position)
     , name_(DCHECK_NOTNULL(name))
@@ -325,10 +343,10 @@ WhenExpression::WhenExpression(base::Arena *arena, Statement *initializer, Expre
     , case_clauses_(arena) {
 }
 
-WhenExpression::ExpectValueCase::ExpectValueCase(Expression *match_value, Statement *then_clause,
-                                                 const SourcePosition &source_position)
-    : Case(kExpectValue, then_clause, source_position)
-    , match_value_(DCHECK_NOTNULL(match_value)) {
+WhenExpression::ExpectValuesCase::ExpectValuesCase(base::Arena *arena, Statement *then_clause,
+                                                   const SourcePosition &source_position)
+    : Case(kExpectValues, then_clause, source_position)
+    , match_values_(arena) {
 }
 
 WhenExpression::TypeTestingCase::TypeTestingCase(Identifier *name, Type *match_type, Statement *then_clause,
@@ -351,6 +369,14 @@ WhenExpression::StructMatchingCase::StructMatchingCase(base::Arena *arena, const
     : Case(kStructMatching, then_clause, source_position)
     , symbol_(DCHECK_NOTNULL(symbol))
     , expecteds_(arena) {
+}
+
+TryCatchExpression::TryCatchExpression(base::Arena *arena, Block *try_block, Block *finally_block,
+                                       const SourcePosition &source_position)
+    : Expression(Node::kTryCatchExpression, false /*is_lval*/, true /*ls_rval*/, source_position)
+    , try_block_(DCHECK_NOTNULL(try_block))
+    , finally_block_(finally_block)
+    , catch_clauses_(arena) {
 }
 
 bool Type::Is(Node *node) {

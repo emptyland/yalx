@@ -69,11 +69,11 @@ public:
         
     }
     
-    void VisitBreakStatement(BreakStatement *node) override {
+    void VisitBreak(Break *node) override {
         
     }
     
-    void VisitContinueStatement(ContinueStatement *node) override {
+    void VisitContinue(Continue *node) override {
         
     }
     
@@ -81,6 +81,8 @@ public:
         
     }
     
+    void VisitThrow(Throw *node) override {}
+    void VisitRunCoroutine(RunCoroutine *node) override {}
     void VisitWhileLoop(WhileLoop *ast) override {}
     void VisitUnlessLoop(UnlessLoop *node) override {}
     void VisitForeachLoop(ForeachLoop *node) override {}

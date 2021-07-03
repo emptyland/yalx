@@ -48,10 +48,12 @@ public:
     ClassDefinition *ParseClassDefinition(bool *ok);
     IncompletableDefinition *ParseIncompletableDefinition(IncompletableDefinition *receiver, bool *ok);
     Statement *ParseStatement(bool *ok);
+    Block *ParseBlock(bool *ok);
     WhileLoop *ParseWhileLoop(bool *ok);
     UnlessLoop *ParseUnlessLoop(bool *ok);
     ConditionLoop *ParseConditionLoop(ConditionLoop *loop, bool *ok);
     ConditionLoop *ParseDoConditionLoop(bool *ok);
+    RunCoroutine *ParseRunStatement(bool *ok);
     ForeachLoop *ParseForeachLoop(bool *ok);
     Expression *ParseExpression(bool *ok) { return ParseExpression(0, nullptr, ok); }
     Expression *ParseExpression(int limit, Operator *receiver, bool *ok);
@@ -61,6 +63,7 @@ public:
     Expression *ParseParenOrLambdaLiteral(bool *ok);
     IfExpression *ParseIfExpression(bool *ok);
     WhenExpression *ParseWhenExpression(bool *ok);
+    TryCatchExpression *ParseTryCatchExpression(bool *ok);
     Type *ParseType(bool *ok);
 private:
     bool ProbeInstantiation() {
@@ -77,6 +80,7 @@ private:
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *receiver, bool *ok);
     Expression *ParseRemainLambdaLiteral(FunctionPrototype *prototype, const SourcePosition &location, bool *ok);
     Statement *ParseInitializerIfExistsWithCondition(Expression **condition, bool *ok);
+    Identifier *ParseIdentifier(bool *ok);
     Symbol *ParseSymbol(bool *ok);
     Expression *ParseStaticLiteral(bool *ok);
     ArrayInitializer *ParseStaticArrayLiteral(bool *ok);
@@ -92,6 +96,7 @@ private:
                                           const SourcePosition &location);
     
     int ParseDeclarationAccess();
+    Symbol *EnsureToSymbol(Expression *expr, bool *ok);
     
     const String *MatchText(Token::Kind kind, bool *ok);
     void Match(Token::Kind kind, bool *ok);

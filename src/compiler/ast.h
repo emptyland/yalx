@@ -130,8 +130,38 @@ private:
     base::ArenaVector<Expression *> returnning_vals_;
 }; // class Return
 
-class BreakStatement : public Statement {}; // TODO:
-class ContinueStatement : public Statement {}; // TODO:
+class Throw : public Statement {
+public:
+    Throw(Expression *throwing_val, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Expression, throwing_val);
+    DECLARE_AST_NODE(Throw);
+private:
+    Expression *throwing_val_;
+}; // class Throw
+
+class Break : public Statement {
+public:
+    Break(const SourcePosition &source_position);
+    DECLARE_AST_NODE(Break);
+}; // class Break
+
+class Continue : public Statement {
+public:
+    Continue(const SourcePosition &source_position);
+    DECLARE_AST_NODE(Continue);
+}; // class Continue
+
+class RunCoroutine : public Statement {
+public:
+    RunCoroutine(Calling *entry, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Calling, entry);
+    
+    DECLARE_AST_NODE(RunCoroutine);
+private:
+    Calling *entry_;
+}; // class RunCoroutine
 
 // class GenericParameter : Node
 //     = Identifier(): Symbol *
@@ -909,7 +939,7 @@ private:
 class CaseWhenPattern : public Node {
 public:
     enum Pattern {
-        kExpectValue,
+        kExpectValues,
         kTypeTesting,
         kBetweenTo,
         kStructMatching,
@@ -936,15 +966,15 @@ public:
         }
     
     // value -> then_clause
-    class ExpectValueCase : public Case {
+    class ExpectValuesCase : public Case {
     public:
-        ExpectValueCase(Expression *match_value, Statement *then_clause, const SourcePosition &source_position);
+        ExpectValuesCase(base::Arena *arena, Statement *then_clause, const SourcePosition &source_position);
         
-        DEF_PTR_PROP_RW(Expression, match_value);
-        
-        DEFINE_CASE_METHODS(ExpectValue);
+        DEF_ARENA_VECTOR_GETTER(Expression *, match_value);
+
+        DEFINE_CASE_METHODS(ExpectValues);
     private:
-        Expression *match_value_;
+        base::ArenaVector<Expression *> match_values_;
     }; // class ExpectValueCase
     
     // variable: type -> then_clause
@@ -1012,7 +1042,23 @@ private:
     Statement *else_clause_ = nullptr;
 }; // class WhenExpression
 
-class TryCatchExpression : public Expression {};
+class TryCatchExpression : public Expression {
+public:
+    using CatchClause = WhenExpression::TypeTestingCase;
+    
+    TryCatchExpression(base::Arena *arena, Block *try_block, Block *finally_block,
+                       const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Block, try_block);
+    DEF_PTR_PROP_RW(Block, finally_block);
+    DEF_ARENA_VECTOR_GETTER(CatchClause *, catch_clause);
+    
+    DECLARE_AST_NODE(TryCatchExpression);
+private:
+    Block *try_block_;
+    Block *finally_block_;
+    base::ArenaVector<CatchClause *> catch_clauses_;
+}; // class TryCatchExpression
 
 //----------------------------------------------------------------------------------------------------------------------
 // Types

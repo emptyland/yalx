@@ -117,8 +117,10 @@ namespace cpl {
     V(List) \
     V(Assignment) \
     V(Return) \
-    V(BreakStatement) \
-    V(ContinueStatement) \
+    V(Throw) \
+    V(Break) \
+    V(Continue) \
+    V(RunCoroutine) \
     V(WhileLoop) \
     V(UnlessLoop) \
     V(ForeachLoop) \

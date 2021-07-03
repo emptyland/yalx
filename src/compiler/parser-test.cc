@@ -337,6 +337,14 @@ TEST_F(ParserTest, IfExpressionWithElseIf) { // a<b<c<int>>() foo.Foo[~int,int](
     EXPECT_EQ(0, expr->else_clause()->AsIntLiteral()->value());
 }
 
+TEST_F(ParserTest, TryCatchExpression) {
+    SwitchInput("try { foo() } catch (e: Exception) {}");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+}
+
 TEST_F(ParserTest, WhenExpression) {
     SwitchInput("when {\n"
                 "   a > 0 -> 0\n"
@@ -353,9 +361,9 @@ TEST_F(ParserTest, WhenExpression) {
     EXPECT_EQ(nullptr, ast->initializer());
     EXPECT_EQ(nullptr, ast->destination());
     ASSERT_EQ(3, ast->case_clauses_size());
-    ASSERT_EQ(CaseWhenPattern::kExpectValue, ast->case_clause(0)->pattern());
-    auto case_clause = WhenExpression::ExpectValueCase::Cast(ast->case_clause(0));
-    ASSERT_TRUE(case_clause->match_value()->IsGreater());
+    ASSERT_EQ(CaseWhenPattern::kExpectValues, ast->case_clause(0)->pattern());
+    auto case_clause = WhenExpression::ExpectValuesCase::Cast(ast->case_clause(0));
+    ASSERT_TRUE(case_clause->match_value(0)->IsGreater());
     ASSERT_TRUE(case_clause->then_clause()->IsIntLiteral());
     EXPECT_EQ(0, case_clause->then_clause()->AsIntLiteral()->value());
     
@@ -572,6 +580,27 @@ TEST_F(ParserTest, StructDefinitionWithSuperCall) {
     auto symbol = callee->primary()->AsDot();
     EXPECT_STREQ("bar", symbol->primary()->AsIdentifier()->name()->data());
     EXPECT_STREQ("Bar", symbol->field()->data());
+    
+}
+
+TEST_F(ParserTest, BreakContinueThrowStatements) {
+    SwitchInput("break\n"
+                "continue\n"
+                "throw Expection()\n");
+    bool ok = true;
+    auto ast = parser_.ParseStatement(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(ast->IsBreak());
+    
+    ast = parser_.ParseStatement(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_TRUE(ast->IsContinue());
+    
+    ast = parser_.ParseStatement(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_TRUE(ast->IsThrow());
+    ASSERT_TRUE(ast->AsThrow()->throwing_val()->IsCalling());
     
 }
 

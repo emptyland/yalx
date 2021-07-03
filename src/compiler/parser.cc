@@ -783,17 +783,8 @@ VariableDeclaration *Parser::ParseVariableDeclaration(bool *ok) {
 Statement *Parser::ParseStatement(bool *ok) {
     auto location = Peek().source_position();
     switch (Peek().kind()) {
-        case Token::kLBrace: {
-            MoveNext();
-            auto block = new (arena_) Block(arena_, location);
-            while (!Test(Token::kRBrace)) {
-                auto stmt = ParseStatement(CHECK_OK);
-                block->mutable_statements()->push_back(stmt);
-                
-                *block->mutable_source_position() = location.Concat(Peek().source_position());
-            }
-            return block;
-        } break;
+        case Token::kLBrace:
+            return ParseBlock(ok);
             
         case Token::kVolatile:
         case Token::kVal:
@@ -811,6 +802,15 @@ Statement *Parser::ParseStatement(bool *ok) {
             *stmt->mutable_source_position() = location.Concat(stmt->returnning_vals().back()->source_position());
             return stmt;
         } break;
+            
+        case Token::kThrow: {
+            MoveNext();
+            auto throwing_val = ParseExpression(CHECK_OK);
+            return new (arena_) Throw(throwing_val, location.Concat(throwing_val->source_position()));
+        } break;
+            
+        case Token::kRun:
+            return ParseRunStatement(ok);
         
         case Token::kWhile:
             return ParseWhileLoop(ok);
@@ -824,6 +824,14 @@ Statement *Parser::ParseStatement(bool *ok) {
         case Token::kDo:
             return ParseDoConditionLoop(ok);
             
+        case Token::kBreak:
+            MoveNext();
+            return new (arena_) Break(location);
+            
+        case Token::kContinue:
+            MoveNext();
+            return new (arena_) Continue(location);
+
         default: {
             Expression *tmp[2] = {nullptr,nullptr};
             base::ArenaVector<Expression *> lvals(arena_);
@@ -847,6 +855,19 @@ Statement *Parser::ParseStatement(bool *ok) {
             return tmp[0];
         } break;
     }
+}
+
+Block *Parser::ParseBlock(bool *ok) {
+    auto location = Peek().source_position();
+    Match(Token::kLBrace, CHECK_OK);
+    auto block = new (arena_) Block(arena_, location);
+    while (!Test(Token::kRBrace)) {
+        auto stmt = ParseStatement(CHECK_OK);
+        block->mutable_statements()->push_back(stmt);
+        
+        *block->mutable_source_position() = location.Concat(Peek().source_position());
+    }
+    return block;
 }
 
 WhileLoop *Parser::ParseWhileLoop(bool *ok) {
@@ -879,14 +900,8 @@ ConditionLoop *Parser::ParseConditionLoop(ConditionLoop *loop, bool *ok) {
     loop->set_condition(condition);
     loop->set_initializer(initializer);
     
-    auto stmt = ParseStatement(CHECK_OK);
-    if (!stmt->IsBlock()) {
-        *ok = false;
-        error_feedback_->Printf(stmt->source_position(), "Unexpected 'block' for loop body");
-        return nullptr;
-    }
-    
-    loop->set_body(DCHECK_NOTNULL(stmt->AsBlock()));
+    auto block = ParseBlock(CHECK_OK);
+    loop->set_body(block);
     return loop;
 }
 
@@ -894,12 +909,7 @@ ConditionLoop *Parser::ParseDoConditionLoop(bool *ok) {
     auto location = Peek().source_position();
     Match(Token::kDo, CHECK_OK);
     
-    auto maybe_body = ParseStatement(CHECK_OK);
-    if (!maybe_body->IsBlock()) {
-        *ok = false;
-        error_feedback_->Printf(maybe_body->source_position(), "Unexpected 'block' for loop body");
-        return nullptr;
-    }
+    auto block = ParseBlock(CHECK_OK);
     
     bool while_or_unless = false;
     if (Test(Token::kWhile)) {
@@ -916,13 +926,23 @@ ConditionLoop *Parser::ParseDoConditionLoop(bool *ok) {
     
     ConditionLoop *loop = nullptr;
     if (while_or_unless) {
-        loop = new (arena_) WhileLoop(nullptr/*init*/, true/*execute_first*/, condition, maybe_body->AsBlock(),
-                                      location);
+        loop = new (arena_) WhileLoop(nullptr/*init*/, true/*execute_first*/, condition, block, location);
     } else {
-        loop = new (arena_) UnlessLoop(nullptr/*init*/, true/*execute_first*/, condition, maybe_body->AsBlock(),
-                                       location);
+        loop = new (arena_) UnlessLoop(nullptr/*init*/, true/*execute_first*/, condition, block, location);
     }
     return loop;
+}
+
+RunCoroutine *Parser::ParseRunStatement(bool *ok) {
+    auto location = Peek().source_position();
+    Match(Token::kRun, CHECK_OK);
+    auto maybe_calling = ParseExpression(CHECK_OK);
+    if (!maybe_calling->IsCalling()) {
+        *ok = false;
+        error_feedback_->Printf(maybe_calling->source_position(), "Unexpected 'calling' for coroutine entry");
+        return nullptr;
+    }
+    return new (arena_) RunCoroutine(maybe_calling->AsCalling(), location.Concat(maybe_calling->source_position()));
 }
 
 // for_statement ::= `for' `(' identifer `in' expression `)' block
@@ -955,18 +975,13 @@ ForeachLoop *Parser::ParseForeachLoop(bool *ok) {
     
     Match(Token::kRParen, CHECK_OK);
     
-    auto maybe_body = ParseStatement(CHECK_OK);
-    if (!maybe_body->IsBlock()) {
-        *ok = false;
-        error_feedback_->Printf(maybe_body->source_position(), "Unexpected 'block' for loop body");
-        return nullptr;
-    }
+    auto block = ParseBlock(CHECK_OK);
     
-    location.Concat(maybe_body->source_position());
+    location.Concat(block->source_position());
     if (range.lower != nullptr && range.upper != nullptr) {
-        return new (arena_) ForeachLoop(id, range, maybe_body->AsBlock(), location);
+        return new (arena_) ForeachLoop(id, range, block, location);
     } else {
-        return new (arena_) ForeachLoop(id, iterable_or_lower, maybe_body->AsBlock(), location);
+        return new (arena_) ForeachLoop(id, iterable_or_lower, block, location);
     }
 }
 
@@ -1047,6 +1062,9 @@ Expression *Parser::ParseSimple(bool *ok) {
 
         case Token::kIf:
             return ParseIfExpression(ok);
+            
+        case Token::kTry:
+            return ParseTryCatchExpression(ok);
             
         case Token::kWhen:
             return ParseWhenExpression(ok);
@@ -1314,9 +1332,23 @@ WhenExpression *Parser::ParseWhenExpression(bool *ok) {
                 
                 auto type = ParseType(CHECK_OK);
                 case_clause = new (arena_) WhenExpression::TypeTestingCase(match_value_or_id->AsIdentifier(), type,
-                                                                           nullptr, location);
+                                                                           nullptr, case_location);
+            } else if (Test(Token::kLBrace)) {
+                auto symbol = EnsureToSymbol(match_value_or_id, CHECK_OK);
+                auto clause = new (arena_) WhenExpression::StructMatchingCase(arena_, symbol, nullptr, case_location);
+                do {
+                    auto field_name = ParseIdentifier(CHECK_OK);
+                    clause->mutable_expecteds()->push_back(field_name);
+                } while (Test(Token::kComma));
             } else {
-                case_clause = new (arena_) WhenExpression::ExpectValueCase(match_value_or_id, nullptr, location);
+                auto clause = new (arena_) WhenExpression::ExpectValuesCase(arena_, nullptr, case_location);
+                clause->mutable_match_values()->push_back(match_value_or_id);
+                while (Test(Token::kComma)) {
+                    auto match_value = ParseExpression(CHECK_OK);
+                    clause->mutable_match_values()->push_back(match_value);
+                }
+                *clause->mutable_source_position() = case_location.Concat(clause->match_values().back()->source_position());
+                case_clause = clause;
             }
         }
 
@@ -1333,6 +1365,46 @@ WhenExpression *Parser::ParseWhenExpression(bool *ok) {
     
     *when->mutable_source_position() = location;
     return when;
+}
+
+// try_catch_statement ::= `try' block catch_clause+ finally_clause?
+// catch_clause ::= `catch' `(' identifier `:' type_ref `)' block
+// finally_clause ::= `finally' block
+TryCatchExpression *Parser::ParseTryCatchExpression(bool *ok) {
+    auto location = Peek().source_position();
+    
+    Match(Token::kTry, CHECK_OK);
+    auto try_block = ParseBlock(CHECK_OK);
+    auto try_catch = new (arena_) TryCatchExpression(arena_, try_block, nullptr, location);
+    auto catch_location = Peek().source_position();
+    while (Test(Token::kCatch)) { // catch clause
+        Match(Token::kLParen, CHECK_OK);
+        auto id = ParseIdentifier(CHECK_OK);
+        Match(Token::kColon, CHECK_OK);
+        auto type = ParseType(CHECK_OK);
+        Match(Token::kRParen, CHECK_OK);
+        auto block = ParseBlock(CHECK_OK);
+        auto catch_clause = new (arena_) TryCatchExpression::CatchClause(id, type, block,
+                                                                         catch_location.Concat(block->source_position()));
+        try_catch->mutable_catch_clauses()->push_back(catch_clause);
+        
+        *try_catch->mutable_source_position() = location.Concat(catch_location);
+        catch_location = Peek().source_position();
+    }
+    
+    if (Test(Token::kFinally)) {
+        auto block = ParseBlock(CHECK_OK);
+        try_catch->set_finally_block(block);
+        
+        *try_catch->mutable_source_position() = location.Concat(block->source_position());
+    }
+    
+    if (try_catch->catch_clauses().empty() && !try_catch->finally_block()) {
+        *ok = false;
+        error_feedback_->Printf(try_catch->source_position(), "Unexpected any 'catch-clause' or 'finally-clause'");
+        return nullptr;
+    }
+    return try_catch;
 }
 
 bool Parser::ProbeInstantiation(bool *ok) {
@@ -1739,6 +1811,12 @@ ArrayInitializer *Parser::ParseStaticArrayLiteral(bool *ok) {
     return init;
 }
 
+Identifier *Parser::ParseIdentifier(bool *ok) {
+    auto location = Peek().source_position();
+    auto name = MatchText(Token::kIdentifier, CHECK_OK);
+    return new (arena_) Identifier(name, location);
+}
+
 // symbol ::= identifier | identifier `.' identifier
 Symbol *Parser::ParseSymbol(bool *ok) {
     auto location = Peek().source_position();
@@ -1815,6 +1893,24 @@ int Parser::ParseDeclarationAccess() {
     }
     
     return static_cast<int>(access);
+}
+
+Symbol *Parser::EnsureToSymbol(Expression *expr, bool *ok) {
+    if (expr->IsIdentifier()) {
+        return new (arena_) Symbol(expr->AsIdentifier()->name(), expr->source_position());
+    }
+    
+    if (expr->IsDot()) {
+        auto dot = expr->AsDot();
+        if (dot->primary()->IsIdentifier()) {
+            auto prefix_name = dot->primary()->AsIdentifier()->name();
+            return new (arena_) Symbol(prefix_name, dot->field(), expr->source_position());
+        }
+    }
+    
+    *ok = false;
+    error_feedback_->Printf(expr->source_position(), "Unexpected 'symbol'");
+    return nullptr;
 }
 
 const String *Parser::MatchText(Token::Kind kind, bool *ok) {
