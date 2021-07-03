@@ -196,7 +196,7 @@ base::Status Compiler::Build(const std::string &project_dir,
 }
 
 
-base::Status Compiler::ParseAllSourceFiles(const std::vector<std::string> files) {
+base::Status Compiler::ParseAllSourceFiles(const std::vector<std::string> &files) {
     
     return base::Status::OK();
 }

@@ -22,7 +22,7 @@ public:
     
     static base::Status Build(const std::string &project_dir, const std::string &base_lib, int optimization);
 
-    static base::Status ParseAllSourceFiles(const std::vector<std::string> files);
+    static base::Status ParseAllSourceFiles(const std::vector<std::string> &files);
     
     static constexpr char kSourceExtendedName[] = ".yalx";
     
