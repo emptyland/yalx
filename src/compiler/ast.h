@@ -37,6 +37,30 @@ class Expression;
 
 
 //----------------------------------------------------------------------------------------------------------------------
+// Package
+//----------------------------------------------------------------------------------------------------------------------
+class Package : public AstNode {
+public:
+    Package(base::Arena *arena, const String *id, const String *path, const String *name);
+    
+    DEF_PTR_PROP_RW(const String, id);
+    DEF_PTR_PROP_RW(const String, path);
+    DEF_PTR_PROP_RW(const String, name);
+    DEF_ARENA_VECTOR_GETTER(FileUnit *, source_file);
+    DEF_ARENA_VECTOR_GETTER(Package *, ownd_package);
+    DEF_ARENA_VECTOR_GETTER(Package *, dependence);
+    
+    DECLARE_AST_NODE(Package);
+private:
+    const String *id_;
+    const String *path_;
+    const String *name_;
+    base::ArenaVector<FileUnit *> source_files_;
+    base::ArenaVector<Package *> ownd_packages_;
+    base::ArenaVector<Package *> dependences_;
+}; // class Package
+
+//----------------------------------------------------------------------------------------------------------------------
 // FileUnit
 //----------------------------------------------------------------------------------------------------------------------
 class FileUnit : public AstNode {

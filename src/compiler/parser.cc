@@ -147,6 +147,8 @@ Parser::Parser(base::Arena *arena, SyntaxFeedback *error_feedback)
     , rollback_(arena->NewArray<Token>(kMaxRollbackDepth)){
 }
 
+Parser::~Parser() {}
+
 base::Status Parser::SwitchInputFile(const std::string &name, base::SequentialFile *file) {
     if (auto rs = lexer_->SwitchInputFile(name, file); rs.fail()) {
         return rs;
@@ -1059,6 +1061,14 @@ Expression *Parser::ParseSimple(bool *ok) {
             MoveNext();
             return literal;
         } break;
+            
+        case Token::kUnitVal:
+            MoveNext();
+            return new (arena_) UnitLiteral(location);
+        
+        case Token::kEmptyVal:
+            MoveNext();
+            return new (arena_) EmptyLiteral(location);
 
         case Token::kIf:
             return ParseIfExpression(ok);

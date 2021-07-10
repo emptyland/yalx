@@ -4,6 +4,16 @@ namespace yalx {
 
 namespace cpl {
 
+Package::Package(base::Arena *arena, const String *id, const String *path, const String *name)
+    : AstNode(Node::kPackage, {0,0})
+    , id_(DCHECK_NOTNULL(id))
+    , name_(DCHECK_NOTNULL(name))
+    , path_(DCHECK_NOTNULL(path))
+    , source_files_(arena)
+    , ownd_packages_(arena)
+    , dependences_(arena) {
+}
+
 FileUnit::ImportEntry::ImportEntry(const String *original_package_name, const String *package_path, const String *alias,
                                    const SourcePosition &source_position)
     : AstNode(Node::kMaxKinds, source_position)

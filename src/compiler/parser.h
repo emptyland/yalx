@@ -30,6 +30,7 @@ public:
     static constexpr int kMaxRollbackDepth = 128;
     
     Parser(base::Arena *arena, SyntaxFeedback *error_feedback);
+    ~Parser();
     base::Status SwitchInputFile(const std::string &name, base::SequentialFile *file);
     
     FileUnit *Parse(bool *ok);

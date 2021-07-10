@@ -1,6 +1,11 @@
 #include "compiler/compiler.h"
+#include "compiler/parser.h"
+#include "compiler/syntax-feedback.h"
+#include "compiler/ast.h"
 #include "base/checking.h"
 #include "base/arena.h"
+#include "base/env.h"
+#include "base/io.h"
 #include <map>
 #include <filesystem>
 #include <vector>
@@ -198,6 +203,53 @@ base::Status Compiler::Build(const std::string &project_dir,
 
 base::Status Compiler::ParseAllSourceFiles(const std::vector<std::string> &files) {
     
+    return base::Status::OK();
+}
+
+base::Status Compiler::FindAndParseMainSourceFiles(const std::string &project_dir,
+                                                   base::Arena *arena,
+                                                   SyntaxFeedback *error_feedback,
+                                                   Package **receiver) {
+    fs::path path(project_dir);
+    path.append(kSourceDirName).append(kMainPkgName);
+    if (!fs::exists(path) || !fs::is_directory(path)) {
+        return ERR_NOT_FOUND();
+    }
+    
+    base::ArenaVector<FileUnit *> files(arena);
+    Parser parser(arena, error_feedback);
+    for(auto& entry: fs::recursive_directory_iterator(path)) {
+        if (fs::is_directory(entry.path())) {
+            continue;
+        }
+        const auto name = entry.path().filename().string();
+        if (name.rfind(kSourceExtendedName) == name.size() - strlen(kSourceExtendedName)) {
+            const auto file_path = entry.path().string();
+            std::unique_ptr<base::SequentialFile> file;
+            if (auto rs = base::Env::NewSequentialFile(file_path, &file); rs.fail()) {
+                return rs;
+            }
+            parser.SwitchInputFile(entry.path().string(), file.get());
+            bool ok = true;
+            auto file_unit = parser.Parse(&ok);
+            if (!ok) {
+                return ERR_CORRUPTION("Syntax error");
+            }
+            files.push_back(file_unit);
+            
+            if (!file_unit->package_name()->Equal(kMainPkgName)) {
+                error_feedback->Printf(file_unit->source_position(), "Different package name: %s, need: main",
+                                       file_unit->package_name()->data());
+                return ERR_CORRUPTION("Syntax error");
+            }
+        }
+    }
+    
+    auto pkg_id = String::New(arena, path.string().append(":").append(kMainPkgName));
+    auto pkg_path = String::New(arena, path.string());
+    auto pkg_name = String::New(arena, kMainPkgName);
+    *receiver = new (arena) Package(arena, pkg_id, pkg_path, pkg_name);
+    *(*receiver)->mutable_source_files() = std::move(files);
     return base::Status::OK();
 }
 

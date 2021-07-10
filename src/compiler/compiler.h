@@ -9,9 +9,13 @@
 #include <vector>
 
 namespace yalx {
-    
+namespace base {
+class Arena;
+} // namespace base
 namespace cpl {
 
+class Package;
+class SyntaxFeedback;
 
 class Compiler final {
 public:
@@ -24,7 +28,33 @@ public:
 
     static base::Status ParseAllSourceFiles(const std::vector<std::string> &files);
     
+    // Source Files Structure:
+    // 1. pkg // external package files.
+    // 2. bin // target files.
+    // 3. src // project source files.
+    //
+    // Example:
+    //
+    // pkg
+    // bin
+    //   |- project
+    // src
+    //   +- main
+    //     |- main.yalx
+    //     |- major.yalx
+    //     |- moon.yalx
+    //   +- foo
+    //     |- foo.yalx
+    //   +- bar
+    //     |- bar.yalx
+    static base::Status FindAndParseMainSourceFiles(const std::string &project_dir,
+                                                    base::Arena *arena,
+                                                    SyntaxFeedback *error_feedback,
+                                                    Package **receiver);
+    
     static constexpr char kSourceExtendedName[] = ".yalx";
+    static constexpr char kSourceDirName[] = "src";
+    static constexpr char kMainPkgName[] = "main";
     
     DISALLOW_ALL_CONSTRUCTORS(Compiler);
 }; // class Compiler

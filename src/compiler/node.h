@@ -112,6 +112,7 @@ namespace cpl {
     DECLARE_TYPE_NODES(V)
 
 #define DECLARE_AST_NODES(V) \
+    V(Package) \
     V(FileUnit) \
     V(Block) \
     V(List) \

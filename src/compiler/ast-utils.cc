@@ -25,6 +25,8 @@ public:
     //           - b
     //
     //
+    void VisitPackage(Package *node) override {}
+    
     void VisitFileUnit(FileUnit *node) override {
         
     }
