@@ -41,10 +41,11 @@ class Expression;
 //----------------------------------------------------------------------------------------------------------------------
 class Package : public AstNode {
 public:
-    Package(base::Arena *arena, const String *id, const String *path, const String *name);
+    Package(base::Arena *arena, const String *id, const String *path, const String *full_path, const String *name);
     
     DEF_PTR_PROP_RW(const String, id);
     DEF_PTR_PROP_RW(const String, path);
+    DEF_PTR_PROP_RW(const String, full_path);
     DEF_PTR_PROP_RW(const String, name);
     DEF_ARENA_VECTOR_GETTER(FileUnit *, source_file);
     DEF_ARENA_VECTOR_GETTER(Package *, ownd_package);
@@ -54,6 +55,7 @@ public:
 private:
     const String *id_;
     const String *path_;
+    const String *full_path_;
     const String *name_;
     base::ArenaVector<FileUnit *> source_files_;
     base::ArenaVector<Package *> ownd_packages_;

@@ -4,11 +4,12 @@ namespace yalx {
 
 namespace cpl {
 
-Package::Package(base::Arena *arena, const String *id, const String *path, const String *name)
+Package::Package(base::Arena *arena, const String *id, const String *path, const String *full_path, const String *name)
     : AstNode(Node::kPackage, {0,0})
     , id_(DCHECK_NOTNULL(id))
     , name_(DCHECK_NOTNULL(name))
     , path_(DCHECK_NOTNULL(path))
+    , full_path_(DCHECK_NOTNULL(full_path))
     , source_files_(arena)
     , ownd_packages_(arena)
     , dependences_(arena) {

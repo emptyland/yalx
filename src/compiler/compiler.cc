@@ -246,9 +246,10 @@ base::Status Compiler::FindAndParseMainSourceFiles(const std::string &project_di
     }
     
     auto pkg_id = String::New(arena, path.string().append(":").append(kMainPkgName));
-    auto pkg_path = String::New(arena, path.string());
+    auto pkg_path = String::New(arena, kMainPkgName);
+    auto pkg_full_path = String::New(arena, path.string());
     auto pkg_name = String::New(arena, kMainPkgName);
-    *receiver = new (arena) Package(arena, pkg_id, pkg_path, pkg_name);
+    *receiver = new (arena) Package(arena, pkg_id, pkg_path, pkg_full_path, pkg_name);
     *(*receiver)->mutable_source_files() = std::move(files);
     return base::Status::OK();
 }

@@ -11,6 +11,7 @@
 namespace yalx {
 namespace base {
 class Arena;
+template <class T> class ArenaVector;
 } // namespace base
 namespace cpl {
 
@@ -51,6 +52,13 @@ public:
                                                     base::Arena *arena,
                                                     SyntaxFeedback *error_feedback,
                                                     Package **receiver);
+    
+    static base::Status FindAndParseAllDependencesSourceFiles(const std::string &project_dir,
+                                                              const std::string &base_lib,
+                                                              base::Arena *arena,
+                                                              SyntaxFeedback *error_feedback,
+                                                              Package *root,
+                                                              base::ArenaVector<Package *> *entries);
     
     static constexpr char kSourceExtendedName[] = ".yalx";
     static constexpr char kSourceDirName[] = "src";

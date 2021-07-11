@@ -43,7 +43,8 @@ TEST_F(CompilerTest, FindAndParseMainPackage) {
     
     ASSERT_EQ(2, pkg->source_files_size());
     EXPECT_STREQ("main", pkg->name()->data());
-    EXPECT_STREQ("tests/00-find-main-pkg/src/main", pkg->path()->data());
+    EXPECT_STREQ("main", pkg->path()->data());
+    EXPECT_STREQ("tests/00-find-main-pkg/src/main", pkg->full_path()->data());
     EXPECT_STREQ("tests/00-find-main-pkg/src/main:main", pkg->id()->data());
     
     auto file = pkg->source_file(0);

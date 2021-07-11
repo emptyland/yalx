@@ -1,0 +1,10 @@
+package lang
+
+@Lang
+class any {
+    native fun id(): int
+    native fun hashCode(): u32
+    native fun toString(): string
+    native fun isEmpty(): bool
+    fun finalize() -> Unit
+}
