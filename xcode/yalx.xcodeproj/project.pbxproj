@@ -160,6 +160,10 @@
 		23D5A6892667734A00635ADB /* builtin-types.c in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A6882667734A00635ADB /* builtin-types.c */; };
 		23D5A68B26677D4B00635ADB /* type-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68A26677D4B00635ADB /* type-test.cc */; };
 		23D5A68D2667861900635ADB /* boot-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68C2667861900635ADB /* boot-posix-x64.s */; };
+		23EDFA27269C45A400C8F1FE /* node.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EDFA26269C45A400C8F1FE /* node.cc */; };
+		23EDFA28269C45A400C8F1FE /* node.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EDFA26269C45A400C8F1FE /* node.cc */; };
+		23EDFA2B269C481A00C8F1FE /* ir-nodes.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EDFA2A269C481A00C8F1FE /* ir-nodes.cc */; };
+		23EDFA2C269C481A00C8F1FE /* ir-nodes.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EDFA2A269C481A00C8F1FE /* ir-nodes.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -279,6 +283,10 @@
 		23D5A68A26677D4B00635ADB /* type-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "type-test.cc"; path = "../src/runtime/object/type-test.cc"; sourceTree = "<group>"; };
 		23D5A68C2667861900635ADB /* boot-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "boot-posix-x64.s"; path = "../src/runtime/boot-posix-x64.s"; sourceTree = "<group>"; };
 		23ED3A95264D6BAD001FDE88 /* all-tests.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "all-tests.entitlements"; sourceTree = "<group>"; };
+		23EDFA25269C43F000C8F1FE /* node.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = node.h; path = ../src/ir/node.h; sourceTree = "<group>"; };
+		23EDFA26269C45A400C8F1FE /* node.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = node.cc; path = ../src/ir/node.cc; sourceTree = "<group>"; };
+		23EDFA29269C47EF00C8F1FE /* ir-nodes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "ir-nodes.h"; path = "../src/ir/ir-nodes.h"; sourceTree = "<group>"; };
+		23EDFA2A269C481A00C8F1FE /* ir-nodes.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "ir-nodes.cc"; path = "../src/ir/ir-nodes.cc"; sourceTree = "<group>"; };
 		23EFD486264624BD007222D6 /* asm-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "asm-arm64.h"; path = "../src/arm64/asm-arm64.h"; sourceTree = "<group>"; };
 		23EFD487264624D2007222D6 /* asm-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-arm64.cc"; path = "../src/arm64/asm-arm64.cc"; sourceTree = "<group>"; };
 		23EFD48926463962007222D6 /* const-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "const-arm64.h"; path = "../src/arm64/const-arm64.h"; sourceTree = "<group>"; };
@@ -349,6 +357,7 @@
 		2354CD3226439A1400A2FAC3 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				23EDFA24269C41B000C8F1FE /* Ir */,
 				2387EF9C2681C56B002E6DCF /* Compiler */,
 				2351F80D26648C8200D337EA /* Runtime */,
 				232A47C0264B6DE7003DCA4F /* Arch */,
@@ -485,6 +494,17 @@
 			name = Object;
 			sourceTree = "<group>";
 		};
+		23EDFA24269C41B000C8F1FE /* Ir */ = {
+			isa = PBXGroup;
+			children = (
+				23EDFA26269C45A400C8F1FE /* node.cc */,
+				23EDFA25269C43F000C8F1FE /* node.h */,
+				23EDFA2A269C481A00C8F1FE /* ir-nodes.cc */,
+				23EDFA29269C47EF00C8F1FE /* ir-nodes.h */,
+			);
+			name = Ir;
+			sourceTree = "<group>";
+		};
 		23EFD48526462489007222D6 /* Arm64 */ = {
 			isa = PBXGroup;
 			children = (
@@ -581,6 +601,7 @@
 				232FDB1126818CF900D52154 /* number-test.cc in Sources */,
 				23D4A4492680D17D0090C631 /* type.h in Sources */,
 				2387EFAD2684643A002E6DCF /* token.cc in Sources */,
+				23EDFA28269C45A400C8F1FE /* node.cc in Sources */,
 				23D4A44A2680D17D0090C631 /* builtin-types.c in Sources */,
 				23D4A44B2680D17D0090C631 /* type-test.cc in Sources */,
 				23D4A44C2680D17D0090C631 /* yalx-string.h in Sources */,
@@ -596,6 +617,7 @@
 				2387EFB82685BB99002E6DCF /* node-test.cc in Sources */,
 				23D4A4542680D17D0090C631 /* macros.h in Sources */,
 				23D4A4552680D17D0090C631 /* stack-test.cc in Sources */,
+				23EDFA2C269C481A00C8F1FE /* ir-nodes.cc in Sources */,
 				23D4A4562680D17D0090C631 /* stack.h in Sources */,
 				23D4A4572680D17D0090C631 /* stack.c in Sources */,
 				23D4A4582680D17D0090C631 /* process.h in Sources */,
@@ -690,6 +712,7 @@
 				23D5A68B26677D4B00635ADB /* type-test.cc in Sources */,
 				23D5A66D266718F900635ADB /* hash.h in Sources */,
 				23D5A66E266718F900635ADB /* io.h in Sources */,
+				23EDFA2B269C481A00C8F1FE /* ir-nodes.cc in Sources */,
 				23D5A66F266718F900635ADB /* io.cc in Sources */,
 				23D5A670266718F900635ADB /* lazy-instance.h in Sources */,
 				23D5A671266718F900635ADB /* reference-count-test.cc in Sources */,
@@ -711,6 +734,7 @@
 				23D5A679266718F900635ADB /* checking.h in Sources */,
 				23D5A67A266718F900635ADB /* format.h in Sources */,
 				23D5A67B266718F900635ADB /* format.cc in Sources */,
+				23EDFA27269C45A400C8F1FE /* node.cc in Sources */,
 				23D5A67C266718F900635ADB /* utils.h in Sources */,
 				232AA00726861D5D0098E6A3 /* parser-test.cc in Sources */,
 				23D5A64C266718ED00635ADB /* runtime-test.cc in Sources */,
