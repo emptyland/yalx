@@ -504,7 +504,7 @@ StructDefinition *Parser::ParseStructDefinition(bool *ok) {
 
 ClassDefinition *Parser::ParseClassDefinition(bool *ok) {
     auto location = Peek().source_position();
-    Match(Token::kStruct, CHECK_OK);
+    Match(Token::kClass, CHECK_OK);
     auto name = MatchText(Token::kIdentifier, CHECK_OK);
     auto def = new (arena_) ClassDefinition(arena_, name, location);
     ParseIncompletableDefinition(def, CHECK_OK);

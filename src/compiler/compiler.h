@@ -36,6 +36,10 @@ public:
     // Example:
     //
     // pkg
+    //   +- github.com
+    //     +- emptyland
+    //       +- demo
+    //         |- demo.yalx
     // bin
     //   |- project
     // src
@@ -47,16 +51,18 @@ public:
     //     |- foo.yalx
     //   +- bar
     //     |- bar.yalx
+    static base::Status FindAndParseProjectSourceFiles(const std::string &project_dir,
+                                                       const std::string &base_lib,
+                                                       base::Arena *arena,
+                                                       SyntaxFeedback *error_feedback,
+                                                       Package **main_pkg,
+                                                       base::ArenaVector<Package *> *entries,
+                                                       base::ArenaMap<std::string_view, Package *> *all);
+    
     static base::Status FindAndParseMainSourceFiles(const std::string &project_dir,
                                                     base::Arena *arena,
                                                     SyntaxFeedback *error_feedback,
                                                     Package **receiver);
-    
-    static base::Status ParsePackageSourceFiles(std::string_view pkg_dir,
-                                                std::string_view import_path,
-                                                base::Arena *arena,
-                                                SyntaxFeedback *error_feedback,
-                                                Package **receiver);
     
     static base::Status FindAndParseAllDependencesSourceFiles(const std::vector<std::string> &search_paths,
                                                               base::Arena *arena,
@@ -64,9 +70,17 @@ public:
                                                               Package *root,
                                                               base::ArenaMap<std::string_view, Package *> *all);
     
+    static base::Status ParsePackageSourceFiles(std::string_view pkg_dir,
+                                                std::string_view import_path,
+                                                base::Arena *arena,
+                                                SyntaxFeedback *error_feedback,
+                                                Package **receiver);
+    
     static constexpr char kSourceExtendedName[] = ".yalx";
     static constexpr char kSourceDirName[] = "src";
+    static constexpr char kPackageDirName[] = "pkg";
     static constexpr char kMainPkgName[] = "main";
+    static constexpr char kDefaultImport[] = "yalx/lang";
     
     DISALLOW_ALL_CONSTRUCTORS(Compiler);
 }; // class Compiler

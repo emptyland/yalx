@@ -206,6 +206,64 @@ base::Status Compiler::ParseAllSourceFiles(const std::vector<std::string> &files
     return base::Status::OK();
 }
 
+base::Status RecursiveFindEntries(std::set<Package *> *unique_pkgs,
+                                  SyntaxFeedback *error_feedback,
+                                  Package *entry,
+                                  base::ArenaVector<Package *> *entries) {
+    if (entry->dependences_size() == 0) {
+        auto iter = std::find(entries->begin(), entries->end(), entry);
+        if (iter == entries->end()) {
+            entries->push_back(entry);
+        }
+        return base::Status::OK();
+    }
+
+    unique_pkgs->insert(entry);
+    for (auto [_, import] : entry->imports()) {
+        if (unique_pkgs->find(import.pkg) != unique_pkgs->end()) {
+            error_feedback->set_file_name(import.file_unit->file_name()->ToString());
+            error_feedback->Printf(import.entry->source_position(), "Import dependence-ring package");
+            return ERR_CORRUPTION("Import ring package");
+        }
+        
+        if (auto rs = RecursiveFindEntries(unique_pkgs, error_feedback, import.pkg, entries); rs.fail()) {
+            return rs;
+        }
+    }
+    
+    return base::Status::OK();
+}
+
+base::Status Compiler::FindAndParseProjectSourceFiles(const std::string &project_dir,
+                                                      const std::string &base_lib,
+                                                      base::Arena *arena,
+                                                      SyntaxFeedback *error_feedback,
+                                                      Package **main_pkg,
+                                                      base::ArenaVector<Package *> *entries,
+                                                      base::ArenaMap<std::string_view, Package *> *all) {
+    if (auto rs = FindAndParseMainSourceFiles(project_dir, arena, error_feedback, main_pkg); rs.fail()) {
+        return rs;
+    }
+    
+    std::string path(project_dir);
+    std::vector<std::string> search_paths;
+    path.append("/").append(kSourceDirName);
+    search_paths.push_back(path);
+    path.assign(project_dir);
+    path.append("/").append(kPackageDirName);
+    search_paths.push_back(path);
+    search_paths.push_back(base_lib);
+    
+    if (auto rs = FindAndParseAllDependencesSourceFiles(search_paths, arena, error_feedback, *main_pkg, all);
+        rs.fail()) {
+        return rs;
+    }
+    
+    std::set<Package *> unique_pkgs;
+    return RecursiveFindEntries(&unique_pkgs, error_feedback, *main_pkg, entries);
+    //return base::Status::OK();
+}
+
 base::Status Compiler::FindAndParseMainSourceFiles(const std::string &project_dir,
                                                    base::Arena *arena,
                                                    SyntaxFeedback *error_feedback,
@@ -278,6 +336,7 @@ base::Status Compiler::ParsePackageSourceFiles(std::string_view pkg_dir,
     base::ArenaVector<FileUnit *> files(arena);
     Parser parser(arena, error_feedback);
     const String *pkg_name = String::New(arena, path.filename().string());
+    FileUnit::ImportEntry *default_import = nullptr;
     for(auto& entry: fs::recursive_directory_iterator(path)) {
         if (fs::is_directory(entry.path())) {
             continue;
@@ -303,6 +362,17 @@ base::Status Compiler::ParsePackageSourceFiles(std::string_view pkg_dir,
                                        file_unit->package_name()->data());
                 return ERR_CORRUPTION("Syntax error");
             }
+            
+            // Default import:
+            // import "yalx/lang" as *
+            if (import_path.compare(kDefaultImport) != 0) { // Exclude yalx/lang package self
+                if (!default_import) {
+                    default_import = new (arena) FileUnit::ImportEntry(String::New(arena, "lang"),
+                                                                       String::New(arena, kDefaultImport),
+                                                                       String::New(arena, "*"), {1,1,1,1});
+                }
+                file_unit->mutable_imports()->push_back(default_import);
+            }
             pkg_name = file_unit->package_name();
         }
     }
@@ -311,6 +381,7 @@ base::Status Compiler::ParsePackageSourceFiles(std::string_view pkg_dir,
     auto pkg_path = String::New(arena, import_path);
     auto pkg_full_path = String::New(arena, path.string());
     *receiver = new (arena) Package(arena, pkg_id, pkg_path, pkg_full_path, pkg_name);
+    //auto default_import = new (arena) FileUnit
     *(*receiver)->mutable_source_files() = std::move(files);
     (*receiver)->Prepare();
     

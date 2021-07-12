@@ -1,0 +1,5 @@
+package bar
+
+import "baz"
+
+fun bar() -> baz.baz()

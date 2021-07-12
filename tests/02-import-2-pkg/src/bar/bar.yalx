@@ -1,0 +1,5 @@
+package bar
+
+import "github.com/emptyland/demo"
+
+fun bar() -> demo.demo()

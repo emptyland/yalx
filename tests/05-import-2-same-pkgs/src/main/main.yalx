@@ -1,0 +1,11 @@
+package main
+
+import {
+    "external1/foo" as foo1
+    "external2/foo" as foo2
+}
+
+fun main() {
+    foo1.foo()
+    foo2.foo()
+}

@@ -1,0 +1,9 @@
+package main
+
+import "foo"
+import "bar"
+
+fun main() {
+    foo.foo()
+    bar.bar()
+}
