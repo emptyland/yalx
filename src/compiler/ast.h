@@ -41,6 +41,15 @@ class Expression;
 //----------------------------------------------------------------------------------------------------------------------
 class Package : public AstNode {
 public:
+    struct Import {
+        Package  *pkg = nullptr;
+        FileUnit *file_unit = nullptr;
+        AstNode  *entry = nullptr;
+    }; // struct Import
+    
+    using ImportMap = base::ArenaMap<std::string_view, Import>;
+    
+    
     Package(base::Arena *arena, const String *id, const String *path, const String *full_path, const String *name);
     
     DEF_PTR_PROP_RW(const String, id);
@@ -48,18 +57,28 @@ public:
     DEF_PTR_PROP_RW(const String, full_path);
     DEF_PTR_PROP_RW(const String, name);
     DEF_ARENA_VECTOR_GETTER(FileUnit *, source_file);
-    DEF_ARENA_VECTOR_GETTER(Package *, ownd_package);
+    DEF_ARENA_VECTOR_GETTER(Package *, reference);
     DEF_ARENA_VECTOR_GETTER(Package *, dependence);
+    DEF_VAL_PROP_RW(ImportMap, imports);
+    
+    Import *import(std::string_view path) {
+        auto iter = imports_.find(path);
+        return iter == imports_.end() ? nullptr : &iter->second;
+    }
     
     DECLARE_AST_NODE(Package);
+    friend class Compiler;
 private:
+    void Prepare();
+    
     const String *id_;
     const String *path_;
     const String *full_path_;
     const String *name_;
     base::ArenaVector<FileUnit *> source_files_;
-    base::ArenaVector<Package *> ownd_packages_;
+    base::ArenaVector<Package *> references_;
     base::ArenaVector<Package *> dependences_;
+    ImportMap imports_;
 }; // class Package
 
 //----------------------------------------------------------------------------------------------------------------------

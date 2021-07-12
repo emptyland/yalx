@@ -30,6 +30,19 @@ public:
     void SetUp() override {}
     void TearDown() override {}
     
+    std::vector<std::string> MakeSearchPaths(const char *project_name) {
+        std::vector<std::string> search_paths;
+        std::string prefix("tests");
+        prefix.append("/").append(project_name);
+        std::string path(prefix);
+        path.append("/src");
+        search_paths.push_back(path);
+        path.assign(prefix);
+        path.append("/pkg");
+        search_paths.push_back(path);
+        search_paths.push_back("libs");
+        return search_paths;
+    }
 protected:
     base::Arena arena_;
     MockErrorFeedback feedback_;
@@ -51,6 +64,19 @@ TEST_F(CompilerTest, FindAndParseMainPackage) {
     EXPECT_STREQ("main", file->package_name()->data());
     EXPECT_STREQ("tests/00-find-main-pkg/src/main/foo.yalx", file->file_name()->data());
     EXPECT_STREQ("tests/00-find-main-pkg/src/main/foo.yalx", file->file_full_path()->data());
+}
+
+TEST_F(CompilerTest, FindAndParseAllDependencesSourceFiles) {
+    Package *pkg = nullptr;
+    auto rs = Compiler::FindAndParseMainSourceFiles("tests/01-import-1-pkg", &arena_, &feedback_, &pkg);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    
+    base::ArenaMap<std::string_view, Package *> all(&arena_);
+    rs = Compiler::FindAndParseAllDependencesSourceFiles(MakeSearchPaths("01-import-1-pkg"), &arena_, &feedback_, pkg,
+                                                         &all);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    ASSERT_EQ(1, all.size());
+    ASSERT_TRUE(all.find("tests/01-import-1-pkg/src/foo") != all.end());
 }
 
 } // namespace cpl

@@ -2,17 +2,16 @@
 #ifndef YALX_COMPILER_COMPILER_H_
 #define YALX_COMPILER_COMPILER_H_
 
+#include "base/arena-utils.h"
 #include "base/status.h"
 #include "base/base.h"
 #include <string>
 #include <string_view>
 #include <vector>
+#include <set>
 
 namespace yalx {
-namespace base {
-class Arena;
-template <class T> class ArenaVector;
-} // namespace base
+
 namespace cpl {
 
 class Package;
@@ -53,12 +52,17 @@ public:
                                                     SyntaxFeedback *error_feedback,
                                                     Package **receiver);
     
-    static base::Status FindAndParseAllDependencesSourceFiles(const std::string &project_dir,
-                                                              const std::string &base_lib,
+    static base::Status ParsePackageSourceFiles(std::string_view pkg_dir,
+                                                std::string_view import_path,
+                                                base::Arena *arena,
+                                                SyntaxFeedback *error_feedback,
+                                                Package **receiver);
+    
+    static base::Status FindAndParseAllDependencesSourceFiles(const std::vector<std::string> &search_paths,
                                                               base::Arena *arena,
                                                               SyntaxFeedback *error_feedback,
                                                               Package *root,
-                                                              base::ArenaVector<Package *> *entries);
+                                                              base::ArenaMap<std::string_view, Package *> *all);
     
     static constexpr char kSourceExtendedName[] = ".yalx";
     static constexpr char kSourceDirName[] = "src";

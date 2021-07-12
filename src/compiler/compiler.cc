@@ -216,8 +216,68 @@ base::Status Compiler::FindAndParseMainSourceFiles(const std::string &project_di
         return ERR_NOT_FOUND();
     }
     
+    return ParsePackageSourceFiles(path.string(), kMainPkgName, arena, error_feedback, receiver);
+}
+
+std::string FindInSearchPaths(const std::vector<std::string> &search_paths, std::string_view import_path) {
+    for (auto item : search_paths) {
+        fs::path path(item);
+        path.append(import_path);
+
+        if (fs::is_directory(path)) {
+            return path.string();
+        }
+    }
+    return "";
+}
+
+base::Status Compiler::FindAndParseAllDependencesSourceFiles(const std::vector<std::string> &search_paths,
+                                                             base::Arena *arena,
+                                                             SyntaxFeedback *error_feedback,
+                                                             Package *root,
+                                                             base::ArenaMap<std::string_view, Package *> *all) {
+    for (auto [import_path, import] : root->imports()) {
+        auto pkg_path = FindInSearchPaths(search_paths, import_path);
+        if (pkg_path.empty()) {
+            error_feedback->set_file_name(import.file_unit->file_name()->ToString());
+            error_feedback->Printf(import.entry->source_position(), "Import \"%s\" path not found", import_path.data());
+            return ERR_CORRUPTION("import path not found");
+        }
+        
+        Package *pkg = nullptr;
+        if (auto iter = all->find(pkg_path); iter != all->end()) {
+            pkg = iter->second;
+        } else {
+            if (auto rs = ParsePackageSourceFiles(pkg_path, import_path, arena, error_feedback, &pkg); rs.fail()) {
+                return rs;
+            }
+            (*all)[pkg->full_path()->ToSlice()] = pkg;
+            if (auto rs = FindAndParseAllDependencesSourceFiles(search_paths, arena, error_feedback, pkg, all);
+                rs.fail()) {
+                return rs;
+            }
+        }
+        root->import(import_path)->pkg = pkg;
+        root->dependences_.push_back(pkg);
+        pkg->references_.push_back(root);
+    }
+    
+    return base::Status::OK();
+}
+
+base::Status Compiler::ParsePackageSourceFiles(std::string_view pkg_dir,
+                                               std::string_view import_path,
+                                               base::Arena *arena,
+                                               SyntaxFeedback *error_feedback,
+                                               Package **receiver) {
+    fs::path path(pkg_dir);
+    if (!fs::exists(path) || !fs::is_directory(path)) {
+        return ERR_NOT_FOUND();
+    }
+    
     base::ArenaVector<FileUnit *> files(arena);
     Parser parser(arena, error_feedback);
+    const String *pkg_name = String::New(arena, path.filename().string());
     for(auto& entry: fs::recursive_directory_iterator(path)) {
         if (fs::is_directory(entry.path())) {
             continue;
@@ -237,20 +297,23 @@ base::Status Compiler::FindAndParseMainSourceFiles(const std::string &project_di
             }
             files.push_back(file_unit);
             
-            if (!file_unit->package_name()->Equal(kMainPkgName)) {
+            if (!DCHECK_NOTNULL(file_unit->package_name())->Equal(pkg_name)) {
+                error_feedback->set_file_name(file_unit->file_name()->ToString());
                 error_feedback->Printf(file_unit->source_position(), "Different package name: %s, need: main",
                                        file_unit->package_name()->data());
                 return ERR_CORRUPTION("Syntax error");
             }
+            pkg_name = file_unit->package_name();
         }
     }
     
-    auto pkg_id = String::New(arena, path.string().append(":").append(kMainPkgName));
-    auto pkg_path = String::New(arena, kMainPkgName);
+    auto pkg_id = String::New(arena, path.string().append(":").append(pkg_name->data()));
+    auto pkg_path = String::New(arena, import_path);
     auto pkg_full_path = String::New(arena, path.string());
-    auto pkg_name = String::New(arena, kMainPkgName);
     *receiver = new (arena) Package(arena, pkg_id, pkg_path, pkg_full_path, pkg_name);
     *(*receiver)->mutable_source_files() = std::move(files);
+    (*receiver)->Prepare();
+    
     return base::Status::OK();
 }
 

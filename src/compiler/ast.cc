@@ -11,8 +11,21 @@ Package::Package(base::Arena *arena, const String *id, const String *path, const
     , path_(DCHECK_NOTNULL(path))
     , full_path_(DCHECK_NOTNULL(full_path))
     , source_files_(arena)
-    , ownd_packages_(arena)
-    , dependences_(arena) {
+    , references_(arena)
+    , dependences_(arena)
+    , imports_(arena) {
+}
+
+void Package::Prepare() {
+    for (auto file : source_files()) {
+        for (auto item : file->imports()) {
+            imports_[item->package_path()->ToSlice()] = Import{
+                .pkg = nullptr,
+                .file_unit = file,
+                .entry = item,
+            };
+        }
+    }
 }
 
 FileUnit::ImportEntry::ImportEntry(const String *original_package_name, const String *package_path, const String *alias,
