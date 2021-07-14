@@ -5,6 +5,43 @@ namespace yalx {
 
 namespace ir {
 
+Module::Module(base::Arena *arena, const String *name, const String *path, const String *full_path)
+    : Node(Node::kModule)
+    , arena_(DCHECK_NOTNULL(arena))
+    , name_(DCHECK_NOTNULL(name))
+    , path_(DCHECK_NOTNULL(path))
+    , full_path_(DCHECK_NOTNULL(full_path))
+    , named_funs_(arena)
+    , unnamed_funs_(arena) {
+}
+
+BasicBlock *Function::NewBlock(const String *name) {
+    auto block = new (arena_) BasicBlock(arena_, name);
+    if (!entry_) {
+        entry_ = block;
+    }
+    blocks_.push_back(block);
+    return block;
+}
+
+Function::Function(base::Arena *arena, const String *name, Module *owns)
+    : Node(Node::kFunction)
+    , arena_(DCHECK_NOTNULL(arena))
+    , name_(DCHECK_NOTNULL(name))
+    , owns_(DCHECK_NOTNULL(owns))
+    , paramaters_(arena)
+    , blocks_(arena) {
+}
+
+BasicBlock::BasicBlock(base::Arena *arena, const String *name)
+    : Node(Node::kBasicBlock)
+    , arena_(DCHECK_NOTNULL(arena))
+    , name_(DCHECK_NOTNULL(name))
+    , instructions_(arena)
+    , inputs_(arena)
+    , outputs_(arena) {
+}
+
 Value *Value::NewWithInputs(base::Arena *arena, Type type, Operator *op, Node **inputs, size_t size) {
     auto value = New0(arena, type, op);
     assert(size == TotalInOutputs(op));

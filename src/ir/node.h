@@ -42,7 +42,6 @@ namespace ir {
 using String = base::ArenaString;
 
 
-
 #define DECLARE_IR_KINDS(V) \
     V(Module) \
     V(Function) \
@@ -78,21 +77,64 @@ private:
 
 class Module : public Node {
 public:
+    Module(base::Arena *arena, const String *name, const String *path, const String *full_path);
+
+    DEF_PTR_GETTER(const String, name);
+    DEF_PTR_GETTER(base::Arena, arena);
+    DEF_PTR_GETTER(const String, path);
+    DEF_PTR_GETTER(const String, full_path);
+    DEF_ARENA_VECTOR_GETTER(Function *, unnamed_fun);
+
+    Function *NewFunction(const String *name);
+    Function *NewFunction();
+
+private:
+    const String *const name_;
+    const String *const path_;
+    const String *const full_path_;
+    base::Arena *const arena_;
     
+    base::ArenaMap<const String *, Function *> named_funs_;
+    base::ArenaVector<Function *> unnamed_funs_;
 }; // class Module
+
 
 class Function : public Node {
 public:
+    BasicBlock *NewBlock(const String *name);
     
+    friend class Module;
 private:
-    Module *owns_;
+    Function(base::Arena *arena, const String *name, Module *owns);
+    
+    const String *const name_;
+    Module *const owns_;
+    base::Arena *const arena_;
+    BasicBlock *entry_ = nullptr;
     base::ArenaVector<Value *> paramaters_;
-    BasicBlock *entry_;
+    base::ArenaVector<BasicBlock *> blocks_;
 }; // class Function
+
 
 class BasicBlock : public Node {
 public:
+    template<class ...Nodes> inline Value *NewNode(Type type, Operator *op, Nodes... nodes);
     
+    DEF_PTR_GETTER(const String, name);
+    DEF_PTR_GETTER(base::Arena, arena);
+    DEF_ARENA_VECTOR_GETTER(Value *, instruction);
+    DEF_ARENA_VECTOR_GETTER(BasicBlock *, input);
+    DEF_ARENA_VECTOR_GETTER(BasicBlock *, output);
+    
+    friend class Function;
+private:
+    BasicBlock(base::Arena *arena, const String *name);
+    
+    const String *const name_;
+    base::Arena *const arena_;
+    base::ArenaVector<Value *> instructions_;
+    base::ArenaVector<BasicBlock *> inputs_;
+    base::ArenaVector<BasicBlock *> outputs_;
 }; // class BasicBlock
 
 
@@ -195,6 +237,12 @@ private:
 
 template<class T>
 inline T OperatorWith<T>::Data(const ir::Value *node) { return Cast(node->op())->data(); }
+
+template<class ...Nodes>
+inline Value *BasicBlock::NewNode(Type type, Operator *op, Nodes... nodes) {
+    Node *inputs[] = {CheckNode(nodes)...};
+    return Value::NewWithInputs(arena(), type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
+}
 
 } // namespace ir
 

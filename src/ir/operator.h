@@ -13,7 +13,8 @@ namespace ir {
 
 #define DECLARE_ALL_IR(V) \
     DECLARE_IR_INNER(V) \
-    DECLARE_IR_CONSTANT(V)
+    DECLARE_IR_CONSTANT(V) \
+    DECLARE_IR_CALLING(V)
 
 
 #define DECLARE_IR_INNER(V) \
@@ -22,6 +23,12 @@ namespace ir {
     V(Argument) \
     V(Parameter) \
     V(Ret)
+
+#define DECLARE_IR_CALLING(V) \
+    V(CallInline) \
+    V(CallDirectly) \
+    V(CallIndirectly) \
+    V(CallRuntime)
 
 #define DECLARE_IR_CONSTANT(V) \
     V(Word8Constant) \
