@@ -15,6 +15,15 @@ std::tuple<Model::Field, bool> Model::FindField(std::string_view name) const {
     return std::make_tuple(Field{}, false);
 }
 
+PrototypeModel::PrototypeModel(base::Arena *arena, bool vargs)
+    : Model(String::kEmpty)
+    , params_(DCHECK_NOTNULL(arena))
+    , return_types_(arena)
+    , vargs_(vargs) {
+}
+
+size_t PrototypeModel::ReferenceSizeInBytes() const { return kPointerSize; }
+
 InterfaceModel::InterfaceModel(base::Arena *arena, const String *name)
     : Model(name)
     , methods_(arena) {

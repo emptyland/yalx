@@ -53,9 +53,11 @@ TEST_F(MetadataTest, Interface) {
     auto clazz = module_->NewInterfaceModel(name);
     
     name = String::New(&arena_, "foo");
-    auto fun = module_->NewStandaloneFunction(name);
-    fun->mutable_returning_types()->push_back(Types::Int32);
-    fun->mutable_returning_types()->push_back(Types::Int32);
+    auto prototype = new (&arena_) PrototypeModel(&arena_, false/*vargs*/);
+    prototype->mutable_params()->push_back(Types::Int32);
+    prototype->mutable_params()->push_back(Types::Int32);
+    prototype->mutable_return_types()->push_back(Types::Int32);
+    auto fun = module_->NewStandaloneFunction(name, prototype);
     
     fun->mutable_paramaters()->push_back(Value::New0(&arena_, Types::Int32, ops_.Argument(0)));
     fun->mutable_paramaters()->push_back(Value::New0(&arena_, Types::Int32, ops_.Argument(1)));

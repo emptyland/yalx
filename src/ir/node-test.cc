@@ -1,4 +1,5 @@
 #include "ir/node.h"
+#include "ir/metadata.h"
 #include "ir/operators-factory.h"
 #include <gtest/gtest.h>
 
@@ -38,7 +39,11 @@ TEST_F(NodeTest, Sanity) {
 }
 
 TEST_F(NodeTest, Module) {
-    auto fun = module_->NewFunction(module_->name());
+    auto prototype = new (&arena_) PrototypeModel(&arena_, false/*vargs*/);
+    prototype->mutable_params()->push_back(Types::Int32);
+    prototype->mutable_params()->push_back(Types::Int32);
+    prototype->mutable_return_types()->push_back(Types::Int32);
+    auto fun = module_->NewFunction(module_->name(), prototype);
     EXPECT_EQ(fun, module_->FindFunOrNull(module_->name()->ToSlice()));
     
     auto bb = fun->NewBlock(String::kEmpty);
@@ -47,7 +52,7 @@ TEST_F(NodeTest, Module) {
     fun->mutable_paramaters()->push_back(Value::New0(&arena_, Types::Int32, ops_.Argument(0)));
     fun->mutable_paramaters()->push_back(Value::New0(&arena_, Types::Int32, ops_.Argument(1)));
     
-    auto val = bb->NewNode(Types::Void, ops_.Word32Add(), fun->paramater(0), fun->paramater(1));
+    auto val = bb->NewNode(Types::Int32, ops_.Word32Add(), fun->paramater(0), fun->paramater(1));
     val = bb->NewNode(Types::Void, ops_.Ret(1), val);
     USE(val);
 }

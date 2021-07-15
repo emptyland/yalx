@@ -52,6 +52,7 @@ using String = base::ArenaString;
 #undef DEFINE_PREDECL
 
 class Model;
+class PrototypeModel;
 class InterfaceModel;
 class ArrayModel;
 class ChannelModel;
@@ -92,9 +93,10 @@ public:
     DEF_ARENA_VECTOR_GETTER(InterfaceModel *, interface);
     DEF_ARENA_VECTOR_GETTER(StructureModel *, structure);
 
-    Function *NewFunction(const String *name);
-    Function *NewFunction();
-    Function *NewStandaloneFunction(const String *name);
+    Function *NewFunction(const String *name, StructureModel *owns, PrototypeModel *prototype);
+    Function *NewFunction(const String *name, PrototypeModel *prototype);
+    Function *NewFunction(PrototypeModel *prototype);
+    Function *NewStandaloneFunction(const String *name, PrototypeModel *prototype);
     
     InterfaceModel *NewInterfaceModel(const String *name);
     StructureModel *NewClassModel(const String *name, StructureModel *base_of);
@@ -133,19 +135,19 @@ public:
     DEF_PTR_GETTER(Module, owns);
     DEF_PTR_GETTER(base::Arena, arena);
     DEF_PTR_GETTER(BasicBlock, entry);
-    DEF_ARENA_VECTOR_GETTER(Type, returning_type);
+    DEF_PTR_GETTER(PrototypeModel, prototype);
     DEF_ARENA_VECTOR_GETTER(Value *, paramater);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
     
     friend class Module;
 private:
-    Function(base::Arena *arena, const String *name, Module *owns);
+    Function(base::Arena *arena, const String *name, Module *owns, PrototypeModel *prototype);
     
     const String *const name_;
     Module *const owns_;
     base::Arena *const arena_;
+    PrototypeModel *const prototype_;
     BasicBlock *entry_ = nullptr;
-    base::ArenaVector<Type> returning_types_;
     base::ArenaVector<Value *> paramaters_;
     base::ArenaVector<BasicBlock *> blocks_;
 }; // class Function

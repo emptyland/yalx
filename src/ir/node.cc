@@ -45,22 +45,27 @@ StructureModel *Module::NewStructModel(const String *name, StructureModel *base_
     return clazz;
 }
 
-Function *Module::NewFunction(const String *name) {
-    auto fun = new (arena_) Function(arena_, name, this);
+Function *Module::NewFunction(const String *name, StructureModel *owns, PrototypeModel *prototype) {
+    auto full_name = String::New(arena(), base::Sprintf("%s.%s.%s", name_->data(), owns->name()->data(), name->data()));
+    return NewFunction(full_name, prototype);
+}
+
+Function *Module::NewFunction(const String *name, PrototypeModel *prototype) {
+    auto fun = new (arena_) Function(arena_, name, this, prototype);
     assert(named_funs_.find(name->ToSlice()) == named_funs_.end());
     named_funs_[name->ToSlice()] = fun;
     return fun;
 }
 
-Function *Module::NewFunction() {
+Function *Module::NewFunction(PrototypeModel *prototype) {
     auto random_name = String::New(arena_, base::Sprintf("$unnamed$_%d", (rand() << 4) | next_unnamed_id_++));
-    auto fun = NewFunction(random_name);
+    auto fun = NewFunction(random_name, prototype);
     unnamed_funs_.push_back(fun);
     return fun;
 }
 
-Function *Module::NewStandaloneFunction(const String *name) {
-    return new (arena_) Function(arena_, name, this);
+Function *Module::NewStandaloneFunction(const String *name, PrototypeModel *prototype) {
+    return new (arena_) Function(arena_, name, this, prototype);
 }
 
 BasicBlock *Function::NewBlock(const String *name) {
@@ -72,12 +77,12 @@ BasicBlock *Function::NewBlock(const String *name) {
     return block;
 }
 
-Function::Function(base::Arena *arena, const String *name, Module *owns)
+Function::Function(base::Arena *arena, const String *name, Module *owns, PrototypeModel *prototype)
     : Node(Node::kFunction)
     , arena_(DCHECK_NOTNULL(arena))
     , name_(DCHECK_NOTNULL(name))
     , owns_(DCHECK_NOTNULL(owns))
-    , returning_types_(arena)
+    , prototype_(prototype)
     , paramaters_(arena)
     , blocks_(arena) {
 }

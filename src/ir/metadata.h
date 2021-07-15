@@ -53,9 +53,17 @@ protected:
 
 class PrototypeModel : public Model {
 public:
+    PrototypeModel(base::Arena *arena, bool vargs);
+    
+    size_t ReferenceSizeInBytes() const override;
+    
+    DEF_ARENA_VECTOR_GETTER(Type, param);
+    DEF_ARENA_VECTOR_GETTER(Type, return_type);
+    DEF_VAL_GETTER(bool, vargs);
+private:
     base::ArenaVector<Type> params_;
     base::ArenaVector<Type> return_types_;
-    bool vargs_;
+    bool const vargs_;
 }; // class PrototypeModel
 
 class InterfaceModel : public Model {

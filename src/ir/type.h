@@ -25,7 +25,8 @@ namespace ir {
     V(UInt64,  64, Type::kNumberBit) \
     V(Float32, 32, Type::kSignedBit|Type::kNumberBit) \
     V(Float64, 64, Type::kSignedBit|Type::kNumberBit|Type::kFloatBit) \
-    V(Reference, kPointerSize * 8, Type::kReferenceBit)
+    V(Reference, kPointerSize * 8, Type::kReferenceBit) \
+    V(String, kPointerSize * 8, Type::kReferenceBit)
 
 class Model;
 
