@@ -7,7 +7,6 @@
 #include "base/checking.h"
 #include "base/arena-utils.h"
 #include "base/arena.h"
-#include <memory>
 
 namespace yalx {
 namespace base {
@@ -52,6 +51,12 @@ using String = base::ArenaString;
     DECLARE_IR_KINDS(DEFINE_PREDECL)
 #undef DEFINE_PREDECL
 
+class Model;
+class InterfaceModel;
+class ArrayModel;
+class ChannelModel;
+class StructureModel;
+
 class Node : public base::ArenaObject {
 public:
     enum Kind {
@@ -84,24 +89,53 @@ public:
     DEF_PTR_GETTER(const String, path);
     DEF_PTR_GETTER(const String, full_path);
     DEF_ARENA_VECTOR_GETTER(Function *, unnamed_fun);
+    DEF_ARENA_VECTOR_GETTER(InterfaceModel *, interface);
+    DEF_ARENA_VECTOR_GETTER(StructureModel *, structure);
 
     Function *NewFunction(const String *name);
     Function *NewFunction();
+    Function *NewStandaloneFunction(const String *name);
+    
+    InterfaceModel *NewInterfaceModel(const String *name);
+    StructureModel *NewClassModel(const String *name, StructureModel *base_of);
+    StructureModel *NewStructModel(const String *name, StructureModel *base_of);
 
+    Function *FindFunOrNull(std::string_view name) const {
+        auto iter = named_funs_.find(name);
+        return iter == named_funs_.end() ? nullptr : iter->second;
+    }
+    
+    Model *FindModelOrNull(std::string_view name) const {
+        auto iter = named_models_.find(name);
+        return iter == named_models_.end() ? nullptr : iter->second;
+    }
 private:
     const String *const name_;
     const String *const path_;
     const String *const full_path_;
     base::Arena *const arena_;
     
-    base::ArenaMap<const String *, Function *> named_funs_;
+    base::ArenaMap<std::string_view, Model *> named_models_;
+    base::ArenaVector<InterfaceModel *> interfaces_;
+    base::ArenaVector<StructureModel *> structures_;
+    
+    base::ArenaMap<std::string_view, Function *> named_funs_;
     base::ArenaVector<Function *> unnamed_funs_;
+    int next_unnamed_id_ = 0;
 }; // class Module
 
 
 class Function : public Node {
 public:
     BasicBlock *NewBlock(const String *name);
+    
+    DEF_PTR_GETTER(const String, name);
+    DEF_PTR_GETTER(Module, owns);
+    DEF_PTR_GETTER(base::Arena, arena);
+    DEF_PTR_GETTER(BasicBlock, entry);
+    DEF_ARENA_VECTOR_GETTER(Type, returning_type);
+    DEF_ARENA_VECTOR_GETTER(Value *, paramater);
+    DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
     
     friend class Module;
 private:
@@ -111,6 +145,7 @@ private:
     Module *const owns_;
     base::Arena *const arena_;
     BasicBlock *entry_ = nullptr;
+    base::ArenaVector<Type> returning_types_;
     base::ArenaVector<Value *> paramaters_;
     base::ArenaVector<BasicBlock *> blocks_;
 }; // class Function
@@ -240,8 +275,10 @@ inline T OperatorWith<T>::Data(const ir::Value *node) { return Cast(node->op())-
 
 template<class ...Nodes>
 inline Value *BasicBlock::NewNode(Type type, Operator *op, Nodes... nodes) {
-    Node *inputs[] = {CheckNode(nodes)...};
-    return Value::NewWithInputs(arena(), type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
+    Node *inputs[] = {DCHECK_NOTNULL(nodes)...};
+    auto instr = Value::NewWithInputs(arena(), type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
+    instructions_.push_back(instr);
+    return instr;
 }
 
 } // namespace ir

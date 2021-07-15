@@ -27,11 +27,14 @@ namespace ir {
     V(Float64, 64, Type::kSignedBit|Type::kNumberBit|Type::kFloatBit) \
     V(Reference, kPointerSize * 8, Type::kReferenceBit)
 
+class Model;
+
 class Type {
 public:
     enum Kind {
 #define DEFINE_KINDS(name, ...) k##name,
         DECLARE_HIR_TYPES(DEFINE_KINDS)
+        kModel,
 #undef DEFINE_KINDS
     };
     
@@ -40,13 +43,14 @@ public:
     static constexpr uint32_t kFloatBit = 1u << 2;
     static constexpr uint32_t kReferenceBit = 1u << 3;
     
+    constexpr Type(): Type(kVoid, 0, 0) {}
     constexpr Type(Kind kind, int bits, uint32_t flags)
-        : kind_(kind)
-        , bits_(bits)
-        , flags_(flags) {}
+        : Type(kind, bits, flags, nullptr) {}
     
     DEF_VAL_GETTER(Kind, kind);
     DEF_VAL_GETTER(int, bits);
+    DEF_PTR_GETTER(Model, model);
+    
     int bytes() const { return bits_ / 8; }
     
     bool is_signed() const { return flags_ & kSignedBit; }
@@ -54,11 +58,20 @@ public:
     bool is_float() const { return flags_ & kFloatBit; }
     bool is_number() const { return flags_ & kNumberBit; }
     bool is_reference() const { return flags_ & kReferenceBit; }
+    bool is_model() const { return kind() == kModel; }
     
+    static Type Ref(Model *model);
 private:
+    constexpr Type(Kind kind, int bits, uint32_t flags, Model *model)
+        : kind_(kind)
+        , bits_(bits)
+        , flags_(flags)
+        , model_(model) {}
+    
     const Kind kind_;
     const int bits_;
     const uint32_t flags_;
+    Model *const model_;
 }; // class Type
 
 struct Types {
@@ -67,6 +80,13 @@ static constexpr Type name = Type(Type::k##name, bits, flags);
     DECLARE_HIR_TYPES(DEFINE_TYPES)
 #undef DEFINE_TYPES
 }; // struct Types
+
+enum Access {
+    kExport,
+    kPublic,
+    kProtected,
+    kPrivate,
+};
 
 } // namespace ir
 

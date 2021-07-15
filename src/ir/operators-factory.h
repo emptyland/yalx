@@ -50,6 +50,15 @@ public:
     DEFINE_CONSTANT(String, String*)
     
 #undef DEFINE_CONSTANT
+    
+#define DEFINE_BINARY(name) \
+    Operator *name() { \
+        return new (arena_) Operator(Operator::k##name, 0, 2, 0, 1, 0); \
+    }
+    
+    DECLARE_IR_BINARY(DEFINE_BINARY)
+    
+#undef DEFINE_BINARY
 private:
     base::Arena *arena_;
 }; // class OperatorsFactory

@@ -1,4 +1,6 @@
 #include "ir/node.h"
+#include "ir/metadata.h"
+#include "base/format.h"
 #include <string.h>
 
 namespace yalx {
@@ -11,8 +13,54 @@ Module::Module(base::Arena *arena, const String *name, const String *path, const
     , name_(DCHECK_NOTNULL(name))
     , path_(DCHECK_NOTNULL(path))
     , full_path_(DCHECK_NOTNULL(full_path))
+    , named_models_(arena)
+    , interfaces_(arena)
+    , structures_(arena)
     , named_funs_(arena)
     , unnamed_funs_(arena) {
+}
+
+InterfaceModel *Module::NewInterfaceModel(const String *name) {
+    assert(named_models_.find(name->ToSlice()) == named_models_.end());
+    auto model = new (arena()) InterfaceModel(arena(), name);
+    named_models_[name->ToSlice()] = model;
+    interfaces_.push_back(model);
+    return model;
+}
+
+StructureModel *Module::NewClassModel(const String *name, StructureModel *base_of) {
+    assert(named_models_.find(name->ToSlice()) == named_models_.end());
+    auto clazz = new (arena()) StructureModel(arena(), name, StructureModel::kClass, this, base_of);
+    named_models_[name->ToSlice()] = clazz;
+    structures_.push_back(clazz);
+    return clazz;
+}
+
+StructureModel *Module::NewStructModel(const String *name, StructureModel *base_of) {
+    assert(named_models_.find(name->ToSlice()) == named_models_.end());
+    assert(named_models_.find(name->ToSlice()) == named_models_.end());
+    auto clazz = new (arena()) StructureModel(arena(), name, StructureModel::kStruct, this, base_of);
+    named_models_[name->ToSlice()] = clazz;
+    structures_.push_back(clazz);
+    return clazz;
+}
+
+Function *Module::NewFunction(const String *name) {
+    auto fun = new (arena_) Function(arena_, name, this);
+    assert(named_funs_.find(name->ToSlice()) == named_funs_.end());
+    named_funs_[name->ToSlice()] = fun;
+    return fun;
+}
+
+Function *Module::NewFunction() {
+    auto random_name = String::New(arena_, base::Sprintf("$unnamed$_%d", (rand() << 4) | next_unnamed_id_++));
+    auto fun = NewFunction(random_name);
+    unnamed_funs_.push_back(fun);
+    return fun;
+}
+
+Function *Module::NewStandaloneFunction(const String *name) {
+    return new (arena_) Function(arena_, name, this);
 }
 
 BasicBlock *Function::NewBlock(const String *name) {
@@ -29,6 +77,7 @@ Function::Function(base::Arena *arena, const String *name, Module *owns)
     , arena_(DCHECK_NOTNULL(arena))
     , name_(DCHECK_NOTNULL(name))
     , owns_(DCHECK_NOTNULL(owns))
+    , returning_types_(arena)
     , paramaters_(arena)
     , blocks_(arena) {
 }

@@ -14,7 +14,8 @@ namespace ir {
 #define DECLARE_ALL_IR(V) \
     DECLARE_IR_INNER(V) \
     DECLARE_IR_CONSTANT(V) \
-    DECLARE_IR_CALLING(V)
+    DECLARE_IR_CALLING(V) \
+    DECLARE_IR_BINARY(V)
 
 
 #define DECLARE_IR_INNER(V) \
@@ -46,6 +47,21 @@ namespace ir {
     V(StringConstant) \
     V(F32Constant) \
     V(F64Constant)
+
+#define DECLARE_IR_BINARY(V) \
+    V(Word32Add) \
+    V(Word32Sub) \
+    V(U32Mul) \
+    V(U32Div) \
+    V(I32Mul) \
+    V(I32Div) \
+    V(Word32BitwiseAnd) \
+    V(Word32BitwiseOr) \
+    V(Word32BitwiseShl) \
+    V(U32BitwiseShr) \
+    V(I32BitwiseShr)
+
+// V(Word32BitwiseNegative) \
 
 class Node;
 class Value;
