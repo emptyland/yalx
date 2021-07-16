@@ -50,6 +50,8 @@
 		2387EFBC2685BEAD002E6DCF /* ast.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFBA2685BEAD002E6DCF /* ast.cc */; };
 		23A7F0E12699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
 		23A7F0E22699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
+		23C3543726A1B7E7006607D1 /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3543626A1B7E7006607D1 /* scope.cc */; };
+		23C3543826A1B7E7006607D1 /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3543626A1B7E7006607D1 /* scope.cc */; };
 		23D4A4462680D17D0090C631 /* any.h in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68426676DEF00635ADB /* any.h */; };
 		23D4A4472680D17D0090C631 /* number.c in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0B26806D8B00D52154 /* number.c */; };
 		23D4A4482680D17D0090C631 /* number.h in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0A26806CDB00D52154 /* number.h */; };
@@ -290,6 +292,8 @@
 		23A3AB5F2664DE4D00007658 /* process.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = process.h; path = ../src/runtime/process.h; sourceTree = "<group>"; };
 		23A3AB602664E32E00007658 /* process.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = process.c; path = ../src/runtime/process.c; sourceTree = "<group>"; };
 		23A7F0E02699E22A0060BFB7 /* compiler-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "compiler-test.cc"; path = "../src/compiler/compiler-test.cc"; sourceTree = "<group>"; };
+		23C3543526A1B7A6006607D1 /* scope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scope.h; path = ../src/ir/scope.h; sourceTree = "<group>"; };
+		23C3543626A1B7E7006607D1 /* scope.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scope.cc; path = ../src/ir/scope.cc; sourceTree = "<group>"; };
 		23CAA1DD26667586000EF129 /* checking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = checking.h; path = ../src/runtime/checking.h; sourceTree = "<group>"; };
 		23CAA1DE2666790B000EF129 /* scheduler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scheduler.h; path = ../src/runtime/scheduler.h; sourceTree = "<group>"; };
 		23CAA1DF2666799F000EF129 /* scheduler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scheduler.cc; path = ../src/runtime/scheduler.cc; sourceTree = "<group>"; };
@@ -543,6 +547,8 @@
 				23FA86A126A12197001CC777 /* source-position.h */,
 				23FA86A926A161DF001CC777 /* codegen.cc */,
 				23FA86A826A161D0001CC777 /* codegen.h */,
+				23C3543626A1B7E7006607D1 /* scope.cc */,
+				23C3543526A1B7A6006607D1 /* scope.h */,
 			);
 			name = Ir;
 			sourceTree = "<group>";
@@ -647,6 +653,7 @@
 				23D4A44A2680D17D0090C631 /* builtin-types.c in Sources */,
 				23D4A44B2680D17D0090C631 /* type-test.cc in Sources */,
 				23D4A44C2680D17D0090C631 /* yalx-string.h in Sources */,
+				23C3543826A1B7E7006607D1 /* scope.cc in Sources */,
 				23D4A44D2680D17D0090C631 /* yalx-string.c in Sources */,
 				233236E3269ECAFA0078406C /* node-test.cc in Sources */,
 				23D4A44E2680D17D0090C631 /* heap-test.cc in Sources */,
@@ -786,6 +793,7 @@
 				230167692669C5DB007E8322 /* yalx-string.c in Sources */,
 				23D5A678266718F900635ADB /* status.cc in Sources */,
 				23D5A679266718F900635ADB /* checking.h in Sources */,
+				23C3543726A1B7E7006607D1 /* scope.cc in Sources */,
 				23D5A67A266718F900635ADB /* format.h in Sources */,
 				23D5A67B266718F900635ADB /* format.cc in Sources */,
 				23EDFA27269C45A400C8F1FE /* node.cc in Sources */,
