@@ -12,6 +12,104 @@ namespace yalx {
 
 namespace ir {
 
+class IRCodeEnvScope;
+class IRCodePkgScope;
+class IRCodeFileScope;
+class IRCodeStructureScope;
+class IRCodeFunScope;
+class IRCodeBlockScope;
+
+struct Symbol {
+    enum Kind {
+        kNotFound,
+        kUnknown,
+        kModel,
+        kVal,
+        kFun,
+        kField,
+    };
+    Kind kind;
+    cpl::Statement *node;
+    union {
+        Model *model;
+        Value *value;
+        Function *fun;
+        ptrdiff_t field_offset; // offset of field
+    } core;
+    IRCodeEnvScope *owns;
+};
+
+class IRCodeEnvScope {
+public:
+    enum Block {
+        kPlainBlock,
+        kLoopBlock,
+        kBranchBlock,
+    };
+    
+    virtual ~IRCodeEnvScope();
+    
+    virtual IRCodePkgScope *NearlyPkgScope() { return !top_ ? nullptr : top_->NearlyPkgScope(); };
+    virtual IRCodeFileScope *NearlyFileScope() { return !top_ ? nullptr : top_->NearlyFileScope(); };
+    virtual IRCodeStructureScope *NearlyStructureScope() { return !top_ ? nullptr : top_->NearlyStructureScope(); };
+    virtual IRCodeFunScope *NearlyFunScope() { return !top_ ? nullptr : top_->NearlyFunScope(); };
+    virtual IRCodeBlockScope *NearlyBlockScope() { return !top_ ? nullptr : top_->NearlyBlockScope(); };
+    
+    virtual Symbol FindLocalSymbol(std::string_view name) = 0;
+    virtual Symbol FindReachableSymbol(std::string_view name) = 0;
+protected:
+    IRCodeEnvScope(IRCodeEnvScope **location);
+    
+    IRCodeEnvScope **location_;
+    IRCodeEnvScope *top_ = nullptr;
+}; // class IRCodeEnvScope
+
+class IRCodePkgScope : public IRCodeEnvScope {
+public:
+    IRCodePkgScope *NearlyPkgScope() override { return this; }
+    
+private:
+    struct Slot {
+        cpl::FileUnit *file_unit;
+        cpl::Statement *node;
+        Model *model;
+        Value *value;
+        Function *fun;
+    };
+    
+    //std::map<std::string_view, Slot> symbols_;
+    std::vector<IRCodeFileScope *> file_scopes_;
+}; // class IRCodePkgScope
+
+class IRCodeFileScope : public IRCodeEnvScope {
+public:
+    IRCodeFileScope *NearlyFileScope() override { return this; };
+    
+private:
+    cpl::FileUnit *file_unit_;
+}; // class IRCodeFileScope
+
+class IRCodeStructureScope : public IRCodeEnvScope {
+public:
+    IRCodeStructureScope *NearlyStructureScope() override { return this; }
+}; // class IRCodeStructureScope
+
+class IRCodeFunScope : public IRCodeEnvScope {
+public:
+    IRCodeFunScope *NearlyFunScope() override { return this; }
+}; // class IRCodeStructureScope
+
+// TODO add branch scope
+class IRCodeBlockScope : public IRCodeEnvScope {
+public:
+    IRCodeBlockScope *NearlyBlockScope() override { return this; }
+    
+private:
+    cpl::Statement *ast_;
+    BasicBlock *block_;
+}; // class IRCodeBlockScope
+
+
 class IRGeneratorAstVisitor : public cpl::AstVisitor {
 public:
     IRGeneratorAstVisitor(IntermediateRepresentationGenerator *owns)
@@ -134,6 +232,13 @@ public:
     void VisitUIntLiteral(cpl::UIntLiteral *node) override { UNREACHABLE(); }
     void VisitTryCatchExpression(cpl::TryCatchExpression *node) override { UNREACHABLE(); }
     
+    
+    friend class IRCodeEnvScope;
+    friend class IRCodePkgScope;
+    friend class IRCodeFileScope;
+    friend class IRCodeStructureScope;
+    friend class IRCodeFunScope;
+    friend class IRCodeBlockScope;
 private:
     struct Symbol {
         cpl::FileUnit *file_unit;
@@ -225,19 +330,15 @@ private:
     
     bool ok() { return status_.ok(); }
     bool fail() { return status_.fail(); }
-    
     base::Arena *arena() { return owns_->arena_; }
-    
     cpl::SyntaxFeedback *feedback() { return owns_->error_feedback_; }
-    
     OperatorsFactory *ops() { return &ops_; }
     
     IntermediateRepresentationGenerator *const owns_;
+    IRCodeEnvScope *top_ = nullptr;
     Module *module_ = nullptr;
-    
     std::map<std::string_view, Symbol> inner_symbols_;
     base::Status status_ = base::Status::OK();
-    
     OperatorsFactory ops_;
 }; // class IntermediateRepresentationGenerator::AstVisitor
 
