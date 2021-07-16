@@ -15,7 +15,8 @@ namespace ir {
     DECLARE_IR_INNER(V) \
     DECLARE_IR_CONSTANT(V) \
     DECLARE_IR_CALLING(V) \
-    DECLARE_IR_BINARY(V)
+    DECLARE_IR_BINARY(V) \
+    DECLARE_IR_GLOBALS(V)
 
 
 #define DECLARE_IR_INNER(V) \
@@ -24,6 +25,11 @@ namespace ir {
     V(Argument) \
     V(Parameter) \
     V(Ret)
+
+#define DECLARE_IR_GLOBALS(V) \
+    V(GlobalValue) \
+    V(LoadGlobal) \
+    V(StoreGlobal)
 
 #define DECLARE_IR_CALLING(V) \
     V(CallInline) \

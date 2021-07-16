@@ -16,8 +16,10 @@ Module::Module(base::Arena *arena, const String *name, const String *path, const
     , named_models_(arena)
     , interfaces_(arena)
     , structures_(arena)
-    , named_funs_(arena)
-    , unnamed_funs_(arena) {
+    , global_values_(arena)
+    , funs_(arena)
+    , values_(arena)
+    , source_position_table_(arena) {
 }
 
 InterfaceModel *Module::NewInterfaceModel(const String *name) {
@@ -52,20 +54,42 @@ Function *Module::NewFunction(const String *name, StructureModel *owns, Prototyp
 
 Function *Module::NewFunction(const String *name, PrototypeModel *prototype) {
     auto fun = new (arena_) Function(arena_, name, this, prototype);
-    assert(named_funs_.find(name->ToSlice()) == named_funs_.end());
-    named_funs_[name->ToSlice()] = fun;
+    assert(global_values_.find(name->ToSlice()) == global_values_.end());
+    global_values_[name->ToSlice()] = GlobalSlot{funs_size(), true};
+    funs_.push_back(fun);
     return fun;
 }
 
 Function *Module::NewFunction(PrototypeModel *prototype) {
     auto random_name = String::New(arena_, base::Sprintf("$unnamed$_%d", (rand() << 4) | next_unnamed_id_++));
     auto fun = NewFunction(random_name, prototype);
-    unnamed_funs_.push_back(fun);
     return fun;
 }
 
 Function *Module::NewStandaloneFunction(const String *name, PrototypeModel *prototype) {
     return new (arena_) Function(arena_, name, this, prototype);
+}
+
+//Value *Module::NewGlobalValue(SourcePosition source_position, const String *name, Type type) {
+//    assert(global_values_.find(name->ToSlice()) == global_values_.end());
+//    
+//}
+
+
+Function *Module::FindFunOrNull(std::string_view name) const {
+    auto iter = global_values_.find(name);
+    if (iter == global_values_.end()) {
+        return nullptr;
+    }
+    return !iter->second.fun_or_val ? nullptr : fun(iter->second.offset);
+}
+
+Value *Module::FindValOrNull(std::string_view name) const {
+    auto iter = global_values_.find(name);
+    if (iter == global_values_.end()) {
+        return nullptr;
+    }
+    return iter->second.fun_or_val ? nullptr : value(iter->second.offset);
 }
 
 BasicBlock *Function::NewBlock(const String *name) {
@@ -96,8 +120,9 @@ BasicBlock::BasicBlock(base::Arena *arena, const String *name)
     , outputs_(arena) {
 }
 
-Value *Value::NewWithInputs(base::Arena *arena, Type type, Operator *op, Node **inputs, size_t size) {
-    auto value = New0(arena, type, op);
+Value *Value::NewWithInputs(base::Arena *arena, SourcePosition source_position, Type type, Operator *op, Node **inputs,
+                            size_t size) {
+    auto value = New0(arena, source_position, type, op);
     assert(size == TotalInOutputs(op));
     ::memcpy(value->io_, inputs, size * sizeof(Node *));
     for (size_t i = 0; i < size; i++) {
@@ -108,8 +133,9 @@ Value *Value::NewWithInputs(base::Arena *arena, Type type, Operator *op, Node **
     return value;
 }
 
-Value::Value(base::Arena *arena, Type type, Operator *op)
+Value::Value(base::Arena *arena, SourcePosition source_position, Type type, Operator *op)
     : Node(Node::kValue)
+    , source_position_(source_position)
     , type_(type)
     , op_(DCHECK_NOTNULL(op))
     , has_users_overflow_(0)

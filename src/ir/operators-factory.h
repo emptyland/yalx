@@ -27,6 +27,21 @@ public:
         return new (arena_) Operator(Operator::kRet, 0, value_in, 0/*control_in*/, 0/*value_out*/, 0/*control_out*/);
     }
     
+    Operator *GlobalValue() {
+        return new (arena_) Operator(Operator::kGlobalValue, 0, 0/*value_in*/, 0/*control_in*/, 0/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
+    Operator *LoadGlobal() {
+        return new (arena_) Operator(Operator::kLoadGlobal, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
+    Operator *StoreGlobal() {
+        return new (arena_) Operator(Operator::kStoreGlobal, 0, 1/*value_in*/, 0/*control_in*/, 0/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
 #define DEFINE_CONSTANT(name, type) \
     Operator *name##Constant(type value) { \
         return new (arena_) OperatorWith<type>(Operator::k##name##Constant, 0, 0, 0, 0, 0, value); \
@@ -59,6 +74,8 @@ public:
     DECLARE_IR_BINARY(DEFINE_BINARY)
     
 #undef DEFINE_BINARY
+    
+    DISALLOW_IMPLICIT_CONSTRUCTORS(OperatorsFactory);
 private:
     base::Arena *arena_;
 }; // class OperatorsFactory

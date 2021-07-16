@@ -4,6 +4,7 @@
 
 #include "ir/operator.h"
 #include "ir/type.h"
+#include "ir/source-position.h"
 #include "base/checking.h"
 #include "base/arena-utils.h"
 #include "base/arena.h"
@@ -89,9 +90,12 @@ public:
     DEF_PTR_GETTER(base::Arena, arena);
     DEF_PTR_GETTER(const String, path);
     DEF_PTR_GETTER(const String, full_path);
-    DEF_ARENA_VECTOR_GETTER(Function *, unnamed_fun);
+    DEF_ARENA_VECTOR_GETTER(Function *, fun);
+    DEF_ARENA_VECTOR_GETTER(Value *, value);
     DEF_ARENA_VECTOR_GETTER(InterfaceModel *, interface);
     DEF_ARENA_VECTOR_GETTER(StructureModel *, structure);
+    DEF_VAL_GETTER(SourcePositionTable, source_position_table);
+    DEF_VAL_MUTABLE_GETTER(SourcePositionTable, source_position_table);
 
     Function *NewFunction(const String *name, StructureModel *owns, PrototypeModel *prototype);
     Function *NewFunction(const String *name, PrototypeModel *prototype);
@@ -102,16 +106,25 @@ public:
     StructureModel *NewClassModel(const String *name, StructureModel *base_of);
     StructureModel *NewStructModel(const String *name, StructureModel *base_of);
 
-    Function *FindFunOrNull(std::string_view name) const {
-        auto iter = named_funs_.find(name);
-        return iter == named_funs_.end() ? nullptr : iter->second;
+    void InsertGlobalValue(const String *name, Value *value) {
+        assert(global_values_.find(name->ToSlice()) == global_values_.end());
+        global_values_[name->ToSlice()] = GlobalSlot { values_size(), false };
+        values_.push_back(value);
     }
+    
+    Function *FindFunOrNull(std::string_view name) const;
+    Value *FindValOrNull(std::string_view name) const;
     
     Model *FindModelOrNull(std::string_view name) const {
         auto iter = named_models_.find(name);
         return iter == named_models_.end() ? nullptr : iter->second;
     }
 private:
+    struct GlobalSlot {
+        size_t offset;
+        bool fun_or_val;
+    };
+    
     const String *const name_;
     const String *const path_;
     const String *const full_path_;
@@ -121,8 +134,11 @@ private:
     base::ArenaVector<InterfaceModel *> interfaces_;
     base::ArenaVector<StructureModel *> structures_;
     
-    base::ArenaMap<std::string_view, Function *> named_funs_;
-    base::ArenaVector<Function *> unnamed_funs_;
+    base::ArenaMap<std::string_view, GlobalSlot> global_values_;
+    base::ArenaVector<Function *> funs_;
+    base::ArenaVector<Value *> values_;
+    
+    SourcePositionTable source_position_table_;
     int next_unnamed_id_ = 0;
 }; // class Module
 
@@ -155,7 +171,8 @@ private:
 
 class BasicBlock : public Node {
 public:
-    template<class ...Nodes> inline Value *NewNode(Type type, Operator *op, Nodes... nodes);
+    template<class ...Nodes>
+    inline Value *NewNode(SourcePosition source_position, Type type, Operator *op, Nodes... nodes);
     
     DEF_PTR_GETTER(const String, name);
     DEF_PTR_GETTER(base::Arena, arena);
@@ -177,21 +194,23 @@ private:
 
 class Value : public Node {
 public:
-    static Value *New0(base::Arena *arena, Type type, Operator *op) {
+    static Value *New0(base::Arena *arena, SourcePosition source_position, Type type, Operator *op) {
         //return new (arena) Value(arena, type, op);
         auto chunk = arena->Allocate(RequiredSize(op));
-        return new (chunk) Value(arena, type, op);
+        return new (chunk) Value(arena, source_position, type, op);
     }
     
     template<class ...Nodes>
-    static inline Value *New(base::Arena *arena, Type type, Operator *op, Nodes... nodes) {
+    static inline Value *New(base::Arena *arena, SourcePosition source_position, Type type, Operator *op, Nodes... nodes) {
         Node *inputs[] = {CheckNode(nodes)...};
-        return NewWithInputs(arena, type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
+        return NewWithInputs(arena, source_position, type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
     }
     
-    static Value *NewWithInputs(base::Arena *arena, Type type, Operator *op, Node **inputs, size_t size);
+    static Value *NewWithInputs(base::Arena *arena, SourcePosition source_position, Type type, Operator *op,
+                                Node **inputs, size_t size);
     
     DEF_PTR_PROP_RW(Operator, op);
+    DEF_VAL_GETTER(SourcePosition, source_position);
     
     Value *InputValue(int i) const {
         assert(i >= 0 && i < op()->value_in());
@@ -229,7 +248,7 @@ public:
     User *FindUser(Value *user);
     User *FindUser(Value *user, int position);
 private:
-    Value(base::Arena *arena, Type type, Operator *op);
+    Value(base::Arena *arena, SourcePosition source_position, Type type, Operator *op);
     
     void *operator new (size_t /*n*/, void *chunk) { return chunk; }
     static Node *CheckNode(Node *node) { return DCHECK_NOTNULL(node); }
@@ -250,6 +269,7 @@ private:
 
     Type type_;
     Operator *op_;
+    SourcePosition source_position_;
     uint32_t has_users_overflow_: 1;
     uint32_t padding0_: 3;
     uint32_t users_size_: 14;
@@ -276,9 +296,9 @@ template<class T>
 inline T OperatorWith<T>::Data(const ir::Value *node) { return Cast(node->op())->data(); }
 
 template<class ...Nodes>
-inline Value *BasicBlock::NewNode(Type type, Operator *op, Nodes... nodes) {
+inline Value *BasicBlock::NewNode(SourcePosition source_position, Type type, Operator *op, Nodes... nodes) {
     Node *inputs[] = {DCHECK_NOTNULL(nodes)...};
-    auto instr = Value::NewWithInputs(arena(), type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
+    auto instr = Value::NewWithInputs(arena(), source_position, type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
     instructions_.push_back(instr);
     return instr;
 }

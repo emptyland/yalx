@@ -174,6 +174,12 @@
 		23FA869D26A01091001CC777 /* type.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA869B26A01091001CC777 /* type.cc */; };
 		23FA869F26A05022001CC777 /* metadata-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA869E26A05022001CC777 /* metadata-test.cc */; };
 		23FA86A026A05022001CC777 /* metadata-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA869E26A05022001CC777 /* metadata-test.cc */; };
+		23FA86A326A121AC001CC777 /* source-position.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86A226A121AC001CC777 /* source-position.cc */; };
+		23FA86A426A121AC001CC777 /* source-position.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86A226A121AC001CC777 /* source-position.cc */; };
+		23FA86A626A13DE4001CC777 /* source-position-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86A526A13DE4001CC777 /* source-position-test.cc */; };
+		23FA86A726A13DE4001CC777 /* source-position-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86A526A13DE4001CC777 /* source-position-test.cc */; };
+		23FA86AA26A161DF001CC777 /* codegen.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86A926A161DF001CC777 /* codegen.cc */; };
+		23FA86AB26A161DF001CC777 /* codegen.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86A926A161DF001CC777 /* codegen.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -310,6 +316,11 @@
 		23FA8698269FE4D3001CC777 /* metadata.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = metadata.cc; path = ../src/ir/metadata.cc; sourceTree = "<group>"; };
 		23FA869B26A01091001CC777 /* type.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = type.cc; path = ../src/ir/type.cc; sourceTree = "<group>"; };
 		23FA869E26A05022001CC777 /* metadata-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "metadata-test.cc"; path = "../src/ir/metadata-test.cc"; sourceTree = "<group>"; };
+		23FA86A126A12197001CC777 /* source-position.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "source-position.h"; path = "../src/ir/source-position.h"; sourceTree = "<group>"; };
+		23FA86A226A121AC001CC777 /* source-position.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "source-position.cc"; path = "../src/ir/source-position.cc"; sourceTree = "<group>"; };
+		23FA86A526A13DE4001CC777 /* source-position-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "source-position-test.cc"; path = "../src/ir/source-position-test.cc"; sourceTree = "<group>"; };
+		23FA86A826A161D0001CC777 /* codegen.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = codegen.h; path = ../src/ir/codegen.h; sourceTree = "<group>"; };
+		23FA86A926A161DF001CC777 /* codegen.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = codegen.cc; path = ../src/ir/codegen.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -527,6 +538,11 @@
 				23FA869E26A05022001CC777 /* metadata-test.cc */,
 				23FA8698269FE4D3001CC777 /* metadata.cc */,
 				23FA8697269FE476001CC777 /* metadata.h */,
+				23FA86A526A13DE4001CC777 /* source-position-test.cc */,
+				23FA86A226A121AC001CC777 /* source-position.cc */,
+				23FA86A126A12197001CC777 /* source-position.h */,
+				23FA86A926A161DF001CC777 /* codegen.cc */,
+				23FA86A826A161D0001CC777 /* codegen.h */,
 			);
 			name = Ir;
 			sourceTree = "<group>";
@@ -666,10 +682,12 @@
 				231C4B8C268DA7AD00D4AC62 /* boot-posix-arm64.s in Sources */,
 				23D4A4672680D17D0090C631 /* arena-utils.h in Sources */,
 				23FA869D26A01091001CC777 /* type.cc in Sources */,
+				23FA86AB26A161DF001CC777 /* codegen.cc in Sources */,
 				23D4A4682680D17D0090C631 /* arena-test.cc in Sources */,
 				231C4B90268DA7D200D4AC62 /* yalx-string-posix-arm64.s in Sources */,
 				23D4A4692680D17D0090C631 /* arena.h in Sources */,
 				2387EFB4268586F5002E6DCF /* lexer-test.cc in Sources */,
+				23FA86A426A121AC001CC777 /* source-position.cc in Sources */,
 				23D4A46A2680D17D0090C631 /* at-exit.cc in Sources */,
 				23D4A46B2680D17D0090C631 /* at-exit.h in Sources */,
 				23D4A46C2680D17D0090C631 /* base.h in Sources */,
@@ -686,6 +704,7 @@
 				23D4A4712680D17D0090C631 /* env-posix.cc in Sources */,
 				23D4A4722680D17D0090C631 /* env.h in Sources */,
 				23D4A4732680D17D0090C631 /* hash.cc in Sources */,
+				23FA86A726A13DE4001CC777 /* source-position-test.cc in Sources */,
 				23D4A4742680D17D0090C631 /* hash.h in Sources */,
 				23D4A4752680D17D0090C631 /* io.h in Sources */,
 				23D4A4762680D17D0090C631 /* io.cc in Sources */,
@@ -748,6 +767,7 @@
 				23D5A670266718F900635ADB /* lazy-instance.h in Sources */,
 				23D5A671266718F900635ADB /* reference-count-test.cc in Sources */,
 				23D5A672266718F900635ADB /* reference-count.h in Sources */,
+				23FA86A626A13DE4001CC777 /* source-position-test.cc in Sources */,
 				23FA8699269FE4D4001CC777 /* metadata.cc in Sources */,
 				23FA869F26A05022001CC777 /* metadata-test.cc in Sources */,
 				2301676B266A27CF007E8322 /* heap-test.cc in Sources */,
@@ -758,6 +778,7 @@
 				2387EFA826846309002E6DCF /* source-position-test.cc in Sources */,
 				23D5A675266718F900635ADB /* sha256.h in Sources */,
 				23D5A68626676DFC00635ADB /* any.c in Sources */,
+				23FA86AA26A161DF001CC777 /* codegen.cc in Sources */,
 				23D5A676266718F900635ADB /* status-test.cc in Sources */,
 				232FDB0C26806D8B00D52154 /* number.c in Sources */,
 				23D5A677266718F900635ADB /* status.h in Sources */,
@@ -792,6 +813,7 @@
 				23D5A65C266718ED00635ADB /* asm-x64.h in Sources */,
 				232AA00026861A060098E6A3 /* ast-test.cc in Sources */,
 				23D5A65D266718ED00635ADB /* gtest-all.cc in Sources */,
+				23FA86A326A121AC001CC777 /* source-position.cc in Sources */,
 				233236E2269ECAFA0078406C /* node-test.cc in Sources */,
 				23D5A68D2667861900635ADB /* boot-posix-x64.s in Sources */,
 				23D5A65E266718ED00635ADB /* all-tests.cc in Sources */,

@@ -61,6 +61,8 @@ public:
     DEF_ARENA_VECTOR_GETTER(Package *, dependence);
     DEF_VAL_PROP_RW(ImportMap, imports);
     
+    bool IsTerminator() const { return dependences_.empty(); }
+    
     Import *import(std::string_view path) {
         auto iter = imports_.find(path);
         return iter == imports_.end() ? nullptr : &iter->second;
