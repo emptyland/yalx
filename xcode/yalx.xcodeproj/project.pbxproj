@@ -182,6 +182,8 @@
 		23FA86A726A13DE4001CC777 /* source-position-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86A526A13DE4001CC777 /* source-position-test.cc */; };
 		23FA86AA26A161DF001CC777 /* codegen.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86A926A161DF001CC777 /* codegen.cc */; };
 		23FA86AB26A161DF001CC777 /* codegen.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86A926A161DF001CC777 /* codegen.cc */; };
+		23FA86AD26A26CC9001CC777 /* scope-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86AC26A26CC9001CC777 /* scope-test.cc */; };
+		23FA86AE26A26CC9001CC777 /* scope-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86AC26A26CC9001CC777 /* scope-test.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -325,6 +327,7 @@
 		23FA86A526A13DE4001CC777 /* source-position-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "source-position-test.cc"; path = "../src/ir/source-position-test.cc"; sourceTree = "<group>"; };
 		23FA86A826A161D0001CC777 /* codegen.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = codegen.h; path = ../src/ir/codegen.h; sourceTree = "<group>"; };
 		23FA86A926A161DF001CC777 /* codegen.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = codegen.cc; path = ../src/ir/codegen.cc; sourceTree = "<group>"; };
+		23FA86AC26A26CC9001CC777 /* scope-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "scope-test.cc"; path = "../src/ir/scope-test.cc"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -547,6 +550,7 @@
 				23FA86A126A12197001CC777 /* source-position.h */,
 				23FA86A926A161DF001CC777 /* codegen.cc */,
 				23FA86A826A161D0001CC777 /* codegen.h */,
+				23FA86AC26A26CC9001CC777 /* scope-test.cc */,
 				23C3543626A1B7E7006607D1 /* scope.cc */,
 				23C3543526A1B7A6006607D1 /* scope.h */,
 			);
@@ -671,6 +675,7 @@
 				23D4A4562680D17D0090C631 /* stack.h in Sources */,
 				23D4A4572680D17D0090C631 /* stack.c in Sources */,
 				23D4A4582680D17D0090C631 /* process.h in Sources */,
+				23FA86AE26A26CC9001CC777 /* scope-test.cc in Sources */,
 				23D4A4592680D17D0090C631 /* process.c in Sources */,
 				23D4A45A2680D17D0090C631 /* checking.h in Sources */,
 				23D4A45B2680D17D0090C631 /* scheduler.h in Sources */,
@@ -824,6 +829,7 @@
 				23FA86A326A121AC001CC777 /* source-position.cc in Sources */,
 				233236E2269ECAFA0078406C /* node-test.cc in Sources */,
 				23D5A68D2667861900635ADB /* boot-posix-x64.s in Sources */,
+				23FA86AD26A26CC9001CC777 /* scope-test.cc in Sources */,
 				23D5A65E266718ED00635ADB /* all-tests.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
