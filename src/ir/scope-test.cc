@@ -133,7 +133,7 @@ TEST_F(ScopeTest, NestedBranchs) {
         IRCodeBranchScope b2(&scope_, nullptr, block);
         b2.Update("a", &trunk, k1);
         auto sym = b2.FindSymbol("a");
-        ASSERT_EQ(Symbol::kVal, sym.kind);
+        ASSERT_EQ(Symbol::kVar, sym.kind);
         ASSERT_EQ(k1, sym.core.value);
     }
     ASSERT_EQ(k1, br1->FindValueOrNull("a"));

@@ -57,6 +57,16 @@ struct Symbol {
             .owns = owns,
         };
     }
+    static Symbol Var(IRCodeEnvScope *owns, Value *value, cpl::Statement *node = nullptr) {
+        return {
+            .kind = kVar,
+            .node = node,
+            .core = {
+                .value = value
+            },
+            .owns = owns,
+        };
+    }
 };
 
 class IRCodeEnvScope {

@@ -65,7 +65,9 @@ Symbol IRCodeBranchScope::FindLocalSymbol(std::string_view name) {
     if (iter == values_.end()) {
         return Symbol::NotFound();
     }
-    return Symbol::Val(this, iter->second.Value());
+    return iter->second.Constraint() == Model::kVar
+        ? Symbol::Var(this, iter->second.Value())
+        : Symbol::Val(this, iter->second.Value());
 }
 
 void IRCodeBranchScope::Update(std::string_view name, IRCodeEnvScope *owns, Value *value) {
