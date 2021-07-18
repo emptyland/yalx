@@ -50,6 +50,10 @@
 		2387EFBC2685BEAD002E6DCF /* ast.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFBA2685BEAD002E6DCF /* ast.cc */; };
 		23A7F0E12699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
 		23A7F0E22699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
+		23B997D926A4680300DD037B /* type-reducer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997D826A4680300DD037B /* type-reducer.cc */; };
+		23B997DA26A4680300DD037B /* type-reducer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997D826A4680300DD037B /* type-reducer.cc */; };
+		23B997DD26A468D500DD037B /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997DC26A468D500DD037B /* scope.cc */; };
+		23B997DE26A468D500DD037B /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997DC26A468D500DD037B /* scope.cc */; };
 		23C3543726A1B7E7006607D1 /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3543626A1B7E7006607D1 /* scope.cc */; };
 		23C3543826A1B7E7006607D1 /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3543626A1B7E7006607D1 /* scope.cc */; };
 		23D4A4462680D17D0090C631 /* any.h in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68426676DEF00635ADB /* any.h */; };
@@ -294,6 +298,10 @@
 		23A3AB5F2664DE4D00007658 /* process.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = process.h; path = ../src/runtime/process.h; sourceTree = "<group>"; };
 		23A3AB602664E32E00007658 /* process.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = process.c; path = ../src/runtime/process.c; sourceTree = "<group>"; };
 		23A7F0E02699E22A0060BFB7 /* compiler-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "compiler-test.cc"; path = "../src/compiler/compiler-test.cc"; sourceTree = "<group>"; };
+		23B997D726A467A800DD037B /* type-reducer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "type-reducer.h"; path = "../src/compiler/type-reducer.h"; sourceTree = "<group>"; };
+		23B997D826A4680300DD037B /* type-reducer.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "type-reducer.cc"; path = "../src/compiler/type-reducer.cc"; sourceTree = "<group>"; };
+		23B997DB26A468BE00DD037B /* scope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scope.h; path = ../src/compiler/scope.h; sourceTree = "<group>"; };
+		23B997DC26A468D500DD037B /* scope.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scope.cc; path = ../src/compiler/scope.cc; sourceTree = "<group>"; };
 		23C3543526A1B7A6006607D1 /* scope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scope.h; path = ../src/ir/scope.h; sourceTree = "<group>"; };
 		23C3543626A1B7E7006607D1 /* scope.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scope.cc; path = ../src/ir/scope.cc; sourceTree = "<group>"; };
 		23CAA1DD26667586000EF129 /* checking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = checking.h; path = ../src/runtime/checking.h; sourceTree = "<group>"; };
@@ -476,6 +484,10 @@
 				23A7F0E02699E22A0060BFB7 /* compiler-test.cc */,
 				2387EF9E2681C8D3002E6DCF /* compiler.cc */,
 				2387EF9D2681C80D002E6DCF /* compiler.h */,
+				23B997D826A4680300DD037B /* type-reducer.cc */,
+				23B997D726A467A800DD037B /* type-reducer.h */,
+				23B997DC26A468D500DD037B /* scope.cc */,
+				23B997DB26A468BE00DD037B /* scope.h */,
 				2387EFB2268586F5002E6DCF /* lexer-test.cc */,
 				2387EFA32684627B002E6DCF /* lexer.cc */,
 				2387EFA226846212002E6DCF /* lexer.h */,
@@ -649,6 +661,7 @@
 			files = (
 				23D4A4462680D17D0090C631 /* any.h in Sources */,
 				23D4A4472680D17D0090C631 /* number.c in Sources */,
+				23B997DE26A468D500DD037B /* scope.cc in Sources */,
 				23D4A4482680D17D0090C631 /* number.h in Sources */,
 				232FDB1126818CF900D52154 /* number-test.cc in Sources */,
 				23D4A4492680D17D0090C631 /* type.h in Sources */,
@@ -709,6 +722,7 @@
 				232AA00126861A060098E6A3 /* ast-test.cc in Sources */,
 				231C4B8D268DA7AD00D4AC62 /* test-stub-posix-arm64.s in Sources */,
 				23D4A46E2680D17D0090C631 /* bit-ops.h in Sources */,
+				23B997DA26A4680300DD037B /* type-reducer.cc in Sources */,
 				2387EFB1268581AD002E6DCF /* token-test.cc in Sources */,
 				23D4A46F2680D17D0090C631 /* crc32.c in Sources */,
 				23D4A4702680D17D0090C631 /* env-test.cc in Sources */,
@@ -766,6 +780,7 @@
 				232FDB1026818CF900D52154 /* number-test.cc in Sources */,
 				23D5A66B266718F900635ADB /* env.h in Sources */,
 				2387EFB72685BB99002E6DCF /* node-test.cc in Sources */,
+				23B997D926A4680300DD037B /* type-reducer.cc in Sources */,
 				232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */,
 				232FDB0926802E4700D52154 /* yalx-string-posix-x64.s in Sources */,
 				23D5A6892667734A00635ADB /* builtin-types.c in Sources */,
@@ -792,6 +807,7 @@
 				23D5A68626676DFC00635ADB /* any.c in Sources */,
 				23FA86AA26A161DF001CC777 /* codegen.cc in Sources */,
 				23D5A676266718F900635ADB /* status-test.cc in Sources */,
+				23B997DD26A468D500DD037B /* scope.cc in Sources */,
 				232FDB0C26806D8B00D52154 /* number.c in Sources */,
 				23D5A677266718F900635ADB /* status.h in Sources */,
 				2387EFA42684627B002E6DCF /* lexer.cc in Sources */,
