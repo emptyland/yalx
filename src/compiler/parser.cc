@@ -174,21 +174,22 @@ FileUnit *Parser::Parse(bool *ok) {
                 
             case Token::kStruct: {
                 auto stmt = ParseStructDefinition(CHECK_OK);
-                file_unit_->mutable_statements()->push_back(stmt);
+                file_unit_->Add(stmt);
             } break;
 
             case Token::kClass: {
                 auto stmt = ParseClassDefinition(CHECK_OK);
-                file_unit_->mutable_statements()->push_back(stmt);
+                file_unit_->Add(stmt);
             } break;
 
             case Token::kObject: {
                 // TODO:
+                UNREACHABLE();
             } break;
 
             case Token::kInterface: {
                 auto stmt = ParseInterfaceDefinition(CHECK_OK);
-                file_unit_->mutable_statements()->push_back(stmt);
+                file_unit_->Add(stmt);
             } break;
                 
             case Token::kAtOutlined: {
@@ -207,6 +208,7 @@ FileUnit *Parser::Parse(bool *ok) {
                     *ok = false;
                     return nullptr;
                 }
+                file_unit_->Add(stmt);
             } break;
                 
             case Token::kExport:
@@ -225,20 +227,20 @@ FileUnit *Parser::Parse(bool *ok) {
                     *ok = false;
                     return nullptr;
                 }
-                file_unit_->mutable_statements()->push_back(stmt);
+                file_unit_->Add(stmt);
             } break;
 
             case Token::kNative:
             case Token::kFun: {
                 auto fun = ParseFunctionDeclaration(ok);
-                file_unit_->mutable_statements()->push_back(fun);
+                file_unit_->Add(fun);
             } break;
 
             case Token::kVolatile:
             case Token::kVal:
             case Token::kVar: {
                 auto decl = ParseVariableDeclaration(CHECK_OK);
-                file_unit_->mutable_statements()->push_back(decl);
+                file_unit_->Add(decl);
             } break;
 
             default: {
@@ -498,7 +500,7 @@ StructDefinition *Parser::ParseStructDefinition(bool *ok) {
     Match(Token::kStruct, CHECK_OK);
     auto name = MatchText(Token::kIdentifier, CHECK_OK);
     auto def = new (arena_) StructDefinition(arena_, name, location);
-    ParseIncompletableDefinition(def, CHECK_OK);
+    ParseIncompletableDefinition(def, nullptr/* concepts */, CHECK_OK);
     return def;
 }
 
@@ -507,11 +509,12 @@ ClassDefinition *Parser::ParseClassDefinition(bool *ok) {
     Match(Token::kClass, CHECK_OK);
     auto name = MatchText(Token::kIdentifier, CHECK_OK);
     auto def = new (arena_) ClassDefinition(arena_, name, location);
-    ParseIncompletableDefinition(def, CHECK_OK);
+    ParseIncompletableDefinition(def, def->mutable_concepts(), CHECK_OK);
     return def;
 }
 
-IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefinition *def, bool *ok) {
+IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefinition *def,
+                                                              base::ArenaVector<Symbol *> *concepts, bool *ok) {
     auto location = def->source_position();
     
     if (Peek().Is(Token::kLess)) {
@@ -606,6 +609,13 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
             Match(Token::kRParen, CHECK_OK);
         }
         def->set_super_calling(calling);
+        
+        if (concepts) {
+            while (Test(Token::kComma)) {
+                auto concept = ParseSymbol(CHECK_OK);
+                concepts->push_back(concept);
+            }
+        }
     }
     
     if (Test(Token::kLBrace)) {

@@ -24,90 +24,91 @@ public:
     }
     
     // Module(base::Arena *arena, const String *name, const String *path, const String *full_path)
-    void VisitPackage(cpl::Package *node) override {
+    int VisitPackage(cpl::Package *node) override {
         assert(module_ == nullptr);
         
         module_ = new (arena()) Module(arena(), node->name(), node->path(), node->full_path());
         PrepareAllSymbols(node);
         if (fail()) {
-            return;
+            return -1;
         }
         
         for (auto file_unit : node->source_files()) {
             file_unit->Accept(this);
             if (fail()) {
-                return;
+                return -1;
             }
         }
+        return 0;
     }
 
-    void VisitFileUnit(cpl::FileUnit *node) override { UNREACHABLE(); }
-    void VisitBlock(cpl::Block *node) override { UNREACHABLE(); }
-    void VisitList(cpl::List *node) override { UNREACHABLE(); }
-    void VisitAssignment(cpl::Assignment *node) override { UNREACHABLE(); }
-    void VisitStructDefinition(cpl::StructDefinition *node) override { UNREACHABLE(); }
-    void VisitClassDefinition(cpl::ClassDefinition *node) override { UNREACHABLE(); }
-    void VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
-    void VisitInterfaceDefinition(cpl::InterfaceDefinition *node) override { UNREACHABLE(); }
-    void VisitFunctionDeclaration(cpl::FunctionDeclaration *node) override { UNREACHABLE(); }
-    void VisitAnnotationDeclaration(cpl::AnnotationDeclaration *node) override { UNREACHABLE(); }
-    void VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
-    void VisitBreak(cpl::Break *node) override { UNREACHABLE(); }
-    void VisitContinue(cpl::Continue *node) override { UNREACHABLE(); }
-    void VisitReturn(cpl::Return *node) override { UNREACHABLE(); }
-    void VisitThrow(cpl::Throw *node) override { UNREACHABLE(); }
-    void VisitRunCoroutine(cpl::RunCoroutine *node) override { UNREACHABLE(); }
-    void VisitWhileLoop(cpl::WhileLoop *node) override { UNREACHABLE(); }
-    void VisitUnlessLoop(cpl::UnlessLoop *node) override { UNREACHABLE(); }
-    void VisitForeachLoop(cpl::ForeachLoop *node) override { UNREACHABLE(); }
-    void VisitStringTemplate(cpl::StringTemplate *node) override { UNREACHABLE(); }
-    void VisitInstantiation(cpl::Instantiation *node) override { UNREACHABLE(); }
-    void VisitOr(cpl::Or *node) override { UNREACHABLE(); }
-    void VisitAdd(cpl::Add *node) override { UNREACHABLE(); }
-    void VisitAnd(cpl::And *node) override { UNREACHABLE(); }
-    void VisitDiv(cpl::Div *node) override { UNREACHABLE(); }
-    void VisitDot(cpl::Dot *node) override { UNREACHABLE(); }
-    void VisitMod(cpl::Mod *node) override { UNREACHABLE(); }
-    void VisitMul(cpl::Mul *node) override { UNREACHABLE(); }
-    void VisitNot(cpl::Not *node) override { UNREACHABLE(); }
-    void VisitSub(cpl::Sub *node) override { UNREACHABLE(); }
-    void VisitLess(cpl::Less *node) override { UNREACHABLE(); }
-    void VisitRecv(cpl::Recv *node) override { UNREACHABLE(); }
-    void VisitSend(cpl::Send *node) override { UNREACHABLE(); }
-    void VisitEqual(cpl::Equal *node) override { UNREACHABLE(); }
-    void VisitCalling(cpl::Calling *node) override { UNREACHABLE(); }
-    void VisitCasting(cpl::Casting *node) override { UNREACHABLE(); }
-    void VisitGreater(cpl::Greater *node) override { UNREACHABLE(); }
-    void VisitTesting(cpl::Testing *node) override { UNREACHABLE(); }
-    void VisitNegative(cpl::Negative *node) override { UNREACHABLE(); }
-    void VisitIdentifier(cpl::Identifier *node) override { UNREACHABLE(); }
-    void VisitNotEqual(cpl::NotEqual *node) override { UNREACHABLE(); }
-    void VisitBitwiseOr(cpl::BitwiseOr *node) override { UNREACHABLE(); }
-    void VisitLessEqual(cpl::LessEqual *node) override { UNREACHABLE(); }
-    void VisitBitwiseAnd(cpl::BitwiseAnd *node) override { UNREACHABLE(); }
-    void VisitBitwiseShl(cpl::BitwiseShl *node) override { UNREACHABLE(); }
-    void VisitBitwiseShr(cpl::BitwiseShr *node) override { UNREACHABLE(); }
-    void VisitBitwiseXor(cpl::BitwiseXor *node) override { UNREACHABLE(); }
-    void VisitF32Literal(cpl::F32Literal *node) override { UNREACHABLE(); }
-    void VisitF64Literal(cpl::F64Literal *node) override { UNREACHABLE(); }
-    void VisitI64Literal(cpl::I64Literal *node) override { UNREACHABLE(); }
-    void VisitIndexedGet(cpl::IndexedGet *node) override { UNREACHABLE(); }
-    void VisitIntLiteral(cpl::IntLiteral *node) override { UNREACHABLE(); }
-    void VisitU64Literal(cpl::U64Literal *node) override { UNREACHABLE(); }
-    void VisitBoolLiteral(cpl::BoolLiteral *node) override { UNREACHABLE(); }
-    void VisitUnitLiteral(cpl::UnitLiteral *node) override { UNREACHABLE(); }
-    void VisitEmptyLiteral(cpl::EmptyLiteral *node) override { UNREACHABLE(); }
-    void VisitGreaterEqual(cpl::GreaterEqual *node) override { UNREACHABLE(); }
-    void VisitIfExpression(cpl::IfExpression *node) override { UNREACHABLE(); }
-    void VisitLambdaLiteral(cpl::LambdaLiteral *node) override { UNREACHABLE(); }
-    void VisitStringLiteral(cpl::StringLiteral *node) override { UNREACHABLE(); }
-    void VisitWhenExpression(cpl::WhenExpression *node) override { UNREACHABLE(); }
-    void VisitBitwiseNegative(cpl::BitwiseNegative *node) override { UNREACHABLE(); }
-    void VisitArrayInitializer(cpl::ArrayInitializer *node) override { UNREACHABLE(); }
-    void VisitObjectDeclaration(cpl::ObjectDeclaration *node) override { UNREACHABLE(); }
-    void VisitVariableDeclaration(cpl::VariableDeclaration *node) override { UNREACHABLE(); }
-    void VisitUIntLiteral(cpl::UIntLiteral *node) override { UNREACHABLE(); }
-    void VisitTryCatchExpression(cpl::TryCatchExpression *node) override { UNREACHABLE(); }
+    int VisitFileUnit(cpl::FileUnit *node) override { UNREACHABLE(); }
+    int VisitBlock(cpl::Block *node) override { UNREACHABLE(); }
+    int VisitList(cpl::List *node) override { UNREACHABLE(); }
+    int VisitAssignment(cpl::Assignment *node) override { UNREACHABLE(); }
+    int VisitStructDefinition(cpl::StructDefinition *node) override { UNREACHABLE(); }
+    int VisitClassDefinition(cpl::ClassDefinition *node) override { UNREACHABLE(); }
+    int VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
+    int VisitInterfaceDefinition(cpl::InterfaceDefinition *node) override { UNREACHABLE(); }
+    int VisitFunctionDeclaration(cpl::FunctionDeclaration *node) override { UNREACHABLE(); }
+    int VisitAnnotationDeclaration(cpl::AnnotationDeclaration *node) override { UNREACHABLE(); }
+    int VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
+    int VisitBreak(cpl::Break *node) override { UNREACHABLE(); }
+    int VisitContinue(cpl::Continue *node) override { UNREACHABLE(); }
+    int VisitReturn(cpl::Return *node) override { UNREACHABLE(); }
+    int VisitThrow(cpl::Throw *node) override { UNREACHABLE(); }
+    int VisitRunCoroutine(cpl::RunCoroutine *node) override { UNREACHABLE(); }
+    int VisitWhileLoop(cpl::WhileLoop *node) override { UNREACHABLE(); }
+    int VisitUnlessLoop(cpl::UnlessLoop *node) override { UNREACHABLE(); }
+    int VisitForeachLoop(cpl::ForeachLoop *node) override { UNREACHABLE(); }
+    int VisitStringTemplate(cpl::StringTemplate *node) override { UNREACHABLE(); }
+    int VisitInstantiation(cpl::Instantiation *node) override { UNREACHABLE(); }
+    int VisitOr(cpl::Or *node) override { UNREACHABLE(); }
+    int VisitAdd(cpl::Add *node) override { UNREACHABLE(); }
+    int VisitAnd(cpl::And *node) override { UNREACHABLE(); }
+    int VisitDiv(cpl::Div *node) override { UNREACHABLE(); }
+    int VisitDot(cpl::Dot *node) override { UNREACHABLE(); }
+    int VisitMod(cpl::Mod *node) override { UNREACHABLE(); }
+    int VisitMul(cpl::Mul *node) override { UNREACHABLE(); }
+    int VisitNot(cpl::Not *node) override { UNREACHABLE(); }
+    int VisitSub(cpl::Sub *node) override { UNREACHABLE(); }
+    int VisitLess(cpl::Less *node) override { UNREACHABLE(); }
+    int VisitRecv(cpl::Recv *node) override { UNREACHABLE(); }
+    int VisitSend(cpl::Send *node) override { UNREACHABLE(); }
+    int VisitEqual(cpl::Equal *node) override { UNREACHABLE(); }
+    int VisitCalling(cpl::Calling *node) override { UNREACHABLE(); }
+    int VisitCasting(cpl::Casting *node) override { UNREACHABLE(); }
+    int VisitGreater(cpl::Greater *node) override { UNREACHABLE(); }
+    int VisitTesting(cpl::Testing *node) override { UNREACHABLE(); }
+    int VisitNegative(cpl::Negative *node) override { UNREACHABLE(); }
+    int VisitIdentifier(cpl::Identifier *node) override { UNREACHABLE(); }
+    int VisitNotEqual(cpl::NotEqual *node) override { UNREACHABLE(); }
+    int VisitBitwiseOr(cpl::BitwiseOr *node) override { UNREACHABLE(); }
+    int VisitLessEqual(cpl::LessEqual *node) override { UNREACHABLE(); }
+    int VisitBitwiseAnd(cpl::BitwiseAnd *node) override { UNREACHABLE(); }
+    int VisitBitwiseShl(cpl::BitwiseShl *node) override { UNREACHABLE(); }
+    int VisitBitwiseShr(cpl::BitwiseShr *node) override { UNREACHABLE(); }
+    int VisitBitwiseXor(cpl::BitwiseXor *node) override { UNREACHABLE(); }
+    int VisitF32Literal(cpl::F32Literal *node) override { UNREACHABLE(); }
+    int VisitF64Literal(cpl::F64Literal *node) override { UNREACHABLE(); }
+    int VisitI64Literal(cpl::I64Literal *node) override { UNREACHABLE(); }
+    int VisitIndexedGet(cpl::IndexedGet *node) override { UNREACHABLE(); }
+    int VisitIntLiteral(cpl::IntLiteral *node) override { UNREACHABLE(); }
+    int VisitU64Literal(cpl::U64Literal *node) override { UNREACHABLE(); }
+    int VisitBoolLiteral(cpl::BoolLiteral *node) override { UNREACHABLE(); }
+    int VisitUnitLiteral(cpl::UnitLiteral *node) override { UNREACHABLE(); }
+    int VisitEmptyLiteral(cpl::EmptyLiteral *node) override { UNREACHABLE(); }
+    int VisitGreaterEqual(cpl::GreaterEqual *node) override { UNREACHABLE(); }
+    int VisitIfExpression(cpl::IfExpression *node) override { UNREACHABLE(); }
+    int VisitLambdaLiteral(cpl::LambdaLiteral *node) override { UNREACHABLE(); }
+    int VisitStringLiteral(cpl::StringLiteral *node) override { UNREACHABLE(); }
+    int VisitWhenExpression(cpl::WhenExpression *node) override { UNREACHABLE(); }
+    int VisitBitwiseNegative(cpl::BitwiseNegative *node) override { UNREACHABLE(); }
+    int VisitArrayInitializer(cpl::ArrayInitializer *node) override { UNREACHABLE(); }
+    int VisitObjectDeclaration(cpl::ObjectDeclaration *node) override { UNREACHABLE(); }
+    int VisitVariableDeclaration(cpl::VariableDeclaration *node) override { UNREACHABLE(); }
+    int VisitUIntLiteral(cpl::UIntLiteral *node) override { UNREACHABLE(); }
+    int VisitTryCatchExpression(cpl::TryCatchExpression *node) override { UNREACHABLE(); }
     
     
     friend class IRCodeEnvScope;

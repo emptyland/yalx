@@ -4,6 +4,14 @@ namespace yalx {
 
 namespace cpl {
 
+std::string Symbol::ToString() const {
+    if (prefix_name()) {
+        return prefix_name()->ToString() + "." + name()->ToString();
+    } else {
+        return name()->ToString();
+    }
+}
+
 Package::Package(base::Arena *arena, const String *id, const String *path, const String *full_path, const String *name)
     : AstNode(Node::kPackage, {0,0})
     , id_(DCHECK_NOTNULL(id))
@@ -41,7 +49,44 @@ FileUnit::FileUnit(base::Arena *arena, String *file_name, String *file_full_path
     , file_name_(DCHECK_NOTNULL(file_name))
     , file_full_path_(DCHECK_NOTNULL(file_full_path))
     , imports_(arena)
-    , statements_(arena) {        
+    , statements_(arena)
+    , funs_(arena)
+    , vars_(arena)
+    , class_defs_(arena)
+    , struct_defs_(arena)
+    , interfaces_(arena)
+    , objects_(arena)
+    , annotations_(arena) {
+}
+
+void FileUnit::Add(Statement *stmt) {
+    switch (stmt->kind()) {
+        case Node::kFunctionDeclaration:
+            funs_.push_back(stmt->AsFunctionDeclaration());
+            break;
+        case Node::kVariableDeclaration:
+            vars_.push_back(stmt->AsVariableDeclaration());
+            break;
+        case Node::kClassDefinition:
+            class_defs_.push_back(stmt->AsClassDefinition());
+            break;
+        case Node::kStructDefinition:
+            struct_defs_.push_back(stmt->AsStructDefinition());
+            break;
+        case Node::kInterfaceDefinition:
+            interfaces_.push_back(stmt->AsInterfaceDefinition());
+            break;
+        case Node::kObjectDeclaration:
+            objects_.push_back(stmt->AsObjectDeclaration());
+            break;
+        case Node::kAnnotationDefinition:
+            annotations_.push_back(stmt->AsAnnotationDefinition());
+            break;
+        default:
+            UNREACHABLE();
+            break;
+    }
+    statements_.push_back(stmt);
 }
 
 Statement::Statement(Kind kind, const SourcePosition &source_position)
@@ -256,7 +301,9 @@ StructDefinition::StructDefinition(base::Arena *arena, const String *name, const
 }
 
 ClassDefinition::ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
-    : IncompletableDefinition(Node::kClassDefinition, arena, name, source_position) {
+    : IncompletableDefinition(Node::kClassDefinition, arena, name, source_position)
+    , concepts_(arena)
+    , implements_(arena) {
 }
 
 AnnotationDeclaration::AnnotationDeclaration(base::Arena *arena, const SourcePosition &source_position)
@@ -417,6 +464,167 @@ bool Type::Is(Node *node) {
         default:
             return false;
     }
+}
+
+bool Type::Acceptable(const Type *rhs, bool *unlinked) const {
+    if (primary_type() == kType_symbol || rhs->primary_type() == kType_symbol) {
+        *unlinked = true;
+        return false;
+    }
+    
+    switch (primary_type()) {
+        case kType_i8:
+        case kType_u8:
+        case kType_i16:
+        case kType_u16:
+        case kType_i32:
+        case kType_u32:
+        case kType_i64:
+        case kType_u64:
+        case kType_f32:
+        case kType_f64:
+        case kType_char:
+        case kType_bool:
+        case kType_unit:
+            return primary_type() == rhs->primary_type();
+        case kType_any:
+            return rhs->primary_type() != kType_unit;
+        default:
+            UNREACHABLE();
+            break;
+    }
+    return false;
+}
+
+Type *Type::Link(std::function<Type*(const Symbol *)> &&linker) {
+    for (size_t i = 0; i < generic_args_size(); i++) {
+        auto old = generic_arg(i);
+        auto linked = old->Link(std::move(linker));
+        if (!linked) {
+            return nullptr;
+        }
+        if (old != linked) {
+            generic_args_[i] = linked;
+        }
+    }
+    if (primary_type() == kType_symbol) {
+        auto type = linker(identifier());
+        if (!type) {
+            return type;
+        }
+        return type->Link(std::move(linker));
+    }
+    return this;
+}
+
+bool ArrayType::Acceptable(const Type *rhs, bool *unlinked) const {
+    if (!rhs->IsArrayType() || dimension_count() != rhs->AsArrayType()->dimension_count()) {
+        return false;
+    }
+    auto type = rhs->AsArrayType();
+    if (type->element_type()->primary_type() == kType_symbol) {
+        *unlinked = true;
+        return false;
+    }
+    return element_type()->Acceptable(type->element_type(), unlinked);
+}
+
+bool ChannelType::Acceptable(const Type *rhs, bool *unlinked) const {
+    if (rhs->primary_type() == kType_symbol) {
+        *unlinked = true;
+        return false;
+    }
+    return rhs->category() == kChannel && element_type()->Acceptable(rhs->AsChannelType()->element_type(), unlinked);
+}
+
+bool ClassType::Acceptable(const Type *rhs, bool *unlinked) const {
+    if (rhs->primary_type() == kType_symbol) {
+        *unlinked = true;
+        return false;
+    }
+    if (!rhs->IsClassType()) {
+        return false;
+    }
+    auto type = rhs->AsClassType();
+    if (definition() == type->definition()) {
+        return true;
+    }
+    for (auto base_of = definition()->base_of(); base_of != nullptr; base_of = base_of->base_of()) {
+        if (base_of == type->definition()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool StructType::Acceptable(const Type *rhs, bool *unlinked) const {
+    if (rhs->primary_type() == kType_symbol) {
+        *unlinked = true;
+        return false;
+    }
+    if (!rhs->IsStructType()) {
+        return false;
+    }
+    auto type = rhs->AsStructType();
+    if (definition() == type->definition()) {
+        return true;
+    }
+    for (auto base_of = definition()->base_of(); base_of != nullptr; base_of = base_of->base_of()) {
+        if (base_of == type->definition()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool InterfaceType::Acceptable(const Type *rhs, bool *unlinked) const {
+    if (rhs->primary_type() == kType_symbol) {
+        *unlinked = true;
+        return false;
+    }
+    return rhs->category() == kInterface && definition() == rhs->AsInterfaceType()->definition();
+}
+
+bool FunctionPrototype::Acceptable(const Type *rhs, bool *unlinked) const {
+    if (rhs->primary_type() == kType_symbol) {
+        *unlinked = true;
+        return false;
+    }
+    if (!rhs->IsFunctionPrototype()) {
+        return false;
+    }
+    auto prototype = DCHECK_NOTNULL(rhs->AsFunctionPrototype());
+    if (vargs() != prototype->vargs() || params_size() != prototype->params_size() ||
+        return_types_size() != prototype->return_types_size()) {
+        return false;
+    }
+    UNREACHABLE();
+    return false;
+}
+
+Type *FunctionPrototype::Link(std::function<Type*(const Symbol *)> &&linker) {
+    for (size_t i = 0; i < params_size(); i++) {
+        auto old = DCHECK_NOTNULL(param(i)->AsType());
+        auto linked = old->Link(std::move(linker));
+        if (!linked) {
+            return nullptr;
+        }
+        if (linked != old) {
+            params_[i] = linked;
+        }
+    }
+    for (size_t i = 0; i < return_types_size(); i++) {
+        auto old = DCHECK_NOTNULL(return_type(i));
+        auto linked = old->Link(std::move(linker));
+        if (!linked) {
+            return nullptr;
+        }
+        if (linked != old) {
+            return_types_[i] = linked;
+        }
+    }
+    
+    return this;
 }
 
 } // namespace cpl

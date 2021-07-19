@@ -25,121 +25,74 @@ public:
     //           - b
     //
     //
-    void VisitPackage(Package *node) override {}
-    
-    void VisitFileUnit(FileUnit *node) override {
-        
-    }
-    
-    void VisitBlock(Block *node) override {
-        
-    }
-    
-    void VisitList(List *node) override {
-        
-    }
-    
-    void VisitAssignment(Assignment *node) override {
-        
-    }
-    
-    void VisitStructDefinition(StructDefinition *node) override {
-        
-    }
-    
-    void VisitClassDefinition(ClassDefinition *node) override {
-        
-    }
-    
-    void VisitAnnotationDefinition(AnnotationDefinition *node) override {
-        
-    }
-    
-    void VisitInterfaceDefinition(InterfaceDefinition *node) override {
-        
-    }
-    
-    void VisitFunctionDeclaration(FunctionDeclaration *node) override {
-        
-    }
-    
-    void VisitAnnotationDeclaration(AnnotationDeclaration *node) override {
-        
-    }
-    
-    void VisitAnnotation(Annotation *node) override {
-        
-    }
-    
-    void VisitBreak(Break *node) override {
-        
-    }
-    
-    void VisitContinue(Continue *node) override {
-        
-    }
-    
-    void VisitReturn(Return *node) override {
-        
-    }
-    
-    void VisitThrow(Throw *node) override {}
-    void VisitRunCoroutine(RunCoroutine *node) override {}
-    void VisitWhileLoop(WhileLoop *ast) override {}
-    void VisitUnlessLoop(UnlessLoop *node) override {}
-    void VisitForeachLoop(ForeachLoop *node) override {}
-    void VisitStringTemplate(StringTemplate *node) override {}
-    
-    void VisitInstantiation(Instantiation *node) override {
-        
-    }
-    
-    void VisitOr(Or *node) override {}
-    void VisitAdd(Add *node) override {}
-    void VisitAnd(And *node) override {}
-    void VisitDiv(Div *node) override {}
-    void VisitDot(Dot *node) override {}
-    void VisitMod(Mod *node) override {}
-    void VisitMul(Mul *node) override {}
-    void VisitNot(Not *node) override {}
-    void VisitSub(Sub *node) override {}
-    void VisitLess(Less *node) override {}
-    void VisitRecv(Recv *node) override {}
-    void VisitSend(Send *node) override {}
-    void VisitEqual(Equal *node) override {}
-    void VisitCalling(Calling *node) override {}
-    void VisitCasting(Casting *node) override {}
-    void VisitGreater(Greater *node) override {}
-    void VisitTesting(Testing *node) override {}
-    void VisitNegative(Negative *node) override {}
-    void VisitIdentifier(Identifier *node) override {}
-    void VisitNotEqual(NotEqual *node) override {}
-    void VisitBitwiseOr(BitwiseOr *node) override {}
-    void VisitLessEqual(LessEqual *node) override {}
-    void VisitBitwiseAnd(BitwiseAnd *node) override {}
-    void VisitBitwiseShl(BitwiseShl *node) override {}
-    void VisitBitwiseShr(BitwiseShr *node) override {}
-    void VisitBitwiseXor(BitwiseXor *node) override {}
-    void VisitF32Literal(F32Literal *node) override {}
-    void VisitF64Literal(F64Literal *node) override {}
-    void VisitI64Literal(I64Literal *node) override {}
-    void VisitIndexedGet(IndexedGet *node) override {}
-    void VisitIntLiteral(IntLiteral *node) override {}
-    void VisitU64Literal(U64Literal *node) override {}
-    void VisitBoolLiteral(BoolLiteral *node) override {}
-    void VisitUnitLiteral(UnitLiteral *node) override {}
-    void VisitEmptyLiteral(EmptyLiteral *node) override {}
-    void VisitGreaterEqual(GreaterEqual *node) override {}
-    void VisitIfExpression(IfExpression *node) override {}
-    void VisitLambdaLiteral(LambdaLiteral *node) override {}
-    void VisitStringLiteral(StringLiteral *node) override {}
-    void VisitWhenExpression(WhenExpression *node) override {}
-    void VisitBitwiseNegative(BitwiseNegative *node) override {}
-    void VisitArrayInitializer(ArrayInitializer *node) override {}
-    void VisitObjectDeclaration(ObjectDeclaration *node) override {}
-    void VisitVariableDeclaration(VariableDeclaration *node) override {}
-    void VisitUIntLiteral(UIntLiteral *node) override {}
-    void VisitTryCatchExpression(TryCatchExpression *node) override {}
+    int VisitPackage(Package *node) override { return -1; }
+    int VisitFileUnit(FileUnit *node) override { return -1; }
+    int VisitBlock(Block *node) override { return -1; }
+    int VisitList(List *node) override { return -1; }
+    int VisitAssignment(Assignment *node) override { return -1; }
+    int VisitStructDefinition(StructDefinition *node) override { return -1; }
+    int VisitClassDefinition(ClassDefinition *node) override { return -1; }
+    int VisitAnnotationDefinition(AnnotationDefinition *node) override { return -1; }
+    int VisitInterfaceDefinition(InterfaceDefinition *node) override { return -1; }
+    int VisitFunctionDeclaration(FunctionDeclaration *node) override { return -1; }
+    int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { return -1; }
+    int VisitAnnotation(Annotation *node) override { return -1; }
+    int VisitBreak(Break *node) override { return -1; }
+    int VisitContinue(Continue *node) override { return -1; }
+    int VisitReturn(Return *node) override { return -1; }
+    int VisitThrow(Throw *node) override { return -1; }
+    int VisitRunCoroutine(RunCoroutine *node) override { return -1; }
+    int VisitWhileLoop(WhileLoop *ast) override { return -1; }
+    int VisitUnlessLoop(UnlessLoop *node) override { return -1; }
+    int VisitForeachLoop(ForeachLoop *node) override { return -1; }
+    int VisitStringTemplate(StringTemplate *node) override { return -1; }
+    int VisitInstantiation(Instantiation *node) override { return -1; }
+    int VisitOr(Or *node) override { return -1; }
+    int VisitAdd(Add *node) override { return -1; }
+    int VisitAnd(And *node) override { return -1; }
+    int VisitDiv(Div *node) override { return -1; }
+    int VisitDot(Dot *node) override { return -1; }
+    int VisitMod(Mod *node) override { return -1; }
+    int VisitMul(Mul *node) override { return -1; }
+    int VisitNot(Not *node) override { return -1; }
+    int VisitSub(Sub *node) override { return -1; }
+    int VisitLess(Less *node) override { return -1; }
+    int VisitRecv(Recv *node) override { return -1; }
+    int VisitSend(Send *node) override { return -1; }
+    int VisitEqual(Equal *node) override { return -1; }
+    int VisitCalling(Calling *node) override { return -1; }
+    int VisitCasting(Casting *node) override { return -1; }
+    int VisitGreater(Greater *node) override { return -1; }
+    int VisitTesting(Testing *node) override { return -1; }
+    int VisitNegative(Negative *node) override { return -1; }
+    int VisitIdentifier(Identifier *node) override { return -1; }
+    int VisitNotEqual(NotEqual *node) override { return -1; }
+    int VisitBitwiseOr(BitwiseOr *node) override { return -1; }
+    int VisitLessEqual(LessEqual *node) override { return -1; }
+    int VisitBitwiseAnd(BitwiseAnd *node) override { return -1; }
+    int VisitBitwiseShl(BitwiseShl *node) override { return -1; }
+    int VisitBitwiseShr(BitwiseShr *node) override { return -1; }
+    int VisitBitwiseXor(BitwiseXor *node) override { return -1; }
+    int VisitF32Literal(F32Literal *node) override { return -1; }
+    int VisitF64Literal(F64Literal *node) override { return -1; }
+    int VisitI64Literal(I64Literal *node) override { return -1; }
+    int VisitIndexedGet(IndexedGet *node) override { return -1; }
+    int VisitIntLiteral(IntLiteral *node) override { return -1; }
+    int VisitU64Literal(U64Literal *node) override { return -1; }
+    int VisitBoolLiteral(BoolLiteral *node) override { return -1; }
+    int VisitUnitLiteral(UnitLiteral *node) override { return -1; }
+    int VisitEmptyLiteral(EmptyLiteral *node) override { return -1; }
+    int VisitGreaterEqual(GreaterEqual *node) override { return -1; }
+    int VisitIfExpression(IfExpression *node) override { return -1; }
+    int VisitLambdaLiteral(LambdaLiteral *node) override { return -1; }
+    int VisitStringLiteral(StringLiteral *node) override { return -1; }
+    int VisitWhenExpression(WhenExpression *node) override { return -1; }
+    int VisitBitwiseNegative(BitwiseNegative *node) override { return -1; }
+    int VisitArrayInitializer(ArrayInitializer *node) override { return -1; }
+    int VisitObjectDeclaration(ObjectDeclaration *node) override { return -1; }
+    int VisitVariableDeclaration(VariableDeclaration *node) override { return -1; }
+    int VisitUIntLiteral(UIntLiteral *node) override { return -1; }
+    int VisitTryCatchExpression(TryCatchExpression *node) override { return -1; }
 
     //void Visit
     std::string buf_;

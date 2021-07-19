@@ -246,6 +246,8 @@ public:
 
     DEF_PTR_GETTER(const String, prefix_name);
     DEF_PTR_GETTER(const String, name);
+    
+    std::string ToString() const;
 private:
     const String *prefix_name_;
     const String *name_;

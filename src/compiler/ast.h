@@ -5,6 +5,7 @@
 #include "compiler/node.h"
 #include "base/checking.h"
 #include "base/arena-utils.h"
+#include <functional>
 
 namespace yalx {
 
@@ -16,20 +17,20 @@ class AstNode : public Node {
 public:
     AstNode(Node::Kind kind, SourcePosition source_position): Node(kind, source_position) {}
     
-    virtual void Accept(AstVisitor *visitor) = 0;
+    virtual int Accept(AstVisitor *visitor) = 0;
 }; // class AstNode
 
 
 class AstVisitor {
 public:
-#define DEFINE_METHOD(name) virtual void Visit##name(name *node) = 0;
+#define DEFINE_METHOD(name) virtual int Visit##name(name *node) = 0;
     DECLARE_AST_NODES(DEFINE_METHOD)
 #undef DEFINE_METHOD
 }; // class AstVisitor
 
 
 #define DECLARE_AST_NODE(name) \
-    void Accept(AstVisitor *visitor) override { return visitor->Visit##name(this); }
+    int Accept(AstVisitor *visitor) override { return visitor->Visit##name(this); }
 
 class Statement;
 class Declaration;
@@ -93,7 +94,7 @@ public:
         ImportEntry(const String *original_package_name, const String *package_path, const String *alias,
                     const SourcePosition &source_position);
         
-        void Accept(AstVisitor *visitor) override {}
+        int Accept(AstVisitor *visitor) override {}
         
         DEF_PTR_PROP_RW(const String, original_package_name);
         DEF_PTR_PROP_RW(const String, package_path);
@@ -112,6 +113,15 @@ public:
     DEF_PTR_PROP_RW(const String, package_name);
     DEF_ARENA_VECTOR_GETTER(ImportEntry *, import);
     DEF_ARENA_VECTOR_GETTER(Statement *, statement);
+    DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, fun);
+    DEF_ARENA_VECTOR_GETTER(VariableDeclaration *, var);
+    DEF_ARENA_VECTOR_GETTER(ClassDefinition *, class_def);
+    DEF_ARENA_VECTOR_GETTER(StructDefinition *, struct_def);
+    DEF_ARENA_VECTOR_GETTER(InterfaceDefinition *, interface);
+    DEF_ARENA_VECTOR_GETTER(ObjectDeclaration *, object);
+    DEF_ARENA_VECTOR_GETTER(AnnotationDefinition *, annotation);
+    
+    void Add(Statement *stmt);
     
     DECLARE_AST_NODE(FileUnit);
 private:
@@ -119,6 +129,13 @@ private:
     const String *file_full_path_;
     const String *package_name_ = nullptr;
     base::ArenaVector<ImportEntry *> imports_;
+    base::ArenaVector<FunctionDeclaration *> funs_;
+    base::ArenaVector<VariableDeclaration *> vars_;
+    base::ArenaVector<ClassDefinition *> class_defs_;
+    base::ArenaVector<StructDefinition *> struct_defs_;
+    base::ArenaVector<ObjectDeclaration *> objects_;
+    base::ArenaVector<InterfaceDefinition *> interfaces_;
+    base::ArenaVector<AnnotationDefinition *> annotations_;
     base::ArenaVector<Statement *> statements_;
 }; // class FileUnit
 
@@ -350,13 +367,14 @@ public:
         
         DEF_PTR_PROP_RW(const String, identifier);
         DEF_PTR_PROP_RW(class Type, type);
+        class Type **mutable_type() { return &type_; }
         
         const String *Identifier() const override { return identifier(); }
         class Type *Type() const override { return type(); }
         Declaration *AtItem(size_t i) const override { return nullptr; }
         size_t ItemSize() const override { return 0; }
         
-        void Accept(AstVisitor *v) override {}
+        int Accept(AstVisitor *v) override {}
     private:
         const String *identifier_;
         class Type *type_;
@@ -551,14 +569,25 @@ class StructDefinition : public IncompletableDefinition {
 public:
     StructDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
     
+    DEF_PTR_PROP_RW(StructDefinition, base_of);
     DECLARE_AST_NODE(StructDefinition);
+private:
+    StructDefinition *base_of_ = nullptr;
 }; // class StructDefinition
 
 class ClassDefinition : public IncompletableDefinition {
 public:
     ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
+
+    DEF_PTR_PROP_RW(ClassDefinition, base_of);
+    DEF_ARENA_VECTOR_GETTER(Symbol *, concept);
+    DEF_ARENA_VECTOR_GETTER(InterfaceDefinition *, implement);
     
     DECLARE_AST_NODE(ClassDefinition);
+private:
+    ClassDefinition *base_of_ = nullptr;
+    base::ArenaVector<Symbol *> concepts_;
+    base::ArenaVector<InterfaceDefinition *> implements_;
 }; // class ClassDefinition
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -702,63 +731,63 @@ struct LiteralTraits {
     static constexpr Node::Kind kKind = Node::kMaxKinds;
     using NodeType = Node;
     
-    static void Accept(NodeType *node, AstVisitor *visitor) {}
+    static int Accept(NodeType *node, AstVisitor *visitor) {}
 }; // struct LiteralTraits
 
 template<> struct LiteralTraits<int> {
     static constexpr Node::Kind kKind = Node::kIntLiteral;
     using NodeType = IntLiteral;
     
-    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitIntLiteral(node); }
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitIntLiteral(node); }
 }; // struct LiteralTraits<int>
 
 template<> struct LiteralTraits<unsigned> {
     static constexpr Node::Kind kKind = Node::kUIntLiteral;
     using NodeType = UIntLiteral;
     
-    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitUIntLiteral(node); }
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitUIntLiteral(node); }
 }; // struct LiteralTraits<unsigned>
 
 template<> struct LiteralTraits<int64_t> {
     static constexpr Node::Kind kKind = Node::kI64Literal;
     using NodeType = I64Literal;
     
-    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitI64Literal(node); }
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitI64Literal(node); }
 }; // struct LiteralTraits<int64_t>
 
 template<> struct LiteralTraits<uint64_t> {
     static constexpr Node::Kind kKind = Node::kU64Literal;
     using NodeType = U64Literal;
     
-    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitU64Literal(node); }
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitU64Literal(node); }
 }; // struct LiteralTraits<uint64_t>
 
 template<> struct LiteralTraits<float> {
     static constexpr Node::Kind kKind = Node::kF32Literal;
     using NodeType = F32Literal;
     
-    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitF32Literal(node); }
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitF32Literal(node); }
 }; // struct LiteralTraits<float>
 
 template<> struct LiteralTraits<double> {
     static constexpr Node::Kind kKind = Node::kF64Literal;
     using NodeType = F64Literal;
     
-    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitF64Literal(node); }
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitF64Literal(node); }
 }; // struct LiteralTraits<double>
 
 template<> struct LiteralTraits<bool> {
     static constexpr Node::Kind kKind = Node::kBoolLiteral;
     using NodeType = BoolLiteral;
     
-    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitBoolLiteral(node); }
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitBoolLiteral(node); }
 }; // struct LiteralTraits<bool>
 
 template<> struct LiteralTraits<const String *> {
     static constexpr Node::Kind kKind = Node::kStringLiteral;
     using NodeType = StringLiteral;
     
-    static void Accept(NodeType *node, AstVisitor *visitor) { visitor->VisitStringLiteral(node); }
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitStringLiteral(node); }
 }; // struct LiteralTraits<bool>
 
 template<class T>
@@ -766,8 +795,8 @@ class ActualLiteral : public Literal {
 public:
     DEF_VAL_PROP_RW(T, value);
     
-    void Accept(AstVisitor *visitor) override {
-        LiteralTraits<T>::Accept(static_cast<typename LiteralTraits<T>::NodeType *>(this), visitor);
+    int Accept(AstVisitor *visitor) override {
+        return LiteralTraits<T>::Accept(static_cast<typename LiteralTraits<T>::NodeType *>(this), visitor);
     }
 protected:
     inline ActualLiteral(T value, const SourcePosition &source_position)
@@ -1189,7 +1218,8 @@ public:
     DECLARE_TYPE_CATEGORIES(DEFINE_METHOD)
 #undef  DEFINE_METHOD
     
-    //DECLARE_AST_NODE(Type);
+    virtual bool Acceptable(const Type *rhs, bool *unlinked) const;
+    virtual Type *Link(std::function<Type*(const Symbol *)> &&linker);
 protected:
     Type(base::Arena *arena, Category category, Primary primary_type, const Symbol *identifier,
          const SourcePosition &source_position)
@@ -1230,6 +1260,8 @@ public:
     
     DEF_VAL_GETTER(int, dimension_count);
     Type *element_type() const { return generic_arg(0); }
+    
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
 private:
     int dimension_count_ = 0;
 }; // class ArrayType
@@ -1254,6 +1286,7 @@ public:
     bool CanIO() const { return ability_ & (kInbility | kOutbility); }
     bool Readonly() const { return ability_ == kInbility; }
 
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
 private:
     int ability_ = kInbility | kOutbility;
 }; // class ChannelType
@@ -1299,18 +1332,27 @@ class ClassType : public UDTType<ClassDefinition> {
 public:
     ClassType(base::Arena *arena, ClassDefinition *definition, const SourcePosition &source_position)
         : UDTType<ClassDefinition>(arena, definition, source_position) {}
+    
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    //Type *Link(std::function<Type*(const Symbol *)> &&linker) override;
 }; // class ClassType
 
 class StructType : public UDTType<StructDefinition> {
 public:
     StructType(base::Arena *arena, StructDefinition *definition, const SourcePosition &source_position)
         : UDTType<StructDefinition>(arena, definition, source_position) {}
+    
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    //Type *Link(std::function<Type*(const Symbol *)> &&linker) override;
 }; // class StructType
 
 class InterfaceType : public UDTType<InterfaceDefinition> {
 public:
     InterfaceType(base::Arena *arena, InterfaceDefinition *definition, const SourcePosition &source_position)
         : UDTType<InterfaceDefinition>(arena, definition, source_position) {}
+    
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    //Type *Link(std::function<Type*(const Symbol *)> &&linker) override;
 }; // class InterfaceType
 
 class FunctionPrototype : public Type {
@@ -1324,6 +1366,9 @@ public:
     DEF_VAL_PROP_RW(bool, vargs);
     DEF_ARENA_VECTOR_GETTER(Node *, param);
     DEF_ARENA_VECTOR_GETTER(Type *, return_type);
+    
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    Type *Link(std::function<Type*(const Symbol *)> &&linker) override;
 private:
     base::ArenaVector<Node *> params_; // <VariableDeclaration::Item | Type>
     base::ArenaVector<Type *> return_types_;
