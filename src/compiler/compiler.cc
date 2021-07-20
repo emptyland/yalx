@@ -381,7 +381,22 @@ base::Status Compiler::ParsePackageSourceFiles(std::string_view pkg_dir,
     auto pkg_path = String::New(arena, import_path);
     auto pkg_full_path = String::New(arena, path.string());
     *receiver = new (arena) Package(arena, pkg_id, pkg_path, pkg_full_path, pkg_name);
-    //auto default_import = new (arena) FileUnit
+    
+    for (auto file_unit : files) {
+        for (auto stmt : file_unit->statements()) {
+            if (Declaration::Is(stmt)) {
+                static_cast<Declaration *>(stmt)->set_package(*receiver);
+                if (auto decl = static_cast<Declaration *>(stmt); decl != nullptr) {
+                    for (size_t i = 0; i < decl->ItemSize(); i++) {
+                        decl->AtItem(i)->set_package(*receiver);
+                    }
+                }
+            }
+            if (Definition::Is(stmt)) {
+                static_cast<Definition *>(stmt)->set_package(*receiver);
+            }
+        }
+    }
     *(*receiver)->mutable_source_files() = std::move(files);
     (*receiver)->Prepare();
     

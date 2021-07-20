@@ -14,15 +14,17 @@ class GenericsInstantiatingVisitor : public AstVisitor {
 public:
     GenericsInstantiatingVisitor(base::Arena *arena, SyntaxFeedback *feedback,
                                  GenericsInstantiating::Resolver *resolver,
+                                 Statement *original,
                                  const size_t argc, Type **argv)
         : arena_(DCHECK_NOTNULL(arena))
         , feedback_(feedback)
         , resolver_(resolver)
+        , original_(original)
         , argc_(argc)
         , argv_(argv) {
     }
     
-    DEF_PTR_GETTER(Statement, inst);
+    DEF_PTR_GETTER(Statement, original);
     DEF_VAL_GETTER(base::Status, status);
     
     Statement *result() {
@@ -38,7 +40,11 @@ public:
 
         // InterfaceDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
         auto copied = new (arena_) InterfaceDefinition(arena_, MakeFullName(node->name()), node->source_position());
-        copied->set_full_name(MakeFullName(node->full_name()));
+        copied->set_owns(node->owns());
+        copied->set_package(node->package());
+        
+        resolver_->FindOrInsert(copied->PackageName()->ToSlice(), copied->name()->ToSlice(), copied); // Insert first
+        
         for (auto method : node->methods()) {
             if (auto it = Instantiate(method); !it) {
                 return -1;
@@ -87,7 +93,8 @@ public:
         auto fun = new (arena_) FunctionDeclaration(arena_, node->decoration(), node->name(), prototype,
                                                     node->is_reduce(), node->source_position());
         fun->set_body(body);
-        fun->set_full_name(node->full_name());
+        fun->set_owns(node->owns());
+        fun->set_package(node->package());
         return Return(fun);
     }
 private:
@@ -161,12 +168,12 @@ private:
 private:
     int PrepareDefinition(Definition *node) {
         if (node->generic_params().empty()) {
-            Feedback()->Printf(node->source_position(), "%s is not a generics type", node->full_name()->data());
+            Feedback()->Printf(node->source_position(), "%s is not a generics type", node->FullName().c_str());
             return -1;
         }
         if (argc_ != node->generic_params_size()) {
             Feedback()->Printf(node->source_position(), "Different generics parameters, %zd vs %zd ",
-                               node->full_name()->data(), node->generic_params_size(), argc_);
+                               node->FullName().c_str(), node->generic_params_size(), argc_);
             return -1;
         }
         for (size_t i = 0; i < argc_; i++) {
@@ -203,7 +210,7 @@ private:
         }
         auto def = down_cast<Definition>(ast);
         if (!def->generic_params().empty()) {
-            auto pkg = GetPackageName(def->full_name());
+            auto pkg = def->PackageName()->ToSlice();
             auto argc = host->generic_args_size();
             auto argv = &host->mutable_generic_args()->at(0);
             ast = resolver_->Find(pkg, BuildFullName(def->name(), argc, argv)); // Find exists
@@ -279,7 +286,7 @@ private:
     base::Arena *const arena_;
     SyntaxFeedback *const feedback_;
     GenericsInstantiating::Resolver *resolver_;
-    Statement *inst_ = nullptr;
+    Statement *original_ = nullptr;
     const size_t argc_;
     Type **argv_;
     std::map<std::string_view, Type *> args_;
@@ -295,7 +302,7 @@ base::Status GenericsInstantiating::Instantiate(Statement *def,
                                                 size_t argc,
                                                 Type **argv,
                                                 Statement **inst) {
-    GenericsInstantiatingVisitor visitor(arena, feedback, resolver, argc, argv);
+    GenericsInstantiatingVisitor visitor(arena, feedback, resolver, def, argc, argv);
     def->Accept(&visitor);
     if (visitor.status().fail()) {
         return visitor.status();

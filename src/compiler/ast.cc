@@ -60,6 +60,12 @@ FileUnit::FileUnit(base::Arena *arena, String *file_name, String *file_full_path
 }
 
 void FileUnit::Add(Statement *stmt) {
+    if (Definition::Is(stmt)) {
+        static_cast<Definition *>(stmt)->set_owns(this);
+    } else if (Declaration::Is(stmt)) {
+        static_cast<Declaration *>(stmt)->set_owns(this);
+    }
+    
     switch (stmt->kind()) {
         case Node::kFunctionDeclaration:
             funs_.push_back(stmt->AsFunctionDeclaration());
@@ -190,6 +196,53 @@ Declaration::Declaration(base::Arena *arena, Kind kind, const SourcePosition &so
     : Statement(kind, source_position) {        
 }
 
+std::string Declaration::FullName() const {
+    switch (owns()->kind()) {
+        case Node::kFileUnit:
+            return owns()->AsFileUnit()->package_name()->ToString() + "." + Identifier()->ToString();
+        case Node::kClassDefinition:
+        case Node::kInterfaceDefinition:
+        case Node::kStructDefinition: {
+            auto def = down_cast<Definition>(owns());
+            std::string buf(def->PackageName()->ToString());
+            return buf.append(".")
+                .append(def->name()->ToString())
+                .append(".")
+                .append(Identifier()->ToString());
+        } break;
+        case Node::kObjectDeclaration: {
+            auto decl = down_cast<Declaration>(owns());
+            std::string buf(decl->PackageName()->ToString());
+            return buf.append(".")
+                .append(decl->Identifier()->ToString())
+                .append("$class.")
+                .append(Identifier()->ToString());
+        } break;
+            
+        default:
+            break;
+    }
+    UNREACHABLE();
+    return nullptr;
+}
+
+const String *Declaration::PackageName() const {
+    if (owns()->IsFileUnit()) {
+        return owns()->AsFileUnit()->package_name();
+    }
+    if (package()) {
+        return package()->name();
+    }
+    if (Declaration::Is(owns())) {
+        static_cast<Declaration *>(owns())->PackageName();
+    }
+    if (Definition::Is(owns())) {
+        static_cast<Definition *>(owns())->PackageName();
+    }
+    UNREACHABLE();
+    return nullptr;
+}
+
 bool Declaration::Is(AstNode *node) {
     switch (node->kind()) {
         case Node::kVariableDeclaration:
@@ -274,6 +327,53 @@ Definition::Definition(base::Arena *arena, Kind kind, const String *name, const 
     : Statement(kind, source_position)
     , name_(name)
     , generic_params_(arena) {
+}
+
+std::string Definition::FullName() const {
+    switch (owns()->kind()) {
+        case Node::kFileUnit:
+            return owns()->AsFileUnit()->package_name()->ToString() + "." + name()->ToString();
+        case Node::kClassDefinition:
+        case Node::kInterfaceDefinition:
+        case Node::kStructDefinition: {
+            auto def = down_cast<Definition>(owns());
+            std::string buf(def->PackageName()->ToString());
+            return buf.append(".")
+            .append(def->name()->ToString())
+            .append(".")
+            .append(name()->ToString());
+        } break;
+        case Node::kObjectDeclaration: {
+            auto decl = down_cast<Declaration>(owns());
+            std::string buf(decl->PackageName()->ToString());
+            return buf.append(".")
+            .append(decl->Identifier()->ToString())
+            .append("$class.")
+            .append(name()->ToString());
+        } break;
+            
+        default:
+            break;
+    }
+    UNREACHABLE();
+    return nullptr;
+}
+
+const String *Definition::PackageName() const {
+    if (owns()->IsFileUnit()) {
+        return owns()->AsFileUnit()->package_name();
+    }
+    if (package()) {
+        return package()->name();
+    }
+    if (Declaration::Is(owns())) {
+        static_cast<Declaration *>(owns())->PackageName();
+    }
+    if (Definition::Is(owns())) {
+        static_cast<Definition *>(owns())->PackageName();
+    }
+    UNREACHABLE();
+    return nullptr;
 }
 
 InterfaceDefinition::InterfaceDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
@@ -542,6 +642,8 @@ std::string Type::ToString() const {
             return "char";
         case kType_bool:
             return "bool";
+        case kType_string:
+            return "string";
         case kType_unit:
             return "unit";
         case kType_any:
@@ -608,7 +710,7 @@ bool ClassType::Acceptable(const Type *rhs, bool *unlinked) const {
     return false;
 }
 
-std::string ClassType::ToString() const { return definition()->full_name()->ToString(); }
+std::string ClassType::ToString() const { return definition()->FullName(); }
 
 bool StructType::Acceptable(const Type *rhs, bool *unlinked) const {
     if (rhs->primary_type() == kType_symbol) {
@@ -630,7 +732,7 @@ bool StructType::Acceptable(const Type *rhs, bool *unlinked) const {
     return false;
 }
 
-std::string StructType::ToString() const { return definition()->full_name()->ToString(); }
+std::string StructType::ToString() const { return definition()->FullName(); }
 
 bool InterfaceType::Acceptable(const Type *rhs, bool *unlinked) const {
     if (rhs->primary_type() == kType_symbol) {
@@ -640,7 +742,7 @@ bool InterfaceType::Acceptable(const Type *rhs, bool *unlinked) const {
     return rhs->category() == kInterface && definition() == rhs->AsInterfaceType()->definition();
 }
 
-std::string InterfaceType::ToString() const { return definition()->full_name()->ToString(); }
+std::string InterfaceType::ToString() const { return definition()->FullName(); }
 
 bool FunctionPrototype::Acceptable(const Type *rhs, bool *unlinked) const {
     if (rhs->primary_type() == kType_symbol) {

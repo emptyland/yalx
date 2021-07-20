@@ -337,13 +337,17 @@ public:
     using Access = Access;
     
     DEF_VAL_PROP_RW(Access, access);
-    DEF_PTR_PROP_RW(const String, full_name);
+    DEF_PTR_PROP_RW(Package, package);
+    DEF_PTR_PROP_RW(AstNode, owns);
     DEF_PTR_PROP_RW(AnnotationDeclaration, annotations);
 
     virtual const String *Identifier() const = 0;
     virtual Type *Type() const = 0;
     virtual Declaration *AtItem(size_t i) const = 0;
     virtual size_t ItemSize() const = 0;
+    
+    std::string FullName() const;
+    const String *PackageName() const;
     
     static bool IsNot(AstNode *node) { return !Is(node); }
     static bool Is(AstNode *node);
@@ -352,7 +356,8 @@ protected:
     Declaration(base::Arena *arena, Kind kind, const SourcePosition &source_position);
 
 private:
-    const String *full_name_ = nullptr;
+    Package *package_ = nullptr;
+    AstNode *owns_ = nullptr; // <FileUnit|ClassDefinition|StructDefinition>
     AnnotationDeclaration *annotations_ = nullptr;
     Access access_ = kDefault;
 }; // class Declaration
@@ -501,11 +506,15 @@ struct ParameterOfConstructor {
 class Definition : public Statement {
 public:
     DEF_PTR_GETTER(const String, name);
-    DEF_PTR_PROP_RW(const String, full_name);
+    DEF_PTR_PROP_RW(Package, package);
+    DEF_PTR_PROP_RW(AstNode, owns);
     DEF_PTR_PROP_RW(AnnotationDeclaration, annotations);
     DEF_VAL_PROP_RW(Access, access);
     DEF_VAL_PROP_RW(bool, has_instantiated);
     DEF_ARENA_VECTOR_GETTER(GenericParameter *, generic_param);
+    
+    std::string FullName() const;
+    const String *PackageName() const;
     
     static bool IsNot(AstNode *node) { return !Is(node); }
     static bool Is(AstNode *node);
@@ -514,7 +523,8 @@ protected:
     
 private:
     const String *name_;
-    const String *full_name_ = nullptr;
+    Package *package_ = nullptr;
+    AstNode *owns_ = nullptr; // <FileUnit|ClassDefinition|StructDefinition>
     base::ArenaVector<GenericParameter *> generic_params_;
     AnnotationDeclaration *annotations_ = nullptr;
     Access access_ = kDefault;

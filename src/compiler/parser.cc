@@ -171,13 +171,11 @@ FileUnit *Parser::Parse(bool *ok) {
                 
             case Token::kStruct: {
                 auto stmt = ParseStructDefinition(CHECK_OK);
-                stmt->set_full_name(MakeFullName(pkg, stmt->name()));
                 file_unit_->Add(stmt);
             } break;
 
             case Token::kClass: {
                 auto stmt = ParseClassDefinition(CHECK_OK);
-                stmt->set_full_name(MakeFullName(pkg, stmt->name()));
                 file_unit_->Add(stmt);
             } break;
 
@@ -188,7 +186,6 @@ FileUnit *Parser::Parse(bool *ok) {
 
             case Token::kInterface: {
                 auto stmt = ParseInterfaceDefinition(CHECK_OK);
-                stmt->set_full_name(MakeFullName(pkg, stmt->name()));
                 file_unit_->Add(stmt);
             } break;
                 
@@ -201,14 +198,13 @@ FileUnit *Parser::Parse(bool *ok) {
                     decl->set_annotations(anno);
                     decl->set_access(access);
                     for (size_t i = 0; i < decl->ItemSize(); i++) {
-                        decl->AtItem(i)->set_full_name(MakeFullName(pkg, decl->AtItem(i)->Identifier()));
+                        decl->AtItem(i)->set_owns(file_unit_);
                     }
                     // Declaration should has annotations.
                 } else if (Definition::Is(stmt)) {
                     auto def = static_cast<Definition *>(stmt);
                     def->set_annotations(anno);
                     def->set_access(access);
-                    def->set_full_name(MakeFullName(pkg, def->name()));
                 } else {
                     error_feedback_->Printf(anno->source_position(), "Incorrect annotation declaration, wrong position");
                     *ok = false;
@@ -227,7 +223,7 @@ FileUnit *Parser::Parse(bool *ok) {
                     auto decl = static_cast<Declaration *>(stmt);
                     decl->set_access(access);
                     for (size_t i = 0; i < decl->ItemSize(); i++) {
-                        decl->AtItem(i)->set_full_name(MakeFullName(pkg, decl->AtItem(i)->Identifier()));
+                        decl->AtItem(i)->set_owns(file_unit_);
                     }
                     // Declaration should has annotations.
                 } else if (Definition::Is(stmt)) {
@@ -243,7 +239,6 @@ FileUnit *Parser::Parse(bool *ok) {
             case Token::kNative:
             case Token::kFun: {
                 auto fun = ParseFunctionDeclaration(ok);
-                fun->set_full_name(MakeFullName(pkg, fun->name()));
                 file_unit_->Add(fun);
             } break;
 
@@ -252,7 +247,7 @@ FileUnit *Parser::Parse(bool *ok) {
             case Token::kVar: {
                 auto decl = ParseVariableDeclaration(CHECK_OK);
                 for (size_t i = 0; i < decl->ItemSize(); i++) {
-                    decl->AtItem(i)->set_full_name(MakeFullName(pkg, decl->AtItem(i)->Identifier()));
+                    decl->AtItem(i)->set_owns(file_unit_);
                 }
                 file_unit_->Add(decl);
             } break;

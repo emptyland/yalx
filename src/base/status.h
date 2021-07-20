@@ -33,7 +33,7 @@ public:
         other.line_ = 0;
         other.state_ = nullptr;
     }
-    
+
     ~Status() {
         delete [] state_;
         state_ = nullptr;
@@ -101,7 +101,6 @@ public:
         
         other.file_name_ = nullptr;
         other.line_ = 0;
-        delete[] other.state_;
         other.state_ = nullptr;
     }
 private:
