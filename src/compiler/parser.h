@@ -108,6 +108,8 @@ private:
     
     SourcePosition ConcatNow(const SourcePosition &begin) { return begin.Concat(Peek().source_position()); }
     
+    const String *MakeFullName(const String *pkg, const String *name);
+    
     void MoveNext();
     void Probe(Token::Kind kind, bool *ok);
     bool Probe(Token::Kind kind);

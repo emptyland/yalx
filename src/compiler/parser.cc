@@ -160,13 +160,10 @@ base::Status Parser::SwitchInputFile(const std::string &name, base::SequentialFi
 }
 
 FileUnit *Parser::Parse(bool *ok) {
+    auto pkg = ParsePackageName(CHECK_OK);
     while (lookahead_.kind() != Token::kEOF) {
         Token token = Peek();
         switch (token.kind()) {
-
-            case Token::kPackage:
-                ParsePackageName(CHECK_OK);
-                break;
 
             case Token::kImport:
                 ParseImportStatement(CHECK_OK);
@@ -174,11 +171,13 @@ FileUnit *Parser::Parse(bool *ok) {
                 
             case Token::kStruct: {
                 auto stmt = ParseStructDefinition(CHECK_OK);
+                stmt->set_full_name(MakeFullName(pkg, stmt->name()));
                 file_unit_->Add(stmt);
             } break;
 
             case Token::kClass: {
                 auto stmt = ParseClassDefinition(CHECK_OK);
+                stmt->set_full_name(MakeFullName(pkg, stmt->name()));
                 file_unit_->Add(stmt);
             } break;
 
@@ -189,6 +188,7 @@ FileUnit *Parser::Parse(bool *ok) {
 
             case Token::kInterface: {
                 auto stmt = ParseInterfaceDefinition(CHECK_OK);
+                stmt->set_full_name(MakeFullName(pkg, stmt->name()));
                 file_unit_->Add(stmt);
             } break;
                 
@@ -197,12 +197,18 @@ FileUnit *Parser::Parse(bool *ok) {
                 auto access = static_cast<Access>(ParseDeclarationAccess());
                 auto stmt = ParseOutsideStatement(CHECK_OK);
                 if (Declaration::Is(stmt)) {
-                    static_cast<Declaration *>(stmt)->set_annotations(anno);
-                    static_cast<Declaration *>(stmt)->set_access(access);
+                    auto decl = static_cast<Declaration *>(stmt);
+                    decl->set_annotations(anno);
+                    decl->set_access(access);
+                    for (size_t i = 0; i < decl->ItemSize(); i++) {
+                        decl->AtItem(i)->set_full_name(MakeFullName(pkg, decl->AtItem(i)->Identifier()));
+                    }
                     // Declaration should has annotations.
                 } else if (Definition::Is(stmt)) {
-                    static_cast<Definition *>(stmt)->set_annotations(anno);
-                    static_cast<Definition *>(stmt)->set_access(access);
+                    auto def = static_cast<Definition *>(stmt);
+                    def->set_annotations(anno);
+                    def->set_access(access);
+                    def->set_full_name(MakeFullName(pkg, def->name()));
                 } else {
                     error_feedback_->Printf(anno->source_position(), "Incorrect annotation declaration, wrong position");
                     *ok = false;
@@ -218,7 +224,11 @@ FileUnit *Parser::Parse(bool *ok) {
                 auto access = static_cast<Access>(ParseDeclarationAccess());
                 auto stmt = ParseOutsideStatement(CHECK_OK);
                 if (Declaration::Is(stmt)) {
-                    static_cast<Declaration *>(stmt)->set_access(access);
+                    auto decl = static_cast<Declaration *>(stmt);
+                    decl->set_access(access);
+                    for (size_t i = 0; i < decl->ItemSize(); i++) {
+                        decl->AtItem(i)->set_full_name(MakeFullName(pkg, decl->AtItem(i)->Identifier()));
+                    }
                     // Declaration should has annotations.
                 } else if (Definition::Is(stmt)) {
                     static_cast<Definition *>(stmt)->set_access(access);
@@ -233,6 +243,7 @@ FileUnit *Parser::Parse(bool *ok) {
             case Token::kNative:
             case Token::kFun: {
                 auto fun = ParseFunctionDeclaration(ok);
+                fun->set_full_name(MakeFullName(pkg, fun->name()));
                 file_unit_->Add(fun);
             } break;
 
@@ -240,6 +251,9 @@ FileUnit *Parser::Parse(bool *ok) {
             case Token::kVal:
             case Token::kVar: {
                 auto decl = ParseVariableDeclaration(CHECK_OK);
+                for (size_t i = 0; i < decl->ItemSize(); i++) {
+                    decl->AtItem(i)->set_full_name(MakeFullName(pkg, decl->AtItem(i)->Identifier()));
+                }
                 file_unit_->Add(decl);
             } break;
 
@@ -1959,6 +1973,10 @@ int Parser::ParseDeclarationAccess() {
     }
     
     return static_cast<int>(access);
+}
+
+const String *Parser::MakeFullName(const String *pkg, const String *name) {
+    return String::New(arena_, base::Sprintf("%s.%s", pkg->data(), name->data()));
 }
 
 Symbol *Parser::EnsureToSymbol(Expression *expr, bool *ok) {

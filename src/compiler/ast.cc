@@ -239,11 +239,9 @@ FunctionDeclaration::FunctionDeclaration(base::Arena *arena, Decoration decorati
 const String *FunctionDeclaration::Identifier() const { return name(); }
 class Type *FunctionDeclaration::Type() const { return prototype(); }
 
-Declaration *FunctionDeclaration::AtItem(size_t i) const {
-    return static_cast<Declaration *>(prototype()->param(i));
-}
+Declaration *FunctionDeclaration::AtItem(size_t i) const { return const_cast<FunctionDeclaration *>(this); }
 
-size_t FunctionDeclaration::ItemSize() const { return prototype()->params_size(); }
+size_t FunctionDeclaration::ItemSize() const { return 1; }
 
 ObjectDeclaration::ObjectDeclaration(base::Arena *arena, const String *name, const SourcePosition &source_position)
     : Declaration(arena, Node::kObjectDeclaration, source_position)
@@ -256,8 +254,8 @@ ObjectDeclaration::ObjectDeclaration(base::Arena *arena, const String *name, con
 
 const String *ObjectDeclaration::Identifier() const { return name(); }
 class Type *ObjectDeclaration::Type() const { return dummy_; }
-Declaration *ObjectDeclaration::AtItem(size_t i) const { return field(i); }
-size_t ObjectDeclaration::ItemSize() const { return fields_size(); }
+Declaration *ObjectDeclaration::AtItem(size_t i) const { return const_cast<ObjectDeclaration *>(this); }
+size_t ObjectDeclaration::ItemSize() const { return 1; }
 
 bool Definition::Is(AstNode *node) {
     switch (node->kind()) {
@@ -497,7 +495,7 @@ bool Type::Acceptable(const Type *rhs, bool *unlinked) const {
     return false;
 }
 
-Type *Type::Link(std::function<Type*(const Symbol *)> &&linker) {
+Type *Type::Link(Linker &&linker) {
     for (size_t i = 0; i < generic_args_size(); i++) {
         auto old = generic_arg(i);
         auto linked = old->Link(std::move(linker));
@@ -509,13 +507,49 @@ Type *Type::Link(std::function<Type*(const Symbol *)> &&linker) {
         }
     }
     if (primary_type() == kType_symbol) {
-        auto type = linker(identifier());
+        auto type = linker(identifier(), this);
         if (!type) {
             return type;
         }
         return type->Link(std::move(linker));
     }
     return this;
+}
+
+std::string Type::ToString() const {
+    switch (primary_type()) {
+        case kType_i8:
+            return "i8";
+        case kType_u8:
+            return "u8";
+        case kType_i16:
+            return "i16";
+        case kType_u16:
+            return "u16";
+        case kType_i32:
+            return "i32";
+        case kType_u32:
+            return "u32";
+        case kType_i64:
+            return "i64";
+        case kType_u64:
+            return "u64";
+        case kType_f32:
+            return "f32";
+        case kType_f64:
+            return "f64";
+        case kType_char:
+            return "char";
+        case kType_bool:
+            return "bool";
+        case kType_unit:
+            return "unit";
+        case kType_any:
+            return "any";
+        default:
+            break;
+    }
+    UNREACHABLE();
 }
 
 bool ArrayType::Acceptable(const Type *rhs, bool *unlinked) const {
@@ -530,12 +564,28 @@ bool ArrayType::Acceptable(const Type *rhs, bool *unlinked) const {
     return element_type()->Acceptable(type->element_type(), unlinked);
 }
 
+std::string ArrayType::ToString() const {
+    std::string dim;
+    assert(dimension_count() > 0);
+    for (int i = 0; i <dimension_count(); i++) {
+        dim.append("[");
+    }
+    for (int i = 0; i <dimension_count(); i++) {
+        dim.append("]");
+    }
+    return element_type()->ToString() + dim;
+}
+
 bool ChannelType::Acceptable(const Type *rhs, bool *unlinked) const {
     if (rhs->primary_type() == kType_symbol) {
         *unlinked = true;
         return false;
     }
     return rhs->category() == kChannel && element_type()->Acceptable(rhs->AsChannelType()->element_type(), unlinked);
+}
+
+std::string ChannelType::ToString() const {
+    return "chan<" + element_type()->ToString() + ">";
 }
 
 bool ClassType::Acceptable(const Type *rhs, bool *unlinked) const {
@@ -558,6 +608,8 @@ bool ClassType::Acceptable(const Type *rhs, bool *unlinked) const {
     return false;
 }
 
+std::string ClassType::ToString() const { return definition()->full_name()->ToString(); }
+
 bool StructType::Acceptable(const Type *rhs, bool *unlinked) const {
     if (rhs->primary_type() == kType_symbol) {
         *unlinked = true;
@@ -578,6 +630,8 @@ bool StructType::Acceptable(const Type *rhs, bool *unlinked) const {
     return false;
 }
 
+std::string StructType::ToString() const { return definition()->full_name()->ToString(); }
+
 bool InterfaceType::Acceptable(const Type *rhs, bool *unlinked) const {
     if (rhs->primary_type() == kType_symbol) {
         *unlinked = true;
@@ -585,6 +639,8 @@ bool InterfaceType::Acceptable(const Type *rhs, bool *unlinked) const {
     }
     return rhs->category() == kInterface && definition() == rhs->AsInterfaceType()->definition();
 }
+
+std::string InterfaceType::ToString() const { return definition()->full_name()->ToString(); }
 
 bool FunctionPrototype::Acceptable(const Type *rhs, bool *unlinked) const {
     if (rhs->primary_type() == kType_symbol) {
@@ -603,7 +659,7 @@ bool FunctionPrototype::Acceptable(const Type *rhs, bool *unlinked) const {
     return false;
 }
 
-Type *FunctionPrototype::Link(std::function<Type*(const Symbol *)> &&linker) {
+Type *FunctionPrototype::Link(Linker &&linker) {
     for (size_t i = 0; i < params_size(); i++) {
         auto old = DCHECK_NOTNULL(param(i)->AsType());
         auto linked = old->Link(std::move(linker));
@@ -626,6 +682,31 @@ Type *FunctionPrototype::Link(std::function<Type*(const Symbol *)> &&linker) {
     }
     
     return this;
+}
+
+std::string FunctionPrototype::ToString() const {
+    std::string buf("(");
+    for (size_t i = 0; i < params_size(); i++) {
+        if (i > 0) {
+            buf.append(",");
+        }
+        assert(Type::Is(param(i)));
+        buf.append(static_cast<Type *>(param(i))->ToString());
+    }
+    if (vargs()) {
+        if (buf.size() > 1) {
+            buf.append(",");
+        }
+        buf.append("...");
+    }
+    buf.append("):[");
+    for (size_t i = 0; i < return_types_size(); i++) {
+        if (i > 0) {
+            buf.append(",");
+        }
+        buf.append(return_type(i)->ToString());
+    }
+    return buf.append("]");
 }
 
 } // namespace cpl

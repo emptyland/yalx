@@ -337,6 +337,7 @@ public:
     using Access = Access;
     
     DEF_VAL_PROP_RW(Access, access);
+    DEF_PTR_PROP_RW(const String, full_name);
     DEF_PTR_PROP_RW(AnnotationDeclaration, annotations);
 
     virtual const String *Identifier() const = 0;
@@ -351,6 +352,7 @@ protected:
     Declaration(base::Arena *arena, Kind kind, const SourcePosition &source_position);
 
 private:
+    const String *full_name_ = nullptr;
     AnnotationDeclaration *annotations_ = nullptr;
     Access access_ = kDefault;
 }; // class Declaration
@@ -499,6 +501,7 @@ struct ParameterOfConstructor {
 class Definition : public Statement {
 public:
     DEF_PTR_GETTER(const String, name);
+    DEF_PTR_PROP_RW(const String, full_name);
     DEF_PTR_PROP_RW(AnnotationDeclaration, annotations);
     DEF_VAL_PROP_RW(Access, access);
     DEF_VAL_PROP_RW(bool, has_instantiated);
@@ -511,6 +514,7 @@ protected:
     
 private:
     const String *name_;
+    const String *full_name_ = nullptr;
     base::ArenaVector<GenericParameter *> generic_params_;
     AnnotationDeclaration *annotations_ = nullptr;
     Access access_ = kDefault;
@@ -1199,6 +1203,8 @@ public:
         kMaxTypes,
     };
     
+    using Linker = std::function<Type*(const Symbol *, Type *)>;
+    
     Type(base::Arena *arena, Primary primary_type, const SourcePosition &source_position)
         : Type(arena, kPrimary, primary_type, nullptr, source_position) {}
     
@@ -1219,7 +1225,8 @@ public:
 #undef  DEFINE_METHOD
     
     virtual bool Acceptable(const Type *rhs, bool *unlinked) const;
-    virtual Type *Link(std::function<Type*(const Symbol *)> &&linker);
+    virtual Type *Link(Linker &&linker);
+    virtual std::string ToString() const;
 protected:
     Type(base::Arena *arena, Category category, Primary primary_type, const Symbol *identifier,
          const SourcePosition &source_position)
@@ -1262,6 +1269,7 @@ public:
     Type *element_type() const { return generic_arg(0); }
     
     bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    std::string ToString() const override;
 private:
     int dimension_count_ = 0;
 }; // class ArrayType
@@ -1287,6 +1295,7 @@ public:
     bool Readonly() const { return ability_ == kInbility; }
 
     bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    std::string ToString() const override;
 private:
     int ability_ = kInbility | kOutbility;
 }; // class ChannelType
@@ -1334,7 +1343,7 @@ public:
         : UDTType<ClassDefinition>(arena, definition, source_position) {}
     
     bool Acceptable(const Type *rhs, bool *unlinked) const override;
-    //Type *Link(std::function<Type*(const Symbol *)> &&linker) override;
+    std::string ToString() const override;
 }; // class ClassType
 
 class StructType : public UDTType<StructDefinition> {
@@ -1343,7 +1352,7 @@ public:
         : UDTType<StructDefinition>(arena, definition, source_position) {}
     
     bool Acceptable(const Type *rhs, bool *unlinked) const override;
-    //Type *Link(std::function<Type*(const Symbol *)> &&linker) override;
+    std::string ToString() const override;
 }; // class StructType
 
 class InterfaceType : public UDTType<InterfaceDefinition> {
@@ -1352,7 +1361,7 @@ public:
         : UDTType<InterfaceDefinition>(arena, definition, source_position) {}
     
     bool Acceptable(const Type *rhs, bool *unlinked) const override;
-    //Type *Link(std::function<Type*(const Symbol *)> &&linker) override;
+    std::string ToString() const override;
 }; // class InterfaceType
 
 class FunctionPrototype : public Type {
@@ -1368,7 +1377,8 @@ public:
     DEF_ARENA_VECTOR_GETTER(Type *, return_type);
     
     bool Acceptable(const Type *rhs, bool *unlinked) const override;
-    Type *Link(std::function<Type*(const Symbol *)> &&linker) override;
+    Type *Link(Linker &&linker) override;
+    std::string ToString() const override;
 private:
     base::ArenaVector<Node *> params_; // <VariableDeclaration::Item | Type>
     base::ArenaVector<Type *> return_types_;
