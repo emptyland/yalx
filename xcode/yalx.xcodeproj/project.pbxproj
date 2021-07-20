@@ -32,6 +32,8 @@
 		233236E0269EC2EF0078406C /* operator-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 233236DE269EC2EF0078406C /* operator-test.cc */; };
 		233236E2269ECAFA0078406C /* node-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 233236E1269ECAFA0078406C /* node-test.cc */; };
 		233236E3269ECAFA0078406C /* node-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 233236E1269ECAFA0078406C /* node-test.cc */; };
+		2362A0E926A67D1000A972B1 /* type-reducing-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362A0E826A67D1000A972B1 /* type-reducing-test.cc */; };
+		2362A0EA26A67D1000A972B1 /* type-reducing-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362A0E826A67D1000A972B1 /* type-reducing-test.cc */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA42684627B002E6DCF /* lexer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFA32684627B002E6DCF /* lexer.cc */; };
@@ -276,6 +278,7 @@
 		2354CD942644DDA400A2FAC3 /* format.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = format.cc; path = ../src/base/format.cc; sourceTree = "<group>"; };
 		2354CD962644DE4700A2FAC3 /* status.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = status.cc; path = ../src/base/status.cc; sourceTree = "<group>"; };
 		2354CD982644DF1600A2FAC3 /* base.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = base.cc; path = ../src/base/base.cc; sourceTree = "<group>"; };
+		2362A0E826A67D1000A972B1 /* type-reducing-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "type-reducing-test.cc"; path = "../src/compiler/type-reducing-test.cc"; sourceTree = "<group>"; };
 		2387EF9D2681C80D002E6DCF /* compiler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = compiler.h; path = ../src/compiler/compiler.h; sourceTree = "<group>"; };
 		2387EF9E2681C8D3002E6DCF /* compiler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = compiler.cc; path = ../src/compiler/compiler.cc; sourceTree = "<group>"; };
 		2387EFA126842BFF002E6DCF /* object-visitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "object-visitor.h"; path = "../src/runtime/heap/object-visitor.h"; sourceTree = "<group>"; };
@@ -484,6 +487,7 @@
 				23A7F0E02699E22A0060BFB7 /* compiler-test.cc */,
 				2387EF9E2681C8D3002E6DCF /* compiler.cc */,
 				2387EF9D2681C80D002E6DCF /* compiler.h */,
+				2362A0E826A67D1000A972B1 /* type-reducing-test.cc */,
 				23B997D826A4680300DD037B /* type-reducing.cc */,
 				23B997D726A467A800DD037B /* type-reducing.h */,
 				23B997DC26A468D500DD037B /* scope.cc */,
@@ -696,6 +700,7 @@
 				23D4A45D2680D17D0090C631 /* label.h in Sources */,
 				23D4A45E2680D17D0090C631 /* asm-arm64-test.cc in Sources */,
 				23D4A45F2680D17D0090C631 /* asm-arm64.h in Sources */,
+				2362A0EA26A67D1000A972B1 /* type-reducing-test.cc in Sources */,
 				23D4A4602680D17D0090C631 /* asm-arm64.cc in Sources */,
 				23D4A4612680D17D0090C631 /* const-arm64.h in Sources */,
 				23D4A4622680D17D0090C631 /* instr-arm64.h in Sources */,
@@ -782,6 +787,7 @@
 				2387EFB72685BB99002E6DCF /* node-test.cc in Sources */,
 				23B997D926A4680300DD037B /* type-reducing.cc in Sources */,
 				232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */,
+				2362A0E926A67D1000A972B1 /* type-reducing-test.cc in Sources */,
 				232FDB0926802E4700D52154 /* yalx-string-posix-x64.s in Sources */,
 				23D5A6892667734A00635ADB /* builtin-types.c in Sources */,
 				23D5A66C266718F900635ADB /* hash.cc in Sources */,

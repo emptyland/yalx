@@ -13,40 +13,109 @@ public:
     TypeReducingVisitor(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback);
     
     base::Status Reduce() {
-        if (auto rs = RecursiveReducePackage(entry_); rs.fail()) {
-            return rs;
+        Recursive(entry_, std::bind(&TypeReducingVisitor::PreparePackage, this, std::placeholders::_1));
+        if (fail()) {
+            return status_;
         }
-        entry_->Accept(this);
+        return Recursive(entry_, std::bind(&Package::Accept, std::placeholders::_1, this));
+    }
+    
+    void MoveGlobalSymbols(std::unordered_map<std::string_view, GlobalSymbol> *receiver) {
+        *receiver = std::move(global_symbols_);
+    }
+private:
+    base::Status Recursive(Package *root, std::function<void(Package *)> &&callback) {
+        callback(root);
+        if (fail()) {
+            return status_;
+        }
+        if (root->IsTerminator()) {
+            return status_;
+        }
+        for (auto pkg : root->dependences()) {
+            if (auto rs = Recursive(pkg, std::move(callback)); rs.fail()) {
+                return rs;
+            }
+        }
         return status_;
     }
     
-    base::Status RecursiveReducePackage(Package *root) {
-        if (root->IsTerminator()) {
-            return base::Status::OK();
-        }
-        for (auto pkg : root->dependences()) {
-            if (auto rs = RecursiveReducePackage(pkg); rs.fail()) {
-                return rs;
-            }
-            pkg->Accept(this);
-            if (status_.fail()) {
-                return status_;
-            }
-        }
-        return base::Status::OK();
+    void PreparePackage(Package *pkg) {
+        error_feedback_->set_package_name(pkg->name()->ToString());
+        PrepareInterfaces(pkg);
+        PrepareClasses(pkg);
     }
     
-private:
+    void PrepareInterfaces(Package *node) {
+        for (auto file : node->source_files()) {
+            error_feedback_->set_file_name(file->file_name()->ToString());
+            for (auto stmt : file->interfaces()) {
+                auto symbol = FindOrInsertGlobal(node, stmt->name()->ToSlice(), stmt);
+                if (symbol.IsFound()) {
+                    Feedback()->Printf(stmt->source_position(), "Duplicated symbol: %s", stmt->name()->data());
+                    return;
+                }
+            }
+        }
+    }
+    
+    void PrepareClasses(Package *node) {
+        for (auto file : node->source_files()) {
+            error_feedback_->set_file_name(file->file_name()->ToString());
+            for (auto stmt : file->class_defs()) {
+                auto symbol = FindOrInsertGlobal(node, stmt->name()->ToSlice(), stmt);
+                if (symbol.IsFound()) {
+                    Feedback()->Printf(stmt->source_position(), "Duplicated symbol: %s", stmt->name()->data());
+                    return;
+                }
+            }
+        }
+        
+        for (auto file : node->source_files()) {
+            for (auto clazz : file->class_defs()) {
+                auto base_ast = !clazz->super_calling() ? nullptr : clazz->super_calling()->callee();
+                if (!base_ast) {
+                    if (node->path()->ToString() != "yalx/lang" && clazz->name()->ToString() != "Any") {
+                        auto any = FindGlobal("lang", "Any"); // Any class
+                        assert(any.IsFound());
+                        clazz->set_base_of(DCHECK_NOTNULL(any.ast->AsClassDefinition()));
+                    }
+                    continue;
+                }
+                
+                if (base_ast->IsInstantiation()) {
+                    auto symbol = GenericsInstantiate(base_ast->AsInstantiation());
+                    if (symbol.IsNotFound()) {
+                        return;
+                    }
+                    continue;
+                }
+                
+                auto [prefix, name] = GetSymbol(base_ast, node->name()->ToSlice());
+                auto symbol = FindGlobal(prefix, name);
+                if (symbol.IsNotFound() || !symbol.ast->IsClassDefinition()) {
+                    Feedback()->Printf(base_ast->source_position(), "Base class: %s.%s not found", prefix.data(),
+                                       name.data());
+                    return;
+                }
+                clazz->set_base_of(symbol.ast->AsClassDefinition());
+            }
+        }
+    }
+    
     int VisitPackage(Package *node) override {
         PackageScope scope(&location_, node);
+        error_feedback_->set_package_name(node->name()->ToString());
+        
         for (auto file_scope : scope.files()) {
             file_scope->Enter();
+            // TODO: INIT
             error_feedback_->set_file_name(file_scope->file_unit()->file_name()->ToString());
-            error_feedback_->set_package_name(node->name()->ToString());
-            if (Reduce(file_scope->file_unit()) < 0) {
-                file_scope->Exit();
-                return -1;
-            }
+            
+//            if (Reduce(file_scope->file_unit()) < 0) {
+//                file_scope->Exit();
+//                return -1;
+//            }
             file_scope->Exit();
         }
         return 0;
@@ -166,7 +235,7 @@ private:
     int VisitF64Literal(F64Literal *node) override { UNREACHABLE(); }
     int VisitI64Literal(I64Literal *node) override { UNREACHABLE(); }
     int VisitIndexedGet(IndexedGet *node) override { UNREACHABLE(); }
-    int VisitIntLiteral(IntLiteral *node) override { UNREACHABLE(); }
+    int VisitIntLiteral(IntLiteral *node) override { return Return(I32()); }
     int VisitU64Literal(U64Literal *node) override { UNREACHABLE(); }
     int VisitBoolLiteral(BoolLiteral *node) override { UNREACHABLE(); }
     int VisitUnitLiteral(UnitLiteral *node) override { UNREACHABLE(); }
@@ -183,6 +252,18 @@ private:
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
     
     
+    GlobalSymbol GenericsInstantiate(Instantiation *inst) {
+        auto symbol = FindGlobal(inst->primary());
+        if (!symbol.ast) {
+            auto [prefix, name] = GetSymbol(inst->primary());
+            Feedback()->Printf(inst->source_position(), "Symbol: %s.%s not found", prefix.data(), name.data());
+            return GlobalSymbol::NotFound();
+        }
+        
+        UNREACHABLE();
+        return GlobalSymbol::NotFound(); // TODO:
+    }
+    
     int Return(Type *type) {
         results_.push(DCHECK_NOTNULL(type));
         return 1;
@@ -197,7 +278,7 @@ private:
     
     int Reduce(AstNode *node, std::vector<Type *> *receiver = nullptr) {
         int nt = node->Accept(this);
-        if (fail()) {
+        if (fail() || nt < 0) {
             return -1;
         }
         if (receiver) {
@@ -263,6 +344,50 @@ private:
         }
     }
     
+    GlobalSymbol FindOrInsertGlobal(Package *owns, std::string_view name, Statement *ast) {
+        std::string full_name = owns->name()->ToString();
+        full_name.append(".").append(name.data(), name.size());
+        
+        auto iter = global_symbols_.find(full_name);
+        if (iter != global_symbols_.end()) {
+            return iter->second;
+        }
+        GlobalSymbol symbol = {
+            .symbol = String::New(arena_, full_name),
+            .owns = owns,
+            .ast = ast,
+        };
+        global_symbols_[symbol.symbol->ToSlice()] = symbol;
+        return GlobalSymbol::NotFound();
+    }
+    
+    GlobalSymbol FindGlobal(Expression *expr) const {
+        auto [prefix, name] = GetSymbol(expr, location_->NearlyPackageScope()->pkg()->name()->ToSlice());
+        return FindGlobal(prefix, name);
+    }
+    
+    GlobalSymbol FindGlobal(std::string_view prefix, std::string_view name) const {
+        std::string full_name(prefix.data(), prefix.size());
+        full_name.append(".").append(name.data(), name.size());
+        if (auto iter = global_symbols_.find(full_name); iter == global_symbols_.end()) {
+            return {nullptr, nullptr, nullptr};
+        } else {
+            return iter->second;
+        }
+    }
+    
+    static std::tuple<std::string_view, std::string_view> GetSymbol(Expression *expr,
+                                                                    std::string_view default_prefix = "") {
+        if (expr->IsIdentifier()) {
+            return std::make_tuple(default_prefix, expr->AsIdentifier()->name()->ToSlice());
+        } else {
+            assert(expr->IsDot());
+            auto prefix = DCHECK_NOTNULL(expr->AsDot()->primary()->AsIdentifier());
+            auto name = expr->AsDot()->field();
+            return std::make_tuple(prefix->name()->ToSlice(), name->ToSlice());
+        }
+    }
+    
     Type *Unit() {
         if (!unit_) {
             unit_ = new (arena_) Type(arena_, Type::kType_unit, {0,0});
@@ -270,34 +395,39 @@ private:
         return unit_;
     }
     
+    Type *I32() {
+        if (!i32_) {
+            i32_ = new (arena_) Type(arena_, Type::kType_i32, {0,0});
+        }
+        return i32_;
+    }
+    
     bool fail() { return status_.fail(); }
     
     SyntaxFeedback *Feedback() {
-        auto file = location_->NearlyFileUnitScope();
-        auto pkg = file->NearlyPackageScope();
-        error_feedback_->set_file_name(file->file_unit()->file_name()->ToString());
-        error_feedback_->set_package_name(pkg->pkg()->name()->ToString());
+        auto file = !location_ ? nullptr : location_->NearlyFileUnitScope();
+        auto pkg = !file ? nullptr : file->NearlyPackageScope();
+        if (file) {
+            error_feedback_->set_file_name(file->file_unit()->file_name()->ToString());
+        }
+        if (pkg) {
+            error_feedback_->set_package_name(pkg->pkg()->name()->ToString());
+        }
         status_ = ERR_CORRUPTION("Type checking fail!");
         return error_feedback_;
     }
     
     SyntaxFeedback *feedback() { return error_feedback_; }
     
-    
-    struct Global {
-        String    *symbol;
-        Statement *ast;
-        Package   *owns;
-    };
-    
     base::Arena *const arena_;
     SyntaxFeedback *const error_feedback_;
     NamespaceScope *location_ = nullptr;
     Package *entry_;
     base::Status status_;
-    std::unordered_map<std::string_view, Global> global_symbols_;
+    std::unordered_map<std::string_view, GlobalSymbol> global_symbols_;
     std::stack<Type *> results_;
     Type *unit_ = nullptr;
+    Type *i32_ = nullptr;
 }; // class TypeReducingVisitor
 
 TypeReducingVisitor::TypeReducingVisitor(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback)
@@ -307,8 +437,10 @@ TypeReducingVisitor::TypeReducingVisitor(Package *entry, base::Arena *arena, Syn
 }
 
 
-base::Status ReducePackageDependencesType(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback) {
+base::Status ReducePackageDependencesType(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback,
+                                          std::unordered_map<std::string_view, GlobalSymbol> *symbols) {
     TypeReducingVisitor visitor(entry, arena, error_feedback);
+    visitor.MoveGlobalSymbols(symbols);
     return visitor.Reduce();
 }
 

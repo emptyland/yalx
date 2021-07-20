@@ -272,24 +272,25 @@ bool Definition::Is(AstNode *node) {
     }
 }
 
-Definition::Definition(base::Arena *arena, Kind kind, const SourcePosition &source_position)
+Definition::Definition(base::Arena *arena, Kind kind, const String *name, const SourcePosition &source_position)
     : Statement(kind, source_position)
+    , name_(name)
     , generic_params_(arena) {
 }
 
-InterfaceDefinition::InterfaceDefinition(base::Arena *arena, const SourcePosition &source_position)
-    : Definition(arena, Node::kInterfaceDefinition, source_position)
+InterfaceDefinition::InterfaceDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
+    : Definition(arena, Node::kInterfaceDefinition, name, source_position)
     , methods_(arena) {
 }
 
-AnnotationDefinition::AnnotationDefinition(base::Arena *arena, const SourcePosition &source_position)
-    : Definition(arena, Node::kAnnotationDefinition, source_position)
+AnnotationDefinition::AnnotationDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
+    : Definition(arena, Node::kAnnotationDefinition, name, source_position)
     , members_(arena) {
 }
 
 IncompletableDefinition::IncompletableDefinition(Node::Kind kind, base::Arena *arena, const String *name,
                                                  const SourcePosition &source_position)
-    : Definition(arena, kind, source_position)
+    : Definition(arena, kind, name, source_position)
     , parameters_(arena)
     , named_parameters_(arena)
     , fields_(arena)

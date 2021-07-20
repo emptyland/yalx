@@ -507,7 +507,7 @@ public:
     static bool IsNot(AstNode *node) { return !Is(node); }
     static bool Is(AstNode *node);
 protected:
-    Definition(base::Arena *arena, Kind kind, const SourcePosition &source_position);
+    Definition(base::Arena *arena, Kind kind, const String *name, const SourcePosition &source_position);
     
 private:
     const String *name_;
@@ -519,7 +519,7 @@ private:
 
 class InterfaceDefinition : public Definition {
 public:
-    InterfaceDefinition(base::Arena *arena, const SourcePosition &source_position);
+    InterfaceDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
     
     DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, method);
     
@@ -535,7 +535,7 @@ public:
         Expression *default_value = nullptr;
     }; // struct Member
     
-    AnnotationDefinition(base::Arena *arena, const SourcePosition &source_position);
+    AnnotationDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
     
     DEF_ARENA_VECTOR_GETTER(Member, member);
     

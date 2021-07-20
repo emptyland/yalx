@@ -411,7 +411,7 @@ InterfaceDefinition *Parser::ParseInterfaceDefinition(bool *ok) {
     
     Match(Token::kInterface, CHECK_OK);
     auto name = MatchText(Token::kIdentifier, CHECK_OK);
-    auto def = new (arena_) InterfaceDefinition(arena_, location);
+    auto def = new (arena_) InterfaceDefinition(arena_, name, location);
     
     if (Peek().Is(Token::kLess)) {
         ParseGenericParameters(def->mutable_generic_params(), CHECK_OK);
@@ -458,7 +458,7 @@ AnnotationDefinition *Parser::ParseAnnotationDefinition(bool *ok) {
     auto name = MatchText(Token::kIdentifier, CHECK_OK);
     
     Match(Token::kLBrace, CHECK_OK);
-    auto def = new (arena_) AnnotationDefinition(arena_, location);
+    auto def = new (arena_) AnnotationDefinition(arena_, name, location);
     while (!Test(Token::kRBrace)) {
         auto member_location = Peek().source_position();
         
