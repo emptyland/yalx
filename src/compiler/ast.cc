@@ -401,8 +401,7 @@ StructDefinition::StructDefinition(base::Arena *arena, const String *name, const
 
 ClassDefinition::ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
     : IncompletableDefinition(Node::kClassDefinition, arena, name, source_position)
-    , concepts_(arena)
-    , implements_(arena) {
+    , concepts_(arena) {
 }
 
 AnnotationDeclaration::AnnotationDeclaration(base::Arena *arena, const SourcePosition &source_position)
@@ -438,6 +437,14 @@ Literal::Literal(Kind kind, Type *type, const SourcePosition &source_position)
     : Expression(kind, false/*is_lval*/, true/*is_rval*/, source_position)
     , type_(type) {
     assert(is_only_rval());
+}
+
+UnitLiteral::UnitLiteral(base::Arena *arena, const SourcePosition &source_position)
+    : Literal(Node::kUnitLiteral, new (arena) Type(arena, Type::kType_unit, source_position), source_position) {
+}
+
+EmptyLiteral::EmptyLiteral(const SourcePosition &source_position)
+    : Literal(Node::kEmptyLiteral, nullptr, source_position) {
 }
 
 LambdaLiteral::LambdaLiteral(FunctionPrototype *prototype, Statement *body, const SourcePosition &source_position)

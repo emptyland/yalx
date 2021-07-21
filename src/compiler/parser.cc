@@ -523,7 +523,7 @@ ClassDefinition *Parser::ParseClassDefinition(bool *ok) {
 }
 
 IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefinition *def,
-                                                              base::ArenaVector<Symbol *> *concepts, bool *ok) {
+                                                              base::ArenaVector<Type *> *concepts, bool *ok) {
     auto location = def->source_position();
     
     if (Peek().Is(Token::kLess)) {
@@ -621,8 +621,16 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
         
         if (concepts) {
             while (Test(Token::kComma)) {
-                auto concept = ParseSymbol(CHECK_OK);
-                concepts->push_back(concept);
+                auto symbol = ParseSymbol(CHECK_OK);
+                auto type = new (arena_) Type(arena_, symbol, symbol->source_position());
+                if (Test(Token::kLess)) {
+                    do {
+                        auto arg = ParseType(CHECK_OK);
+                        type->mutable_generic_args()->push_back(arg);
+                    } while (Test(Token::kComma));
+                    Match(Token::kGreater, CHECK_OK);
+                }
+                concepts->push_back(type);
             }
         }
     }
@@ -1070,20 +1078,20 @@ Expression *Parser::ParseSimple(bool *ok) {
     auto location = Peek().source_position();
     switch (Peek().kind()) {
         case Token::kTrue: {
-            auto literal = new (arena_) BoolLiteral(true, location);
+            auto literal = new (arena_) BoolLiteral(arena_, true, location);
             MoveNext();
             return literal;
         } break;
 
         case Token::kFalse: {
-            auto literal = new (arena_) BoolLiteral(false, location);
+            auto literal = new (arena_) BoolLiteral(arena_, false, location);
             MoveNext();
             return literal;
         } break;
             
         case Token::kUnitVal:
             MoveNext();
-            return new (arena_) UnitLiteral(location);
+            return new (arena_) UnitLiteral(arena_, location);
         
         case Token::kEmptyVal:
             MoveNext();
@@ -1189,24 +1197,24 @@ Expression *Parser::ParsePrimary(bool *ok) {
             MoveNext();
             break;
         case Token::kIntVal:
-            expr = new (arena_) IntLiteral(static_cast<int>(Peek().i64_val()), location);
+            expr = new (arena_) IntLiteral(arena_, static_cast<int>(Peek().i64_val()), location);
             MoveNext();
             break;
         case Token::kUIntVal:
-            expr = new (arena_) UIntLiteral(static_cast<unsigned>(Peek().u64_val()), location);
+            expr = new (arena_) UIntLiteral(arena_, static_cast<unsigned>(Peek().u64_val()), location);
             MoveNext();
             break;
         case Token::kF32Val:
-            expr = new (arena_) F32Literal(Peek().f32_val(), location);
+            expr = new (arena_) F32Literal(arena_, Peek().f32_val(), location);
             MoveNext();
             break;
         case Token::kF64Val:
-            expr = new (arena_) F64Literal(Peek().f64_val(), location);
+            expr = new (arena_) F64Literal(arena_, Peek().f64_val(), location);
             MoveNext();
             break;
         case Token::kStringLine:
         case Token::kStringBlock:
-            expr = new (arena_) StringLiteral(Peek().text_val(), location);
+            expr = new (arena_) StringLiteral(arena_, Peek().text_val(), location);
             MoveNext();
             break;
         case Token::kStringTempletePrefix:
@@ -1440,7 +1448,7 @@ StringTemplate *Parser::ParseStringTemplate(bool *ok) {
     
     auto literal = MatchText(Token::kStringTempletePrefix, CHECK_OK);
     auto tmpl = new (arena_) StringTemplate(arena_, location);
-    tmpl->mutable_parts()->push_back(new (arena_) StringLiteral(literal, location));
+    tmpl->mutable_parts()->push_back(new (arena_) StringLiteral(arena_, literal, location));
     for (;;) {
         auto part_location = Peek().source_position();
         Expression *part = nullptr;
@@ -1448,7 +1456,7 @@ StringTemplate *Parser::ParseStringTemplate(bool *ok) {
             case Token::kStringTempletePart: {
                 literal = Peek().text_val();
                 MoveNext();
-                part = new (arena_) StringLiteral(literal, part_location);
+                part = new (arena_) StringLiteral(arena_, literal, part_location);
             } break;
                 
             case Token::kIdentifier:
@@ -1465,7 +1473,7 @@ StringTemplate *Parser::ParseStringTemplate(bool *ok) {
                 literal = Peek().text_val();
                 MoveNext();
                 if (literal->size() > 0) {
-                    part = new (arena_) StringLiteral(literal, part_location);
+                    part = new (arena_) StringLiteral(arena_, literal, part_location);
                     tmpl->mutable_parts()->push_back(part);
                 }
             } goto done;
@@ -1820,32 +1828,32 @@ Expression *Parser::ParseStaticLiteral(bool *ok) {
     auto location = Peek().source_position();
     switch (Peek().kind()) {
         case Token::kIntVal:
-            literal = new (arena_) IntLiteral(static_cast<int>(Peek().i64_val()), location);
+            literal = new (arena_) IntLiteral(arena_, static_cast<int>(Peek().i64_val()), location);
             MoveNext();
             break;
         case Token::kUIntVal:
-            literal = new (arena_) UIntLiteral(static_cast<unsigned>(Peek().u64_val()), location);
+            literal = new (arena_) UIntLiteral(arena_, static_cast<unsigned>(Peek().u64_val()), location);
             MoveNext();
             break;
         case Token::kF32Val:
-            literal = new (arena_) F32Literal(Peek().f32_val(), location);
+            literal = new (arena_) F32Literal(arena_, Peek().f32_val(), location);
             MoveNext();
             break;
         case Token::kF64Val:
-            literal = new (arena_) F64Literal(Peek().f64_val(), location);
+            literal = new (arena_) F64Literal(arena_, Peek().f64_val(), location);
             MoveNext();
             break;
         case Token::kStringLine:
         case Token::kStringBlock:
-            literal = new (arena_) StringLiteral(Peek().text_val(), location);
+            literal = new (arena_) StringLiteral(arena_, Peek().text_val(), location);
             MoveNext();
             break;
         case Token::kTrue:
-            literal = new (arena_) BoolLiteral(true, location);
+            literal = new (arena_) BoolLiteral(arena_, true, location);
             MoveNext();
             break;
         case Token::kFalse:
-            literal = new (arena_) BoolLiteral(false, location);
+            literal = new (arena_) BoolLiteral(arena_, false, location);
             MoveNext();
             break;
         case Token::kLBrace:

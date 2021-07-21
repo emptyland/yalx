@@ -594,14 +594,18 @@ public:
     ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
 
     DEF_PTR_PROP_RW(ClassDefinition, base_of);
-    DEF_ARENA_VECTOR_GETTER(Symbol *, concept);
-    DEF_ARENA_VECTOR_GETTER(InterfaceDefinition *, implement);
+    DEF_ARENA_VECTOR_GETTER(Type *, concept);
+    Type **mutable_concept(size_t i) {
+        assert(i < concepts_size());
+        return &concepts_[i];
+    }
+    //DEF_ARENA_VECTOR_GETTER(InterfaceDefinition *, implement);
     
     DECLARE_AST_NODE(ClassDefinition);
 private:
     ClassDefinition *base_of_ = nullptr;
-    base::ArenaVector<Symbol *> concepts_;
-    base::ArenaVector<InterfaceDefinition *> implements_;
+    base::ArenaVector<Type *> concepts_;
+    //base::ArenaVector<InterfaceDefinition *> implements_;
 }; // class ClassDefinition
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -729,13 +733,13 @@ protected:
 
 class UnitLiteral : public Literal {
 public:
-    UnitLiteral(const SourcePosition &source_position): Literal(Node::kUnitLiteral, nullptr, source_position) {}
+    UnitLiteral(base::Arena *arena, const SourcePosition &source_position);
     DECLARE_AST_NODE(UnitLiteral);
 }; // class UnitLiteral
 
 class EmptyLiteral : public Literal {
 public:
-    EmptyLiteral(const SourcePosition &source_position): Literal(Node::kEmptyLiteral, nullptr, source_position) {}
+    EmptyLiteral(const SourcePosition &source_position);
     DECLARE_AST_NODE(EmptyLiteral);
 }; // class EmptyLiteral
 
@@ -746,6 +750,7 @@ struct LiteralTraits {
     using NodeType = Node;
     
     static int Accept(NodeType *node, AstVisitor *visitor) {}
+    static Type *Mold(base::Arena *, const SourcePosition &) { return nullptr; }
 }; // struct LiteralTraits
 
 template<> struct LiteralTraits<int> {
@@ -753,6 +758,7 @@ template<> struct LiteralTraits<int> {
     using NodeType = IntLiteral;
     
     static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitIntLiteral(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
 }; // struct LiteralTraits<int>
 
 template<> struct LiteralTraits<unsigned> {
@@ -760,6 +766,7 @@ template<> struct LiteralTraits<unsigned> {
     using NodeType = UIntLiteral;
     
     static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitUIntLiteral(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
 }; // struct LiteralTraits<unsigned>
 
 template<> struct LiteralTraits<int64_t> {
@@ -767,6 +774,7 @@ template<> struct LiteralTraits<int64_t> {
     using NodeType = I64Literal;
     
     static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitI64Literal(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
 }; // struct LiteralTraits<int64_t>
 
 template<> struct LiteralTraits<uint64_t> {
@@ -774,6 +782,7 @@ template<> struct LiteralTraits<uint64_t> {
     using NodeType = U64Literal;
     
     static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitU64Literal(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
 }; // struct LiteralTraits<uint64_t>
 
 template<> struct LiteralTraits<float> {
@@ -781,6 +790,7 @@ template<> struct LiteralTraits<float> {
     using NodeType = F32Literal;
     
     static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitF32Literal(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
 }; // struct LiteralTraits<float>
 
 template<> struct LiteralTraits<double> {
@@ -788,6 +798,7 @@ template<> struct LiteralTraits<double> {
     using NodeType = F64Literal;
     
     static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitF64Literal(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
 }; // struct LiteralTraits<double>
 
 template<> struct LiteralTraits<bool> {
@@ -795,6 +806,7 @@ template<> struct LiteralTraits<bool> {
     using NodeType = BoolLiteral;
     
     static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitBoolLiteral(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
 }; // struct LiteralTraits<bool>
 
 template<> struct LiteralTraits<const String *> {
@@ -802,6 +814,7 @@ template<> struct LiteralTraits<const String *> {
     using NodeType = StringLiteral;
     
     static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitStringLiteral(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
 }; // struct LiteralTraits<bool>
 
 template<class T>
@@ -813,8 +826,8 @@ public:
         return LiteralTraits<T>::Accept(static_cast<typename LiteralTraits<T>::NodeType *>(this), visitor);
     }
 protected:
-    inline ActualLiteral(T value, const SourcePosition &source_position)
-        : Literal(LiteralTraits<T>::kKind, nullptr, source_position)
+    inline ActualLiteral(base::Arena *arena, T value, const SourcePosition &source_position)
+        : Literal(LiteralTraits<T>::kKind, LiteralTraits<T>::Mold(arena, source_position), source_position)
         , value_(value) {}
     
     T value_;
@@ -824,7 +837,8 @@ protected:
 #define DEFINE_ACTUAL_LITERAL(name, type) \
     class name##Literal : public ActualLiteral<type> { \
     public: \
-        name##Literal(type value, const SourcePosition &source_position): ActualLiteral<type>(value, source_position) {} \
+        name##Literal(base::Arena *arena, type value, const SourcePosition &source_position): \
+            ActualLiteral<type>(arena, value, source_position) {} \
     }
 
 DEFINE_ACTUAL_LITERAL(Int, int);
@@ -1402,6 +1416,38 @@ private:
     DECLARE_AST_NODES(DEFINE_METHODS)
     DECLARE_TYPE_NODES(DEFINE_METHODS)
 #undef DEFINE_METHODS
+
+inline Type *LiteralTraits<int>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_i32, location);
+}
+
+inline Type *LiteralTraits<unsigned>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_u32, location);
+}
+
+inline Type *LiteralTraits<int64_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_i64, location);
+}
+
+inline Type *LiteralTraits<uint64_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_u64, location);
+}
+
+inline Type *LiteralTraits<float>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_f32, location);
+}
+
+inline Type *LiteralTraits<double>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_f64, location);
+}
+
+inline Type *LiteralTraits<bool>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_bool, location);
+}
+
+inline Type *LiteralTraits<const String *>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_string, location);
+}
 
 } // namespace cpl
 

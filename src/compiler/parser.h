@@ -48,7 +48,7 @@ public:
     StructDefinition *ParseStructDefinition(bool *ok);
     ClassDefinition *ParseClassDefinition(bool *ok);
     IncompletableDefinition *ParseIncompletableDefinition(IncompletableDefinition *receiver,
-                                                          base::ArenaVector<Symbol *> *concepts, bool *ok);
+                                                          base::ArenaVector<Type *> *concepts, bool *ok);
     Statement *ParseStatement(bool *ok);
     Block *ParseBlock(bool *ok);
     WhileLoop *ParseWhileLoop(bool *ok);

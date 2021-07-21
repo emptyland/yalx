@@ -165,7 +165,6 @@ private:
     int VisitUIntLiteral(UIntLiteral *node) override { UNREACHABLE(); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
     
-private:
     int PrepareDefinition(Definition *node) {
         if (node->generic_params().empty()) {
             Feedback()->Printf(node->source_position(), "%s is not a generics type", node->FullName().c_str());
