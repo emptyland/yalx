@@ -40,8 +40,10 @@ public:
 
         // InterfaceDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
         auto copied = new (arena_) InterfaceDefinition(arena_, MakeFullName(node->name()), node->source_position());
+        copied->set_access(node->access());
         copied->set_owns(node->owns());
         copied->set_package(node->package());
+        copied->set_annotations(node->annotations());
         
         resolver_->FindOrInsert(copied->PackageName()->ToSlice(), copied->name()->ToSlice(), copied); // Insert first
         
@@ -55,6 +57,75 @@ public:
 
         return Return(copied);
     }
+    
+    
+    int VisitStructDefinition(StructDefinition *node) override {
+        assert(results_.empty());
+        if (PrepareDefinition(node) < 0){
+            return -1;
+        }
+        
+        // StructDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
+        auto copied = new (arena_) StructDefinition(arena_, MakeFullName(node->name()), node->source_position());
+        copied->set_access(node->access());
+        copied->set_owns(node->owns());
+        copied->set_package(node->package());
+        copied->set_annotations(node->annotations());
+        
+        resolver_->FindOrInsert(copied->PackageName()->ToSlice(), copied->name()->ToSlice(), copied); // Insert first
+        IncompletableDefinition *base_of = nullptr;
+        if (ProcessIncompletableDefinition(node, copied, &base_of) < 0) {
+            return -1;
+        }
+        if (!base_of->IsStructDefinition()) {
+            Feedback()->Printf(node->super_calling()->source_position(), "Only struct can be inherit of struct");
+            return -1;
+        }
+        copied->set_base_of(DCHECK_NOTNULL(base_of->AsStructDefinition()));
+        
+        return Return(copied);
+    }
+    
+    int VisitClassDefinition(ClassDefinition *node) override {
+        assert(results_.empty());
+        if (PrepareDefinition(node) < 0){
+            return -1;
+        }
+        
+        // ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
+        auto copied = new (arena_) ClassDefinition(arena_, MakeFullName(node->name()), node->source_position());
+        copied->set_access(node->access());
+        copied->set_owns(node->owns());
+        copied->set_package(node->package());
+        copied->set_annotations(node->annotations());
+        
+        resolver_->FindOrInsert(copied->PackageName()->ToSlice(), copied->name()->ToSlice(), copied); // Insert first
+        IncompletableDefinition *base_of = nullptr;
+        if (ProcessIncompletableDefinition(node, copied, &base_of) < 0) {
+            return -1;
+        }
+        if (!base_of->IsClassDefinition()) {
+            Feedback()->Printf(node->super_calling()->source_position(), "Only class can be inherit of class");
+            return -1;
+        }
+        copied->set_base_of(DCHECK_NOTNULL(base_of->AsClassDefinition()));
+        
+        for (auto concept : node->concepts()) {
+            if (auto type = TypeLink(concept); !type) {
+                return -1;
+            } else {
+                if (!type->IsInterfaceType()) {
+                    Feedback()->Printf(concept->source_position(), "Only interface can be implements of class");
+                    return -1;
+                }
+                copied->mutable_concepts()->push_back(type);
+            }
+        }
+
+        // class Ref<T> (val T body)
+        return Return(copied);
+    }
+
     
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
         // FunctionPrototype(base::Arena *arena, bool vargs, const SourcePosition &source_position)
@@ -93,8 +164,10 @@ public:
         auto fun = new (arena_) FunctionDeclaration(arena_, node->decoration(), node->name(), prototype,
                                                     node->is_reduce(), node->source_position());
         fun->set_body(body);
+        fun->set_access(node->access());
         fun->set_owns(node->owns());
         fun->set_package(node->package());
+        fun->set_annotations(node->annotations());
         return Return(fun);
     }
 private:
@@ -104,8 +177,6 @@ private:
     int VisitList(List *node) override { UNREACHABLE(); }
     int VisitVariableDeclaration(VariableDeclaration *node) override { UNREACHABLE(); }
     int VisitAssignment(Assignment *node) override { UNREACHABLE(); }
-    int VisitStructDefinition(StructDefinition *node) override { UNREACHABLE(); }
-    int VisitClassDefinition(ClassDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
@@ -165,6 +236,81 @@ private:
     int VisitUIntLiteral(UIntLiteral *node) override { UNREACHABLE(); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
     
+    int ProcessIncompletableDefinition(const IncompletableDefinition *node, IncompletableDefinition *copied,
+                                       IncompletableDefinition **base_of) {
+        for (auto param : node->parameters()) {
+            if (param.field_declaration) {
+                copied->mutable_parameters()->push_back(param);
+            } else {
+                StructDefinition::Parameter other;
+                other.field_declaration = false;
+                if (auto it = Instantiate(param.as_parameter); !it) {
+                    return -1;
+                } else {
+                    other.as_parameter = down_cast<VariableDeclaration::Item>(it);
+                }
+                copied->mutable_parameters()->push_back(other);
+            }
+        }
+        
+        for (auto field : node->fields()) {
+            StructDefinition::Field other;
+            other.as_constructor = other.as_constructor;
+            other.in_constructor = other.in_constructor;
+            if (auto it = Instantiate(field.declaration); !it) {
+                return -1;
+            } else {
+                other.declaration = DCHECK_NOTNULL(it->AsVariableDeclaration());
+            }
+            copied->mutable_fields()->push_back(other);
+        }
+        
+        for (auto method : node->methods()) {
+            if (auto it = Instantiate(method); !it) {
+                return -1;
+            } else {
+                copied->mutable_methods()->push_back(DCHECK_NOTNULL(it->AsFunctionDeclaration()));
+            }
+        }
+        
+        if (node->super_calling()) {
+            if (node->super_calling()->IsInstantiation()) {
+                auto inst = node->super_calling()->AsInstantiation();
+                for (size_t i = 0; i < inst->generic_args_size(); i++) {
+                    if (auto type = TypeLink(inst->generic_arg(i)); !type) {
+                        return -1;
+                    } else {
+                        *inst->mutable_generic_arg(i) = type;
+                    }
+                }
+                
+                Statement *base = nullptr;
+                if (inst->primary()->IsIdentifier()) {
+                    base = Instantiate(inst->source_position(), "",
+                                       inst->primary()->AsIdentifier()->name()->ToSlice(),
+                                       inst->mutable_generic_args());
+                } else {
+                    assert(inst->primary()->IsDot());
+                    auto dot = inst->primary()->AsDot();
+                    assert(dot->primary()->IsIdentifier());
+                    base = Instantiate(inst->source_position(),
+                                       dot->primary()->AsIdentifier()->name()->ToSlice(),
+                                       dot->field()->ToSlice(),
+                                       inst->mutable_generic_args());
+                }
+                if (!base) {
+                    return -1;
+                }
+                if (!base->IsClassDefinition() && !base->IsStructDefinition()) {
+                    Feedback()->Printf(inst->source_position(), "Base is not class or struct");
+                    return -1;
+                }
+                *base_of = down_cast<IncompletableDefinition>(base);
+            }
+        }
+        return 0;
+    }
+    
     int PrepareDefinition(Definition *node) {
         if (node->generic_params().empty()) {
             Feedback()->Printf(node->source_position(), "%s is not a generics type", node->FullName().c_str());
@@ -188,39 +334,19 @@ private:
     }
     
     Type *TypeLinker(const Symbol *name, Type *host) {
-        Statement *ast = nullptr;
         if (!name->prefix_name()) {
             auto iter = args_.find(name->name()->ToSlice());
             if (iter != args_.end()) {
                 return iter->second;
             }
-            ast = resolver_->Find("", name->name()->ToSlice());
-        } else {
-            ast = resolver_->Find(name->prefix_name()->ToSlice(), name->name()->ToSlice());
         }
+        Statement *ast = Instantiate(name->source_position(),
+                                     !name->prefix_name()
+                                     ? ""
+                                     : name->prefix_name()->ToSlice(), name->name()->ToSlice(),
+                                     host->mutable_generic_args());
         if (!ast) {
-            Feedback()->Printf(name->source_position(), "Symbol %s not found", name->ToString().c_str());
             return nullptr;
-        }
-        if (!Definition::Is(ast)) {
-            Feedback()->Printf(name->source_position(), "Symbol %s is not class/struct/interface",
-                               name->ToString().c_str());
-            return nullptr;
-        }
-        auto def = down_cast<Definition>(ast);
-        if (!def->generic_params().empty()) {
-            auto pkg = def->PackageName()->ToSlice();
-            auto argc = host->generic_args_size();
-            auto argv = &host->mutable_generic_args()->at(0);
-            ast = resolver_->Find(pkg, BuildFullName(def->name(), argc, argv)); // Find exists
-            if (!ast) {
-                if (status_ = GenericsInstantiating::Instantiate(def, arena_, feedback_, std::move(resolver_), argc,
-                                                                 argv, &ast);
-                    status().fail()){
-                    return nullptr;
-                }
-                resolver_->FindOrInsert(pkg, BuildFullName(def->name(), argc, argv), ast);
-            }
         }
 
         switch (ast->kind()) {
@@ -234,6 +360,37 @@ private:
                 break;
         }
         UNREACHABLE();
+    }
+    
+    Statement *Instantiate(const SourcePosition &location,
+                           std::string_view prefix,
+                           std::string_view name,
+                           base::ArenaVector<Type *> *args) {
+        Statement *ast = resolver_->Find(prefix, name);
+        if (!ast) {
+            Feedback()->Printf(location, "Symbol %s not found", name.data());
+            return nullptr;
+        }
+        if (!Definition::Is(ast)) {
+            Feedback()->Printf(location, "Symbol %s.%s is not class/struct/interface", prefix.data(), name.data());
+            return nullptr;
+        }
+        auto def = down_cast<Definition>(ast);
+        if (!def->generic_params().empty()) {
+            auto pkg = def->PackageName()->ToSlice();
+            auto argc = args->size();
+            auto argv = &args->at(0);
+            ast = resolver_->Find(pkg, BuildFullName(def->name(), argc, argv)); // Find exists
+            if (!ast) {
+                if (status_ = GenericsInstantiating::Instantiate(def, arena_, feedback_, std::move(resolver_), argc,
+                                                                 argv, &ast);
+                    status().fail()){
+                    return nullptr;
+                }
+                resolver_->FindOrInsert(pkg, BuildFullName(def->name(), argc, argv), ast);
+            }
+        }
+        return ast;
     }
     
     int Return(AstNode *ast) {

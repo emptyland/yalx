@@ -713,6 +713,10 @@ public:
     
     DEF_PTR_PROP_RW(Expression, primary);
     DEF_ARENA_VECTOR_GETTER(Type *, generic_arg);
+    Type **mutable_generic_arg(size_t i) {
+        assert(i < generic_args_size());
+        return &generic_args_[i];
+    }
     
     DECLARE_AST_NODE(Instantiation);
 private:
@@ -1021,6 +1025,19 @@ private:
     Expression *callee_;
     base::ArenaVector<Expression *> args_;
 }; // class Calling
+
+//class Constructing : public Expression {
+//public:
+//    Constructing(base::Arena *arena, IncompletableDefinition *mold, const SourcePosition &source_position);
+//    
+//    DEF_PTR_PROP_RW(IncompletableDefinition, mold);
+//    DEF_ARENA_VECTOR_GETTER(Expression *, arg);
+//    
+//    DECLARE_AST_NODE(Constructing);
+//private:
+//    IncompletableDefinition *mold_; // <ClassDefinition|StructDefinition>
+//    base::ArenaVector<Expression *> args_;
+//};
 
 class IfExpression : public Expression {
 public:

@@ -497,6 +497,12 @@ Calling::Calling(base::Arena *arena, Expression *callee, const SourcePosition &s
     , args_(arena) {
 }
 
+//Constructing::Constructing(base::Arena *arena, IncompletableDefinition *mold, const SourcePosition &source_position)
+//    : Expression(Node::kConstructing, false /*is_lval*/, true /*ls_rval*/, source_position)
+//    , mold_(DCHECK_NOTNULL(mold))
+//    , args_(arena) {
+//}
+
 IfExpression::IfExpression(Statement *initializer, Expression *condition, Statement *then_clause, Statement *else_clause,
                            const SourcePosition &source_position)
     : Expression(Node::kIfExpression, false /*is_lval*/, true /*ls_rval*/, source_position)
