@@ -161,7 +161,8 @@ public:
         
         // FunctionDeclaration(base::Arena *arena, Decoration decoration, const String *name, FunctionPrototype *prototype,
         // bool is_reduce, const SourcePosition &source_position)
-        auto fun = new (arena_) FunctionDeclaration(arena_, node->decoration(), node->name(), prototype,
+        auto full_name = original_ == node ? MakeFullName(node->name()) : node->name();
+        auto fun = new (arena_) FunctionDeclaration(arena_, node->decoration(), full_name, prototype,
                                                     node->is_reduce(), node->source_position());
         fun->set_body(body);
         fun->set_access(node->access());
@@ -171,51 +172,193 @@ public:
         return Return(fun);
     }
 private:
-    int VisitPackage(Package *node) override { UNREACHABLE(); }
-    int VisitFileUnit(FileUnit *node) override { UNREACHABLE(); }
-    int VisitBlock(Block *node) override { UNREACHABLE(); }
-    int VisitList(List *node) override { UNREACHABLE(); }
-    int VisitVariableDeclaration(VariableDeclaration *node) override { UNREACHABLE(); }
-    int VisitAssignment(Assignment *node) override { UNREACHABLE(); }
-    int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
-    int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
-    int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
-    int VisitBreak(Break *node) override { UNREACHABLE(); }
-    int VisitContinue(Continue *node) override { UNREACHABLE(); }
-    int VisitReturn(Return *node) override { UNREACHABLE(); }
-    int VisitThrow(Throw *node) override { UNREACHABLE(); }
-    int VisitRunCoroutine(RunCoroutine *node) override { UNREACHABLE(); }
-    int VisitWhileLoop(WhileLoop *ast) override { UNREACHABLE(); }
-    int VisitUnlessLoop(UnlessLoop *node) override { UNREACHABLE(); }
-    int VisitForeachLoop(ForeachLoop *node) override { UNREACHABLE(); }
-    int VisitStringTemplate(StringTemplate *node) override { UNREACHABLE(); }
-    int VisitInstantiation(Instantiation *node) override { UNREACHABLE(); }
-    int VisitOr(Or *node) override { UNREACHABLE(); }
-    int VisitAdd(Add *node) override { UNREACHABLE(); }
-    int VisitAnd(And *node) override { UNREACHABLE(); }
-    int VisitDiv(Div *node) override { UNREACHABLE(); }
-    int VisitDot(Dot *node) override { UNREACHABLE(); }
-    int VisitMod(Mod *node) override { UNREACHABLE(); }
-    int VisitMul(Mul *node) override { UNREACHABLE(); }
-    int VisitNot(Not *node) override { UNREACHABLE(); }
-    int VisitSub(Sub *node) override { UNREACHABLE(); }
-    int VisitLess(Less *node) override { UNREACHABLE(); }
-    int VisitRecv(Recv *node) override { UNREACHABLE(); }
-    int VisitSend(Send *node) override { UNREACHABLE(); }
-    int VisitEqual(Equal *node) override { UNREACHABLE(); }
-    int VisitCalling(Calling *node) override { UNREACHABLE(); }
+    int VisitVariableDeclaration(VariableDeclaration *node) override {
+        // VariableDeclaration(base::Arena *arena, bool is_volatile, Constraint constraint,
+        //                     const SourcePosition &source_position)
+        auto copied = new (arena_) VariableDeclaration(arena_, node->is_volatile(), node->constraint(),
+                                                       node->source_position());
+        for (auto item : node->variables()) {
+            // Item(base::Arena *arena, const String *identifier, class Type *type, const SourcePosition &source_position)
+            Type *type = nullptr;
+            if (item->type()) {
+                type = TypeLink(item->type());
+            }
+            auto other = new (arena_) VariableDeclaration::Item(arena_, item->identifier(), type, item->source_position());
+            copied->mutable_variables()->push_back(other);
+        }
+        
+        for (auto expr : node->initilaizers()) {
+            if (auto it = Instantiate(expr); !it) {
+                return -1;
+            } else {
+                copied->mutable_initilaizers()->push_back(static_cast<Expression *>(it));
+            }
+        }
+        return Return(copied);
+    }
+    
+    int VisitBlock(Block *node) override {
+        // Block(base::Arena *arena, const SourcePosition &source_position)
+        auto copied = new (arena_) Block(arena_, node->source_position());
+        for (auto stmt : node->statements()) {
+            if (auto it = Instantiate(stmt); !it) {
+                return -1;
+            } else {
+                copied->mutable_statements()->push_back(static_cast<Statement *>(it));
+            }
+        }
+        return Return(copied);
+    }
+    
+    int VisitList(List *node) override {
+        auto copied = new (arena_) List(arena_, node->source_position());
+        for (auto stmt : node->expressions()) {
+            if (auto it = Instantiate(stmt); !it) {
+                return -1;
+            } else {
+                copied->mutable_expressions()->push_back(static_cast<Expression *>(it));
+            }
+        }
+        return Return(copied);
+    }
+    
+    int VisitAssignment(Assignment *node) override {
+        auto copied = new (arena_) Assignment(arena_, node->source_position());
+        for (auto expr : node->lvals()) {
+            if (auto it = Instantiate(expr); !it) {
+                return -1;
+            } else {
+                copied->mutable_lvals()->push_back(static_cast<Expression *>(it));
+            }
+        }
+        for (auto expr : node->rvals()) {
+            if (auto it = Instantiate(expr); !it) {
+                return -1;
+            } else {
+                copied->mutable_rvals()->push_back(static_cast<Expression *>(it));
+            }
+        }
+        return Return(copied);
+    }
+    
+    int VisitCalling(Calling *node) override {
+        // Calling(base::Arena *arena, Expression *callee, const SourcePosition &source_position)
+        Expression *callee = static_cast<Expression *>(Instantiate(node->callee()));
+        if (!callee) {
+            return -1;
+        }
+        auto copied = new (arena_) Calling(arena_, callee, node->source_position());
+        for (auto arg : node->args()) {
+            if (auto it = Instantiate(arg); !it) {
+                return -1;
+            } else {
+                copied->mutable_args()->push_back(static_cast<Expression *>(it));
+            }
+        }
+        return Return(copied);
+    }
+    
+    
+    int VisitReturn(Return *node) override { return Return(node); }
+    int VisitThrow(Throw *node) override { return Return(node); }
+    int VisitRunCoroutine(RunCoroutine *node) override { return Return(node); }
+    int VisitWhileLoop(WhileLoop *node) override { return Return(node); }
+    int VisitUnlessLoop(UnlessLoop *node) override { return Return(node); }
+    int VisitForeachLoop(ForeachLoop *node) override { return Return(node); }
+    int VisitStringTemplate(StringTemplate *node) override { return Return(node); }
+    int VisitOr(Or *node) override { Return(node); }
+    int VisitAdd(Add *node) override { Return(node); }
+    int VisitAnd(And *node) override { Return(node); }
+    int VisitDiv(Div *node) override { Return(node); }
+    int VisitDot(Dot *node) override { Return(node); }
+    int VisitMod(Mod *node) override { Return(node); }
+    int VisitMul(Mul *node) override { Return(node); }
+    int VisitNot(Not *node) override { Return(node); }
+    int VisitSub(Sub *node) override { Return(node); }
+    int VisitLess(Less *node) override { Return(node); }
+    int VisitLessEqual(LessEqual *node) override { Return(node); }
+    int VisitGreater(Greater *node) override { Return(node); }
+    int VisitEqual(Equal *node) override { Return(node); }
+    int VisitNotEqual(NotEqual *node) override { Return(node); }
+    int VisitRecv(Recv *node) override { Return(node); }
+    int VisitSend(Send *node) override { Return(node); }
+    int VisitNegative(Negative *node) override { Return(node); }
+    int VisitIdentifier(Identifier *node) override { Return(node); }
+    
+    
+    int VisitInstantiation(Instantiation *node) override {
+        std::unique_ptr<Type *[]> types;
+        for (size_t i = 0; i < node->generic_args_size(); i++) {
+            if (types[i] = TypeLink(node->generic_arg(i)); !types[i]) {
+                return -1;
+            }
+        }
+        AstNode *ast = nullptr;
+        bool not_found = false;
+        if (node->primary()->IsIdentifier()) {
+            auto prefix = "";
+            auto name = node->primary()->AsIdentifier()->name()->ToSlice();
+            ast = Instantiate(node->source_position(), prefix, name, &types[0], node->generic_args_size(), &not_found);
+        } else {
+            assert(node->primary()->IsDot());
+            auto dot = node->primary()->AsDot();
+            if (!dot->primary()->IsIdentifier()) {
+                goto clone;
+            }
+            auto prefix = dot->primary()->AsIdentifier()->name()->ToSlice();
+            auto name = dot->field()->ToSlice();
+            ast = Instantiate(node->source_position(), prefix, name, &types[0], node->generic_args_size(), &not_found);
+        }
+        if (not_found) {
+            assert(ast == nullptr);
+            goto clone;
+        }
+        if (!ast) {
+            return -1;
+        }
+
+        if (node->primary()->IsIdentifier()) {
+            //auto id = new (arena_) Identifier()
+            auto name = BuildFullName(node->primary()->AsIdentifier()->name(), node->generic_args_size(), &types[0]);
+            auto primary = new (arena_) Identifier(String::New(arena_, name), node->primary()->source_position());
+            auto copied = new (arena_) Instantiation(arena_, primary, node->source_position());
+            for (size_t i = 0; i < node->generic_args_size(); i++) {
+                copied->mutable_generic_args()->push_back(types[i]);
+            }
+        } else {
+            assert(node->primary()->IsDot());
+            auto dot = node->primary()->AsDot();
+            assert(dot->primary()->IsIdentifier());
+            auto name = BuildFullName(dot->field(), node->generic_args_size(), &types[0]);
+            auto primary = new (arena_) Dot(dot->primary(), String::New(arena_, name), dot->source_position());
+            auto copied = new (arena_) Instantiation(arena_, primary, node->source_position());
+            for (size_t i = 0; i < node->generic_args_size(); i++) {
+                copied->mutable_generic_args()->push_back(types[i]);
+            }
+        }
+        
+        clone: {
+            AstNode *it = nullptr;
+            if (it = Instantiate(node->primary()); !it) {
+                return -1;
+            }
+            auto copied = new (arena_) Instantiation(arena_, static_cast<Expression *>(it), node->source_position());
+            for (size_t i = 0; i < node->generic_args_size(); i++) {
+                copied->mutable_generic_args()->push_back(types[i]);
+            }
+            return Return(copied);
+        }
+    }
+
     int VisitCasting(Casting *node) override { UNREACHABLE(); }
-    int VisitGreater(Greater *node) override { UNREACHABLE(); }
     int VisitTesting(Testing *node) override { UNREACHABLE(); }
-    int VisitNegative(Negative *node) override { UNREACHABLE(); }
-    int VisitIdentifier(Identifier *node) override { UNREACHABLE(); }
-    int VisitNotEqual(NotEqual *node) override { UNREACHABLE(); }
     int VisitBitwiseOr(BitwiseOr *node) override { UNREACHABLE(); }
-    int VisitLessEqual(LessEqual *node) override { UNREACHABLE(); }
     int VisitBitwiseAnd(BitwiseAnd *node) override { UNREACHABLE(); }
     int VisitBitwiseShl(BitwiseShl *node) override { UNREACHABLE(); }
     int VisitBitwiseShr(BitwiseShr *node) override { UNREACHABLE(); }
     int VisitBitwiseXor(BitwiseXor *node) override { UNREACHABLE(); }
+    int VisitBreak(Break *node) override { return Return(node); }
+    int VisitContinue(Continue *node) override { return Return(node); }
     int VisitF32Literal(F32Literal *node) override { UNREACHABLE(); }
     int VisitF64Literal(F64Literal *node) override { UNREACHABLE(); }
     int VisitI64Literal(I64Literal *node) override { UNREACHABLE(); }
@@ -235,6 +378,12 @@ private:
     int VisitObjectDeclaration(ObjectDeclaration *node) override { UNREACHABLE(); }
     int VisitUIntLiteral(UIntLiteral *node) override { UNREACHABLE(); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
+    
+    int VisitPackage(Package *node) override { UNREACHABLE(); }
+    int VisitFileUnit(FileUnit *node) override { UNREACHABLE(); }
+    int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
+    int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
+    int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
     
     int ProcessIncompletableDefinition(const IncompletableDefinition *node, IncompletableDefinition *copied,
                                        IncompletableDefinition **base_of) {
@@ -276,11 +425,10 @@ private:
         if (node->super_calling()) {
             if (node->super_calling()->IsInstantiation()) {
                 auto inst = node->super_calling()->AsInstantiation();
+                std::unique_ptr<Type *[]> types;
                 for (size_t i = 0; i < inst->generic_args_size(); i++) {
-                    if (auto type = TypeLink(inst->generic_arg(i)); !type) {
+                    if (types[i] = TypeLink(inst->generic_arg(i)); !types[i]) {
                         return -1;
-                    } else {
-                        *inst->mutable_generic_arg(i) = type;
                     }
                 }
                 
@@ -288,7 +436,8 @@ private:
                 if (inst->primary()->IsIdentifier()) {
                     base = Instantiate(inst->source_position(), "",
                                        inst->primary()->AsIdentifier()->name()->ToSlice(),
-                                       inst->mutable_generic_args());
+                                       &types[0],
+                                       inst->generic_args_size());
                 } else {
                     assert(inst->primary()->IsDot());
                     auto dot = inst->primary()->AsDot();
@@ -296,7 +445,8 @@ private:
                     base = Instantiate(inst->source_position(),
                                        dot->primary()->AsIdentifier()->name()->ToSlice(),
                                        dot->field()->ToSlice(),
-                                       inst->mutable_generic_args());
+                                       &types[0],
+                                       inst->generic_args_size());
                 }
                 if (!base) {
                     return -1;
@@ -340,11 +490,14 @@ private:
                 return iter->second;
             }
         }
+        Type **argv = &host->mutable_generic_args()->at(0);
+        size_t argc = host->generic_args_size();
         Statement *ast = Instantiate(name->source_position(),
                                      !name->prefix_name()
                                      ? ""
                                      : name->prefix_name()->ToSlice(), name->name()->ToSlice(),
-                                     host->mutable_generic_args());
+                                     argv,
+                                     argc);
         if (!ast) {
             return nullptr;
         }
@@ -365,10 +518,16 @@ private:
     Statement *Instantiate(const SourcePosition &location,
                            std::string_view prefix,
                            std::string_view name,
-                           base::ArenaVector<Type *> *args) {
+                           Type *argv[],
+                           size_t argc,
+                           bool *not_found = nullptr) {
         Statement *ast = resolver_->Find(prefix, name);
         if (!ast) {
-            Feedback()->Printf(location, "Symbol %s not found", name.data());
+            if (!not_found) {
+                Feedback()->Printf(location, "Symbol %s not found", name.data());
+            } else {
+                *not_found = true;
+            }
             return nullptr;
         }
         if (!Definition::Is(ast)) {
@@ -378,13 +537,11 @@ private:
         auto def = down_cast<Definition>(ast);
         if (!def->generic_params().empty()) {
             auto pkg = def->PackageName()->ToSlice();
-            auto argc = args->size();
-            auto argv = &args->at(0);
             ast = resolver_->Find(pkg, BuildFullName(def->name(), argc, argv)); // Find exists
             if (!ast) {
                 if (status_ = GenericsInstantiating::Instantiate(def, arena_, feedback_, std::move(resolver_), argc,
                                                                  argv, &ast);
-                    status().fail()){
+                    status().fail()) {
                     return nullptr;
                 }
                 resolver_->FindOrInsert(pkg, BuildFullName(def->name(), argc, argv), ast);
