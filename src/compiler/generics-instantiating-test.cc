@@ -31,6 +31,7 @@ public:
     
     void SetUp() override {
         i32_ = new (&arena_) Type(&arena_, Type::kType_i32, {0,0});
+        f32_ = new (&arena_) Type(&arena_, Type::kType_f32, {0,0});
     }
     void TearDown() override {}
 
@@ -80,6 +81,7 @@ protected:
     MockErrorFeedback feedback_;
     Parser parser_;
     Type *i32_;
+    Type *f32_;
 }; // class GenericsInstantiatingTest
 
 
@@ -133,6 +135,12 @@ TEST_F(GenericsInstantiatingTest, SelfGenericsInstantiating) {
     ASSERT_EQ(resolver.symbols["main.Foo<i32>"], ifdef->method(0)->prototype()->return_type(0)->AsClassType()->definition());
     ASSERT_EQ(resolver.symbols["main.Foo<i32>"], ifdef->method(1)->prototype()->return_type(0)->AsClassType()->definition());
     ASSERT_EQ(resolver.symbols["main.Foo<i64>"], ifdef->method(2)->prototype()->return_type(0)->AsClassType()->definition());
+    
+    Instantiate(stmt, {f32_}, &inst, &resolver);
+    ASSERT_NE(nullptr, inst);
+    ASSERT_TRUE(inst->IsInterfaceDefinition());
+    ifdef = inst->AsInterfaceDefinition();
+    ASSERT_EQ(resolver.symbols["main.Foo<f32>"], ifdef->method(0)->prototype()->return_type(0)->AsClassType()->definition());
     
 }
 

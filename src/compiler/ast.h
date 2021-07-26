@@ -1328,6 +1328,7 @@ public:
         assert(ability_ > 0);
     }
 
+    DEF_VAL_GETTER(int, ability);
     Type *element_type() const { return generic_arg(0); }
     
     bool CanRead() const { return ability_ & kInbility; }
