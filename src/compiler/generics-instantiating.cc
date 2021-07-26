@@ -27,13 +27,15 @@ namespace cpl {
 
 class GenericsInstantiatingVisitor : public AstVisitor {
 public:
-    GenericsInstantiatingVisitor(base::Arena *arena, SyntaxFeedback *feedback,
+    GenericsInstantiatingVisitor(const String *actual_name,
+                                 base::Arena *arena, SyntaxFeedback *feedback,
                                  GenericsInstantiating::Resolver *resolver,
                                  Statement *original,
-                                 const size_t argc, Type **argv)
+                                 size_t argc, Type **argv)
         : arena_(DCHECK_NOTNULL(arena))
         , feedback_(feedback)
         , resolver_(resolver)
+        , actual_name_(actual_name)
         , original_(original)
         , argc_(argc)
         , argv_(argv) {
@@ -59,6 +61,7 @@ public:
         copied->set_owns(node->owns());
         copied->set_package(node->package());
         copied->set_annotations(node->annotations());
+        copied->set_original(node);
         
         resolver_->FindOrInsert(copied->PackageName()->ToSlice(), copied->name()->ToSlice(), copied); // Insert first
         
@@ -83,6 +86,7 @@ public:
         copied->set_owns(node->owns());
         copied->set_package(node->package());
         copied->set_annotations(node->annotations());
+        copied->set_original(node);
         
         resolver_->FindOrInsert(copied->PackageName()->ToSlice(), copied->name()->ToSlice(), copied); // Insert first
         IncompletableDefinition *base_of = nullptr;
@@ -110,6 +114,7 @@ public:
         copied->set_owns(node->owns());
         copied->set_package(node->package());
         copied->set_annotations(node->annotations());
+        copied->set_original(node);
         
         resolver_->FindOrInsert(copied->PackageName()->ToSlice(), copied->name()->ToSlice(), copied); // Insert first
         IncompletableDefinition *base_of = nullptr;
@@ -158,6 +163,9 @@ public:
         fun->set_owns(node->owns());
         fun->set_package(node->package());
         fun->set_annotations(node->annotations());
+        if (node == original()) {
+            fun->set_original(node);
+        }
         return Return(fun);
     }
 private:
@@ -646,6 +654,26 @@ private:
             return -1;
         }
         for (size_t i = 0; i < argc_; i++) {
+            Definition *def = nullptr;
+            switch (argv_[i]->category()) {
+                case Type::kStruct:
+                    def = argv_[i]->AsStructType()->definition();
+                    break;
+                case Type::kClass:
+                    def = argv_[i]->AsClassType()->definition();
+                    break;
+                case Type::kInterface:
+                    def = argv_[i]->AsInterfaceType()->definition();
+                    break;
+                default:
+                    break;
+            }
+            if (def != nullptr && def->original() == node) {
+                Feedback()->Printf(argv_[i]->source_position(), "Recursive generics type: %s<%s>",
+                                   node->FullName().c_str(),
+                                   def->FullName().c_str());
+                return -1;
+            }
             args_[node->generic_param(i)->name()->ToSlice()] = argv_[i];
             //node->generic_param(i)->set_instantiation(argv_[i]);
         }
@@ -667,6 +695,7 @@ private:
             }
             return nullptr;
         }
+
         if (!Definition::Is(ast)) {
             Feedback()->Printf(location, "Symbol %s.%s is not class/struct/interface", prefix.data(), name.data());
             return nullptr;
@@ -675,9 +704,11 @@ private:
         if (!def->generic_params().empty()) {
             auto pkg = def->PackageName()->ToSlice();
             ast = resolver_->Find(pkg, BuildFullName(def->name(), argc, argv)); // Find exists
+            //printf("%s %p\n", BuildFullName(def->name(), argc, argv).c_str(), ast);
             if (!ast) {
-                if (status_ = GenericsInstantiating::Instantiate(def, arena_, feedback_, std::move(resolver_), argc,
-                                                                 argv, &ast);
+                auto actual_name = String::New(arena_, BuildFullName(def->name(), argc, argv));
+                if (status_ = GenericsInstantiating::Instantiate(actual_name, def, arena_, feedback_,
+                                                                 std::move(resolver_), argc_, argv_, &ast);
                     status().fail()) {
                     return nullptr;
                 }
@@ -771,8 +802,9 @@ private:
     }
     
     Type *TypeLink(Type *type) {
-        return type->Link(std::bind(&GenericsInstantiatingVisitor::TypeLinker, this, std::placeholders::_1,
-                                    std::placeholders::_2));
+        using std::placeholders::_1;
+        using std::placeholders::_2;
+        return type->Link(std::bind(&GenericsInstantiatingVisitor::TypeLinker, this, _1, _2));
     }
     
     Type *TypeLinker(const Symbol *name, Type *host) {
@@ -782,14 +814,13 @@ private:
                 return iter->second;
             }
         }
-        Type **argv = &host->mutable_generic_args()->at(0);
-        size_t argc = host->generic_args_size();
+
         Statement *ast = Instantiate(name->source_position(),
                                      !name->prefix_name()
                                      ? ""
                                      : name->prefix_name()->ToSlice(), name->name()->ToSlice(),
-                                     argv,
-                                     argc);
+                                     &host->mutable_generic_args()->at(0),
+                                     host->generic_args_size());
         if (!ast) {
             return nullptr;
         }
@@ -807,7 +838,9 @@ private:
         UNREACHABLE();
     }
     
-    const String *MakeFullName(const String *name) { return String::New(arena_, BuildFullName(name, argc_, argv_)); }
+    const String *MakeFullName(const String *name) {
+        return !actual_name_ ? String::New(arena_, BuildFullName(name, argc_, argv_)) : actual_name_;
+    }
     
     std::string BuildFullName(const String *name, size_t argc, Type **types) {
         std::string buf(name->ToString());
@@ -837,8 +870,9 @@ private:
     
     base::Arena *const arena_;
     SyntaxFeedback *const feedback_;
-    GenericsInstantiating::Resolver *resolver_;
-    Statement *original_ = nullptr;
+    GenericsInstantiating::Resolver *const resolver_;
+    Statement *const original_ = nullptr;
+    const String *const actual_name_;
     const size_t argc_;
     Type **argv_;
     std::map<std::string_view, Type *> args_;
@@ -847,14 +881,15 @@ private:
 }; // class GenericsInstantiatingVisitor
 
 
-base::Status GenericsInstantiating::Instantiate(Statement *def,
+base::Status GenericsInstantiating::Instantiate(const String *actual_name,
+                                                Statement *def,
                                                 base::Arena *arena,
                                                 SyntaxFeedback *feedback,
                                                 Resolver *resolver,
                                                 size_t argc,
                                                 Type **argv,
                                                 Statement **inst) {
-    GenericsInstantiatingVisitor visitor(arena, feedback, resolver, def, argc, argv);
+    GenericsInstantiatingVisitor visitor(actual_name, arena, feedback, resolver, def, argc, argv);
     def->Accept(&visitor);
     if (visitor.status().fail()) {
         return visitor.status();

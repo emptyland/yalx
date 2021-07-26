@@ -24,7 +24,8 @@ public:
         DISALLOW_IMPLICIT_CONSTRUCTORS(Resolver);
     }; // class Resolver
     
-    static base::Status Instantiate(Statement *def,
+    static base::Status Instantiate(const String *actual_name,
+                                    Statement *def,
                                     base::Arena *arena,
                                     SyntaxFeedback *feedback,
                                     Resolver *resolver,
