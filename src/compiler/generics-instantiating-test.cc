@@ -69,6 +69,12 @@ public:
                 return iter->second;
             }
         }
+        void Enter(Statement *stmt) override {
+            
+        }
+        void Exit(Statement *stmt) override {
+            
+        }
         std::unordered_map<std::string, Statement *> symbols;
     };
     

@@ -855,7 +855,9 @@ base::Status GenericsInstantiating::Instantiate(Statement *def,
                                                 Type **argv,
                                                 Statement **inst) {
     GenericsInstantiatingVisitor visitor(arena, feedback, resolver, def, argc, argv);
+    resolver->Enter(def);
     def->Accept(&visitor);
+    resolver->Exit(def);
     if (visitor.status().fail()) {
         return visitor.status();
     }

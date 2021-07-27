@@ -21,6 +21,8 @@ public:
         Resolver() = default;
         virtual Statement *Find(std::string_view, std::string_view) = 0;
         virtual Statement *FindOrInsert(std::string_view, std::string_view, Statement *) = 0;
+        virtual void Enter(Statement *) = 0;
+        virtual void Exit(Statement *) = 0;
         DISALLOW_IMPLICIT_CONSTRUCTORS(Resolver);
     }; // class Resolver
     
