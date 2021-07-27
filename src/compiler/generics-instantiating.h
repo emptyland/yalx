@@ -25,7 +25,7 @@ public:
         virtual void Exit(Statement *) = 0;
         DISALLOW_IMPLICIT_CONSTRUCTORS(Resolver);
     }; // class Resolver
-    
+
     static base::Status Instantiate(const String *actual_name,
                                     Statement *def,
                                     base::Arena *arena,

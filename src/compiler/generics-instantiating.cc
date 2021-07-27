@@ -706,9 +706,9 @@ private:
             ast = resolver_->Find(pkg, BuildFullName(def->name(), argc, argv)); // Find exists
             //printf("%s %p\n", BuildFullName(def->name(), argc, argv).c_str(), ast);
             if (!ast) {
-                auto actual_name = String::New(arena_, BuildFullName(def->name(), argc, argv));
-                if (status_ = GenericsInstantiating::Instantiate(actual_name, def, arena_, feedback_,
-                                                                 std::move(resolver_), argc_, argv_, &ast);
+                //auto actual_name = String::New(arena_, BuildFullName(def->name(), argc, argv));
+                if (status_ = GenericsInstantiating::Instantiate(nullptr, def, arena_, feedback_,
+                                                                 std::move(resolver_), argc, argv, &ast);
                     status().fail()) {
                     return nullptr;
                 }
@@ -889,7 +889,7 @@ base::Status GenericsInstantiating::Instantiate(const String *actual_name,
                                                 size_t argc,
                                                 Type **argv,
                                                 Statement **inst) {
-    GenericsInstantiatingVisitor visitor(arena, feedback, resolver, def, argc, argv);
+    GenericsInstantiatingVisitor visitor(actual_name, arena, feedback, resolver, def, argc, argv);
     resolver->Enter(def);
     def->Accept(&visitor);
     resolver->Exit(def);
