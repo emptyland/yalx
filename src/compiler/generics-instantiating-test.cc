@@ -117,7 +117,7 @@ TEST_F(GenericsInstantiatingTest, Sanity) {
     EXPECT_EQ(Type::kType_i32, method->prototype()->return_type(0)->primary_type());
 }
 
-TEST_F(GenericsInstantiatingTest, SelfGenericsInstantiating) {
+TEST_F(GenericsInstantiatingTest, SelfType) {
     SwitchInput("package main\n"
                 "\n"
                 "interface Foo<T>{\n"
@@ -152,7 +152,49 @@ TEST_F(GenericsInstantiatingTest, SelfGenericsInstantiating) {
     
 }
 
-TEST_F(GenericsInstantiatingTest, RecursiveGenericsInstantiating) {
+TEST_F(GenericsInstantiatingTest, NestedType) {
+    SwitchInput("package main\n"
+                "\n"
+                "interface Bar<T> {\n"
+                "   fun bar(): T\n"
+                "}\n"
+                "interface Foo<T> {\n"
+                "   fun foo(): T"
+                "   fun f1(): Bar<f32>"
+                "   fun f2(): Bar<f64>"
+                "}\n"
+                "\n");
+    bool ok = true;
+    auto file_unit = parser_.Parse(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, file_unit);
+    
+    
+    Resolver resolver;
+    resolver.symbols["Bar"] = file_unit->interface(0);
+    resolver.symbols["Foo"] = file_unit->interface(1);
+    
+    Statement *inst = nullptr;
+    Instantiate(file_unit->interface(0), {i32_}, &inst, &resolver);
+    ASSERT_NE(nullptr, inst);
+    ASSERT_TRUE(inst->IsInterfaceDefinition());
+    
+    auto bar_i32 = new (&arena_) InterfaceType(&arena_, inst->AsInterfaceDefinition(), inst->source_position());
+    Instantiate(file_unit->interface(1), {bar_i32}, &inst, &resolver);
+    ASSERT_NE(nullptr, inst);
+    ASSERT_TRUE(inst->IsInterfaceDefinition());
+    
+    auto foo_bar_i32 = inst->AsInterfaceDefinition();
+    ASSERT_EQ(3, foo_bar_i32->methods_size());
+    ASSERT_TRUE(foo_bar_i32->method(0)->prototype()->return_type(0)->IsInterfaceType());
+    ASSERT_EQ(bar_i32->definition(), foo_bar_i32->method(0)->prototype()->return_type(0)->AsInterfaceType()->definition());
+    
+    ASSERT_TRUE(resolver.symbols.find("main.Bar<f32>") != resolver.symbols.end());
+    ASSERT_TRUE(resolver.symbols.find("main.Bar<f64>") != resolver.symbols.end());
+    
+}
+
+TEST_F(GenericsInstantiatingTest, RecursiveType) {
     SwitchInput("package main\n"
                 "\n"
                 "interface Foo<T>{\n"
@@ -175,7 +217,7 @@ TEST_F(GenericsInstantiatingTest, RecursiveGenericsInstantiating) {
     ASSERT_EQ(nullptr, inst);
 }
 
-TEST_F(GenericsInstantiatingTest, NestedGenericsInstantiating) {
+TEST_F(GenericsInstantiatingTest, NestedRecursiveType) {
     SwitchInput("package main\n"
                 "\n"
                 "interface Bar<T>{\n"
