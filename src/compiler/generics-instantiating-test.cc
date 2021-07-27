@@ -79,7 +79,8 @@ public:
     };
     
     void Instantiate(Statement *ast, std::vector<Type *> argv, Statement **inst, GenericsInstantiating::Resolver *resolver) {
-        auto rs = GenericsInstantiating::Instantiate(ast, &arena_, &feedback_, resolver, argv.size(), &argv[0], inst);
+        auto rs = GenericsInstantiating::Instantiate(nullptr, ast, &arena_, &feedback_, resolver, argv.size(),
+                                                     &argv[0], inst);
         ASSERT_TRUE(rs.ok()) << rs.ToString();
     }
 protected:
@@ -106,7 +107,8 @@ TEST_F(GenericsInstantiatingTest, Sanity) {
     Resolver resolver;
     Statement *inst = nullptr;
     Type *argv[] = { i32_, };
-    auto rs = GenericsInstantiating::Instantiate(file_unit->interface(0), &arena_, &feedback_, &resolver, 1, argv, &inst);
+    auto rs = GenericsInstantiating::Instantiate(nullptr, file_unit->interface(0), &arena_, &feedback_, &resolver, 1,
+                                                 argv, &inst);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     ASSERT_TRUE(inst->IsInterfaceDefinition());
     auto if_def = inst->AsInterfaceDefinition();
@@ -147,6 +149,61 @@ TEST_F(GenericsInstantiatingTest, SelfGenericsInstantiating) {
     ASSERT_TRUE(inst->IsInterfaceDefinition());
     ifdef = inst->AsInterfaceDefinition();
     ASSERT_EQ(resolver.symbols["main.Foo<f32>"], ifdef->method(0)->prototype()->return_type(0)->AsClassType()->definition());
+    
+}
+
+//TEST_F(GenericsInstantiatingTest, RecursiveGenericsInstantiating) {
+//    SwitchInput("package main\n"
+//                "\n"
+//                "interface Foo<T>{\n"
+//                "   fun foo(): Foo<Foo<T> >"
+//                "}\n"
+//                "\n");
+//    bool ok = true;
+//    auto file_unit = parser_.Parse(&ok);
+//    ASSERT_TRUE(ok);
+//    ASSERT_NE(nullptr, file_unit);
+//
+//    auto stmt = file_unit->interface(0);
+//    Statement *inst = nullptr;
+//    Resolver resolver;
+//    resolver.symbols["Foo"] = stmt;
+//    Type *argv[] = {i32_};
+//    auto rs = GenericsInstantiating::Instantiate(nullptr, stmt, &arena_, &feedback_, &resolver, arraysize(argv), argv,
+//                                                 &inst);
+//    ASSERT_TRUE(rs.fail());
+//    ASSERT_EQ(nullptr, inst);
+//}
+
+TEST_F(GenericsInstantiatingTest, NestedGenericsInstantiating) {
+    SwitchInput("package main\n"
+                "\n"
+                "interface Bar<T>{\n"
+                "   fun bar(): Bar<T>\n"
+                "}\n"
+                "interface Foo<T>{\n"
+                "   fun foo(): Foo<Bar<T> >\n"
+                "}\n"
+                "\n");
+    bool ok = true;
+    auto file_unit = parser_.Parse(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, file_unit);
+    
+    Resolver resolver;
+    resolver.symbols["Bar"] = file_unit->interface(0);
+    resolver.symbols["Foo"] = file_unit->interface(1);
+    
+    Statement *inst = nullptr;
+    Instantiate(file_unit->interface(1), {i32_}, &inst, &resolver);
+    ASSERT_NE(nullptr, inst);
+    ASSERT_TRUE(inst->IsInterfaceDefinition());
+    auto ifdef = inst->AsInterfaceDefinition();
+    ASSERT_STREQ("Foo<i32>", ifdef->name()->data());
+    ASSERT_EQ(1, ifdef->methods_size());
+    auto method = ifdef->method(0);
+    ASSERT_STREQ("Foo<main.Bar<i32>>",
+                 method->prototype()->return_type(0)->AsInterfaceType()->definition()->name()->data());
     
 }
 

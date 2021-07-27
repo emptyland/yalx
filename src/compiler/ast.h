@@ -339,6 +339,7 @@ public:
     DEF_VAL_PROP_RW(Access, access);
     DEF_PTR_PROP_RW(Package, package);
     DEF_PTR_PROP_RW(AstNode, owns);
+    DEF_PTR_PROP_RW(Declaration, original);
     DEF_PTR_PROP_RW(AnnotationDeclaration, annotations);
 
     virtual const String *Identifier() const = 0;
@@ -358,6 +359,7 @@ protected:
 private:
     Package *package_ = nullptr;
     AstNode *owns_ = nullptr; // <FileUnit|ClassDefinition|StructDefinition>
+    Declaration *original_ = nullptr;
     AnnotationDeclaration *annotations_ = nullptr;
     Access access_ = kDefault;
 }; // class Declaration
@@ -508,6 +510,7 @@ public:
     DEF_PTR_GETTER(const String, name);
     DEF_PTR_PROP_RW(Package, package);
     DEF_PTR_PROP_RW(AstNode, owns);
+    DEF_PTR_PROP_RW(Definition, original);
     DEF_PTR_PROP_RW(AnnotationDeclaration, annotations);
     DEF_VAL_PROP_RW(Access, access);
     DEF_VAL_PROP_RW(bool, has_instantiated);
@@ -525,6 +528,7 @@ private:
     const String *name_;
     Package *package_ = nullptr;
     AstNode *owns_ = nullptr; // <FileUnit|ClassDefinition|StructDefinition>
+    Definition *original_ = nullptr;
     base::ArenaVector<GenericParameter *> generic_params_;
     AnnotationDeclaration *annotations_ = nullptr;
     Access access_ = kDefault;
