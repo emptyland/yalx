@@ -25,11 +25,8 @@ public:
     }
 private:
     base::Status Recursive(Package *root, std::function<void(Package *)> &&callback) {
-        callback(root);
-        if (fail()) {
-            return status_;
-        }
         if (root->IsTerminator()) {
+            callback(root);
             return status_;
         }
         for (auto pkg : root->dependences()) {
@@ -37,6 +34,7 @@ private:
                 return rs;
             }
         }
+        callback(root);
         return status_;
     }
     
@@ -82,7 +80,7 @@ private:
                     }
                     continue;
                 }
-                
+
                 if (base_ast->IsInstantiation()) {
                     auto symbol = GenericsInstantiate(base_ast->AsInstantiation());
                     if (symbol.IsNotFound()) {
@@ -235,7 +233,7 @@ private:
     int VisitF64Literal(F64Literal *node) override { UNREACHABLE(); }
     int VisitI64Literal(I64Literal *node) override { UNREACHABLE(); }
     int VisitIndexedGet(IndexedGet *node) override { UNREACHABLE(); }
-    int VisitIntLiteral(IntLiteral *node) override { return Return(I32()); }
+    int VisitIntLiteral(IntLiteral *node) override { return Return(node->type()); }
     int VisitU64Literal(U64Literal *node) override { UNREACHABLE(); }
     int VisitBoolLiteral(BoolLiteral *node) override { UNREACHABLE(); }
     int VisitUnitLiteral(UnitLiteral *node) override { UNREACHABLE(); }
@@ -345,9 +343,9 @@ private:
     }
     
     GlobalSymbol FindOrInsertGlobal(Package *owns, std::string_view name, Statement *ast) {
-        std::string full_name = owns->name()->ToString();
-        full_name.append(".").append(name.data(), name.size());
-        
+        std::string full_name = owns->path()->ToString();
+        full_name.append(":").append(owns->name()->ToString()).append(".").append(name.data(), name.size());
+
         auto iter = global_symbols_.find(full_name);
         if (iter != global_symbols_.end()) {
             return iter->second;
