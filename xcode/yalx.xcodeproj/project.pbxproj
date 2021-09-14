@@ -286,6 +286,7 @@
 		2362A0EB26A69DC700A972B1 /* generics-instantiating.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "generics-instantiating.h"; path = "../src/compiler/generics-instantiating.h"; sourceTree = "<group>"; };
 		2362A0EC26A69EAF00A972B1 /* generics-instantiating.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "generics-instantiating.cc"; path = "../src/compiler/generics-instantiating.cc"; sourceTree = "<group>"; };
 		2362A0EF26A6CB1700A972B1 /* generics-instantiating-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "generics-instantiating-test.cc"; path = "../src/compiler/generics-instantiating-test.cc"; sourceTree = "<group>"; };
+		236466CA26F04E130066D168 /* printd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = printd.h; path = ../src/base/printd.h; sourceTree = "<group>"; };
 		2387EF9D2681C80D002E6DCF /* compiler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = compiler.h; path = ../src/compiler/compiler.h; sourceTree = "<group>"; };
 		2387EF9E2681C8D3002E6DCF /* compiler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = compiler.cc; path = ../src/compiler/compiler.cc; sourceTree = "<group>"; };
 		2387EFA126842BFF002E6DCF /* object-visitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "object-visitor.h"; path = "../src/runtime/heap/object-visitor.h"; sourceTree = "<group>"; };
@@ -465,6 +466,7 @@
 				2354CD932644DCF200A2FAC3 /* format.h */,
 				2354CD942644DDA400A2FAC3 /* format.cc */,
 				23EFD48C26467FB5007222D6 /* utils.h */,
+				236466CA26F04E130066D168 /* printd.h */,
 			);
 			name = Base;
 			sourceTree = "<group>";

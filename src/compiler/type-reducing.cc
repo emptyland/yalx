@@ -2,6 +2,7 @@
 #include "compiler/syntax-feedback.h"
 #include "compiler/scope.h"
 #include "compiler/ast.h"
+#include "base/printd.h"
 #include <stack>
 
 namespace yalx {
@@ -39,6 +40,7 @@ private:
     }
     
     void PreparePackage(Package *pkg) {
+        printd("prepare package: %s", pkg->name()->data());
         error_feedback_->set_package_name(pkg->name()->ToString());
         PrepareInterfaces(pkg);
         PrepareClasses(pkg);
@@ -74,7 +76,7 @@ private:
                 auto base_ast = !clazz->super_calling() ? nullptr : clazz->super_calling()->callee();
                 if (!base_ast) {
                     if (node->path()->ToString() != "yalx/lang" && clazz->name()->ToString() != "Any") {
-                        auto any = FindGlobal("lang", "Any"); // Any class
+                        auto any = FindGlobal("yalx/lang:lang", "Any"); // Any class
                         assert(any.IsFound());
                         clazz->set_base_of(DCHECK_NOTNULL(any.ast->AsClassDefinition()));
                     }
@@ -356,6 +358,8 @@ private:
             .ast = ast,
         };
         global_symbols_[symbol.symbol->ToSlice()] = symbol;
+        printd("insert global: %s", symbol.symbol->data());
+    
         return GlobalSymbol::NotFound();
     }
     
