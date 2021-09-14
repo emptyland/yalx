@@ -2,7 +2,6 @@
 #include "compiler/syntax-feedback.h"
 #include "compiler/scope.h"
 #include "compiler/ast.h"
-#include "base/printd.h"
 #include <stack>
 
 namespace yalx {
