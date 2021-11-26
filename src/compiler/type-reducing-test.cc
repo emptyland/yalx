@@ -63,6 +63,14 @@ TEST_F(TypeReducingTest, Sanity) {
         std::unordered_map<std::string_view, GlobalSymbol> symbols;
         rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
         ASSERT_TRUE(rs.ok()) << rs.ToString();
+
+        auto iter = symbols.find("main:main.Foo");
+        ASSERT_TRUE(iter != symbols.end());
+        ASSERT_TRUE(iter->second.ast->IsClassDefinition());
+        auto foo_class = iter->second.ast->AsClassDefinition();
+        ASSERT_NE(nullptr, foo_class);
+        ASSERT_NE(nullptr, foo_class->base_of());
+        ASSERT_STREQ("Any", foo_class->base_of()->name()->data());
     }
 }
 

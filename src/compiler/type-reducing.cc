@@ -106,15 +106,15 @@ private:
         PackageScope scope(&location_, node);
         error_feedback_->set_package_name(node->name()->ToString());
         
+        printd("process package: %s", node->name()->data());
         for (auto file_scope : scope.files()) {
             file_scope->Enter();
-            // TODO: INIT
             error_feedback_->set_file_name(file_scope->file_unit()->file_name()->ToString());
             
-//            if (Reduce(file_scope->file_unit()) < 0) {
-//                file_scope->Exit();
-//                return -1;
-//            }
+            if (Reduce(file_scope->file_unit()) < 0) {
+                file_scope->Exit();
+                return -1;
+            }
             file_scope->Exit();
         }
         return 0;
@@ -185,13 +185,75 @@ private:
         }
         return Return(Unit());
     }
+    
+    int VisitClassDefinition(ClassDefinition *node) override {
+        auto classes_count = 0;
+        for (auto i = 0; i < node->concepts_size(); i++) {
+            auto concept = LinkType(node->concept(i));
+            if (!concept) {
+                return -1;
+            }
+
+            if (concept->IsClassType()) {
+                // Only one class concept!
+                if (classes_count++ > 0) {
+                    Feedback()->Printf(concept->source_position(), "Concept classes number > 1");
+                    return -1;
+                }
+                node->set_base_of(concept->AsClassType()->definition());
+            } else {
+                if (!concept->IsInterfaceType()) {
+                    Feedback()->Printf(concept->source_position(), "Concept must be a interface");
+                    return -1;
+                }
+            }
+            *node->mutable_concept(i) = concept;
+        }
+        
+        // Default base class is Any;
+        if (node->base_of()) {
+            auto symbol = FindGlobal("yalx/lang:lang", "Any");
+            if (symbol.IsNotFound()) {
+                Feedback()->Printf(node->source_position(), "lang.Any class not found");
+                return -1;
+            }
+            node->set_base_of(DCHECK_NOTNULL(symbol.ast->AsClassDefinition()));
+        }
+        
+        DataDefinitionScope scope(&location_, node);
+        // Into class scope:
+        for (int i = 0; i < node->fields_size(); i++) {
+            auto field = node->field(i);
+            if (Reduce(field.declaration) < 0) {
+                return -1;
+            }
+        }
+        
+        for (auto method : node->methods()) {
+            if (Reduce(method) < 0) {
+                return -1;
+            }
+        }
+    
+        return Return(Unit());
+    }
+    
+    int VisitFunctionDeclaration(FunctionDeclaration *node) override {
+        FunctionScope scope(&location_, node);
+        if (auto data_scope = location_->NearlyDataDefinitionScope()) {
+            scope.FindOrInsertSymbol("this", data_scope->ThisStub(arena_));
+        }
+        // TODO:
+        
+        return Return(Unit());
+    }
 
     int VisitAssignment(Assignment *node) override { UNREACHABLE(); }
     int VisitStructDefinition(StructDefinition *node) override { UNREACHABLE(); }
-    int VisitClassDefinition(ClassDefinition *node) override { UNREACHABLE(); }
+    
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitInterfaceDefinition(InterfaceDefinition *node) override { UNREACHABLE(); }
-    int VisitFunctionDeclaration(FunctionDeclaration *node) override { UNREACHABLE(); }
+    
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
     int VisitBreak(Break *node) override { UNREACHABLE(); }
@@ -441,8 +503,12 @@ TypeReducingVisitor::TypeReducingVisitor(Package *entry, base::Arena *arena, Syn
 base::Status ReducePackageDependencesType(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback,
                                           std::unordered_map<std::string_view, GlobalSymbol> *symbols) {
     TypeReducingVisitor visitor(entry, arena, error_feedback);
-    visitor.MoveGlobalSymbols(symbols);
-    return visitor.Reduce();
+    
+    auto rs = visitor.Reduce();
+    if (rs.ok()) {
+        visitor.MoveGlobalSymbols(symbols);
+    }
+    return rs;
 }
 
 

@@ -14,7 +14,7 @@ namespace cpl {
 class NamespaceScope;
 class PackageScope;
 class FileUnitScope;
-class StructureScope;
+class DataDefinitionScope;
 class FunctionScope;
 class BlockScope;
 
@@ -24,7 +24,7 @@ public:
     
     virtual PackageScope *NearlyPackageScope();
     virtual FileUnitScope *NearlyFileUnitScope();
-    virtual StructureScope *NearlyStructureScope();
+    virtual DataDefinitionScope *NearlyDataDefinitionScope();
     virtual FunctionScope *NearlyFunctionScope();
     
 
@@ -61,7 +61,7 @@ public:
 
     PackageScope *NearlyPackageScope() override;
     FileUnitScope *NearlyFileUnitScope() override;
-    StructureScope *NearlyStructureScope() override;
+    DataDefinitionScope *NearlyDataDefinitionScope() override;
     FunctionScope *NearlyFunctionScope() override;
     
 private:
@@ -78,7 +78,7 @@ public:
     DEF_PTR_GETTER(FileUnit, file_unit);
     
     FileUnitScope *NearlyFileUnitScope() override;
-    StructureScope *NearlyStructureScope() override;
+    DataDefinitionScope *NearlyDataDefinitionScope() override;
     FunctionScope *NearlyFunctionScope() override;
     Statement *FindOrInsertSymbol(std::string_view name, Statement *ast) override;
     
@@ -87,6 +87,41 @@ private:
     FileUnit *file_unit_;
     std::map<std::string_view, std::string_view> alias_;
 }; // class FileUnitScope
+
+class DataDefinitionScope : public NamespaceScope {
+public:
+    DataDefinitionScope(NamespaceScope **location, IncompletableDefinition *definition);
+    ~DataDefinitionScope() override;
+    
+    DEF_PTR_GETTER(IncompletableDefinition, definition);
+    DEF_PTR_PROP_RW(VariableDeclaration, this_stub);
+    
+    VariableDeclaration *ThisStub(base::Arena *arena);
+
+    bool IsClassOrStruct() const;
+    StructDefinition *AsStruct() const;
+    ClassDefinition *AsClass() const;
+    
+    DataDefinitionScope *NearlyDataDefinitionScope() override;
+    FunctionScope *NearlyFunctionScope() override;
+    
+private:
+    IncompletableDefinition *definition_;
+    VariableDeclaration *this_stub_ = nullptr;
+}; // class DataDefinitionScope
+
+class FunctionScope : public NamespaceScope {
+public:
+    FunctionScope(NamespaceScope **location, FunctionDeclaration *fun);
+    ~FunctionScope() override;
+    
+    DEF_PTR_GETTER(FunctionDeclaration, fun);
+    
+    FunctionScope *NearlyFunctionScope() override;
+    
+private:
+    FunctionDeclaration *fun_;
+}; // class FunctionScope
 
 } // namespace cpl
 
