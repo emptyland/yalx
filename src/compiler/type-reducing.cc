@@ -240,10 +240,53 @@ private:
     
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
         FunctionScope scope(&location_, node);
+        
+        // Install `this' variable if needed
         if (auto data_scope = location_->NearlyDataDefinitionScope()) {
             scope.FindOrInsertSymbol("this", data_scope->ThisStub(arena_));
         }
-        // TODO:
+        
+        auto prototype = node->prototype();
+        for (auto item : prototype->params()) {
+            auto param = static_cast<VariableDeclaration::Item *>(item);
+            scope.FindOrInsertSymbol(param->identifier()->ToSlice(), param);
+        }
+        if (prototype->vargs()) {
+            // TODO:
+            UNREACHABLE();
+        }
+        if (node->IsNative() || node->IsAbstract()) {
+            return Return(Unit());
+        }
+        
+        std::vector<Type *> receiver;
+        int nrets = Reduce(node->body(), &receiver);
+        if (nrets < 0) {
+            return -1;
+        }
+        
+        if (prototype->return_types_size() > 0) {
+            if (prototype->return_types_size() != nrets) {
+                Feedback()->Printf(node->source_position(), "unexpected return val numbers, %d, %zd", nrets,
+                                   prototype->return_types_size());
+                return -1;
+            }
+            
+            for (auto i = 0; i < prototype->return_types_size(); i++) {
+                bool unlinked = false;
+                if (!receiver[i]->Acceptable(prototype->return_type(i), &unlinked)) {
+                    Feedback()->Printf(node->source_position(), "return type not accepted, %s <= %s",
+                                       prototype->return_type(i)->ToString().c_str(),
+                                       receiver[i]->ToString().c_str());
+                    return -1;
+                }
+            }
+        } else {
+            assert(prototype->return_types_size() == 0);
+            for (auto ty : receiver) {
+                prototype->mutable_return_types()->push_back(ty);
+            }
+        }
         
         return Return(Unit());
     }
@@ -299,7 +342,7 @@ private:
     int VisitIntLiteral(IntLiteral *node) override { return Return(node->type()); }
     int VisitU64Literal(U64Literal *node) override { UNREACHABLE(); }
     int VisitBoolLiteral(BoolLiteral *node) override { UNREACHABLE(); }
-    int VisitUnitLiteral(UnitLiteral *node) override { UNREACHABLE(); }
+    int VisitUnitLiteral(UnitLiteral *node) override { return Return(Unit()); }
     int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
     int VisitGreaterEqual(GreaterEqual *node) override { UNREACHABLE(); }
     int VisitIfExpression(IfExpression *node) override { UNREACHABLE(); }
@@ -338,20 +381,21 @@ private:
     }
     
     int Reduce(AstNode *node, std::vector<Type *> *receiver = nullptr) {
-        int nt = node->Accept(this);
-        if (fail() || nt < 0) {
+        const int nrets = node->Accept(this);
+        if (fail() || nrets < 0) {
             return -1;
         }
         if (receiver) {
-            receiver->resize(receiver->size() + nt);
+            receiver->resize(receiver->size() + nrets);
         }
-        while (nt--) {
+        int i = nrets;
+        while (i--) {
             if (receiver) {
-                (*receiver)[receiver->size() + nt] = results_.top();
+                (*receiver)[i] = results_.top();
             }
             results_.pop();
         }
-        return nt;
+        return nrets;
     }
     
     bool AcceptableOrLink(Type **lhs, const Type *rhs) {

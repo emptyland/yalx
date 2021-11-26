@@ -71,6 +71,10 @@ TEST_F(TypeReducingTest, Sanity) {
         ASSERT_NE(nullptr, foo_class);
         ASSERT_NE(nullptr, foo_class->base_of());
         ASSERT_STREQ("Any", foo_class->base_of()->name()->data());
+        
+        auto fun = foo_class->method(0);
+        ASSERT_EQ(1, fun->prototype()->return_types_size());
+        ASSERT_EQ(Type::kType_i32, fun->prototype()->return_type(0)->primary_type());
     }
 }
 
