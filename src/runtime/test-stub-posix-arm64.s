@@ -94,3 +94,5 @@ _yalx_magic_number1:
     .ascii "FKJP"
 _yalx_magic_number2:
     .ascii "KLTW"
+_yalx_magic_number3:
+    .ascii "HKDG"

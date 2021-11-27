@@ -1,0 +1,9 @@
+package main
+
+val a = "ok"
+
+class Foo(val a: int) {
+    val b = 1
+    val c = a
+    fun foo() -> c
+}

@@ -78,6 +78,29 @@ TEST_F(TypeReducingTest, Sanity) {
     }
 }
 
+TEST_F(TypeReducingTest, ClassVars) {
+    // 07-class-var-reducing
+    base::ArenaMap<std::string_view, Package *> all(&arena_);
+    base::ArenaVector<Package *> entries(&arena_);
+    Package *main_pkg = nullptr;
+    auto rs = Compiler::FindAndParseProjectSourceFiles("tests/07-class-var-reducing", "libs", &arena_, &feedback_,
+                                                       &main_pkg, &entries, &all);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    std::unordered_map<std::string_view, GlobalSymbol> symbols;
+    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    
+    auto iter = symbols.find("main:main.Foo");
+    ASSERT_TRUE(iter != symbols.end());
+    auto foo_class = iter->second.ast->AsClassDefinition();
+    ASSERT_NE(nullptr, foo_class);
+    ASSERT_EQ(3, foo_class->fields_size());
+    auto c_field = foo_class->field(2);
+    EXPECT_STREQ("c", c_field.declaration->Identifier()->data());
+    EXPECT_EQ(Type::kType_i32, c_field.declaration->Type()->primary_type());
+    
+}
+
 
 } // namespace yalx
 

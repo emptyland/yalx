@@ -81,7 +81,7 @@ private:
                     }
                     continue;
                 }
-
+                
                 if (base_ast->IsInstantiation()) {
                     auto symbol = GenericsInstantiate(base_ast->AsInstantiation());
                     if (symbol.IsNotFound()) {
@@ -119,7 +119,7 @@ private:
         }
         return 0;
     }
-
+    
     int VisitFileUnit(FileUnit *node) override {
         for (auto ast : node->statements()) {
             if (auto type = Reduce(ast); !type) {
@@ -128,7 +128,7 @@ private:
         }
         return Return(Unit());
     }
-
+    
     int VisitBlock(Block *node) override {
         std::vector<Type *> types = { Unit() };
         for (auto ast : node->statements()) {
@@ -166,11 +166,14 @@ private:
                 return -1;
             }
         }
+        //if (!node->Type()) {
         if (types.size() != node->variables_size()) {
-            Feedback()->Printf(node->source_position(), "Different declaration numbers and initilizer numbers, %zd vs %zd",
+            Feedback()->Printf(node->source_position(),
+                               "Different declaration numbers and initilizer numbers, %zd vs %zd",
                                node->variables_size(), types.size());
             return -1;
         }
+        //}
         
         for (size_t i = 0; i < node->variables_size(); i++) {
             auto var = node->variable(i);
@@ -193,7 +196,7 @@ private:
             if (!concept) {
                 return -1;
             }
-
+            
             if (concept->IsClassType()) {
                 // Only one class concept!
                 if (classes_count++ > 0) {
@@ -224,6 +227,20 @@ private:
         // Into class scope:
         for (int i = 0; i < node->fields_size(); i++) {
             auto field = node->field(i);
+            if (field.in_constructor) {
+                auto name = field.declaration->Identifier();
+                auto dup = scope.FindOrInsertSymbol(name->ToSlice(), field.declaration);
+                if (dup) {
+                    Feedback()->Printf(field.declaration->source_position(), "duplicated class field: `%s'",
+                                       name->data());
+                    return -1;
+                }
+                
+                if (!LinkType(field.declaration->Type())) {
+                    return -1;
+                }
+                continue;
+            }
             if (Reduce(field.declaration) < 0) {
                 return -1;
             }
@@ -234,7 +251,7 @@ private:
                 return -1;
             }
         }
-    
+        
         return Return(Unit());
     }
     
@@ -290,7 +307,39 @@ private:
         
         return Return(Unit());
     }
-
+    
+    int VisitIdentifier(Identifier *node) override {
+        //node->name()->data();
+        auto [ast, ns] = location_->FindSymbol(node->name()->ToSlice());
+        if (!ast) {
+            Feedback()->Printf(node->source_position(), "symbol: `%s' not found", node->name()->data());
+            return -1;
+        }
+        
+        switch (ast->kind()) {
+            case Node::kFunctionDeclaration:
+                return Return(ast->AsFunctionDeclaration()->prototype());
+            case Node::kObjectDeclaration:
+                return Return(ast->AsObjectDeclaration()->Type());
+            case Node::kVariableDeclaration:
+                assert(ast->AsVariableDeclaration()->ItemSize() == 1);
+                return Return(ast->AsVariableDeclaration()->Type());
+            default: {
+                if (auto var = down_cast<VariableDeclaration::Item>(ast)) {
+                    printd("find: %s: %s", var->identifier()->data(),
+                           !var->type() ? "unknown" : var->type()->ToString().c_str());
+                    if (!var->type()) { // Unreduced
+                        // TODO:
+                        UNREACHABLE();
+                    }
+                    return Return(var->type());
+                }
+            } break;
+        }
+        Feedback()->Printf(node->source_position(), "symbol: `%s' not found", node->name()->data());
+        return -1;
+    }
+    
     int VisitAssignment(Assignment *node) override { UNREACHABLE(); }
     int VisitStructDefinition(StructDefinition *node) override { UNREACHABLE(); }
     
@@ -327,7 +376,6 @@ private:
     int VisitGreater(Greater *node) override { UNREACHABLE(); }
     int VisitTesting(Testing *node) override { UNREACHABLE(); }
     int VisitNegative(Negative *node) override { UNREACHABLE(); }
-    int VisitIdentifier(Identifier *node) override { UNREACHABLE(); }
     int VisitNotEqual(NotEqual *node) override { UNREACHABLE(); }
     int VisitBitwiseOr(BitwiseOr *node) override { UNREACHABLE(); }
     int VisitLessEqual(LessEqual *node) override { UNREACHABLE(); }
@@ -347,7 +395,7 @@ private:
     int VisitGreaterEqual(GreaterEqual *node) override { UNREACHABLE(); }
     int VisitIfExpression(IfExpression *node) override { UNREACHABLE(); }
     int VisitLambdaLiteral(LambdaLiteral *node) override { UNREACHABLE(); }
-    int VisitStringLiteral(StringLiteral *node) override { UNREACHABLE(); }
+    int VisitStringLiteral(StringLiteral *node) override { return Return(node->type()); }
     int VisitWhenExpression(WhenExpression *node) override { UNREACHABLE(); }
     int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
     int VisitArrayInitializer(ArrayInitializer *node) override { UNREACHABLE(); }
@@ -452,7 +500,7 @@ private:
     GlobalSymbol FindOrInsertGlobal(Package *owns, std::string_view name, Statement *ast) {
         std::string full_name = owns->path()->ToString();
         full_name.append(":").append(owns->name()->ToString()).append(".").append(name.data(), name.size());
-
+        
         auto iter = global_symbols_.find(full_name);
         if (iter != global_symbols_.end()) {
             return iter->second;
@@ -464,7 +512,7 @@ private:
         };
         global_symbols_[symbol.symbol->ToSlice()] = symbol;
         printd("insert global: %s", symbol.symbol->data());
-    
+        
         return GlobalSymbol::NotFound();
     }
     
@@ -538,9 +586,9 @@ private:
 }; // class TypeReducingVisitor
 
 TypeReducingVisitor::TypeReducingVisitor(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback)
-    : arena_(arena)
-    , error_feedback_(error_feedback)
-    , entry_(entry) {
+: arena_(arena)
+, error_feedback_(error_feedback)
+, entry_(entry) {
 }
 
 
