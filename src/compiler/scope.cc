@@ -58,12 +58,13 @@ Statement *NamespaceScope::FindOrInsertSymbol(std::string_view name, Statement *
     return nullptr;
 }
 
-PackageScope::PackageScope(NamespaceScope **location, Package *pkg)
+PackageScope::PackageScope(NamespaceScope **location, Package *pkg, GlobalSymbols *symbols)
 : NamespaceScope(location)
 , pkg_(DCHECK_NOTNULL(pkg)) {
     Enter();
     for (auto file_unit : pkg_->source_files()) {
-        auto scope = new FileUnitScope(location, file_unit);
+        auto scope = new FileUnitScope(location_, file_unit, symbols);
+        files_ptrs_[file_unit] = files_.size();
         files_.push_back(scope);
     }
 }
@@ -89,10 +90,11 @@ FunctionScope *PackageScope::NearlyFunctionScope() {
     return nullptr;
 }
 
-FileUnitScope::FileUnitScope(NamespaceScope **location, FileUnit *file_unit)
+FileUnitScope::FileUnitScope(NamespaceScope **location, FileUnit *file_unit, GlobalSymbols *symobls)
 : NamespaceScope(location)
-, file_unit_(file_unit) {
-
+, file_unit_(file_unit)
+, symobls_(DCHECK_NOTNULL(symobls)) {
+    
 }
 
 FileUnitScope::~FileUnitScope() {}
@@ -108,6 +110,20 @@ DataDefinitionScope *FileUnitScope::NearlyDataDefinitionScope() {
 
 FunctionScope *FileUnitScope::NearlyFunctionScope() {
     return nullptr;
+}
+
+Statement *FileUnitScope::FindLocalSymbol(std::string_view name) const {
+    auto owns = DCHECK_NOTNULL(const_cast<FileUnitScope *>(this)->NearlyPackageScope());
+    std::string full_name(owns->pkg()->path()->ToString());
+    full_name.append(":")
+        .append(file_unit()->package_name()->ToString())
+        .append(".")
+        .append(name);
+    auto iter = symobls_->find(full_name);
+    if (iter == symobls_->cend()) {
+        return nullptr;
+    }
+    return iter->second.ast;
 }
 
 Statement *FileUnitScope::FindOrInsertSymbol(std::string_view name, Statement *ast) {

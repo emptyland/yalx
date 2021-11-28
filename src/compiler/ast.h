@@ -372,8 +372,10 @@ class VariableDeclaration : public Declaration {
 public:
     class Item : public Declaration {
     public:
-        Item(base::Arena *arena, const String *identifier, class Type *type, const SourcePosition &source_position);
+        Item(base::Arena *arena, VariableDeclaration *owns, const String *identifier, class Type *type,
+             const SourcePosition &source_position);
         
+        DEF_PTR_GETTER(VariableDeclaration, owns);
         DEF_PTR_PROP_RW(const String, identifier);
         DEF_PTR_PROP_RW(class Type, type);
         class Type **mutable_type() { return &type_; }
@@ -385,6 +387,7 @@ public:
         
         int Accept(AstVisitor *v) override {}
     private:
+        VariableDeclaration *const owns_;
         const String *identifier_;
         class Type *type_;
     }; // class Item

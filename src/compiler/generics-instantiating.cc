@@ -180,7 +180,8 @@ private:
             if (item->type()) {
                 INSTANTIATE(type, item->type());
             }
-            auto other = new (arena_) VariableDeclaration::Item(arena_, item->identifier(), type, item->source_position());
+            auto other = new (arena_) VariableDeclaration::Item(arena_, copied, item->identifier(), type,
+                                                                item->source_position());
             copied->mutable_variables()->push_back(other);
         }
         
@@ -780,7 +781,7 @@ private:
                     if (!it) {
                         return nullptr;
                     }
-                    auto other = new (arena_) VariableDeclaration::Item(arena_, item->identifier(), it,
+                    auto other = new (arena_) VariableDeclaration::Item(arena_, nullptr, item->identifier(), it,
                                                                         item->source_position());
                     copied->mutable_params()->push_back(other);
                 }

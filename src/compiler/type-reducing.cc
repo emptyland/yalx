@@ -43,6 +43,7 @@ private:
         error_feedback_->set_package_name(pkg->name()->ToString());
         PrepareInterfaces(pkg);
         PrepareClasses(pkg);
+        PrepareOthers(pkg);
     }
     
     void PrepareInterfaces(Package *node) {
@@ -81,15 +82,7 @@ private:
                     }
                     continue;
                 }
-                
-                if (base_ast->IsInstantiation()) {
-                    auto symbol = GenericsInstantiate(base_ast->AsInstantiation());
-                    if (symbol.IsNotFound()) {
-                        return;
-                    }
-                    continue;
-                }
-                
+
                 auto [prefix, name] = GetSymbol(base_ast, node->name()->ToSlice());
                 auto symbol = FindGlobal(prefix, name);
                 if (symbol.IsNotFound() || !symbol.ast->IsClassDefinition()) {
@@ -102,15 +95,38 @@ private:
         }
     }
     
+    void PrepareOthers(Package *node) {
+        for (auto file : node->source_files()) {
+            for (auto var : file->vars()) {
+                for (int i = 0; i < var->ItemSize(); i++) {
+                    auto item = var->AtItem(i);
+                    auto symbol = FindOrInsertGlobal(node, item->Identifier()->ToSlice(), item);
+                    if (symbol.IsFound()) {
+                        Feedback()->Printf(item->source_position(), "Duplicated symbol: %s", item->Identifier()->data());
+                        return;
+                    }
+                }
+            }
+            
+            for (auto fun : file->funs()) {
+                auto symbol = FindOrInsertGlobal(node, fun->name()->ToSlice(), fun);
+                if (symbol.IsFound()) {
+                    Feedback()->Printf(fun->source_position(), "Duplicated symbol: %s", fun->name()->data());
+                    return;
+                }
+            }
+        }
+    }
+    
     int VisitPackage(Package *node) override {
-        PackageScope scope(&location_, node);
+        PackageScope scope(&location_, node, &global_symbols_);
         error_feedback_->set_package_name(node->name()->ToString());
         
         printd("process package: %s", node->name()->data());
         for (auto file_scope : scope.files()) {
             file_scope->Enter();
             error_feedback_->set_file_name(file_scope->file_unit()->file_name()->ToString());
-            
+
             if (Reduce(file_scope->file_unit()) < 0) {
                 file_scope->Exit();
                 return -1;
@@ -122,6 +138,10 @@ private:
     
     int VisitFileUnit(FileUnit *node) override {
         for (auto ast : node->statements()) {
+            auto pkg_scope = location_->NearlyPackageScope();
+            if (pkg_scope->Track(ast)) {
+                continue;
+            }
             if (auto type = Reduce(ast); !type) {
                 return -1;
             }
@@ -152,11 +172,13 @@ private:
     }
     
     int VisitVariableDeclaration(VariableDeclaration *node) override {
-        for (auto var : node->variables()) {
-            auto duplicated = location_->FindOrInsertSymbol(var->identifier()->ToSlice(), var);
-            if (duplicated) {
-                Feedback()->Printf(var->source_position(), "Duplicated symbol: %s", var->identifier()->data());
-                return -1;
+        if (!node->owns()) {
+            for (auto var : node->variables()) {
+                auto duplicated = location_->FindOrInsertSymbol(var->identifier()->ToSlice(), var);
+                if (duplicated) {
+                    Feedback()->Printf(var->source_position(), "Duplicated symbol: %s", var->identifier()->data());
+                    return -1;
+                }
             }
         }
         
@@ -315,6 +337,39 @@ private:
             Feedback()->Printf(node->source_position(), "symbol: `%s' not found", node->name()->data());
             return -1;
         }
+        auto pkg_scope = location_->NearlyPackageScope();
+        if (pkg_scope->HasNotTracked(ast)) {
+            auto file_scope = location_->NearlyFileUnitScope();
+            AstNode *owns = nullptr, *sym = ast;
+            if (Declaration::Is(ast)) {
+                owns = down_cast<Declaration>(ast)->owns();
+            } else if (Definition::Is(ast)) {
+                owns = down_cast<Definition>(ast)->owns();
+            } else {
+                sym = down_cast<VariableDeclaration::Item>(ast)->owns();
+                owns = down_cast<VariableDeclaration::Item>(ast)->owns()->owns();
+            }
+            if (owns) {
+                if (owns != file_scope->file_unit()) {
+                    printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
+                    auto saved = location_;
+                    location_ = nullptr;
+                    auto scope = DCHECK_NOTNULL(pkg_scope->FindFileUnitScopeOrNull(owns));
+                    assert(scope != file_scope);
+                    scope->Enter();
+                    auto rs = Reduce(sym);
+                    scope->Exit();
+                    location_ = saved;
+                    if (rs < 0) {
+                        return -1;
+                    }
+                } else {
+                    if (auto rs = Reduce(sym); rs < 0) {
+                        return -1;
+                    }
+                }
+            }
+        }
         
         switch (ast->kind()) {
             case Node::kFunctionDeclaration:
@@ -326,12 +381,7 @@ private:
                 return Return(ast->AsVariableDeclaration()->Type());
             default: {
                 if (auto var = down_cast<VariableDeclaration::Item>(ast)) {
-                    printd("find: %s: %s", var->identifier()->data(),
-                           !var->type() ? "unknown" : var->type()->ToString().c_str());
-                    if (!var->type()) { // Unreduced
-                        // TODO:
-                        UNREACHABLE();
-                    }
+                    assert(var->type() != nullptr);
                     return Return(var->type());
                 }
             } break;

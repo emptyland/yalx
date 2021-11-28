@@ -392,7 +392,7 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool *ok) {
             Match(Token::kColon, CHECK_OK);
             auto type = ParseType(CHECK_OK);
             
-            auto param = new (arena_) VariableDeclaration::Item(arena_, name, type,
+            auto param = new (arena_) VariableDeclaration::Item(arena_, nullptr, name, type,
                                                                 param_location.Concat(type->source_position()));
             param->set_annotations(anno);
             
@@ -482,7 +482,7 @@ AnnotationDefinition *Parser::ParseAnnotationDefinition(bool *ok) {
             member_location = member_location.Concat(default_value->source_position());
         }
         
-        auto field = new (arena_) VariableDeclaration::Item(arena_, id, type, member_location);
+        auto field = new (arena_) VariableDeclaration::Item(arena_, nullptr, id, type, member_location);
         def->mutable_members()->push_back({field, default_value});
         
         location = location.Concat(Peek().source_position());
@@ -575,7 +575,7 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
                 auto type = ParseType(CHECK_OK);
                 
                 param.field_declaration = false;
-                param.as_parameter = new (arena_) VariableDeclaration::Item(arena_, id, type,
+                param.as_parameter = new (arena_) VariableDeclaration::Item(arena_, nullptr, id, type,
                                                                             arg_location.Concat(type->source_position()));
             }
             
@@ -781,7 +781,7 @@ VariableDeclaration *Parser::ParseVariableDeclaration(bool *ok) {
         if (Test(Token::kColon)) {
             type = ParseType(CHECK_OK);
         }
-        auto item = new (arena_) VariableDeclaration::Item(arena_, name, type,
+        auto item = new (arena_) VariableDeclaration::Item(arena_, decl, name, type,
                                                            !type
                                                            ? item_location
                                                            : item_location.Concat(type->source_position()));
@@ -1260,7 +1260,7 @@ Expression *Parser::ParseParenOrLambdaLiteral(bool *ok) {
             auto type = ParseType(CHECK_OK);
             
             auto prototype = new (arena_) FunctionPrototype(arena_, false, location);
-            auto param = new (arena_) VariableDeclaration::Item(arena_, id, type, maybe_expr_location);
+            auto param = new (arena_) VariableDeclaration::Item(arena_, nullptr, id, type, maybe_expr_location);
             prototype->mutable_params()->push_back(param);
             
             return ParseRemainLambdaLiteral(prototype, location, CHECK_OK);
@@ -1279,7 +1279,7 @@ Expression *Parser::ParseParenOrLambdaLiteral(bool *ok) {
             return nullptr;
         }
         
-        auto param = new (arena_) VariableDeclaration::Item(arena_, expr->AsIdentifier()->name(), nullptr,
+        auto param = new (arena_) VariableDeclaration::Item(arena_, nullptr, expr->AsIdentifier()->name(), nullptr,
                                                             expr->source_position());
         prototype->mutable_params()->push_back(param);
         return ParseRemainLambdaLiteral(prototype, location, CHECK_OK);
@@ -1648,7 +1648,7 @@ Expression *Parser::ParseRemainLambdaLiteral(FunctionPrototype *prototype, const
         } else {
             type = nullptr;
         }
-        auto param = new (arena_) VariableDeclaration::Item(arena_, name, type, param_location);
+        auto param = new (arena_) VariableDeclaration::Item(arena_, nullptr, name, type, param_location);
         prototype->mutable_params()->push_back(param);
     }
     

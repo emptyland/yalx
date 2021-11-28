@@ -268,12 +268,13 @@ VariableDeclaration::VariableDeclaration(base::Arena *arena, bool is_volatile, C
                                          const String *identifier, class Type *type,
                                          const SourcePosition &source_position)
     : VariableDeclaration(arena, is_volatile, constraint, source_position) {
-    variables_.push_back(new (arena) Item(arena, identifier, type, source_position));
+    variables_.push_back(new (arena) Item(arena, this, identifier, type, source_position));
 }
 
-VariableDeclaration::Item::Item(base::Arena *arena, const String *identifier, class Type *type,
-                                const SourcePosition &source_position)
+VariableDeclaration::Item::Item(base::Arena *arena, VariableDeclaration *owns, const String *identifier,
+                                class Type *type, const SourcePosition &source_position)
     : Declaration(arena, Node::kMaxKinds, source_position)
+    , owns_(owns)
     , identifier_(identifier)
     , type_(type) {        
 }

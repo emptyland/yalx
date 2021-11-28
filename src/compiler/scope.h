@@ -2,8 +2,11 @@
 #ifndef YALX_COMPILER_SCOPE_H_
 #define YALX_COMPILER_SCOPE_H_
 
+#include "compiler/type-reducing.h"
 #include "compiler/node.h"
+#include <unordered_map>
 #include <map>
+#include <set>
 #include <vector>
 #include <string>
 
@@ -17,6 +20,9 @@ class FileUnitScope;
 class DataDefinitionScope;
 class FunctionScope;
 class BlockScope;
+class AstNode;
+
+using GlobalSymbols = std::unordered_map<std::string_view, GlobalSymbol>;
 
 class NamespaceScope {
 public:
@@ -53,11 +59,27 @@ protected:
  
 class PackageScope : public NamespaceScope {
 public:
-    PackageScope(NamespaceScope **location, Package *pkg);
+    PackageScope(NamespaceScope **location, Package *pkg, GlobalSymbols *symbols);
     ~PackageScope() override;
     
     DEF_PTR_GETTER(Package, pkg);
     const std::vector<FileUnitScope *> &files() { return files_; }
+    
+    bool Track(AstNode *ast) {
+        if (auto iter = track_.find(ast); iter != track_.end()) {
+            return true;
+        }
+        track_.insert(ast);
+        return false;
+    }
+    
+    bool HasTracked(AstNode *ast) { return track_.find(ast) != track_.end(); }
+    bool HasNotTracked(AstNode *ast) { return !HasTracked(ast); }
+    
+    FileUnitScope *FindFileUnitScopeOrNull(Node *key) {
+        auto iter = files_ptrs_.find(key);
+        return iter == files_ptrs_.end() ? nullptr : files_[iter->second];
+    }
 
     PackageScope *NearlyPackageScope() override;
     FileUnitScope *NearlyFileUnitScope() override;
@@ -66,13 +88,15 @@ public:
     
 private:
     Package *pkg_;
+    std::unordered_map<Node *, size_t> files_ptrs_;
     std::vector<FileUnitScope *> files_;
+    std::set<AstNode *> track_;
 }; // class PackageScope
 
 
 class FileUnitScope : public NamespaceScope {
 public:
-    FileUnitScope(NamespaceScope **location, FileUnit *file_unit);
+    FileUnitScope(NamespaceScope **location, FileUnit *file_unit, GlobalSymbols *symobls);
     ~FileUnitScope() override;
     
     DEF_PTR_GETTER(FileUnit, file_unit);
@@ -80,12 +104,15 @@ public:
     FileUnitScope *NearlyFileUnitScope() override;
     DataDefinitionScope *NearlyDataDefinitionScope() override;
     FunctionScope *NearlyFunctionScope() override;
+    
+    Statement *FindLocalSymbol(std::string_view name) const override;
     Statement *FindOrInsertSymbol(std::string_view name, Statement *ast) override;
     
     //std::tuple<Statement *, NamespaceScope *> FindSymbol(std::string_view name) const override;
 private:
     FileUnit *file_unit_;
     std::map<std::string_view, std::string_view> alias_;
+    GlobalSymbols *symobls_;
 }; // class FileUnitScope
 
 class DataDefinitionScope : public NamespaceScope {
