@@ -1,3 +1,4 @@
 package main
 
-fun foo() -> a
+fun baz() -> a
+fun bar() -> c

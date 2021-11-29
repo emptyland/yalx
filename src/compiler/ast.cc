@@ -99,6 +99,30 @@ Statement::Statement(Kind kind, const SourcePosition &source_position)
     : AstNode(kind, source_position) {
 }
 
+AstNode *Statement::Owns(bool force) {
+    if (Declaration::Is(this)) {
+        return static_cast<const Declaration *>(this)->owns();
+    } else if (Definition::Is(this)) {
+        return static_cast<const Definition *>(this)->owns();
+    } else if (force) {
+        return down_cast<VariableDeclaration::Item>(this)->owns()->owns();
+    } else {
+        return nullptr;
+    }
+}
+
+Package *Statement::Pack(bool force) {
+    if (Declaration::Is(this)) {
+        return static_cast<const Declaration *>(this)->package();
+    } else if (Definition::Is(this)) {
+        return static_cast<const Definition *>(this)->package();
+    } else if (force) {
+        return down_cast<VariableDeclaration::Item>(this)->owns()->package();
+    } else {
+        return nullptr;
+    }
+}
+
 Block::Block(base::Arena *arena, const SourcePosition &source_position)
     : Statement(Node::kBlock, source_position)
     , statements_(arena) {        

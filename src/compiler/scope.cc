@@ -94,7 +94,20 @@ FileUnitScope::FileUnitScope(NamespaceScope **location, FileUnit *file_unit, Glo
 : NamespaceScope(location)
 , file_unit_(file_unit)
 , symobls_(DCHECK_NOTNULL(symobls)) {
-    
+    for (auto import : file_unit->imports()) {
+        std::string full_name(import->package_path()->ToString());
+        full_name.append(":")
+            .append(import->original_package_name()->ToString());
+        if (import->alias()) {
+            if (import->alias()->Equal("*")) {
+                implicit_alias_.push_back(full_name);
+            } else {
+                alias_[import->alias()->ToSlice()] = full_name;
+            }
+        } else {
+            alias_[import->original_package_name()->ToSlice()] = full_name;
+        }
+    }
 }
 
 FileUnitScope::~FileUnitScope() {}
@@ -128,6 +141,20 @@ Statement *FileUnitScope::FindLocalSymbol(std::string_view name) const {
 
 Statement *FileUnitScope::FindOrInsertSymbol(std::string_view name, Statement *ast) {
     return NearlyPackageScope()->FindOrInsertSymbol(name, ast);
+}
+
+Statement *FileUnitScope::FindExportSymbol(std::string_view prefix, std::string_view name) const {
+    auto alias_iter = alias_.find(prefix);
+    if (alias_iter == alias_.cend()) {
+        return nullptr;
+    }
+    std::string full_name(alias_iter->second);
+    full_name.append(".").append(name);
+    auto iter = symobls_->find(full_name);
+    if (iter == symobls_->cend()) {
+        return nullptr;
+    }
+    return iter->second.ast;
 }
 
 

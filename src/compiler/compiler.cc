@@ -206,10 +206,33 @@ base::Status Compiler::ParseAllSourceFiles(const std::vector<std::string> &files
     return base::Status::OK();
 }
 
-base::Status RecursiveFindEntries(std::set<Package *> *unique_pkgs,
+static Package *FindPackageByPath(const std::vector<std::string> &search_paths,
+                                  std::string_view key,
+                                  base::ArenaMap<std::string_view, Package *> *all) {
+    for (auto path : search_paths) {
+        path.append("/").append(key);
+        if (auto iter = all->find(path); iter != all->end()) {
+            return iter->second;
+        }
+    }
+    return nullptr;
+}
+
+static base::Status RecursiveFindEntries(const std::vector<std::string> &search_paths,
+                                  std::set<Package *> *unique_pkgs,
                                   SyntaxFeedback *error_feedback,
                                   Package *entry,
-                                  base::ArenaVector<Package *> *entries) {
+                                  base::ArenaVector<Package *> *entries,
+                                  base::ArenaMap<std::string_view, Package *> *all) {
+    for (auto file_unit : entry->source_files()) {
+        for (auto import : file_unit->imports()) {
+            if (!import->original_package_name()) {
+                auto pkg = FindPackageByPath(search_paths, import->package_path()->ToSlice(), all);
+                import->set_original_package_name(DCHECK_NOTNULL(pkg)->name());
+            }
+        }
+    }
+    
     if (entry->dependences_size() == 0) {
         auto iter = std::find(entries->begin(), entries->end(), entry);
         if (iter == entries->end()) {
@@ -226,7 +249,8 @@ base::Status RecursiveFindEntries(std::set<Package *> *unique_pkgs,
             return ERR_CORRUPTION("Import ring package");
         }
         
-        if (auto rs = RecursiveFindEntries(unique_pkgs, error_feedback, import.pkg, entries); rs.fail()) {
+        if (auto rs = RecursiveFindEntries(search_paths, unique_pkgs, error_feedback, import.pkg, entries, all);
+            rs.fail()) {
             return rs;
         }
     }
@@ -260,7 +284,7 @@ base::Status Compiler::FindAndParseProjectSourceFiles(const std::string &project
     }
     
     std::set<Package *> unique_pkgs;
-    return RecursiveFindEntries(&unique_pkgs, error_feedback, *main_pkg, entries);
+    return RecursiveFindEntries(search_paths, &unique_pkgs, error_feedback, *main_pkg, entries, all);
     //return base::Status::OK();
 }
 

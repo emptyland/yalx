@@ -108,10 +108,13 @@ public:
     Statement *FindLocalSymbol(std::string_view name) const override;
     Statement *FindOrInsertSymbol(std::string_view name, Statement *ast) override;
     
+    Statement *FindExportSymbol(std::string_view prefix, std::string_view name) const;
+    
     //std::tuple<Statement *, NamespaceScope *> FindSymbol(std::string_view name) const override;
 private:
     FileUnit *file_unit_;
-    std::map<std::string_view, std::string_view> alias_;
+    std::map<std::string_view, std::string> alias_;
+    std::vector<std::string> implicit_alias_;
     GlobalSymbols *symobls_;
 }; // class FileUnitScope
 

@@ -146,6 +146,10 @@ private:
 class Statement : public AstNode {
 public:
     virtual bool IsExplicitExpression() const { return false; }
+    
+    AstNode *Owns(bool force);
+    Package *Pack(bool force);
+    
 protected:
     Statement(Kind kind, const SourcePosition &source_position);
 }; // class Statement

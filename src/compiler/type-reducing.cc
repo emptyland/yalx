@@ -17,6 +17,7 @@ public:
         if (fail()) {
             return status_;
         }
+        track_.clear();
         return Recursive(entry_, std::bind(&Package::Accept, std::placeholders::_1, this));
     }
     
@@ -39,6 +40,9 @@ private:
     }
     
     void PreparePackage(Package *pkg) {
+        if (Track(pkg)) {
+            return;
+        }
         printd("prepare package: %s", pkg->name()->data());
         error_feedback_->set_package_name(pkg->name()->ToString());
         PrepareInterfaces(pkg);
@@ -119,6 +123,9 @@ private:
     }
     
     int VisitPackage(Package *node) override {
+        if (Track(node)) {
+            return 0; // Skip if has processed
+        }
         PackageScope scope(&location_, node, &global_symbols_);
         error_feedback_->set_package_name(node->name()->ToString());
         
@@ -337,6 +344,33 @@ private:
             Feedback()->Printf(node->source_position(), "symbol: `%s' not found", node->name()->data());
             return -1;
         }
+        return ProcessSymbol(node->name()->data(), node, ast);
+    }
+    
+    int VisitDot(Dot *node) override {
+        if (node->primary()->IsIdentifier()) {
+            auto id = node->primary()->AsIdentifier();
+            if (MaybePackageName(id)) {
+                auto file_scope = location_->NearlyFileUnitScope();
+                auto symbol = file_scope->FindExportSymbol(id->name()->ToSlice(), node->field()->ToSlice());
+                if (!symbol) {
+                    Feedback()->Printf(node->source_position(), "symbol: %s.%s not found", id->name()->data(),
+                                       node->field()->data());
+                    return -1;
+                }
+                return ProcessSymbol(id->name()->data(), node, symbol);
+            }
+        }
+        std::vector<Type *> types;
+        if (Reduce(node->primary(), &types) < 0) {
+            return -1;
+        }
+        // TODO:
+        UNREACHABLE();
+        return -1;
+    }
+    
+    int ProcessSymbol(const char *name, Statement *node, Statement *ast) {
         auto pkg_scope = location_->NearlyPackageScope();
         if (pkg_scope->HasNotTracked(ast)) {
             auto file_scope = location_->NearlyFileUnitScope();
@@ -352,14 +386,14 @@ private:
             if (owns) {
                 if (owns != file_scope->file_unit()) {
                     printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
-                    auto saved = location_;
-                    location_ = nullptr;
+                    //auto saved = location_;
+                    //location_ = nullptr;
                     auto scope = DCHECK_NOTNULL(pkg_scope->FindFileUnitScopeOrNull(owns));
                     assert(scope != file_scope);
                     scope->Enter();
                     auto rs = Reduce(sym);
                     scope->Exit();
-                    location_ = saved;
+                    //location_ = saved;
                     if (rs < 0) {
                         return -1;
                     }
@@ -386,10 +420,11 @@ private:
                 }
             } break;
         }
-        Feedback()->Printf(node->source_position(), "symbol: `%s' not found", node->name()->data());
+        Feedback()->Printf(node->source_position(), "symbol: `%s' not found", name);
         return -1;
     }
-    
+
+
     int VisitAssignment(Assignment *node) override { UNREACHABLE(); }
     int VisitStructDefinition(StructDefinition *node) override { UNREACHABLE(); }
     
@@ -412,7 +447,6 @@ private:
     int VisitAdd(Add *node) override { UNREACHABLE(); }
     int VisitAnd(And *node) override { UNREACHABLE(); }
     int VisitDiv(Div *node) override { UNREACHABLE(); }
-    int VisitDot(Dot *node) override { UNREACHABLE(); }
     int VisitMod(Mod *node) override { UNREACHABLE(); }
     int VisitMul(Mul *node) override { UNREACHABLE(); }
     int VisitNot(Not *node) override { UNREACHABLE(); }
@@ -624,10 +658,24 @@ private:
     
     SyntaxFeedback *feedback() { return error_feedback_; }
     
+    bool Track(Package *pkg) {
+        if (auto iter = track_.find(pkg); iter != track_.end()) {
+            return true;
+        }
+        track_.insert(pkg);
+        return false;
+    }
+    
+    bool MaybePackageName(Identifier *id) {
+        auto [ast, ns] = location_->FindSymbol(id->name()->ToSlice());
+        return !ast;
+    }
+    
     base::Arena *const arena_;
     SyntaxFeedback *const error_feedback_;
     NamespaceScope *location_ = nullptr;
     Package *entry_;
+    std::set<Package *> track_;
     base::Status status_;
     std::unordered_map<std::string_view, GlobalSymbol> global_symbols_;
     std::stack<Type *> results_;

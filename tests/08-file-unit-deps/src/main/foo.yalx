@@ -1,4 +1,7 @@
 package main
 
+import "foo"
+
 val b = a
 val a = 1
+val c = foo.a
