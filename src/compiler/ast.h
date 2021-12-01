@@ -111,6 +111,7 @@ public:
     DEF_PTR_PROP_RW(const String, file_name);
     DEF_PTR_PROP_RW(const String, file_full_path);
     DEF_PTR_PROP_RW(const String, package_name);
+    DEF_PTR_GETTER(base::Arena, arena);
     DEF_ARENA_VECTOR_GETTER(ImportEntry *, import);
     DEF_ARENA_VECTOR_GETTER(Statement *, statement);
     DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, fun);
@@ -137,6 +138,7 @@ private:
     base::ArenaVector<InterfaceDefinition *> interfaces_;
     base::ArenaVector<AnnotationDefinition *> annotations_;
     base::ArenaVector<Statement *> statements_;
+    base::Arena *arena_;
 }; // class FileUnit
 
 
@@ -149,6 +151,9 @@ public:
     
     std::tuple<AstNode *, Statement *> Owns(bool force);
     Package *Pack(bool force);
+    
+    bool IsNotTemplate() const;
+    bool IsTemplate() const { return !IsNotTemplate(); }
     
 protected:
     Statement(Kind kind, const SourcePosition &source_position);
@@ -1440,8 +1445,8 @@ private:
 
 
 #define DEFINE_METHODS(name) \
-    inline name *Node::As##name() { return static_cast<name *>(this); } \
-    inline const name *Node::As##name() const { return static_cast<const name *>(this); }
+inline name *Node::As##name() { return !Is##name() ? nullptr : static_cast<name *>(this); } \
+    inline const name *Node::As##name() const { return !Is##name() ? nullptr : static_cast<const name *>(this); }
     DECLARE_AST_NODES(DEFINE_METHODS)
     DECLARE_TYPE_NODES(DEFINE_METHODS)
 #undef DEFINE_METHODS

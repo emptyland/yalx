@@ -121,11 +121,13 @@ public:
         if (ProcessIncompletableDefinition(node, copied, &base_of) < 0) {
             return -1;
         }
-        if (!base_of->IsClassDefinition()) {
-            Feedback()->Printf(node->super_calling()->source_position(), "Only class can be inherit of class");
-            return -1;
+        if (base_of) {
+            if (!base_of->IsClassDefinition()) {
+                Feedback()->Printf(node->super_calling()->source_position(), "Only class can be inherit of class");
+                return -1;
+            }
+            copied->set_base_of(DCHECK_NOTNULL(base_of->AsClassDefinition()));
         }
-        copied->set_base_of(DCHECK_NOTNULL(base_of->AsClassDefinition()));
         
         for (auto concept : node->concepts()) {
             if (auto type = TypeLink(concept); !type) {

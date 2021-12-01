@@ -119,6 +119,7 @@ public:
     Statement *FindOrInsertSymbol(std::string_view name, Statement *ast) override;
     
     Statement *FindExportSymbol(std::string_view prefix, std::string_view name) const;
+    Statement *FindOrInsertExportSymbol(std::string_view prefix, std::string_view name, Statement *ast);
     
     //std::tuple<Statement *, NamespaceScope *> FindSymbol(std::string_view name) const override;
 private:

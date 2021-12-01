@@ -133,14 +133,34 @@ Statement *FileUnitScope::FindLocalSymbol(std::string_view name) const {
         .append(".")
         .append(name);
     auto iter = symobls_->find(full_name);
-    if (iter == symobls_->cend()) {
-        return nullptr;
+    if (iter != symobls_->cend()) {
+        return iter->second.ast;
     }
-    return iter->second.ast;
+//    for (auto ias : implicit_alias_) {
+//        full_name = ias.append(":")
+//        
+//    }
+    return nullptr;
 }
 
 Statement *FileUnitScope::FindOrInsertSymbol(std::string_view name, Statement *ast) {
-    return NearlyPackageScope()->FindOrInsertSymbol(name, ast);
+    auto owns = DCHECK_NOTNULL(const_cast<FileUnitScope *>(this)->NearlyPackageScope());
+    std::string full_name(owns->pkg()->path()->ToString());
+    full_name.append(":")
+        .append(file_unit()->package_name()->ToString())
+        .append(".")
+        .append(name);
+    auto iter = symobls_->find(full_name);
+    if (iter == symobls_->cend()) {
+        GlobalSymbol symbol{
+            .symbol = String::New(file_unit()->arena(), full_name.data(), full_name.length()),
+            .ast = ast,
+            .owns = owns->pkg(),
+        };
+        (*symobls_)[symbol.symbol->ToSlice()] = symbol;
+        return ast;
+    }
+    return iter->second.ast;
 }
 
 Statement *FileUnitScope::FindExportSymbol(std::string_view prefix, std::string_view name) const {
@@ -153,6 +173,26 @@ Statement *FileUnitScope::FindExportSymbol(std::string_view prefix, std::string_
     auto iter = symobls_->find(full_name);
     if (iter == symobls_->cend()) {
         return nullptr;
+    }
+    return iter->second.ast;
+}
+
+Statement *FileUnitScope::FindOrInsertExportSymbol(std::string_view prefix, std::string_view name, Statement *ast) {
+    auto alias_iter = alias_.find(prefix);
+    if (alias_iter == alias_.cend()) {
+        return nullptr;
+    }
+    std::string full_name(alias_iter->second);
+    full_name.append(".").append(name);
+    auto iter = symobls_->find(full_name);
+    if (iter == symobls_->cend()) {
+        GlobalSymbol symbol{
+            .symbol = String::New(file_unit()->arena(), full_name.data(), full_name.length()),
+            .ast = ast,
+            .owns = ast->Pack(false/*force*/),
+        };
+        (*symobls_)[symbol.symbol->ToSlice()] = symbol;
+        return ast;
     }
     return iter->second.ast;
 }

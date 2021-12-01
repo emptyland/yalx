@@ -56,7 +56,8 @@ FileUnit::FileUnit(base::Arena *arena, String *file_name, String *file_full_path
     , struct_defs_(arena)
     , interfaces_(arena)
     , objects_(arena)
-    , annotations_(arena) {
+    , annotations_(arena)
+    , arena_(arena) {
 }
 
 void FileUnit::Add(Statement *stmt) {
@@ -121,6 +122,19 @@ Package *Statement::Pack(bool force) {
         return down_cast<VariableDeclaration::Item>(this)->owns()->package();
     } else {
         return nullptr;
+    }
+}
+
+bool Statement::IsNotTemplate() const {
+    switch (kind()) {
+        case Node::kClassDefinition:
+            return AsClassDefinition()->generic_params().empty();
+        case Node::kStructDefinition:
+            return AsStructDefinition()->generic_params().empty();
+        case Node::kFunctionDeclaration:
+            return AsFunctionDeclaration()->generic_params().empty();
+        default:
+            return true;
     }
 }
 

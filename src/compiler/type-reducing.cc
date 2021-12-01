@@ -1,4 +1,5 @@
 #include "compiler/type-reducing.h"
+#include "compiler/generics-instantiating.h"
 #include "compiler/syntax-feedback.h"
 #include "compiler/scope.h"
 #include "compiler/ast.h"
@@ -32,6 +33,32 @@ public:
         *receiver = std::move(global_symbols_);
     }
 private:
+    class InstantiatingResolver : public GenericsInstantiating::Resolver {
+    public:
+        InstantiatingResolver(TypeReducingVisitor *owns): owns_(owns) {}
+        Statement *Find(std::string_view prefix, std::string_view name) override {
+            auto file_scope = owns_->location_->NearlyFileUnitScope();
+            if (prefix.empty()) {
+                return file_scope->FindLocalSymbol(name);
+            } else {
+                return file_scope->FindExportSymbol(prefix, name);
+            }
+        }
+        Statement *FindOrInsert(std::string_view prefix, std::string_view name, Statement *ast) override {
+            auto file_scope = owns_->location_->NearlyFileUnitScope();
+            if (prefix.empty()) {
+                return file_scope->FindOrInsertSymbol(name, ast);
+            } else {
+                return file_scope->FindOrInsertExportSymbol(prefix, name, ast);
+            }
+        }
+        void Enter(Statement *) override {}
+        void Exit(Statement *) override {}
+    private:
+        TypeReducingVisitor *owns_;
+    }; // class InstantiatingResolver
+    
+    
     base::Status Recursive(Package *root, std::function<void(Package *)> &&callback) {
         if (root->IsTerminator()) {
             callback(root);
@@ -95,14 +122,14 @@ private:
                     continue;
                 }
 
-                auto [prefix, name] = GetSymbol(base_ast, node->name()->ToSlice());
-                auto symbol = FindGlobal(prefix, name);
-                if (symbol.IsNotFound() || !symbol.ast->IsClassDefinition()) {
-                    Feedback()->Printf(base_ast->source_position(), "Base class: %s.%s not found", prefix.data(),
-                                       name.data());
-                    return;
-                }
-                clazz->set_base_of(symbol.ast->AsClassDefinition());
+//                auto [prefix, name] = GetSymbol(base_ast, node->name()->ToSlice());
+//                auto symbol = FindGlobal(prefix, name);
+//                if (symbol.IsNotFound() || !symbol.ast->IsClassDefinition()) {
+//                    Feedback()->Printf(base_ast->source_position(), "Base class: %s.%s not found", prefix.data(),
+//                                       name.data());
+//                    return;
+//                }
+//                clazz->set_base_of(symbol.ast->AsClassDefinition());
             }
         }
     }
@@ -225,6 +252,34 @@ private:
     }
     
     int VisitClassDefinition(ClassDefinition *node) override {
+        if (!node->generic_params().empty()) {
+            return Return(Unit());
+        }
+        if (node->super_calling()) {
+            auto super_call = node->super_calling();
+            Statement *symbol = nullptr;
+            switch (super_call->callee()->kind()) {
+                case Node::kIdentifier: {
+                    symbol = ResolveIdSymbol("base class", super_call->callee()->AsIdentifier(), Node::kClassDefinition);
+                } break;
+                    
+                case Node::kDot: {
+                    symbol = ResolveDotSymbol("base class", super_call->callee()->AsDot(), Node::kClassDefinition);
+                } break;
+                    
+                case Node::kInstantiation: {
+                    symbol = Instantiate("base class", super_call->callee()->AsInstantiation(), Node::kClassDefinition);
+                } break;
+                    
+                default:
+                    break;
+            }
+            if (!symbol) {
+                return -1;
+            }
+            node->set_base_of(symbol->AsClassDefinition());
+        }
+        
         auto classes_count = 0;
         for (auto i = 0; i < node->concepts_size(); i++) {
             auto concept = LinkType(node->concept(i));
@@ -249,7 +304,7 @@ private:
         }
         
         // Default base class is Any;
-        if (node->base_of()) {
+        if (!node->base_of()) {
             auto symbol = FindGlobal("yalx/lang:lang", "Any");
             if (symbol.IsNotFound()) {
                 Feedback()->Printf(node->source_position(), "lang.Any class not found");
@@ -288,6 +343,111 @@ private:
         }
         
         return Return(Unit());
+    }
+    
+    Statement *Instantiate(const char *info, Instantiation *ast, Node::Kind kind) {
+        std::vector<Type *> types;
+        for (auto arg : ast->generic_args()) {
+            auto linked = LinkType(arg);
+            if (!linked) {
+                return nullptr;
+            }
+            types.push_back(linked);
+        }
+        
+        Statement *symbol = nullptr;
+        if (auto id = ast->primary()->AsIdentifier()) {
+            symbol = ResolveIdSymbol(info, id, kind, types);
+        } else if (auto dot = ast->primary()->AsDot()) {
+            symbol = ResolveDotSymbol(info, dot, kind, types);
+        } else {
+            UNREACHABLE();
+        }
+        if (!symbol) {
+            return nullptr;
+        }
+        //hook(symbol);
+        if (symbol->IsNotTemplate()) {
+            Feedback()->Printf(ast->source_position(), "%s is template, need instantiation", info);
+            return nullptr;
+        }
+        
+        InstantiatingResolver resover(this);
+        auto rs = GenericsInstantiating::Instantiate(nullptr, symbol, arena_, error_feedback_, &resover,
+                                                     types.size(), &types[0], &symbol);
+        if (rs.fail()) {
+            return nullptr;
+        }
+        if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
+            return nullptr;
+        }
+        return symbol;
+    }
+    
+    Statement *ResolveIdSymbol(const char *info, Identifier *ast, Node::Kind kind,
+                               const std::vector<Type *> &types = {}) {
+        auto name = ast->name();
+        auto file_scope = location_->NearlyFileUnitScope();
+        Statement *symbol = nullptr;
+        if (types.empty()) {
+            symbol = file_scope->FindLocalSymbol(name->ToSlice());
+        } else {
+            std::string buf(name->ToString());
+            buf.append("<");
+            for (size_t i = 0; i < types.size(); i++) {
+                if (i > 0) {
+                    buf.append(",");
+                }
+                buf.append(types[i]->ToString());
+            }
+            buf.append(">");
+            symbol = file_scope->FindLocalSymbol(buf);
+            if (!symbol) {
+                symbol = file_scope->FindLocalSymbol(name->ToSlice());
+            }
+        }
+        if (!symbol || symbol->kind() != kind) {
+            Feedback()->Printf(ast->source_position(), "%s: %s not found", info, name->data());
+            return nullptr;
+        }
+        if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
+            return nullptr;
+        }
+        return symbol;
+    }
+    
+    Statement *ResolveDotSymbol(const char *info, Dot *ast, Node::Kind kind,
+                                const std::vector<Type *> &types = {}) {
+        auto prefix = DCHECK_NOTNULL(ast->primary()->AsIdentifier());
+        auto name = ast->field();
+        auto file_scope = location_->NearlyFileUnitScope();
+        Statement *symbol = nullptr;
+        if (types.empty()) {
+            symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), name->ToSlice());
+        } else {
+            std::string buf(name->ToString());
+            buf.append("<");
+            for (size_t i = 0; i < types.size(); i++) {
+                if (i > 0) {
+                    buf.append(",");
+                }
+                buf.append(types[i]->ToString());
+            }
+            buf.append(">");
+            symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), buf);
+            if (!symbol) {
+                symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), name->ToSlice());
+            }
+        }
+        if (!symbol || symbol->kind() != kind) {
+            Feedback()->Printf(ast->source_position(), "%s: %s.%s not found", info, prefix->name()->data(),
+                               name->data());
+            return nullptr;
+        }
+        if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
+            return nullptr;
+        }
+        return symbol;
     }
     
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
@@ -350,7 +510,7 @@ private:
             Feedback()->Printf(node->source_position(), "symbol: `%s' not found", node->name()->data());
             return -1;
         }
-        return ProcessSymbol(node->name()->data(), node, ast);
+        return ReduceDependencySymbolIfNeeded(node->name()->data(), node, ast);
     }
     
     int VisitDot(Dot *node) override {
@@ -364,7 +524,7 @@ private:
                                        node->field()->data());
                     return -1;
                 }
-                return ProcessSymbol(id->name()->data(), node, symbol);
+                return ReduceDependencySymbolIfNeeded(id->name()->data(), node, symbol);
             }
         }
         std::vector<Type *> types;
@@ -375,40 +535,11 @@ private:
         UNREACHABLE();
         return -1;
     }
-    
-    int ProcessSymbol(const char *name, Statement *node, Statement *ast) {
-        auto [owns, sym] = ast->Owns(true/*force*/);
-        auto pkg = ast->Pack(true/*force*/);
-        if (auto pkg_scope = FindPackageScopeOrNull(pkg); pkg_scope && pkg_scope->HasNotTracked(ast)) {
-            if (owns && owns->IsFileUnit()) {
-                auto current_pkg_scope = location_->NearlyPackageScope();
-                auto current_file_scope = location_->NearlyFileUnitScope();
 
-                if (owns != current_file_scope->file_unit()) {
-                    printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
-                    PackageScope *external_scope = nullptr;
-                    FileUnitScope *scope = nullptr;
-                    if (pkg != current_pkg_scope->pkg()) {
-                        external_scope = EnsurePackageScope(pkg);
-                        external_scope->Enter();
-                        scope = DCHECK_NOTNULL(external_scope->FindFileUnitScopeOrNull(owns));
-                    } else {
-                        scope = DCHECK_NOTNULL(current_pkg_scope->FindFileUnitScopeOrNull(owns));
-                    }
-                    assert(scope != current_file_scope);
-                    scope->Enter();
-                    auto rs = Reduce(sym);
-                    scope->Exit();
-                    if (external_scope) { external_scope->Exit(); }
-                    if (rs < 0) {
-                        return -1;
-                    }
-                } else {
-                    if (auto rs = Reduce(sym); rs < 0) {
-                        return -1;
-                    }
-                }
-            }
+    
+    int ReduceDependencySymbolIfNeeded(const char *name, Statement *node, Statement *ast) {
+        if (ProcessDependencySymbolIfNeeded(ast) < 0) {
+            return -1;
         }
         
         switch (ast->kind()) {
@@ -428,6 +559,47 @@ private:
         }
         Feedback()->Printf(node->source_position(), "symbol: `%s' not found", name);
         return -1;
+    }
+    
+    int ProcessDependencySymbolIfNeeded(Statement *ast) {
+        if (ast->IsTemplate()) {
+            return 0; // Ignore template
+        }
+        auto [owns, sym] = ast->Owns(true/*force*/);
+        auto pkg = ast->Pack(true/*force*/);
+        if (auto pkg_scope = FindPackageScopeOrNull(pkg); pkg_scope && pkg_scope->HasNotTracked(ast)) {
+            if (owns && owns->IsFileUnit()) {
+                auto current_pkg_scope = location_->NearlyPackageScope();
+                auto current_file_scope = location_->NearlyFileUnitScope();
+                
+                if (owns != current_file_scope->file_unit()) {
+                    printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
+                    PackageScope *external_scope = nullptr;
+                    FileUnitScope *scope = nullptr;
+                    if (pkg != current_pkg_scope->pkg()) {
+                        external_scope = EnsurePackageScope(pkg);
+                        external_scope->Enter();
+                        scope = DCHECK_NOTNULL(external_scope->FindFileUnitScopeOrNull(owns));
+                    } else {
+                        scope = DCHECK_NOTNULL(current_pkg_scope->FindFileUnitScopeOrNull(owns));
+                    }
+                    assert(scope != current_file_scope);
+                    scope->Enter();
+                    auto rs = Reduce(sym);
+                    pkg_scope->Track(sym);
+                    scope->Exit();
+                    if (external_scope) { external_scope->Exit(); }
+                    if (rs < 0) {
+                        return -1;
+                    }
+                } else {
+                    if (auto rs = Reduce(sym); rs < 0) {
+                        return -1;
+                    }
+                }
+            }
+        }
+        return 0;
     }
 
 
@@ -623,13 +795,25 @@ private:
     
     static std::tuple<std::string_view, std::string_view> GetSymbol(Expression *expr,
                                                                     std::string_view default_prefix = "") {
-        if (expr->IsIdentifier()) {
-            return std::make_tuple(default_prefix, expr->AsIdentifier()->name()->ToSlice());
-        } else {
-            assert(expr->IsDot());
-            auto prefix = DCHECK_NOTNULL(expr->AsDot()->primary()->AsIdentifier());
-            auto name = expr->AsDot()->field();
+        if (auto id = expr->AsIdentifier()) {
+            return std::make_tuple(default_prefix, id->name()->ToSlice());
+        } else if (auto dot = expr->AsDot()) {
+            //assert(expr->IsDot());
+            auto prefix = DCHECK_NOTNULL(dot->primary()->AsIdentifier());
+            auto name = dot->field();
             return std::make_tuple(prefix->name()->ToSlice(), name->ToSlice());
+        } else if (auto inst = expr->AsInstantiation()) {
+            if (auto id = inst->primary()->AsIdentifier()) {
+                return std::make_tuple(default_prefix, id->name()->ToSlice());
+            } else if (auto dot = inst->primary()->AsDot()) {
+                auto prefix = DCHECK_NOTNULL(dot->primary()->AsIdentifier());
+                auto name = dot->field();
+                return std::make_tuple(prefix->name()->ToSlice(), name->ToSlice());
+            } else {
+                UNREACHABLE();
+            }
+        } else {
+            UNREACHABLE();
         }
     }
     

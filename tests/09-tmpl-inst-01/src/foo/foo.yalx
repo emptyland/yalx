@@ -1,0 +1,9 @@
+package foo
+
+class Foo<T> : Baz<T>() {
+    val i = 0
+}
+
+class Baz<T> {
+    val j = 1
+}

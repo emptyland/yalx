@@ -115,6 +115,19 @@ TEST_F(TypeReducingTest, FileDeps) {
     ASSERT_TRUE(rs.ok()) << rs.ToString();
 }
 
+TEST_F(TypeReducingTest, TmplDeps) {
+    // 07-class-var-reducing
+    base::ArenaMap<std::string_view, Package *> all(&arena_);
+    base::ArenaVector<Package *> entries(&arena_);
+    Package *main_pkg = nullptr;
+    auto rs = Compiler::FindAndParseProjectSourceFiles("tests/09-tmpl-inst-01", "libs", &arena_, &feedback_,
+                                                       &main_pkg, &entries, &all);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    std::unordered_map<std::string_view, GlobalSymbol> symbols;
+    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+}
+
 } // namespace yalx
 
 } // namespace yalx
