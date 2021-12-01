@@ -52,10 +52,40 @@ private:
                 return file_scope->FindOrInsertExportSymbol(prefix, name, ast);
             }
         }
-        void Enter(Statement *) override {}
-        void Exit(Statement *) override {}
+        void Enter(Statement *ast) override {
+            auto [owns, _] = ast->Owns(true/*force*/);
+            auto pkg = ast->Pack(true/*force*/);
+            auto current_file_scope = owns_->location_->NearlyFileUnitScope();
+            auto current_pkg_scope = current_file_scope->NearlyPackageScope();
+            assert(owns->IsFileUnit());
+            auto pkg_scope = owns_->EnsurePackageScope(pkg);
+            auto file_scope = DCHECK_NOTNULL(pkg_scope->FindFileUnitScopeOrNull(owns));
+            if (pkg != current_pkg_scope->pkg()) {
+                pkg_scope->Enter();
+                scopes_.push(pkg_scope);
+                file_scope->Enter();
+                scopes_.push(file_scope);
+                depth_.push(2);
+            } else if (owns != current_file_scope->file_unit()) {
+                file_scope->Enter();
+                scopes_.push(file_scope);
+                depth_.push(1);
+            } else {
+                depth_.push(0);
+            }
+        }
+        void Exit(Statement *) override {
+            int depth = depth_.top();
+            depth_.pop();
+            for (int i = 0; i < depth; i++) {
+                scopes_.top()->Exit();
+                scopes_.pop();
+            }
+        }
     private:
         TypeReducingVisitor *owns_;
+        std::stack<int> depth_;
+        std::stack<NamespaceScope *> scopes_;
     }; // class InstantiatingResolver
     
     
@@ -326,7 +356,7 @@ private:
                     return -1;
                 }
                 
-                if (!LinkType(field.declaration->Type())) {
+                if (!LinkType(DCHECK_NOTNULL(field.declaration->Type()))) {
                     return -1;
                 }
                 continue;

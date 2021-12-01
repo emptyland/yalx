@@ -126,6 +126,13 @@ TEST_F(TypeReducingTest, TmplDeps) {
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
     rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
+    ASSERT_TRUE(symbols.find("foo:foo.Foo<i32>") != symbols.end());
+    ASSERT_TRUE(symbols.find("foo:foo.Baz<i32>") != symbols.end());
+    
+    auto clazz = symbols["foo:foo.Foo<i32>"].ast->AsClassDefinition();
+    ASSERT_NE(nullptr, clazz);
+    ASSERT_EQ(1, clazz->fields_size());
+    ASSERT_EQ(Type::kType_i32, clazz->field(0).declaration->Type()->primary_type());
 }
 
 } // namespace yalx

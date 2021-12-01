@@ -157,6 +157,7 @@ Statement *FileUnitScope::FindOrInsertSymbol(std::string_view name, Statement *a
             .ast = ast,
             .owns = owns->pkg(),
         };
+        file_unit()->Add(ast);
         (*symobls_)[symbol.symbol->ToSlice()] = symbol;
         return ast;
     }
@@ -179,10 +180,19 @@ Statement *FileUnitScope::FindExportSymbol(std::string_view prefix, std::string_
 
 Statement *FileUnitScope::FindOrInsertExportSymbol(std::string_view prefix, std::string_view name, Statement *ast) {
     auto alias_iter = alias_.find(prefix);
-    if (alias_iter == alias_.cend()) {
-        return nullptr;
+    std::string full_name;
+    if (file_unit()->package_name()->Equal(prefix.data())) {
+        auto owns = DCHECK_NOTNULL(const_cast<FileUnitScope *>(this)->NearlyPackageScope());
+        full_name = owns->pkg()->path()->ToString();
+        full_name.append(":")
+            .append(file_unit()->package_name()->ToString());
+    } else {
+        if (alias_iter == alias_.cend()) {
+            return nullptr;
+        }
+        full_name.assign(alias_iter->second);
     }
-    std::string full_name(alias_iter->second);
+    
     full_name.append(".").append(name);
     auto iter = symobls_->find(full_name);
     if (iter == symobls_->cend()) {
@@ -191,6 +201,7 @@ Statement *FileUnitScope::FindOrInsertExportSymbol(std::string_view prefix, std:
             .ast = ast,
             .owns = ast->Pack(false/*force*/),
         };
+        file_unit()->Add(ast);
         (*symobls_)[symbol.symbol->ToSlice()] = symbol;
         return ast;
     }

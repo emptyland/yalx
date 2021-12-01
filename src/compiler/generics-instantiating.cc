@@ -122,7 +122,7 @@ public:
             return -1;
         }
         if (base_of) {
-            if (!base_of->IsClassDefinition()) {
+            if (!DCHECK_NOTNULL(base_of)->IsClassDefinition()) {
                 Feedback()->Printf(node->super_calling()->source_position(), "Only class can be inherit of class");
                 return -1;
             }
@@ -596,8 +596,8 @@ private:
         
         for (auto field : node->fields()) {
             StructDefinition::Field other;
-            other.as_constructor = other.as_constructor;
-            other.in_constructor = other.in_constructor;
+            other.as_constructor = field.as_constructor;
+            other.in_constructor = field.in_constructor;
             INSTANTIATE(other.declaration, field.declaration);
             copied->mutable_fields()->push_back(other);
         }
@@ -608,9 +608,9 @@ private:
         }
         
         if (node->super_calling()) {
-            if (node->super_calling()->IsInstantiation()) {
-                auto inst = node->super_calling()->AsInstantiation();
-                std::unique_ptr<Type *[]> types;
+            if (auto inst = node->super_calling()->callee()->AsInstantiation()) {
+                //auto inst = node->super_calling()->AsInstantiation();
+                std::unique_ptr<Type *[]> types(new Type *[inst->generic_args_size()]);
                 for (size_t i = 0; i < inst->generic_args_size(); i++) {
                     if (types[i] = TypeLink(inst->generic_arg(i)); !types[i]) {
                         return -1;
