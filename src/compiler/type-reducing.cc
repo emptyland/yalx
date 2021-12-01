@@ -12,6 +12,13 @@ class TypeReducingVisitor : public AstVisitor {
 public:
     TypeReducingVisitor(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback);
     
+    // package_scopes_
+    ~TypeReducingVisitor() {
+        for (auto pair : package_scopes_) {
+            delete pair.second;
+        }
+    }
+    
     base::Status Reduce() {
         Recursive(entry_, std::bind(&TypeReducingVisitor::PreparePackage, this, std::placeholders::_1));
         if (fail()) {
@@ -48,6 +55,7 @@ private:
         PrepareInterfaces(pkg);
         PrepareClasses(pkg);
         PrepareOthers(pkg);
+        NewPackageScopeIfNeeded(pkg);
     }
     
     void PrepareInterfaces(Package *node) {
@@ -126,19 +134,17 @@ private:
         if (Track(node)) {
             return 0; // Skip if has processed
         }
-        PackageScope scope(&location_, node, &global_symbols_);
+        NamespaceScope::Keeper<PackageScope> keeper(EnsurePackageScope(node));
         error_feedback_->set_package_name(node->name()->ToString());
         
         printd("process package: %s", node->name()->data());
-        for (auto file_scope : scope.files()) {
-            file_scope->Enter();
+        for (auto file_scope : keeper.ns()->files()) {
+            NamespaceScope::Keeper<FileUnitScope> file_keeper(file_scope);
             error_feedback_->set_file_name(file_scope->file_unit()->file_name()->ToString());
 
             if (Reduce(file_scope->file_unit()) < 0) {
-                file_scope->Exit();
                 return -1;
             }
-            file_scope->Exit();
         }
         return 0;
     }
@@ -371,29 +377,29 @@ private:
     }
     
     int ProcessSymbol(const char *name, Statement *node, Statement *ast) {
-        auto pkg_scope = location_->NearlyPackageScope();
-        if (pkg_scope->HasNotTracked(ast)) {
-            auto file_scope = location_->NearlyFileUnitScope();
-            AstNode *owns = nullptr, *sym = ast;
-            if (Declaration::Is(ast)) {
-                owns = down_cast<Declaration>(ast)->owns();
-            } else if (Definition::Is(ast)) {
-                owns = down_cast<Definition>(ast)->owns();
-            } else {
-                sym = down_cast<VariableDeclaration::Item>(ast)->owns();
-                owns = down_cast<VariableDeclaration::Item>(ast)->owns()->owns();
-            }
-            if (owns) {
-                if (owns != file_scope->file_unit()) {
+        auto [owns, sym] = ast->Owns(true/*force*/);
+        auto pkg = ast->Pack(true/*force*/);
+        if (auto pkg_scope = FindPackageScopeOrNull(pkg); pkg_scope && pkg_scope->HasNotTracked(ast)) {
+            if (owns && owns->IsFileUnit()) {
+                auto current_pkg_scope = location_->NearlyPackageScope();
+                auto current_file_scope = location_->NearlyFileUnitScope();
+
+                if (owns != current_file_scope->file_unit()) {
                     printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
-                    //auto saved = location_;
-                    //location_ = nullptr;
-                    auto scope = DCHECK_NOTNULL(pkg_scope->FindFileUnitScopeOrNull(owns));
-                    assert(scope != file_scope);
+                    PackageScope *external_scope = nullptr;
+                    FileUnitScope *scope = nullptr;
+                    if (pkg != current_pkg_scope->pkg()) {
+                        external_scope = EnsurePackageScope(pkg);
+                        external_scope->Enter();
+                        scope = DCHECK_NOTNULL(external_scope->FindFileUnitScopeOrNull(owns));
+                    } else {
+                        scope = DCHECK_NOTNULL(current_pkg_scope->FindFileUnitScopeOrNull(owns));
+                    }
+                    assert(scope != current_file_scope);
                     scope->Enter();
                     auto rs = Reduce(sym);
                     scope->Exit();
-                    //location_ = saved;
+                    if (external_scope) { external_scope->Exit(); }
                     if (rs < 0) {
                         return -1;
                     }
@@ -666,6 +672,27 @@ private:
         return false;
     }
     
+    void NewPackageScopeIfNeeded(Package *pkg) {
+        if (auto iter = package_scopes_.find(pkg); iter != package_scopes_.end()) {
+            return;
+        }
+        package_scopes_[pkg] = new PackageScope(&location_, pkg, &global_symbols_);
+    }
+    
+    PackageScope *EnsurePackageScope(Package *pkg) const {
+        auto iter = package_scopes_.find(pkg);
+        assert(iter != package_scopes_.end());
+        return iter->second;
+    }
+    
+    PackageScope *FindPackageScopeOrNull(Package *pkg) const {
+        auto iter = package_scopes_.find(pkg);
+        if (iter == package_scopes_.end()) {
+            return nullptr;
+        }
+        return iter->second;
+    }
+    
     bool MaybePackageName(Identifier *id) {
         auto [ast, ns] = location_->FindSymbol(id->name()->ToSlice());
         return !ast;
@@ -678,6 +705,7 @@ private:
     std::set<Package *> track_;
     base::Status status_;
     std::unordered_map<std::string_view, GlobalSymbol> global_symbols_;
+    std::map<Package *, PackageScope *> package_scopes_;
     std::stack<Type *> results_;
     Type *unit_ = nullptr;
     Type *i32_ = nullptr;

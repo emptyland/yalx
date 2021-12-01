@@ -26,6 +26,16 @@ using GlobalSymbols = std::unordered_map<std::string_view, GlobalSymbol>;
 
 class NamespaceScope {
 public:
+    template<class T> class Keeper {
+    public:
+        Keeper(T *ns): ns_(ns) { ns_->Enter(); }
+        ~Keeper() { ns_->Exit(); }
+        
+        T *ns() const { return ns_; }
+    private:
+        T *ns_;
+    };
+    
     virtual ~NamespaceScope();
     
     virtual PackageScope *NearlyPackageScope();

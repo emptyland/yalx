@@ -99,15 +99,16 @@ Statement::Statement(Kind kind, const SourcePosition &source_position)
     : AstNode(kind, source_position) {
 }
 
-AstNode *Statement::Owns(bool force) {
+std::tuple<AstNode *, Statement *> Statement::Owns(bool force) {
     if (Declaration::Is(this)) {
-        return static_cast<const Declaration *>(this)->owns();
+        return std::make_tuple(static_cast<const Declaration *>(this)->owns(), this);
     } else if (Definition::Is(this)) {
-        return static_cast<const Definition *>(this)->owns();
+        return std::make_tuple(static_cast<const Definition *>(this)->owns(), this);
     } else if (force) {
-        return down_cast<VariableDeclaration::Item>(this)->owns()->owns();
+        return std::make_tuple(down_cast<VariableDeclaration::Item>(this)->owns()->owns(),
+                               down_cast<VariableDeclaration::Item>(this)->owns());
     } else {
-        return nullptr;
+        return std::make_tuple(nullptr, nullptr);
     }
 }
 

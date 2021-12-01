@@ -147,7 +147,7 @@ class Statement : public AstNode {
 public:
     virtual bool IsExplicitExpression() const { return false; }
     
-    AstNode *Owns(bool force);
+    std::tuple<AstNode *, Statement *> Owns(bool force);
     Package *Pack(bool force);
     
 protected:

@@ -61,7 +61,7 @@ Statement *NamespaceScope::FindOrInsertSymbol(std::string_view name, Statement *
 PackageScope::PackageScope(NamespaceScope **location, Package *pkg, GlobalSymbols *symbols)
 : NamespaceScope(location)
 , pkg_(DCHECK_NOTNULL(pkg)) {
-    Enter();
+    //Enter();
     for (auto file_unit : pkg_->source_files()) {
         auto scope = new FileUnitScope(location_, file_unit, symbols);
         files_ptrs_[file_unit] = files_.size();
@@ -71,7 +71,7 @@ PackageScope::PackageScope(NamespaceScope **location, Package *pkg, GlobalSymbol
 
 PackageScope::~PackageScope() {
     for (auto scope : files_) { delete scope; }
-    Exit();
+    //Exit();
 }
 
 PackageScope *PackageScope::NearlyPackageScope() {

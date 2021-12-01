@@ -19,7 +19,7 @@ struct Operator {
     bool assignment;
     
     constexpr Operator(Node::Kind k, int o, int l, int r, bool a = false)
-        : kind(k), operands(o), left(l), right(r), assignment(a) {}
+    : kind(k), operands(o), left(l), right(r), assignment(a) {}
     Operator() {}
 }; // struct Operator
 
@@ -31,18 +31,18 @@ struct Operators {
     static constexpr auto kBitwiseNegative = Operator(Node::kBitwiseNegative, 1, kUnaryPrio, kUnaryPrio); // ^
     static constexpr auto kNegative = Operator(Node::kNegative, 1, kUnaryPrio, kUnaryPrio); // -
     static constexpr auto kRecv = Operator(Node::kRecv, 1, kUnaryPrio, kUnaryPrio); // <-
-//    static constexpr auto kIncrement = Operator(Node::kIncrement, 1, kUnaryPrio, kUnaryPrio, true); // expr++
-//    static constexpr auto kIncrementPost = Operator(Node::kIncrementPost, 1, kUnaryPrio, kUnaryPrio, true); // ++expr
-//    static constexpr auto kDecrement = Operator(Node::kDecrement, 1, kUnaryPrio, kUnaryPrio, true); // expr--
-//    static constexpr auto kDecrementPost = Operator(Node::kDecrementPost, 1, kUnaryPrio, kUnaryPrio, true); // --expr
-
+    //    static constexpr auto kIncrement = Operator(Node::kIncrement, 1, kUnaryPrio, kUnaryPrio, true); // expr++
+    //    static constexpr auto kIncrementPost = Operator(Node::kIncrementPost, 1, kUnaryPrio, kUnaryPrio, true); // ++expr
+    //    static constexpr auto kDecrement = Operator(Node::kDecrement, 1, kUnaryPrio, kUnaryPrio, true); // expr--
+    //    static constexpr auto kDecrementPost = Operator(Node::kDecrementPost, 1, kUnaryPrio, kUnaryPrio, true); // --expr
+    
     // Binary:
     static constexpr auto kAdd = Operator(Node::kAdd, 2, 90, 90); // +
     static constexpr auto kSub = Operator(Node::kSub, 2, 90, 90); // -
     static constexpr auto kMul = Operator(Node::kMul, 2, 100, 100); // *
     static constexpr auto kDiv = Operator(Node::kDiv, 2, 100, 100); // /
     static constexpr auto kMod = Operator(Node::kMod, 2, 100, 100); // %
-
+    
     static constexpr auto kSend = Operator(Node::kSend, 2, 100, 100); // chan <- data
     
     // Bitwise op
@@ -56,7 +56,7 @@ struct Operators {
     static constexpr auto kLessEqual = Operator(Node::kLessEqual, 2, 60, 60); // <=
     static constexpr auto kGreater = Operator(Node::kGreater, 2, 60, 60); // >
     static constexpr auto kGreaterEqual = Operator(Node::kGreaterEqual, 2, 60, 60); // >=
-
+    
     // Or/Xor/And
     static constexpr auto kBitwiseOr = Operator(Node::kBitwiseOr, 2, 30, 30); // |
     static constexpr auto kBitwiseXor = Operator(Node::kBitwiseXor, 2, 40, 40); // ^
@@ -81,10 +81,10 @@ static Operator GetPrefixOp(Token::Kind kind) {
             return Operators::kNegative;
         case Token::kLArrow:
             return Operators::kRecv;
-//        case Token::k2Plus:
-//            return Operators::kIncrement;
-//        case Token::k2Minus:
-//            return Operators::kDecrement;
+            //        case Token::k2Plus:
+            //            return Operators::kIncrement;
+            //        case Token::k2Minus:
+            //            return Operators::kDecrement;
         default:
             return Operators::NOT_OPERATOR;
     }
@@ -130,10 +130,10 @@ static Operator GetPostfixOp(Token::Kind kind) {
             return Operators::kAnd;
         case Token::kOr:
             return Operators::kOr;
-//        case Token::k2Plus:
-//            return Operators::kIncrementPost;
-//        case Token::k2Minus:
-//            return Operators::kDecrementPost;
+            //        case Token::k2Plus:
+            //            return Operators::kIncrementPost;
+            //        case Token::k2Minus:
+            //            return Operators::kDecrementPost;
         default:
             return Operators::NOT_OPERATOR;
     }
@@ -141,10 +141,10 @@ static Operator GetPostfixOp(Token::Kind kind) {
 
 
 Parser::Parser(base::Arena *arena, SyntaxFeedback *error_feedback)
-    : arena_(arena)
-    , error_feedback_(error_feedback)
-    , lexer_(new Lexer(arena, error_feedback))
-    , rollback_(arena->NewArray<Token>(kMaxRollbackDepth)){
+: arena_(arena)
+, error_feedback_(error_feedback)
+, lexer_(new Lexer(arena, error_feedback))
+, rollback_(arena->NewArray<Token>(kMaxRollbackDepth)){
 }
 
 Parser::~Parser() {}
@@ -164,7 +164,7 @@ FileUnit *Parser::Parse(bool *ok) {
     while (lookahead_.kind() != Token::kEOF) {
         Token token = Peek();
         switch (token.kind()) {
-
+                
             case Token::kImport:
                 ParseImportStatement(CHECK_OK);
                 break;
@@ -173,17 +173,17 @@ FileUnit *Parser::Parse(bool *ok) {
                 auto stmt = ParseStructDefinition(CHECK_OK);
                 file_unit_->Add(stmt);
             } break;
-
+                
             case Token::kClass: {
                 auto stmt = ParseClassDefinition(CHECK_OK);
                 file_unit_->Add(stmt);
             } break;
-
+                
             case Token::kObject: {
                 // TODO:
                 UNREACHABLE();
             } break;
-
+                
             case Token::kInterface: {
                 auto stmt = ParseInterfaceDefinition(CHECK_OK);
                 file_unit_->Add(stmt);
@@ -235,13 +235,13 @@ FileUnit *Parser::Parse(bool *ok) {
                 }
                 file_unit_->Add(stmt);
             } break;
-
+                
             case Token::kNative:
             case Token::kFun: {
                 auto fun = ParseFunctionDeclaration(ok);
                 file_unit_->Add(fun);
             } break;
-
+                
             case Token::kVolatile:
             case Token::kVal:
             case Token::kVar: {
@@ -251,7 +251,7 @@ FileUnit *Parser::Parse(bool *ok) {
                 }
                 file_unit_->Add(decl);
             } break;
-
+                
             default: {
                 error_feedback_->Printf(Peek().source_position(), "Unexpected token %s", Peek().ToString().c_str());
                 *ok = false;
@@ -376,7 +376,7 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool *ok) {
     if (!Test(Token::kRParen)) {
         do {
             auto param_location = Peek().source_position();
-
+            
             if (Test(Token::kVargs)) {
                 prototype->set_vargs(true);
                 Match(Token::kRParen, CHECK_OK);
@@ -401,7 +401,7 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool *ok) {
         
         Match(Token::kRParen, CHECK_OK);
     }
-
+    
     if (Test(Token::kColon)) {
         do {
             auto type = ParseType(CHECK_OK);
@@ -529,7 +529,7 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
     if (Peek().Is(Token::kLess)) {
         ParseGenericParameters(def->mutable_generic_params(), CHECK_OK);
     }
-
+    
     if (Test(Token::kLParen)) {
         do {
             auto arg_location = Peek().source_position();
@@ -644,8 +644,8 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
             auto access = static_cast<Access>(ParseDeclarationAccess());
             
             switch (Peek().kind()) {
-                // val a, b, c = 1, 2, 3
-                // private val name, alias = "setup", "dom"
+                    // val a, b, c = 1, 2, 3
+                    // private val name, alias = "setup", "dom"
                 case Token::kVolatile:
                 case Token::kVal:
                 case Token::kVar: {
@@ -677,7 +677,7 @@ const String *Parser::ParsePackageName(bool *ok) {
         *ok = false;
         return nullptr;
     }
-
+    
     Match(Token::kPackage, CHECK_OK);
     auto package_name = MatchText(Token::kIdentifier, CHECK_OK);
     file_unit_->set_package_name(package_name);
@@ -840,7 +840,7 @@ Statement *Parser::ParseStatement(bool *ok) {
             
         case Token::kRun:
             return ParseRunStatement(ok);
-        
+            
         case Token::kWhile:
             return ParseWhileLoop(ok);
             
@@ -860,7 +860,7 @@ Statement *Parser::ParseStatement(bool *ok) {
         case Token::kContinue:
             MoveNext();
             return new (arena_) Continue(location);
-
+            
         default: {
             Expression *tmp[2] = {nullptr,nullptr};
             base::ArenaVector<Expression *> lvals(arena_);
@@ -1057,7 +1057,7 @@ Expression *Parser::ParseExpression(int limit, Operator *receiver, bool *ok) {
     
     op = GetPostfixOp(Peek().kind());
     while (op.kind != Operators::NOT_OPERATOR.kind && op.left > limit) {
-
+        
         MoveNext();
         if (op.operands == 1) { // Post unary operator
             expr = NewUnaryExpression(op, expr, location);
@@ -1082,7 +1082,7 @@ Expression *Parser::ParseSimple(bool *ok) {
             MoveNext();
             return literal;
         } break;
-
+            
         case Token::kFalse: {
             auto literal = new (arena_) BoolLiteral(arena_, false, location);
             MoveNext();
@@ -1092,11 +1092,11 @@ Expression *Parser::ParseSimple(bool *ok) {
         case Token::kUnitVal:
             MoveNext();
             return new (arena_) UnitLiteral(arena_, location);
-        
+            
         case Token::kEmptyVal:
             MoveNext();
             return new (arena_) EmptyLiteral(location);
-
+            
         case Token::kIf:
             return ParseIfExpression(ok);
             
@@ -1105,7 +1105,7 @@ Expression *Parser::ParseSimple(bool *ok) {
             
         case Token::kWhen:
             return ParseWhenExpression(ok);
-
+            
         default:
             return ParseSuffixed(ok);
     }
@@ -1167,19 +1167,19 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                     expr = call;
                 }
             } break;
-
+                
             case Token::kIs: { // is
                 MoveNext();
                 auto type = ParseType(CHECK_OK);
                 expr = new (arena_) Testing(expr, type, location.Concat(type->source_position()));
             } break;
-
+                
             case Token::kAs: { // as
                 MoveNext();
                 auto type = ParseType(CHECK_OK);
                 expr = new (arena_) Casting(expr, type, location.Concat(type->source_position()));
             } break;
-
+                
             default:
                 return expr;
         }
@@ -1297,7 +1297,7 @@ Expression *Parser::ParseParenOrLambdaLiteral(bool *ok) {
 // eles_clause ::= `else' statement
 IfExpression *Parser::ParseIfExpression(bool *ok) {
     auto location = Peek().source_position();
-
+    
     Match(Token::kIf, CHECK_OK);
     Match(Token::kLParen, CHECK_OK);
     Expression *condition = nullptr;
@@ -1387,7 +1387,7 @@ WhenExpression *Parser::ParseWhenExpression(bool *ok) {
                 case_clause = clause;
             }
         }
-
+        
         DCHECK_NOTNULL(case_clause);
         Match(Token::kRArrow, CHECK_OK);
         auto then_clause = ParseStatement(CHECK_OK);
@@ -1468,7 +1468,7 @@ StringTemplate *Parser::ParseStringTemplate(bool *ok) {
                 part = ParseExpression(CHECK_OK);
                 Match(Token::kStringTempleteExpressEnd, CHECK_OK);
             } break;
-
+                
             case Token::kStringTempleteSuffix: {
                 literal = Peek().text_val();
                 MoveNext();
@@ -1477,7 +1477,7 @@ StringTemplate *Parser::ParseStringTemplate(bool *ok) {
                     tmpl->mutable_parts()->push_back(part);
                 }
             } goto done;
-
+                
             default:
                 UNREACHABLE();
                 break;
@@ -1937,11 +1937,11 @@ Expression *Parser::NewExpressionWithOperands(const Operator &op, Expression *lh
     Expression *operand = op.operands == 1 ? lhs : nullptr;
     switch (op.kind) {
     #define DEFINE_CASE(name, base) \
-        case Node::k##name: \
-            return new (arena_) name (base##_PARAMS, location);
-        
-        DECLARE_EXPRESSION_WITH_OPERANDS(DEFINE_CASE)
+    case Node::k##name: \
+    return new (arena_) name (base##_PARAMS, location);
             
+    DECLARE_EXPRESSION_WITH_OPERANDS(DEFINE_CASE)
+
     #undef DEFINE_CASE
             
         default:
