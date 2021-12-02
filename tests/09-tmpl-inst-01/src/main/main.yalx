@@ -2,6 +2,11 @@ package main
 
 import "foo"
 
-class Bobo : foo.Foo<int>() {
-    
+class Bobo : foo.Foo<int>()
+           , Tom<f32> {
+
 } 
+
+interface Tom<T> {
+    fun foo(): T
+}

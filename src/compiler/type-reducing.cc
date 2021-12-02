@@ -289,18 +289,15 @@ private:
             auto super_call = node->super_calling();
             Statement *symbol = nullptr;
             switch (super_call->callee()->kind()) {
-                case Node::kIdentifier: {
+                case Node::kIdentifier:
                     symbol = ResolveIdSymbol("base class", super_call->callee()->AsIdentifier(), Node::kClassDefinition);
-                } break;
-                    
-                case Node::kDot: {
+                    break;
+                case Node::kDot:
                     symbol = ResolveDotSymbol("base class", super_call->callee()->AsDot(), Node::kClassDefinition);
-                } break;
-                    
-                case Node::kInstantiation: {
+                    break;
+                case Node::kInstantiation:
                     symbol = Instantiate("base class", super_call->callee()->AsInstantiation(), Node::kClassDefinition);
-                } break;
-                    
+                    break;
                 default:
                     break;
             }
@@ -317,18 +314,9 @@ private:
                 return -1;
             }
             
-            if (concept->IsClassType()) {
-                // Only one class concept!
-                if (classes_count++ > 0) {
-                    Feedback()->Printf(concept->source_position(), "Concept classes number > 1");
-                    return -1;
-                }
-                node->set_base_of(concept->AsClassType()->definition());
-            } else {
-                if (!concept->IsInterfaceType()) {
-                    Feedback()->Printf(concept->source_position(), "Concept must be a interface");
-                    return -1;
-                }
+            if (!concept->IsInterfaceType()) {
+                Feedback()->Printf(concept->source_position(), "Concept must be a interface");
+                return -1;
             }
             *node->mutable_concept(i) = concept;
         }
@@ -422,16 +410,16 @@ private:
         if (types.empty()) {
             symbol = file_scope->FindLocalSymbol(name->ToSlice());
         } else {
-            std::string buf(name->ToString());
-            buf.append("<");
-            for (size_t i = 0; i < types.size(); i++) {
-                if (i > 0) {
-                    buf.append(",");
-                }
-                buf.append(types[i]->ToString());
-            }
-            buf.append(">");
-            symbol = file_scope->FindLocalSymbol(buf);
+//            std::string buf(name->ToString());
+//            buf.append("<");
+//            for (size_t i = 0; i < types.size(); i++) {
+//                if (i > 0) {
+//                    buf.append(",");
+//                }
+//                buf.append(types[i]->ToString());
+//            }
+//            buf.append(">");
+            symbol = file_scope->FindLocalSymbol(MakeFullInstantiatingName(name->ToSlice(), types.size(), &types[0]));
             if (!symbol) {
                 symbol = file_scope->FindLocalSymbol(name->ToSlice());
             }
@@ -455,16 +443,8 @@ private:
         if (types.empty()) {
             symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), name->ToSlice());
         } else {
-            std::string buf(name->ToString());
-            buf.append("<");
-            for (size_t i = 0; i < types.size(); i++) {
-                if (i > 0) {
-                    buf.append(",");
-                }
-                buf.append(types[i]->ToString());
-            }
-            buf.append(">");
-            symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), buf);
+            symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(),
+                                                  MakeFullInstantiatingName(name->ToSlice(), types.size(), &types[0]));
             if (!symbol) {
                 symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), name->ToSlice());
             }
@@ -631,13 +611,26 @@ private:
         }
         return 0;
     }
-
+    
+    int VisitInterfaceDefinition(InterfaceDefinition *node) override {
+        if (!node->generic_params().empty()) {
+            return Return(Unit());
+        }
+        
+        for (auto method : node->methods()) {
+            if (Reduce(method) < 0) {
+                return -1;
+            }
+        }
+        return Return(Unit());
+    }
+    
 
     int VisitAssignment(Assignment *node) override { UNREACHABLE(); }
     int VisitStructDefinition(StructDefinition *node) override { UNREACHABLE(); }
     
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
-    int VisitInterfaceDefinition(InterfaceDefinition *node) override { UNREACHABLE(); }
+    
     
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
@@ -749,26 +742,55 @@ private:
     }
     
     Type *LinkType(Type *type) {
-        return type->Link(std::bind(&TypeReducingVisitor::FindType, this, std::placeholders::_1));
+        return type->Link(std::bind(&TypeReducingVisitor::FindType, this, std::placeholders::_1,
+                                    std::placeholders::_2));
     }
     
-    Type *FindType(const Symbol *name) {
-        auto found = FindSymbol(!name->prefix_name() ? "" : name->prefix_name()->ToSlice(), name->name()->ToSlice());
-        if (!found) {
-            Feedback()->Printf(name->source_position(), "Symbol not found!");
+    Type *FindType(const Symbol *name, Type *owns) {
+        Statement *symbol = nullptr;
+        bool should_inst = false;
+        auto file_scope = DCHECK_NOTNULL(location_->NearlyFileUnitScope());
+        if (!owns->generic_args().empty()) {
+            auto full_name = MakeFullInstantiatingName(name->name()->ToSlice(), owns->generic_args_size(),
+                                                       &owns->generic_args()[0]);
+            if (name->prefix_name()) {
+                symbol = file_scope->FindExportSymbol(name->prefix_name()->ToSlice(), full_name);
+            } else {
+                symbol = file_scope->FindLocalSymbol(full_name);
+            }
+            should_inst = symbol == nullptr;
+        }
+        if (!symbol) {
+            if (name->prefix_name()) {
+                symbol = file_scope->FindExportSymbol(name->prefix_name()->ToSlice(), name->name()->ToSlice());
+            } else {
+                symbol = file_scope->FindLocalSymbol(name->name()->ToSlice());
+            }
+        }
+        if (!symbol) {
+            Feedback()->Printf(name->source_position(), "symbol: %s not found!", name->ToString().c_str());
             return nullptr;
         }
+        if (should_inst) {
+            InstantiatingResolver resolver(this);
+            auto rs = GenericsInstantiating::Instantiate(nullptr, symbol, arena_, error_feedback_, &resolver,
+                                                         owns->generic_args_size(),
+                                                         const_cast<Type **>(&owns->generic_args()[0]),
+                                                         &symbol);
+            if (rs.fail()) {
+                return nullptr;
+            }
+        }
         
-        switch (found->kind()) {
+        
+        switch (symbol->kind()) {
             case Node::kClassDefinition:
-                return new (arena_) ClassType(arena_, found->AsClassDefinition(), name->source_position());
+                return new (arena_) ClassType(arena_, symbol->AsClassDefinition(), name->source_position());
             case Node::kStructDefinition:
-                return new (arena_) StructType(arena_, found->AsStructDefinition(), name->source_position());
-            case Node::kInterfaceType:
-                return new (arena_) InterfaceType(arena_, found->AsInterfaceDefinition(), name->source_position());
+                return new (arena_) StructType(arena_, symbol->AsStructDefinition(), name->source_position());
+            case Node::kInterfaceDefinition:
+                return new (arena_) InterfaceType(arena_, symbol->AsInterfaceDefinition(), name->source_position());
             case Node::kObjectDeclaration:
-                UNREACHABLE();
-                break;
             default:
                 Feedback()->Printf(name->source_position(), "%s is not a type", name->ToString().c_str());
                 break;
@@ -910,6 +932,19 @@ private:
     bool MaybePackageName(Identifier *id) {
         auto [ast, ns] = location_->FindSymbol(id->name()->ToSlice());
         return !ast;
+    }
+    
+    static std::string MakeFullInstantiatingName(std::string_view name, int argc, Type *const *argv) {
+        std::string buf(name);
+        buf.append("<");
+        for (size_t i = 0; i < argc; i++) {
+            if (i > 0) {
+                buf.append(",");
+            }
+            buf.append(argv[i]->ToString()); // FIXME: use full type name
+        }
+        buf.append(">");
+        return buf;
     }
     
     base::Arena *const arena_;
