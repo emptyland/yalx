@@ -1,6 +1,7 @@
 #include "compiler/scope.h"
 #include "compiler/ast.h"
 #include "base/arena-utils.h"
+#include <stack>
 
 namespace yalx {
 
@@ -213,15 +214,38 @@ DataDefinitionScope::DataDefinitionScope(NamespaceScope **location, Incompletabl
 : NamespaceScope(location)
 , definition_(DCHECK_NOTNULL(definition)) {
     Enter();
+    
+    std::stack<IncompletableDefinition *> ancestors;
+    if (definition->IsClassDefinition()) {
+        auto def = definition->AsClassDefinition();
+        for (auto base = def->base_of(); base != nullptr; base = base->base_of()) {
+            ancestors.push(base);
+        }
+    } else {
+        assert(definition->IsStructDefinition());
+        auto def = definition->AsStructDefinition();
+        for (auto base = def->base_of(); base != nullptr; base = base->base_of()) {
+            ancestors.push(base);
+        }
+    }
+    
+    while (!ancestors.empty()) {
+        auto def = ancestors.top();
+        ancestors.pop();
+        
+        for (auto field : def->fields()) {
+            base_of_symbols_[field.declaration->Identifier()->ToSlice()] = field.declaration;
+        }
+        for (auto method : def->methods()) {
+            base_of_symbols_[method->name()->ToSlice()] = method;
+        }
+    }
 }
 
 DataDefinitionScope::~DataDefinitionScope() {
     Exit();
 }
 
-//VariableDeclaration(base::Arena *arena, bool is_volatile, Constraint constraint,
-//                    const String *identifier, class Type *type,
-//                    const SourcePosition &source_position)
 VariableDeclaration *DataDefinitionScope::ThisStub(base::Arena *arena) {
     if (this_stub()) {
         return this_stub();
@@ -247,6 +271,14 @@ ClassDefinition *DataDefinitionScope::AsClass() const { return definition()->AsC
 DataDefinitionScope *DataDefinitionScope::NearlyDataDefinitionScope() { return this; }
 
 FunctionScope *DataDefinitionScope::NearlyFunctionScope() { return nullptr; }
+
+Statement *DataDefinitionScope::FindLocalSymbol(std::string_view name) const {
+    if (auto ast = NamespaceScope::FindLocalSymbol(name)) {
+        return ast;
+    }
+    auto iter = base_of_symbols_.find(name);
+    return iter == base_of_symbols_.end() ? nullptr : iter->second;
+}
 
 FunctionScope::FunctionScope(NamespaceScope **location, FunctionDeclaration *fun)
 : NamespaceScope(location)

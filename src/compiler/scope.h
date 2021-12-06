@@ -48,6 +48,8 @@ public:
     virtual Statement *FindLocalSymbol(std::string_view name) const;
     virtual Statement *FindOrInsertSymbol(std::string_view name, Statement *ast);
     
+    void InsertSymbol(std::string_view name, Statement *ast) { symbols_[name] = ast; }
+    
     void Enter() {
         assert(*location_ != this);
         prev_ = *location_;
@@ -145,10 +147,11 @@ public:
     
     DataDefinitionScope *NearlyDataDefinitionScope() override;
     FunctionScope *NearlyFunctionScope() override;
-    
+    Statement *FindLocalSymbol(std::string_view name) const override;
 private:
     IncompletableDefinition *definition_;
     VariableDeclaration *this_stub_ = nullptr;
+    std::map<std::string_view, Statement *> base_of_symbols_;
 }; // class DataDefinitionScope
 
 class FunctionScope : public NamespaceScope {

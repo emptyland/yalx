@@ -323,16 +323,20 @@ private:
         
         // Default base class is Any;
         if (!node->base_of()) {
-            auto symbol = FindGlobal("yalx/lang:lang", "Any");
-            if (symbol.IsNotFound()) {
+            auto any_class = FindGlobal("yalx/lang:lang", "Any");
+            if (any_class.IsNotFound()) {
                 Feedback()->Printf(node->source_position(), "lang.Any class not found");
                 return -1;
             }
-            node->set_base_of(DCHECK_NOTNULL(symbol.ast->AsClassDefinition()));
+            // Don't set base class of Any class
+            if (any_class.ast != node) {
+                node->set_base_of(DCHECK_NOTNULL(any_class.ast->AsClassDefinition()));
+            }
         }
         
         DataDefinitionScope scope(&location_, node);
         // Into class scope:
+        //std::map<std::string_view, Statement *> in_class_symols_;
         for (int i = 0; i < node->fields_size(); i++) {
             auto field = node->field(i);
             if (field.in_constructor) {
@@ -357,6 +361,10 @@ private:
         for (auto method : node->methods()) {
             if (Reduce(method) < 0) {
                 return -1;
+            }
+            
+            if (method->decoration() == FunctionDeclaration::kOverride) {
+                UNREACHABLE(); // check override
             }
         }
         
@@ -461,6 +469,10 @@ private:
     }
     
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
+        if (auto duplicated = location_->FindOrInsertSymbol(node->name()->ToSlice(), node)) {
+            Feedback()->Printf(node->source_position(), "Duplicated function name: %s", node->name()->data());
+            return -1;
+        }
         FunctionScope scope(&location_, node);
         
         // Install `this' variable if needed
