@@ -335,6 +335,9 @@ private:
         }
         
         DataDefinitionScope scope(&location_, node);
+        scope.InstallAncestorsSymbols();
+        scope.InstallConcepts();
+        
         // Into class scope:
         //std::map<std::string_view, Statement *> in_class_symols_;
         for (int i = 0; i < node->fields_size(); i++) {
@@ -469,15 +472,20 @@ private:
     }
     
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
-        if (auto duplicated = location_->FindOrInsertSymbol(node->name()->ToSlice(), node)) {
-            Feedback()->Printf(node->source_position(), "Duplicated function name: %s", node->name()->data());
-            return -1;
-        }
         FunctionScope scope(&location_, node);
+
+        if (node->IsNative() || node->IsAbstract() || !node->body()) {
+            node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
+            return Return(Unit()); // Ignore nobody funs
+        }
         
         // Install `this' variable if needed
         if (auto data_scope = location_->NearlyDataDefinitionScope()) {
             scope.FindOrInsertSymbol("this", data_scope->ThisStub(arena_));
+            if (auto duplicated = location_->FindOrInsertSymbol(node->name()->ToSlice(), node)) {
+                Feedback()->Printf(node->source_position(), "Duplicated function name: %s", node->name()->data());
+                return -1;
+            }
         }
         
         auto prototype = node->prototype();
@@ -488,9 +496,6 @@ private:
         if (prototype->vargs()) {
             // TODO:
             UNREACHABLE();
-        }
-        if (node->IsNative() || node->IsAbstract()) {
-            return Return(Unit());
         }
         
         std::vector<Type *> receiver;
@@ -522,6 +527,8 @@ private:
             }
         }
         
+        // Install signature at last step
+        node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
         return Return(Unit());
     }
     
@@ -629,10 +636,20 @@ private:
             return Return(Unit());
         }
         
+        std::map<std::string_view, std::string_view> method_names;
         for (auto method : node->methods()) {
+            //method->decoration()
             if (Reduce(method) < 0) {
                 return -1;
             }
+            
+            auto iter = method_names.find(method->name()->ToSlice());
+            if (iter != method_names.end()) {
+                Feedback()->Printf(method->source_position(), "Duplicated interface method name: %s",
+                                   method->name()->data());
+                return -1;
+            }
+            method_names[method->name()->ToSlice()] = method->prototype()->signature()->ToSlice();
         }
         return Return(Unit());
     }
@@ -790,6 +807,9 @@ private:
                                                          const_cast<Type **>(&owns->generic_args()[0]),
                                                          &symbol);
             if (rs.fail()) {
+                return nullptr;
+            }
+            if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
                 return nullptr;
             }
         }
@@ -959,6 +979,17 @@ private:
         return buf;
     }
     
+    String *MakePrototypeSignature(FunctionPrototype *prototype) {
+        std::string incoming(prototype->MakeSignature());
+        auto iter = prototype_signatures_.find(incoming);
+        if (iter != prototype_signatures_.end()) {
+            return iter->second;
+        }
+        auto sign = String::New(arena_, incoming.data(), incoming.size());
+        prototype_signatures_[sign->ToSlice()] = sign;
+        return sign;
+    }
+    
     base::Arena *const arena_;
     SyntaxFeedback *const error_feedback_;
     NamespaceScope *location_ = nullptr;
@@ -968,6 +999,7 @@ private:
     std::unordered_map<std::string_view, GlobalSymbol> global_symbols_;
     std::map<Package *, PackageScope *> package_scopes_;
     std::stack<Type *> results_;
+    std::unordered_map<std::string_view, String *> prototype_signatures_;
     Type *unit_ = nullptr;
     Type *i32_ = nullptr;
 }; // class TypeReducingVisitor

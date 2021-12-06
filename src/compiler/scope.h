@@ -136,6 +136,9 @@ public:
     DataDefinitionScope(NamespaceScope **location, IncompletableDefinition *definition);
     ~DataDefinitionScope() override;
     
+    void InstallAncestorsSymbols();
+    void InstallConcepts();
+    
     DEF_PTR_GETTER(IncompletableDefinition, definition);
     DEF_PTR_PROP_RW(VariableDeclaration, this_stub);
     
@@ -149,9 +152,17 @@ public:
     FunctionScope *NearlyFunctionScope() override;
     Statement *FindLocalSymbol(std::string_view name) const override;
 private:
+    struct Concept {
+        std::string_view signature;
+        InterfaceDefinition *itf;
+        FunctionDeclaration *method;
+        int impl_count;
+    };
+    
     IncompletableDefinition *definition_;
     VariableDeclaration *this_stub_ = nullptr;
     std::map<std::string_view, Statement *> base_of_symbols_;
+    std::map<std::string_view, std::vector<Concept>> concepts_symbols_;
 }; // class DataDefinitionScope
 
 class FunctionScope : public NamespaceScope {

@@ -214,16 +214,23 @@ DataDefinitionScope::DataDefinitionScope(NamespaceScope **location, Incompletabl
 : NamespaceScope(location)
 , definition_(DCHECK_NOTNULL(definition)) {
     Enter();
-    
+}
+
+DataDefinitionScope::~DataDefinitionScope() {
+    Exit();
+}
+
+void DataDefinitionScope::InstallAncestorsSymbols() {
     std::stack<IncompletableDefinition *> ancestors;
-    if (definition->IsClassDefinition()) {
-        auto def = definition->AsClassDefinition();
+    if (definition()->IsClassDefinition()) {
+        auto def = definition()->AsClassDefinition();
         for (auto base = def->base_of(); base != nullptr; base = base->base_of()) {
             ancestors.push(base);
         }
+        //def->concepts()
     } else {
-        assert(definition->IsStructDefinition());
-        auto def = definition->AsStructDefinition();
+        assert(definition()->IsStructDefinition());
+        auto def = definition()->AsStructDefinition();
         for (auto base = def->base_of(); base != nullptr; base = base->base_of()) {
             ancestors.push(base);
         }
@@ -242,8 +249,26 @@ DataDefinitionScope::DataDefinitionScope(NamespaceScope **location, Incompletabl
     }
 }
 
-DataDefinitionScope::~DataDefinitionScope() {
-    Exit();
+void DataDefinitionScope::InstallConcepts() {
+    assert(definition()->IsClassDefinition());
+    auto def = definition()->AsClassDefinition();
+    for (auto concept : def->concepts()) {
+        auto ift = DCHECK_NOTNULL(concept->AsInterfaceType())->definition();
+        for (auto method : ift->methods()) {
+            Concept concept {
+                method->prototype()->signature()->ToSlice(),
+                ift,
+                method,
+                0
+            };
+            auto iter = concepts_symbols_.find(method->name()->ToSlice());
+            if (iter == concepts_symbols_.end()) {
+                concepts_symbols_[method->name()->ToSlice()] = {concept};
+            } else {
+                iter->second.push_back(concept);
+            }
+        }
+    }
 }
 
 VariableDeclaration *DataDefinitionScope::ThisStub(base::Arena *arena) {

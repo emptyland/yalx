@@ -874,7 +874,7 @@ DEFINE_ACTUAL_LITERAL(String, const String *);
 class LambdaLiteral : public Literal{
 public:
     LambdaLiteral(FunctionPrototype *prototype, Statement *body, const SourcePosition &source_position);
-    
+
     DEF_PTR_PROP_RW(FunctionPrototype, prototype);
     DEF_PTR_PROP_RW(Statement, body);
     
@@ -1431,8 +1431,11 @@ public:
         , vargs_(vargs) {}
 
     DEF_VAL_PROP_RW(bool, vargs);
+    DEF_PTR_PROP_RW(String, signature);
     DEF_ARENA_VECTOR_GETTER(Node *, param);
     DEF_ARENA_VECTOR_GETTER(Type *, return_type);
+    
+    std::string MakeSignature() const;
     
     bool Acceptable(const Type *rhs, bool *unlinked) const override;
     Type *Link(Linker &&linker) override;
@@ -1441,6 +1444,7 @@ private:
     base::ArenaVector<Node *> params_; // <VariableDeclaration::Item | Type>
     base::ArenaVector<Type *> return_types_;
     bool vargs_;
+    String *signature_ = nullptr;
 }; // class FunctionPrototype
 
 

@@ -797,6 +797,38 @@ bool InterfaceType::Acceptable(const Type *rhs, bool *unlinked) const {
 
 std::string InterfaceType::ToString() const { return definition()->FullName(); }
 
+
+std::string FunctionPrototype::MakeSignature() const {
+    std::string buf("(");
+    for (auto param : params()) {
+        if (buf.length() > 1) {
+            buf.append(",");
+        }
+        if (auto ty = param->AsType()) {
+            buf.append(ty->ToString());
+        } else if (auto var = static_cast<VariableDeclaration::Item *>(param)) {
+            buf.append(var->type()->ToString());
+        } else {
+            UNREACHABLE();
+        }
+    }
+    buf.append("):");
+    assert(!return_types().empty());
+    if (return_types_size() > 1) {
+        buf.append("(");
+        for (auto i = 0; i < return_types_size(); i++) {
+            if (i > 0) {
+                buf.append(",");
+            }
+            buf.append(return_type(i)->ToString());
+        }
+        buf.append(")");
+    } else {
+        buf.append(return_type(0)->ToString());
+    }
+    return buf;
+}
+
 bool FunctionPrototype::Acceptable(const Type *rhs, bool *unlinked) const {
     if (rhs->primary_type() == kType_symbol) {
         *unlinked = true;
