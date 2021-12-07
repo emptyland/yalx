@@ -1,0 +1,6 @@
+package foo
+
+interface Foo<T> {
+    fun doIt(): T
+    fun doThat(): T
+}

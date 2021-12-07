@@ -1,0 +1,10 @@
+package main
+
+import "foo"
+
+class Bobo : foo.Foo<int> {
+    override fun doIt() -> 100
+    override fun doThat() -> 200
+    //override fun doThis() -> Unit
+    override fun toString() -> "ok"
+}

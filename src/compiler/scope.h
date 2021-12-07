@@ -148,6 +148,21 @@ public:
     StructDefinition *AsStruct() const;
     ClassDefinition *AsClass() const;
     
+    enum ImplementTarget {
+        kNotFound,
+        kInterface,
+        kBaseClass,
+    };
+//    struct ImplementDetectionResult {
+//        ImplementTarget target;
+//        union {
+//            InterfaceDefinition *ift;
+//            IncompletableDefinition *clazz;
+//        };
+//    };
+//
+    ImplementTarget ImplementMethodOnce(std::string_view name, String *signature);
+    
     DataDefinitionScope *NearlyDataDefinitionScope() override;
     FunctionScope *NearlyFunctionScope() override;
     Statement *FindLocalSymbol(std::string_view name) const override;

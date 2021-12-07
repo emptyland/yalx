@@ -135,6 +135,19 @@ TEST_F(TypeReducingTest, TmplDeps) {
     ASSERT_EQ(Type::kType_i32, clazz->field(0).declaration->Type()->primary_type());
 }
 
+TEST_F(TypeReducingTest, IntefaceImpls) {
+    // 07-class-var-reducing
+    base::ArenaMap<std::string_view, Package *> all(&arena_);
+    base::ArenaVector<Package *> entries(&arena_);
+    Package *main_pkg = nullptr;
+    auto rs = Compiler::FindAndParseProjectSourceFiles("tests/10-interface-impls", "libs", &arena_, &feedback_,
+                                                       &main_pkg, &entries, &all);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    std::unordered_map<std::string_view, GlobalSymbol> symbols;
+    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    printf("%zd\n",symbols.size());
+}
+
 } // namespace yalx
 
 } // namespace yalx

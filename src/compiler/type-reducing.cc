@@ -367,7 +367,13 @@ private:
             }
             
             if (method->decoration() == FunctionDeclaration::kOverride) {
-                UNREACHABLE(); // check override
+                // check override
+                auto target = scope.ImplementMethodOnce(method->name()->ToSlice(), method->prototype()->signature());
+                if (target == DataDefinitionScope::kNotFound) {
+                    Feedback()->Printf(method->source_position(), "Invalid `override' decoration: %s%s",
+                                       method->name()->data(), method->prototype()->signature()->data());
+                    return -1;
+                }
             }
         }
         
@@ -474,7 +480,7 @@ private:
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
         FunctionScope scope(&location_, node);
 
-        if (node->IsNative() || node->IsAbstract() || !node->body()) {
+        if (node->IsNative() || node->IsAbstract()) {
             node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
             return Return(Unit()); // Ignore nobody funs
         }
@@ -566,71 +572,6 @@ private:
     }
 
     
-    int ReduceDependencySymbolIfNeeded(const char *name, Statement *node, Statement *ast) {
-        if (ProcessDependencySymbolIfNeeded(ast) < 0) {
-            return -1;
-        }
-        
-        switch (ast->kind()) {
-            case Node::kFunctionDeclaration:
-                return Return(ast->AsFunctionDeclaration()->prototype());
-            case Node::kObjectDeclaration:
-                return Return(ast->AsObjectDeclaration()->Type());
-            case Node::kVariableDeclaration:
-                assert(ast->AsVariableDeclaration()->ItemSize() == 1);
-                return Return(ast->AsVariableDeclaration()->Type());
-            default: {
-                if (auto var = down_cast<VariableDeclaration::Item>(ast)) {
-                    assert(var->type() != nullptr);
-                    return Return(var->type());
-                }
-            } break;
-        }
-        Feedback()->Printf(node->source_position(), "symbol: `%s' not found", name);
-        return -1;
-    }
-    
-    int ProcessDependencySymbolIfNeeded(Statement *ast) {
-        if (ast->IsTemplate()) {
-            return 0; // Ignore template
-        }
-        auto [owns, sym] = ast->Owns(true/*force*/);
-        auto pkg = ast->Pack(true/*force*/);
-        if (auto pkg_scope = FindPackageScopeOrNull(pkg); pkg_scope && pkg_scope->HasNotTracked(ast)) {
-            if (owns && owns->IsFileUnit()) {
-                auto current_pkg_scope = location_->NearlyPackageScope();
-                auto current_file_scope = location_->NearlyFileUnitScope();
-                
-                if (owns != current_file_scope->file_unit()) {
-                    printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
-                    PackageScope *external_scope = nullptr;
-                    FileUnitScope *scope = nullptr;
-                    if (pkg != current_pkg_scope->pkg()) {
-                        external_scope = EnsurePackageScope(pkg);
-                        external_scope->Enter();
-                        scope = DCHECK_NOTNULL(external_scope->FindFileUnitScopeOrNull(owns));
-                    } else {
-                        scope = DCHECK_NOTNULL(current_pkg_scope->FindFileUnitScopeOrNull(owns));
-                    }
-                    assert(scope != current_file_scope);
-                    scope->Enter();
-                    auto rs = Reduce(sym);
-                    pkg_scope->Track(sym);
-                    scope->Exit();
-                    if (external_scope) { external_scope->Exit(); }
-                    if (rs < 0) {
-                        return -1;
-                    }
-                } else {
-                    if (auto rs = Reduce(sym); rs < 0) {
-                        return -1;
-                    }
-                }
-            }
-        }
-        return 0;
-    }
-    
     int VisitInterfaceDefinition(InterfaceDefinition *node) override {
         if (!node->generic_params().empty()) {
             return Return(Unit());
@@ -638,10 +579,10 @@ private:
         
         std::map<std::string_view, std::string_view> method_names;
         for (auto method : node->methods()) {
-            //method->decoration()
-            if (Reduce(method) < 0) {
+            if (LinkType(method->prototype()) == nullptr) {
                 return -1;
             }
+            method->prototype()->set_signature(MakePrototypeSignature(method->prototype()));
             
             auto iter = method_names.find(method->name()->ToSlice());
             if (iter != method_names.end()) {
@@ -716,6 +657,71 @@ private:
     int VisitObjectDeclaration(ObjectDeclaration *node) override { UNREACHABLE(); }
     int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
+    
+    int ReduceDependencySymbolIfNeeded(const char *name, Statement *node, Statement *ast) {
+        if (ProcessDependencySymbolIfNeeded(ast) < 0) {
+            return -1;
+        }
+        
+        switch (ast->kind()) {
+            case Node::kFunctionDeclaration:
+                return Return(ast->AsFunctionDeclaration()->prototype());
+            case Node::kObjectDeclaration:
+                return Return(ast->AsObjectDeclaration()->Type());
+            case Node::kVariableDeclaration:
+                assert(ast->AsVariableDeclaration()->ItemSize() == 1);
+                return Return(ast->AsVariableDeclaration()->Type());
+            default: {
+                if (auto var = down_cast<VariableDeclaration::Item>(ast)) {
+                    assert(var->type() != nullptr);
+                    return Return(var->type());
+                }
+            } break;
+        }
+        Feedback()->Printf(node->source_position(), "symbol: `%s' not found", name);
+        return -1;
+    }
+    
+    int ProcessDependencySymbolIfNeeded(Statement *ast) {
+        if (ast->IsTemplate()) {
+            return 0; // Ignore template
+        }
+        auto [owns, sym] = ast->Owns(true/*force*/);
+        auto pkg = ast->Pack(true/*force*/);
+        if (auto pkg_scope = FindPackageScopeOrNull(pkg); pkg_scope && pkg_scope->HasNotTracked(ast)) {
+            if (owns && owns->IsFileUnit()) {
+                auto current_pkg_scope = location_->NearlyPackageScope();
+                auto current_file_scope = location_->NearlyFileUnitScope();
+                
+                if (owns != current_file_scope->file_unit()) {
+                    printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
+                    PackageScope *external_scope = nullptr;
+                    FileUnitScope *scope = nullptr;
+                    if (pkg != current_pkg_scope->pkg()) {
+                        external_scope = EnsurePackageScope(pkg);
+                        external_scope->Enter();
+                        scope = DCHECK_NOTNULL(external_scope->FindFileUnitScopeOrNull(owns));
+                    } else {
+                        scope = DCHECK_NOTNULL(current_pkg_scope->FindFileUnitScopeOrNull(owns));
+                    }
+                    assert(scope != current_file_scope);
+                    scope->Enter();
+                    auto rs = Reduce(sym);
+                    pkg_scope->Track(sym);
+                    scope->Exit();
+                    if (external_scope) { external_scope->Exit(); }
+                    if (rs < 0) {
+                        return -1;
+                    }
+                } else {
+                    if (auto rs = Reduce(sym); rs < 0) {
+                        return -1;
+                    }
+                }
+            }
+        }
+        return 0;
+    }
     
     
     GlobalSymbol GenericsInstantiate(Instantiation *inst) {

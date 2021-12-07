@@ -606,18 +606,43 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
             Match(Token::kGreater, CHECK_OK);
         }
         
-        Match(Token::kLParen, CHECK_OK);
-        auto calling = new (arena_) Calling(arena_, callee, symbol->source_position().Concat(Peek().source_position()));
-        if (!Test(Token::kRParen)) {
-            do {
-                auto arg = ParseExpression(CHECK_OK);
-                calling->mutable_args()->push_back(arg);
-            } while (Test(Token::kComma));
+        if (Test(Token::kLParen)) {
+            auto calling = new (arena_) Calling(arena_, callee, symbol->source_position().Concat(Peek().source_position()));
+            if (!Test(Token::kRParen)) {
+                do {
+                    auto arg = ParseExpression(CHECK_OK);
+                    calling->mutable_args()->push_back(arg);
+                } while (Test(Token::kComma));
+                
+                *calling->mutable_source_position() = symbol->source_position().Concat(Peek().source_position());
+                Match(Token::kRParen, CHECK_OK);
+            }
+            def->set_super_calling(calling);
+        } else {
+            assert(concepts);
+            auto inst = callee->AsInstantiation();
+            auto maybe_symbol = callee;
+            if (inst) {
+                maybe_symbol = inst->primary();
+            }
             
-            *calling->mutable_source_position() = symbol->source_position().Concat(Peek().source_position());
-            Match(Token::kRParen, CHECK_OK);
+            Symbol *symbol = nullptr;
+            if (auto id = maybe_symbol->AsIdentifier()) {
+                symbol = new (arena_) Symbol(id->name(), id->source_position());
+            } else if (auto dot = maybe_symbol->AsDot()) {
+                symbol = new (arena_) Symbol(dot->primary()->AsIdentifier()->name(), dot->field(),
+                                             dot->source_position());
+            } else {
+                UNREACHABLE();
+            }
+            auto concept = new (arena_) Type(arena_, symbol, symbol->source_position());
+            if (inst) {
+                for (auto garg : inst->generic_args()) {
+                    concept->mutable_generic_args()->push_back(garg);
+                }
+            }
+            concepts->push_back(concept);
         }
-        def->set_super_calling(calling);
         
         if (concepts) {
             while (Test(Token::kComma)) {

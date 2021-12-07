@@ -293,6 +293,34 @@ StructDefinition *DataDefinitionScope::AsStruct() const { return definition()->A
 
 ClassDefinition *DataDefinitionScope::AsClass() const { return definition()->AsClassDefinition(); }
 
+DataDefinitionScope::ImplementTarget
+DataDefinitionScope::ImplementMethodOnce(std::string_view name, String *signature) {
+    auto concepts_iter = concepts_symbols_.find(name);
+    if (concepts_iter != concepts_symbols_.end()) {
+        auto target = kNotFound;
+        for (auto &concept : concepts_iter->second) {
+            if (concept.method->prototype()->signature() == signature) {
+                concept.impl_count++;
+                target = kInterface;
+            }
+        }
+        if (target != kNotFound) {
+            return target;
+        }
+    }
+    
+    auto symbol_iter = base_of_symbols_.find(name);
+    if (symbol_iter != base_of_symbols_.end()) {
+        if (auto fun = symbol_iter->second->AsFunctionDeclaration()) {
+            if (fun->prototype()->signature() == signature) {
+                return kBaseClass;
+            }
+        }
+    }
+    
+    return kNotFound;
+}
+
 DataDefinitionScope *DataDefinitionScope::NearlyDataDefinitionScope() { return this; }
 
 FunctionScope *DataDefinitionScope::NearlyFunctionScope() { return nullptr; }
