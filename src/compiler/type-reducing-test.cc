@@ -145,7 +145,9 @@ TEST_F(TypeReducingTest, IntefaceImpls) {
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
     rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
-    printf("%zd\n",symbols.size());
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    ASSERT_TRUE(symbols.find("yalx/lang:lang.I32") != symbols.end());
+    ASSERT_TRUE(symbols.find("yalx/lang:lang.U32") != symbols.end());
 }
 
 } // namespace yalx

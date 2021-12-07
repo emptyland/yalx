@@ -40,6 +40,8 @@
 		2362A0F126A6CB1700A972B1 /* generics-instantiating-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362A0EF26A6CB1700A972B1 /* generics-instantiating-test.cc */; };
 		236466CC26F07E870066D168 /* checking.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236466CB26F07E870066D168 /* checking.cc */; };
 		236466CD26F07E870066D168 /* checking.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236466CB26F07E870066D168 /* checking.cc */; };
+		23711302275F68CE008919BE /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23711301275F68CE008919BE /* constants.cc */; };
+		23711303275F68CE008919BE /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23711301275F68CE008919BE /* constants.cc */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA42684627B002E6DCF /* lexer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFA32684627B002E6DCF /* lexer.cc */; };
@@ -289,6 +291,8 @@
 		2362A0EC26A69EAF00A972B1 /* generics-instantiating.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "generics-instantiating.cc"; path = "../src/compiler/generics-instantiating.cc"; sourceTree = "<group>"; };
 		2362A0EF26A6CB1700A972B1 /* generics-instantiating-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "generics-instantiating-test.cc"; path = "../src/compiler/generics-instantiating-test.cc"; sourceTree = "<group>"; };
 		236466CB26F07E870066D168 /* checking.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = checking.cc; path = ../src/base/checking.cc; sourceTree = "<group>"; };
+		23711300275F6889008919BE /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/compiler/constants.h; sourceTree = "<group>"; };
+		23711301275F68CE008919BE /* constants.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = constants.cc; sourceTree = "<group>"; };
 		2387EF9D2681C80D002E6DCF /* compiler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = compiler.h; path = ../src/compiler/compiler.h; sourceTree = "<group>"; };
 		2387EF9E2681C8D3002E6DCF /* compiler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = compiler.cc; path = ../src/compiler/compiler.cc; sourceTree = "<group>"; };
 		2387EFA126842BFF002E6DCF /* object-visitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "object-visitor.h"; path = "../src/runtime/heap/object-visitor.h"; sourceTree = "<group>"; };
@@ -524,6 +528,8 @@
 				232AA00626861D5D0098E6A3 /* parser-test.cc */,
 				232AA00326861D4C0098E6A3 /* parser.cc */,
 				232AA00226861D3C0098E6A3 /* parser.h */,
+				23711301275F68CE008919BE /* constants.cc */,
+				23711300275F6889008919BE /* constants.h */,
 			);
 			name = Compiler;
 			sourceTree = "<group>";
@@ -733,6 +739,7 @@
 				23D4A4692680D17D0090C631 /* arena.h in Sources */,
 				2387EFB4268586F5002E6DCF /* lexer-test.cc in Sources */,
 				23FA86A426A121AC001CC777 /* source-position.cc in Sources */,
+				23711303275F68CE008919BE /* constants.cc in Sources */,
 				23D4A46A2680D17D0090C631 /* at-exit.cc in Sources */,
 				23D4A46B2680D17D0090C631 /* at-exit.h in Sources */,
 				23D4A46C2680D17D0090C631 /* base.h in Sources */,
@@ -783,6 +790,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				23D5A65F266718F900635ADB /* arena-utils.cc in Sources */,
+				23711302275F68CE008919BE /* constants.cc in Sources */,
 				23D5A660266718F900635ADB /* arena-utils.h in Sources */,
 				23D5A661266718F900635ADB /* arena-test.cc in Sources */,
 				23D5A662266718F900635ADB /* arena.h in Sources */,

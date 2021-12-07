@@ -3,6 +3,7 @@
 #include "compiler/syntax-feedback.h"
 #include "compiler/scope.h"
 #include "compiler/ast.h"
+#include "compiler/constants.h"
 #include <stack>
 
 namespace yalx {
@@ -138,6 +139,14 @@ private:
                     return;
                 }
             }
+            
+            for (auto stmt : file->struct_defs()) {
+                auto symbol = FindOrInsertGlobal(node, stmt->name()->ToSlice(), stmt);
+                if (symbol.IsFound()) {
+                    Feedback()->Printf(stmt->source_position(), "Duplicated symbol: %s", stmt->name()->data());
+                    return;
+                }
+            }
         }
         
         for (auto file : node->source_files()) {
@@ -145,21 +154,12 @@ private:
                 auto base_ast = !clazz->super_calling() ? nullptr : clazz->super_calling()->callee();
                 if (!base_ast) {
                     if (node->path()->ToString() != "yalx/lang" && clazz->name()->ToString() != "Any") {
-                        auto any = FindGlobal("yalx/lang:lang", "Any"); // Any class
+                        auto any = FindGlobal(Constants::kLangPackageFullName, Constants::kAnyClassName); // Any class
                         assert(any.IsFound());
                         clazz->set_base_of(DCHECK_NOTNULL(any.ast->AsClassDefinition()));
                     }
                     continue;
                 }
-
-//                auto [prefix, name] = GetSymbol(base_ast, node->name()->ToSlice());
-//                auto symbol = FindGlobal(prefix, name);
-//                if (symbol.IsNotFound() || !symbol.ast->IsClassDefinition()) {
-//                    Feedback()->Printf(base_ast->source_position(), "Base class: %s.%s not found", prefix.data(),
-//                                       name.data());
-//                    return;
-//                }
-//                clazz->set_base_of(symbol.ast->AsClassDefinition());
             }
         }
     }
@@ -323,7 +323,7 @@ private:
         
         // Default base class is Any;
         if (!node->base_of()) {
-            auto any_class = FindGlobal("yalx/lang:lang", "Any");
+            auto any_class = FindGlobal(Constants::kLangPackageFullName, Constants::kAnyClassName);
             if (any_class.IsNotFound()) {
                 Feedback()->Printf(node->source_position(), "lang.Any class not found");
                 return -1;
@@ -461,103 +461,6 @@ private:
             }
         }
         return Return(Unit());
-    }
-    
-    Statement *Instantiate(const char *info, Instantiation *ast, Node::Kind kind) {
-        std::vector<Type *> types;
-        for (auto arg : ast->generic_args()) {
-            auto linked = LinkType(arg);
-            if (!linked) {
-                return nullptr;
-            }
-            types.push_back(linked);
-        }
-        
-        Statement *symbol = nullptr;
-        if (auto id = ast->primary()->AsIdentifier()) {
-            symbol = ResolveIdSymbol(info, id, kind, types);
-        } else if (auto dot = ast->primary()->AsDot()) {
-            symbol = ResolveDotSymbol(info, dot, kind, types);
-        } else {
-            UNREACHABLE();
-        }
-        if (!symbol) {
-            return nullptr;
-        }
-        //hook(symbol);
-        if (symbol->IsNotTemplate()) {
-            Feedback()->Printf(ast->source_position(), "%s is template, need instantiation", info);
-            return nullptr;
-        }
-        
-        InstantiatingResolver resover(this);
-        auto rs = GenericsInstantiating::Instantiate(nullptr, symbol, arena_, error_feedback_, &resover,
-                                                     types.size(), &types[0], &symbol);
-        if (rs.fail()) {
-            return nullptr;
-        }
-        if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
-            return nullptr;
-        }
-        return symbol;
-    }
-    
-    Statement *ResolveIdSymbol(const char *info, Identifier *ast, Node::Kind kind,
-                               const std::vector<Type *> &types = {}) {
-        auto name = ast->name();
-        auto file_scope = location_->NearlyFileUnitScope();
-        Statement *symbol = nullptr;
-        if (types.empty()) {
-            symbol = file_scope->FindLocalSymbol(name->ToSlice());
-        } else {
-//            std::string buf(name->ToString());
-//            buf.append("<");
-//            for (size_t i = 0; i < types.size(); i++) {
-//                if (i > 0) {
-//                    buf.append(",");
-//                }
-//                buf.append(types[i]->ToString());
-//            }
-//            buf.append(">");
-            symbol = file_scope->FindLocalSymbol(MakeFullInstantiatingName(name->ToSlice(), types.size(), &types[0]));
-            if (!symbol) {
-                symbol = file_scope->FindLocalSymbol(name->ToSlice());
-            }
-        }
-        if (!symbol || symbol->kind() != kind) {
-            Feedback()->Printf(ast->source_position(), "%s: %s not found", info, name->data());
-            return nullptr;
-        }
-        if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
-            return nullptr;
-        }
-        return symbol;
-    }
-    
-    Statement *ResolveDotSymbol(const char *info, Dot *ast, Node::Kind kind,
-                                const std::vector<Type *> &types = {}) {
-        auto prefix = DCHECK_NOTNULL(ast->primary()->AsIdentifier());
-        auto name = ast->field();
-        auto file_scope = location_->NearlyFileUnitScope();
-        Statement *symbol = nullptr;
-        if (types.empty()) {
-            symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), name->ToSlice());
-        } else {
-            symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(),
-                                                  MakeFullInstantiatingName(name->ToSlice(), types.size(), &types[0]));
-            if (!symbol) {
-                symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), name->ToSlice());
-            }
-        }
-        if (!symbol || symbol->kind() != kind) {
-            Feedback()->Printf(ast->source_position(), "%s: %s.%s not found", info, prefix->name()->data(),
-                               name->data());
-            return nullptr;
-        }
-        if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
-            return nullptr;
-        }
-        return symbol;
     }
     
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
@@ -736,6 +639,94 @@ private:
     int VisitObjectDeclaration(ObjectDeclaration *node) override { UNREACHABLE(); }
     int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
+    
+    Statement *Instantiate(const char *info, Instantiation *ast, Node::Kind kind) {
+        std::vector<Type *> types;
+        for (auto arg : ast->generic_args()) {
+            auto linked = LinkType(arg);
+            if (!linked) {
+                return nullptr;
+            }
+            types.push_back(linked);
+        }
+        
+        Statement *symbol = nullptr;
+        if (auto id = ast->primary()->AsIdentifier()) {
+            symbol = ResolveIdSymbol(info, id, kind, types);
+        } else if (auto dot = ast->primary()->AsDot()) {
+            symbol = ResolveDotSymbol(info, dot, kind, types);
+        } else {
+            UNREACHABLE();
+        }
+        if (!symbol) {
+            return nullptr;
+        }
+        //hook(symbol);
+        if (symbol->IsNotTemplate()) {
+            Feedback()->Printf(ast->source_position(), "%s is template, need instantiation", info);
+            return nullptr;
+        }
+        
+        InstantiatingResolver resover(this);
+        auto rs = GenericsInstantiating::Instantiate(nullptr, symbol, arena_, error_feedback_, &resover,
+                                                     types.size(), &types[0], &symbol);
+        if (rs.fail()) {
+            return nullptr;
+        }
+        if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
+            return nullptr;
+        }
+        return symbol;
+    }
+    
+    Statement *ResolveIdSymbol(const char *info, Identifier *ast, Node::Kind kind,
+                               const std::vector<Type *> &types = {}) {
+        auto name = ast->name();
+        auto file_scope = location_->NearlyFileUnitScope();
+        Statement *symbol = nullptr;
+        if (types.empty()) {
+            symbol = file_scope->FindLocalSymbol(name->ToSlice());
+        } else {
+            symbol = file_scope->FindLocalSymbol(MakeFullInstantiatingName(name->ToSlice(), types.size(), &types[0]));
+            if (!symbol) {
+                symbol = file_scope->FindLocalSymbol(name->ToSlice());
+            }
+        }
+        if (!symbol || symbol->kind() != kind) {
+            Feedback()->Printf(ast->source_position(), "%s: %s not found", info, name->data());
+            return nullptr;
+        }
+        if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
+            return nullptr;
+        }
+        return symbol;
+    }
+    
+    Statement *ResolveDotSymbol(const char *info, Dot *ast, Node::Kind kind,
+                                const std::vector<Type *> &types = {}) {
+        auto prefix = DCHECK_NOTNULL(ast->primary()->AsIdentifier());
+        auto name = ast->field();
+        auto file_scope = location_->NearlyFileUnitScope();
+        Statement *symbol = nullptr;
+        if (types.empty()) {
+            symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), name->ToSlice());
+        } else {
+            symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(),
+                                                  MakeFullInstantiatingName(name->ToSlice(), types.size(), &types[0]));
+            if (!symbol) {
+                symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), name->ToSlice());
+            }
+        }
+        if (!symbol || symbol->kind() != kind) {
+            Feedback()->Printf(ast->source_position(), "%s: %s.%s not found", info, prefix->name()->data(),
+                               name->data());
+            return nullptr;
+        }
+        if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
+            return nullptr;
+        }
+        return symbol;
+    }
     
     int ReduceDependencySymbolIfNeeded(const char *name, Statement *node, Statement *ast) {
         if (ProcessDependencySymbolIfNeeded(ast) < 0) {
