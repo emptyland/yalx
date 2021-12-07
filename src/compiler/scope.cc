@@ -321,6 +321,20 @@ DataDefinitionScope::ImplementMethodOnce(std::string_view name, String *signatur
     return kNotFound;
 }
 
+int
+DataDefinitionScope::UnimplementMethods(std::function<void(InterfaceDefinition *, FunctionDeclaration *)> &&callback) {
+    int count = 0;
+    for (const auto &pair : concepts_symbols_) {
+        for (const auto &concept : pair.second) {
+            if (concept.impl_count == 0) {
+                count++;
+                callback(concept.itf, concept.method);
+            }
+        }
+    }
+    return count;
+}
+
 DataDefinitionScope *DataDefinitionScope::NearlyDataDefinitionScope() { return this; }
 
 FunctionScope *DataDefinitionScope::NearlyFunctionScope() { return nullptr; }

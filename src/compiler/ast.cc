@@ -848,13 +848,22 @@ bool FunctionPrototype::Acceptable(const Type *rhs, bool *unlinked) const {
 
 Type *FunctionPrototype::Link(Linker &&linker) {
     for (size_t i = 0; i < params_size(); i++) {
-        auto old = DCHECK_NOTNULL(param(i)->AsType());
-        auto linked = old->Link(std::move(linker));
-        if (!linked) {
-            return nullptr;
-        }
-        if (linked != old) {
-            params_[i] = linked;
+        if (param(i)->IsType()) {
+            auto old = DCHECK_NOTNULL(param(i)->AsType());
+            auto linked = old->Link(std::move(linker));
+            if (!linked) {
+                return nullptr;
+            }
+            if (linked != old) {
+                params_[i] = linked;
+            }
+        } else {
+            auto item = static_cast<VariableDeclaration::Item *>(param(i));
+            auto linked = item->type()->Link(std::move(linker));
+            if (!linked) {
+                return nullptr;
+            }
+            item->set_type(linked);
         }
     }
     for (size_t i = 0; i < return_types_size(); i++) {

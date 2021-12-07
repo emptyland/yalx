@@ -377,6 +377,89 @@ private:
             }
         }
         
+        if (scope.UnimplementMethods([this, node](auto ift, auto method) {
+            Feedback()->Printf(node->source_position(), "Unimplement method: %s::%s%s",
+                               ift->name()->data(), method->name()->data(), method->prototype()->signature()->data());
+        }) > 0) {
+            return -1;
+        }
+        return Return(Unit());
+    }
+    
+    int VisitStructDefinition(StructDefinition *node) override {
+        if (!node->generic_params().empty()) {
+            return Return(Unit());
+        }
+        if (node->super_calling()) {
+            auto super_call = node->super_calling();
+            Statement *symbol = nullptr;
+            switch (super_call->callee()->kind()) {
+                case Node::kIdentifier:
+                    symbol = ResolveIdSymbol("base struct", super_call->callee()->AsIdentifier(), Node::kStructDefinition);
+                    break;
+                case Node::kDot:
+                    symbol = ResolveDotSymbol("base struct", super_call->callee()->AsDot(), Node::kStructDefinition);
+                    break;
+                case Node::kInstantiation:
+                    symbol = Instantiate("base struct", super_call->callee()->AsInstantiation(), Node::kStructDefinition);
+                    break;
+                default:
+                    break;
+            }
+            if (!symbol) {
+                return -1;
+            }
+            node->set_base_of(symbol->AsStructDefinition());
+        }
+        
+        DataDefinitionScope scope(&location_, node);
+        scope.InstallAncestorsSymbols();
+        //scope.InstallConcepts();
+        
+        // Into struct scope:
+        for (int i = 0; i < node->fields_size(); i++) {
+            auto field = node->field(i);
+            if (field.in_constructor) {
+                auto name = field.declaration->Identifier();
+                auto dup = scope.FindOrInsertSymbol(name->ToSlice(), field.declaration);
+                if (dup) {
+                    Feedback()->Printf(field.declaration->source_position(), "duplicated struct field: `%s'",
+                                       name->data());
+                    return -1;
+                }
+                
+                if (!LinkType(DCHECK_NOTNULL(field.declaration->Type()))) {
+                    return -1;
+                }
+                continue;
+            }
+            if (Reduce(field.declaration) < 0) {
+                return -1;
+            }
+        }
+        
+        for (auto method : node->methods()) {
+            if (LinkType(method->prototype()) == nullptr) {
+                return -1;
+            }
+            if (!method->body()) {
+                method->prototype()->set_signature(MakePrototypeSignature(method->prototype()));
+            } else {
+                if (Reduce(method) < 0) {
+                    return -1;
+                }
+            }
+            
+            if (method->decoration() == FunctionDeclaration::kOverride) {
+                // check override
+                auto target = scope.ImplementMethodOnce(method->name()->ToSlice(), method->prototype()->signature());
+                if (target == DataDefinitionScope::kNotFound) {
+                    Feedback()->Printf(method->source_position(), "Invalid `override' decoration: %s%s",
+                                       method->name()->data(), method->prototype()->signature()->data());
+                    return -1;
+                }
+            }
+        }
         return Return(Unit());
     }
     
@@ -512,7 +595,7 @@ private:
         
         if (prototype->return_types_size() > 0) {
             if (prototype->return_types_size() != nrets) {
-                Feedback()->Printf(node->source_position(), "unexpected return val numbers, %d, %zd", nrets,
+                Feedback()->Printf(node->source_position(), "Unexpected return val numbers, %d, %zd", nrets,
                                    prototype->return_types_size());
                 return -1;
             }
@@ -520,7 +603,7 @@ private:
             for (auto i = 0; i < prototype->return_types_size(); i++) {
                 bool unlinked = false;
                 if (!receiver[i]->Acceptable(prototype->return_type(i), &unlinked)) {
-                    Feedback()->Printf(node->source_position(), "return type not accepted, %s <= %s",
+                    Feedback()->Printf(node->source_position(), "Return type not accepted, %s <= %s",
                                        prototype->return_type(i)->ToString().c_str(),
                                        receiver[i]->ToString().c_str());
                     return -1;
@@ -542,7 +625,7 @@ private:
         //node->name()->data();
         auto [ast, ns] = location_->FindSymbol(node->name()->ToSlice());
         if (!ast) {
-            Feedback()->Printf(node->source_position(), "symbol: `%s' not found", node->name()->data());
+            Feedback()->Printf(node->source_position(), "Symbol: `%s' not found", node->name()->data());
             return -1;
         }
         return ReduceDependencySymbolIfNeeded(node->name()->data(), node, ast);
@@ -555,7 +638,7 @@ private:
                 auto file_scope = location_->NearlyFileUnitScope();
                 auto symbol = file_scope->FindExportSymbol(id->name()->ToSlice(), node->field()->ToSlice());
                 if (!symbol) {
-                    Feedback()->Printf(node->source_position(), "symbol: %s.%s not found", id->name()->data(),
+                    Feedback()->Printf(node->source_position(), "Symbol: %s.%s not found", id->name()->data(),
                                        node->field()->data());
                     return -1;
                 }
@@ -597,11 +680,7 @@ private:
     
 
     int VisitAssignment(Assignment *node) override { UNREACHABLE(); }
-    int VisitStructDefinition(StructDefinition *node) override { UNREACHABLE(); }
-    
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
-    
-    
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
     int VisitBreak(Break *node) override { UNREACHABLE(); }
@@ -638,7 +717,7 @@ private:
     int VisitBitwiseShl(BitwiseShl *node) override { UNREACHABLE(); }
     int VisitBitwiseShr(BitwiseShr *node) override { UNREACHABLE(); }
     int VisitBitwiseXor(BitwiseXor *node) override { UNREACHABLE(); }
-    int VisitF32Literal(F32Literal *node) override { UNREACHABLE(); }
+    int VisitF32Literal(F32Literal *node) override { return Return(node->type()); }
     int VisitF64Literal(F64Literal *node) override { UNREACHABLE(); }
     int VisitI64Literal(I64Literal *node) override { UNREACHABLE(); }
     int VisitIndexedGet(IndexedGet *node) override { UNREACHABLE(); }

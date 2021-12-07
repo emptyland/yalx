@@ -153,15 +153,10 @@ public:
         kInterface,
         kBaseClass,
     };
-//    struct ImplementDetectionResult {
-//        ImplementTarget target;
-//        union {
-//            InterfaceDefinition *ift;
-//            IncompletableDefinition *clazz;
-//        };
-//    };
-//
+
     ImplementTarget ImplementMethodOnce(std::string_view name, String *signature);
+    
+    int UnimplementMethods(std::function<void(InterfaceDefinition *, FunctionDeclaration *)> &&callback);
     
     DataDefinitionScope *NearlyDataDefinitionScope() override;
     FunctionScope *NearlyFunctionScope() override;

@@ -4,7 +4,7 @@ import "foo"
 
 class Bobo : foo.Foo<int>()
            , Tom<f32> {
-
+    override fun foo() -> 0.1
 } 
 
 interface Tom<T> {
