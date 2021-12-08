@@ -150,6 +150,21 @@ TEST_F(TypeReducingTest, IntefaceImpls) {
     ASSERT_TRUE(symbols.find("yalx/lang:lang.U32") != symbols.end());
 }
 
+TEST_F(TypeReducingTest, ObjectDecls) {
+    // 07-class-var-reducing
+    base::ArenaMap<std::string_view, Package *> all(&arena_);
+    base::ArenaVector<Package *> entries(&arena_);
+    Package *main_pkg = nullptr;
+    auto rs = Compiler::FindAndParseProjectSourceFiles("tests/11-object-decls", "libs", &arena_, &feedback_,
+                                                       &main_pkg, &entries, &all);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    std::unordered_map<std::string_view, GlobalSymbol> symbols;
+    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    ASSERT_TRUE(symbols.find("foo:foo.Foo$ShadowClass") != symbols.end());
+    ASSERT_TRUE(symbols.find("foo:foo.Foo") != symbols.end());
+}
+
 } // namespace yalx
 
 } // namespace yalx

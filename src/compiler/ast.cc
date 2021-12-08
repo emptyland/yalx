@@ -435,6 +435,20 @@ IncompletableDefinition::IncompletableDefinition(Node::Kind kind, base::Arena *a
     , methods_(arena) {
 }
 
+Statement *IncompletableDefinition::FindLocalSymbolOrNull(std::string_view name) const {
+    for (auto field : fields()) {
+        if (name.compare(field.declaration->Identifier()->ToSlice()) == 0) {
+            return field.declaration;
+        }
+    }
+    for (auto method : methods()) {
+        if (name.compare(method->name()->ToSlice()) == 0) {
+            return method;
+        }
+    }
+    return nullptr;
+}
+
 StructDefinition::StructDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
     : IncompletableDefinition(Node::kStructDefinition, arena, name, source_position) {
 }

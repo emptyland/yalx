@@ -484,6 +484,8 @@ public:
     ObjectDeclaration(base::Arena *arena, const String *name, const SourcePosition &source_position);
 
     DEF_PTR_PROP_RW(const String, name);
+    DEF_PTR_PROP_RW(class Type, dummy);
+    //DEF_PTR_PROP_RW(ClassDefinition, shadow_class);
     DEF_ARENA_VECTOR_GETTER(VariableDeclaration *, field);
     DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, method);
     
@@ -498,6 +500,7 @@ private:
     base::ArenaVector<VariableDeclaration *> fields_;
     base::ArenaVector<FunctionDeclaration *> methods_;
     class Type *dummy_ = nullptr;
+    //ClassDefinition *shadow_class_ = nullptr;
 }; // class ObjectDeclaration
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -551,6 +554,15 @@ class InterfaceDefinition : public Definition {
 public:
     InterfaceDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
     
+    Statement *FindSymbolOrNull(std::string_view name) const {
+        for (auto fun : methods_) {
+            if (name.compare(fun->name()->ToSlice()) == 0) {
+                return fun;
+            }
+        }
+        return nullptr;
+    }
+
     DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, method);
     
     DECLARE_AST_NODE(InterfaceDefinition);
@@ -583,6 +595,8 @@ public:
     DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, method);
     DEF_ARENA_VECTOR_GETTER(Parameter, parameter);
     DEF_PTR_PROP_RW(Calling, super_calling);
+    
+    Statement *FindLocalSymbolOrNull(std::string_view name) const;
 protected:
     IncompletableDefinition(Node::Kind kind, base::Arena *arena, const String *name,
                             const SourcePosition &source_position);
@@ -599,6 +613,14 @@ class StructDefinition : public IncompletableDefinition {
 public:
     StructDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
     
+    Statement *FindSymbolOrNull(std::string_view name) const {
+        for (auto owns = this; owns != nullptr; owns = owns->base_of()) {
+            if (auto ast = owns->FindLocalSymbolOrNull(name)) {
+                return ast;
+            }
+        }
+        return nullptr;
+    }
     DEF_PTR_PROP_RW(StructDefinition, base_of);
     DECLARE_AST_NODE(StructDefinition);
 private:
@@ -608,6 +630,15 @@ private:
 class ClassDefinition : public IncompletableDefinition {
 public:
     ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
+
+    Statement *FindSymbolOrNull(std::string_view name) const {
+        for (auto owns = this; owns != nullptr; owns = owns->base_of()) {
+            if (auto ast = owns->FindLocalSymbolOrNull(name)) {
+                return ast;
+            }
+        }
+        return nullptr;
+    }
 
     DEF_PTR_PROP_RW(ClassDefinition, base_of);
     DEF_ARENA_VECTOR_GETTER(Type *, concept);

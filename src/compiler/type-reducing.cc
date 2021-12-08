@@ -147,6 +147,14 @@ private:
                     return;
                 }
             }
+            
+            for (auto stmt : file->objects()) {
+                auto symbol = FindOrInsertGlobal(node, stmt->name()->ToSlice(), stmt);
+                if (symbol.IsFound()) {
+                    Feedback()->Printf(stmt->source_position(), "Duplicated symbol: %s", stmt->name()->data());
+                    return;
+                }
+            }
         }
         
         for (auto file : node->source_files()) {
@@ -154,7 +162,7 @@ private:
                 auto base_ast = !clazz->super_calling() ? nullptr : clazz->super_calling()->callee();
                 if (!base_ast) {
                     if (node->path()->ToString() != "yalx/lang" && clazz->name()->ToString() != "Any") {
-                        auto any = FindGlobal(Constants::kLangPackageFullName, Constants::kAnyClassName); // Any class
+                        auto any = FindGlobal(kLangPackageFullName, kAnyClassName); // Any class
                         assert(any.IsFound());
                         clazz->set_base_of(DCHECK_NOTNULL(any.ast->AsClassDefinition()));
                     }
@@ -281,6 +289,39 @@ private:
         return Return(Unit());
     }
     
+    int VisitObjectDeclaration(ObjectDeclaration *node) override {
+        if (node->dummy() && node->dummy()->IsClassType()) {
+            return Return(Unit());
+        }
+        
+        std::string buf(node->name()->ToString().append(kObjectShadowClassPostfix));
+        auto shadow_class = new (arena_) ClassDefinition(arena_, String::New(arena_, buf.data(), buf.size()),
+                                                         node->source_position());
+        for (auto field : node->fields()) {
+            shadow_class->mutable_fields()->push_back(FieldOfStructure{
+                false,
+                0,
+                field,
+            });
+        }
+        for (auto method : node->methods()) {
+            shadow_class->mutable_methods()->push_back(method);
+        }
+        shadow_class->set_package(node->package());
+        shadow_class->set_owns(node->owns());
+        
+        auto type = new (arena_) ClassType(arena_, shadow_class, node->source_position());
+        node->set_dummy(type);
+        
+        DCHECK_NOTNULL(shadow_class->owns()->AsFileUnit())->Add(shadow_class);
+        FindOrInsertGlobal(shadow_class->package(), shadow_class->name()->ToSlice(), shadow_class);
+        if (Reduce(shadow_class) < 0) {
+            return -1;
+        }
+
+        return Return(Unit());
+    }
+    
     int VisitClassDefinition(ClassDefinition *node) override {
         if (!node->generic_params().empty()) {
             return Return(Unit());
@@ -323,7 +364,7 @@ private:
         
         // Default base class is Any;
         if (!node->base_of()) {
-            auto any_class = FindGlobal(Constants::kLangPackageFullName, Constants::kAnyClassName);
+            auto any_class = FindGlobal(kLangPackageFullName, kAnyClassName);
             if (any_class.IsNotFound()) {
                 Feedback()->Printf(node->source_position(), "lang.Any class not found");
                 return -1;
@@ -552,12 +593,54 @@ private:
         if (Reduce(node->primary(), &types) < 0) {
             return -1;
         }
-        // TODO:
-        UNREACHABLE();
-        return -1;
+        
+        if (types.size() > 1) {
+            Feedback()->Printf(node->source_position(), "Too many values for field: %s", node->field()->data());
+            return -1;
+        }
+        
+        auto def = GetTypeSpecifiedDefinition(types[0]);
+        if (!def) {
+            return -1;
+        }
+        
+        Statement *field = nullptr;
+        switch (def->kind()) {
+            case Node::kClassDefinition:
+                field = def->AsClassDefinition()->FindSymbolOrNull(node->field()->ToSlice());
+                break;
+            case Node::kStructDefinition:
+                field = def->AsStructDefinition()->FindSymbolOrNull(node->field()->ToSlice());
+                break;
+            case Node::kInterfaceDefinition:
+                field = def->AsInterfaceDefinition()->FindSymbolOrNull(node->field()->ToSlice());
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+        
+        if (!field) {
+            Feedback()->Printf(node->source_position(), "Field `%s' not found", node->field()->data());
+            return -1;
+        }
+        
+        switch (field->kind()) {
+            case Node::kVariableDeclaration:
+                return Return(field->AsVariableDeclaration()->Type());
+            case Node::kFunctionDeclaration:
+                return Return(field->AsFunctionDeclaration()->prototype());
+            default: {
+                if (auto var = down_cast<VariableDeclaration::Item>(field)) {
+                    return Return(var->type());
+                }
+                UNREACHABLE();
+                return -1;
+            }
+        }
     }
 
-    
+
     int VisitInterfaceDefinition(InterfaceDefinition *node) override {
         if (!node->generic_params().empty()) {
             return Return(Unit());
@@ -636,9 +719,40 @@ private:
     int VisitWhenExpression(WhenExpression *node) override { UNREACHABLE(); }
     int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
     int VisitArrayInitializer(ArrayInitializer *node) override { UNREACHABLE(); }
-    int VisitObjectDeclaration(ObjectDeclaration *node) override { UNREACHABLE(); }
     int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
+    
+    Statement *GetTypeSpecifiedDefinition(Type *type) {
+        switch (type->primary_type()) {
+            case Type::kType_class:
+                return type->AsClassType()->definition();
+            case Type::kType_struct:
+                return type->AsStructType()->definition();
+            case Type::kType_interface:
+                return type->AsInterfaceType()->definition();
+            case Type::kType_any:
+            case Type::kType_string:
+            case Type::kType_bool:
+            case Type::kType_char:
+            case Type::kType_i8:
+            case Type::kType_u8:
+            case Type::kType_i16:
+            case Type::kType_u16:
+            case Type::kType_i32:
+            case Type::kType_u32:
+            case Type::kType_i64:
+            case Type::kType_u64:
+            case Type::kType_f32:
+            case Type::kType_f64: {
+                auto symbol = FindGlobal(kLangPackageFullName, Constants::kPrimitiveTypeClassNames[type->primary_type()]);
+                assert(symbol.IsFound());
+                return symbol.ast;
+            }
+            default:
+                UNREACHABLE();
+                break;
+        }
+    }
     
     Statement *Instantiate(const char *info, Instantiation *ast, Node::Kind kind) {
         std::vector<Type *> types;

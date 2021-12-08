@@ -1,0 +1,5 @@
+package main
+
+import "foo"
+
+fun bobo() -> foo.Foo.i

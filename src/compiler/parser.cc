@@ -180,8 +180,8 @@ FileUnit *Parser::Parse(bool *ok) {
             } break;
                 
             case Token::kObject: {
-                // TODO:
-                UNREACHABLE();
+                auto stmt = ParseObjectDeclaration(CHECK_OK);
+                file_unit_->Add(stmt);
             } break;
                 
             case Token::kInterface: {
@@ -267,6 +267,9 @@ Statement *Parser::ParseOutsideStatement(bool *ok) {
     switch (Peek().kind()) {
         case Token::kInterface:
             return ParseInterfaceDefinition(ok);
+            
+        case Token::kObject:
+            return ParseObjectDeclaration(ok);
             
         case Token::kStruct:
             return ParseStructDefinition(ok);
@@ -504,6 +507,41 @@ AnnotationDefinition *Parser::ParseAnnotationDefinition(bool *ok) {
 // member_definition ::= annotation_declaration? access_description? `override' variable_declaration
 // method_definition ::= annotation_declaration? `override'?  access_description? ( function_definition | function_declaration)
 // access_description ::= `public' | `private' | `protected'
+ObjectDeclaration *Parser::ParseObjectDeclaration(bool *ok) {
+    auto location = Peek().source_position();
+    Match(Token::kObject, CHECK_OK);
+    auto name = MatchText(Token::kIdentifier, CHECK_OK);
+    auto decl = new (arena_) ObjectDeclaration(arena_, name, location);
+    Match(Token::kLBrace, CHECK_OK);
+    
+    while (!Test(Token::kRBrace)) {
+        AnnotationDeclaration *anno = nullptr;
+        if (Peek().Is(Token::kAtOutlined)) {
+            anno = ParseAnnotationDeclaration(CHECK_OK);
+        }
+        auto access = static_cast<Access>(ParseDeclarationAccess());
+        
+        switch (Peek().kind()) {
+                // val a, b, c = 1, 2, 3
+                // private val name, alias = "setup", "dom"
+            case Token::kVolatile:
+            case Token::kVal:
+            case Token::kVar: {
+                auto field = ParseVariableDeclaration(CHECK_OK);
+                decl->mutable_fields()->push_back(field);
+            } break;
+                
+            default: {
+                auto fun = ParseFunctionDeclaration(CHECK_OK);
+                fun->set_access(access);
+                fun->set_annotations(anno);
+                decl->mutable_methods()->push_back(fun);
+            } break;
+        }
+    }
+    return decl;
+}
+
 StructDefinition *Parser::ParseStructDefinition(bool *ok) {
     auto location = Peek().source_position();
     Match(Token::kStruct, CHECK_OK);
@@ -1961,13 +1999,13 @@ Expression *Parser::NewExpressionWithOperands(const Operator &op, Expression *lh
     auto location = op.operands == 2 ? begin.Concat(rhs->source_position()) : begin.Concat(lhs->source_position());
     Expression *operand = op.operands == 1 ? lhs : nullptr;
     switch (op.kind) {
-    #define DEFINE_CASE(name, base) \
-    case Node::k##name: \
-    return new (arena_) name (base##_PARAMS, location);
+#define DEFINE_CASE(name, base) \
+case Node::k##name: \
+return new (arena_) name (base##_PARAMS, location);
             
-    DECLARE_EXPRESSION_WITH_OPERANDS(DEFINE_CASE)
-
-    #undef DEFINE_CASE
+            DECLARE_EXPRESSION_WITH_OPERANDS(DEFINE_CASE)
+            
+#undef DEFINE_CASE
             
         default:
             UNREACHABLE();

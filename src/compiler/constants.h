@@ -10,12 +10,15 @@ namespace cpl {
 
 class Constants final {
 public:
-    constexpr static char kLangPackageFullName[] = "yalx/lang:lang";
-    constexpr static char kAnyClassName[] = "Any";
-    
+
+    static const char *kPrimitiveTypeClassNames[];
     DISALLOW_ALL_CONSTRUCTORS(Constants);
 }; // class Constants
 
+constexpr static char kLangPackageFullName[] = "yalx/lang:lang";
+constexpr static char kAnyClassName[] = "Any";
+
+constexpr static char kObjectShadowClassPostfix[] = "$ShadowClass";
 } // namespace cpl
 
 } // namespace yalx

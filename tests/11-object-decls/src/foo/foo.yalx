@@ -1,0 +1,9 @@
+package foo
+
+object Foo {
+    val i = 1
+    val j = 2
+    val k = 3
+
+    fun doIt() -> i
+}

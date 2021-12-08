@@ -45,6 +45,7 @@ public:
     FunctionPrototype *ParseFunctionPrototype(bool *ok);
     InterfaceDefinition *ParseInterfaceDefinition(bool *ok);
     AnnotationDefinition *ParseAnnotationDefinition(bool *ok);
+    ObjectDeclaration *ParseObjectDeclaration(bool *ok);
     StructDefinition *ParseStructDefinition(bool *ok);
     ClassDefinition *ParseClassDefinition(bool *ok);
     IncompletableDefinition *ParseIncompletableDefinition(IncompletableDefinition *receiver,
