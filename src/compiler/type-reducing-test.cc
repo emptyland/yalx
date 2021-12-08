@@ -163,6 +163,12 @@ TEST_F(TypeReducingTest, ObjectDecls) {
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     ASSERT_TRUE(symbols.find("foo:foo.Foo$ShadowClass") != symbols.end());
     ASSERT_TRUE(symbols.find("foo:foo.Foo") != symbols.end());
+    ASSERT_TRUE(symbols.find("main:main.baz") != symbols.end());
+    
+    auto fun = symbols["main:main.baz"].ast->AsFunctionDeclaration();
+    ASSERT_NE(nullptr, fun);
+    ASSERT_EQ(1, fun->prototype()->return_types_size());
+    ASSERT_EQ(Type::kType_i32, fun->prototype()->return_type(0)->primary_type());
 }
 
 } // namespace yalx

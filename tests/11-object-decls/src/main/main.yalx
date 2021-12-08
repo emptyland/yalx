@@ -3,3 +3,4 @@ package main
 import "foo"
 
 fun bobo() -> foo.Foo.i
+fun baz() -> foo.Foo.doIt()

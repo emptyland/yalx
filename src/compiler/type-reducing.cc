@@ -664,6 +664,87 @@ private:
         return Return(Unit());
     }
     
+    int VisitCalling(Calling *node) override {
+        Statement *ast = nullptr;
+        bool is_others_expr = false;
+        switch (node->callee()->kind()) {
+            case Node::kIdentifier:
+                ast = ResolveIdSymbol("Calling", node->callee()->AsIdentifier(), Node::kMaxKinds);
+                break;
+            case Node::kDot:
+                if (node->callee()->AsDot()->primary()->IsIdentifier()) {
+                    ast = ResolveDotSymbol("Calling", node->callee()->AsDot(), Node::kMaxKinds);
+                }
+                break;
+            case Node::kInstantiation:
+                ast = Instantiate("Calling", node->callee()->AsInstantiation(), Node::kMaxKinds);
+                break;
+            default:
+                is_others_expr = true;
+                break;
+        }
+        
+        if (!is_others_expr) {
+            if (!ast) {
+                return -1;
+            }
+            
+            if (ast->IsClassDefinition() || ast->IsStructDefinition()) {
+                // TODO: maybe call constructor;
+                UNREACHABLE();
+            }
+        }
+        
+        std::vector<Type *> types;
+        if (Reduce(node->callee(), &types) < 0) {
+            return -1;
+        }
+        if (types.size() > 1) {
+            Feedback()->Printf(node->source_position(), "Too many values for calling");
+            return -1;
+        }
+        if (!types[0]->IsFunctionPrototype()) {
+            Feedback()->Printf(node->source_position(), "Bad type: `%s' for calling", types[0]->ToString().c_str());
+            return -1;
+        }
+        
+        std::vector<Type *> args;
+        for (auto arg : node->args()) {
+            if (Reduce(arg, &args) < 0) {
+                return -1;
+            }
+        }
+        auto prototype = types[0]->AsFunctionPrototype();
+        if (!prototype->vargs() && args.size() != prototype->params_size()) {
+            Feedback()->Printf(node->source_position(), "Unexpected function number of parameters, %zd vs %zd",
+                               prototype->params_size(), args.size());
+            return -1;
+        }
+        
+        for (auto i = 0; i < prototype->params_size(); i++) {
+            Type *param = nullptr;
+            if (prototype->param(i)->IsType()) {
+                param = prototype->param(i)->AsType();
+            } else {
+                param = static_cast<VariableDeclaration::Item *>(prototype->param(i))->type();
+            }
+            
+            bool unlinked = true;
+            if (!param->Acceptable(args[i], &unlinked)) {
+                Feedback()->Printf(node->source_position(), "Unexpected function parameter[%d] type: `%s', actual is `%s'",
+                                   i, param->ToString().c_str(), args[i]->ToString().c_str());
+                return -1;
+            }
+            assert(!unlinked);
+        }
+        
+        std::vector<Type *> results;
+        for (auto type : prototype->return_types()) {
+            results.push_back(type);
+        }
+        return Return(results);
+    }
+    
 
     int VisitAssignment(Assignment *node) override { UNREACHABLE(); }
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
@@ -691,7 +772,6 @@ private:
     int VisitRecv(Recv *node) override { UNREACHABLE(); }
     int VisitSend(Send *node) override { UNREACHABLE(); }
     int VisitEqual(Equal *node) override { UNREACHABLE(); }
-    int VisitCalling(Calling *node) override { UNREACHABLE(); }
     int VisitCasting(Casting *node) override { UNREACHABLE(); }
     int VisitGreater(Greater *node) override { UNREACHABLE(); }
     int VisitTesting(Testing *node) override { UNREACHABLE(); }
@@ -806,7 +886,7 @@ private:
                 symbol = file_scope->FindLocalSymbol(name->ToSlice());
             }
         }
-        if (!symbol || symbol->kind() != kind) {
+        if (!symbol || (kind != Node::kMaxKinds && symbol->kind() != kind)) {
             Feedback()->Printf(ast->source_position(), "%s: %s not found", info, name->data());
             return nullptr;
         }
@@ -831,7 +911,7 @@ private:
                 symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), name->ToSlice());
             }
         }
-        if (!symbol || symbol->kind() != kind) {
+        if (!symbol || (kind != Node::kMaxKinds && symbol->kind() != kind)) {
             Feedback()->Printf(ast->source_position(), "%s: %s.%s not found", info, prefix->name()->data(),
                                name->data());
             return nullptr;
