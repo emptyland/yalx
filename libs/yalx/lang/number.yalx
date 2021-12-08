@@ -1,0 +1,31 @@
+package lang
+
+@Lang
+struct I32(val value: i32) {
+    fun toI8(): i8
+    fun toU8(): u8
+    fun toI16(): i16
+    fun toU16(): u16
+    fun toU32(): u32
+    fun toI64(): i64
+    fun toU64(): u64
+    fun toF32(): f32
+    fun toF64(): f64
+    fun compareTo(a: i32): i32
+    fun toString(): string
+}
+
+@Lang
+struct U32(val value: u32) {
+    fun toI8(): i8
+    fun toU8(): u8
+    fun toI16(): i16
+    fun toU16(): u16
+    fun toI32(): i32
+    fun toI64(): i64
+    fun toU64(): u64
+    fun toF32(): f32
+    fun toF64(): f64
+    fun compareTo(a: u32): i32
+    fun toString(): string
+}
