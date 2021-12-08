@@ -171,6 +171,23 @@ TEST_F(TypeReducingTest, ObjectDecls) {
     ASSERT_EQ(Type::kType_i32, fun->prototype()->return_type(0)->primary_type());
 }
 
+TEST_F(TypeReducingTest, Calling01) {
+    base::ArenaMap<std::string_view, Package *> all(&arena_);
+    base::ArenaVector<Package *> entries(&arena_);
+    Package *main_pkg = nullptr;
+    auto rs = Compiler::FindAndParseProjectSourceFiles("tests/12-calling-01", "libs", &arena_, &feedback_,
+                                                       &main_pkg, &entries, &all);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    std::unordered_map<std::string_view, GlobalSymbol> symbols;
+    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    ASSERT_TRUE(symbols.find("main:main.gv") != symbols.end());
+    
+    auto val = down_cast<VariableDeclaration::Item>(symbols["main:main.gv"].ast);
+    ASSERT_NE(nullptr, val);
+    ASSERT_EQ(Type::kType_struct, val->Type()->primary_type());
+}
+
 } // namespace yalx
 
 } // namespace yalx

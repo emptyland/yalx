@@ -1,0 +1,19 @@
+package main
+
+import "foo"
+
+val gv = foo.Vec(1.1, 2.1)
+
+fun main() {
+    bobo(1,2)
+    val v = foo.Vec(1.0, 2.0)
+    bxbx(v)
+    byby(v)
+}
+
+
+fun bobo(a: int, b: int) -> 1
+
+fun bxbx(a: foo.Vec) -> a.x
+
+fun byby(a: foo.Vec) -> a.y

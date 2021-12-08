@@ -454,6 +454,10 @@ private:
         }
         
         DataDefinitionScope scope(&location_, node);
+        if (!node->parameters().empty()) {
+            // TODO: Make constructor function
+            UNREACHABLE();
+        }
         scope.InstallAncestorsSymbols();
         //scope.InstallConcepts();
         
@@ -674,6 +678,8 @@ private:
             case Node::kDot:
                 if (node->callee()->AsDot()->primary()->IsIdentifier()) {
                     ast = ResolveDotSymbol("Calling", node->callee()->AsDot(), Node::kMaxKinds);
+                } else {
+                    is_others_expr = true;
                 }
                 break;
             case Node::kInstantiation:
@@ -688,10 +694,42 @@ private:
             if (!ast) {
                 return -1;
             }
-            
             if (ast->IsClassDefinition() || ast->IsStructDefinition()) {
-                // TODO: maybe call constructor;
-                UNREACHABLE();
+                auto def = down_cast<IncompletableDefinition>(ast);
+                std::vector<Type *> args;
+                for (auto arg : node->args()) {
+                    if (Reduce(arg, &args) < 0) {
+                        return -1;
+                    }
+                }
+                
+                if (args.size() != def->parameters_size()) {
+                    Feedback()->Printf(node->source_position(), "Unexpected function number of parameters, %zd vs %zd",
+                                       def->parameters_size(), args.size());
+                    return -1;
+                }
+                
+                for (auto i = 0; i < def->parameters_size(); i++) {
+                    Type *param = nullptr;
+                    if (def->parameter(i).field_declaration) {
+                        param = def->field(def->parameter(i).as_field).declaration->Type();
+                    } else {
+                        param = def->parameter(i).as_parameter->Type();
+                    }
+                    bool unlinked = false;
+                    if (!param->Acceptable(args[i], &unlinked)) {
+                        Feedback()->Printf(node->source_position(), "Unexpected constructor parameter[%d] type: `%s', "
+                                           "actual is `%s'", i, param->ToString().c_str(), args[i]->ToString().c_str());
+                        return -1;
+                    }
+                    assert(!unlinked);
+                }
+                
+                if (def->IsClassDefinition()) {
+                    return Return(new (arena_) ClassType(arena_, def->AsClassDefinition(), def->source_position()));
+                } else {
+                    return Return(new (arena_) StructType(arena_, def->AsStructDefinition(), def->source_position()));
+                }
             }
         }
         
@@ -729,7 +767,7 @@ private:
                 param = static_cast<VariableDeclaration::Item *>(prototype->param(i))->type();
             }
             
-            bool unlinked = true;
+            bool unlinked = false;
             if (!param->Acceptable(args[i], &unlinked)) {
                 Feedback()->Printf(node->source_position(), "Unexpected function parameter[%d] type: `%s', actual is `%s'",
                                    i, param->ToString().c_str(), args[i]->ToString().c_str());
@@ -938,6 +976,11 @@ private:
             default: {
                 if (auto var = down_cast<VariableDeclaration::Item>(ast)) {
                     assert(var->type() != nullptr);
+                    auto ty = LinkType(var->type());
+                    if (!ty) {
+                        return -1;
+                    }
+                    var->set_type(ty);
                     return Return(var->type());
                 }
             } break;
@@ -1017,13 +1060,15 @@ private:
         if (fail() || nrets < 0) {
             return -1;
         }
+        size_t origin_level = 0;
         if (receiver) {
-            receiver->resize(receiver->size() + nrets);
+            origin_level = receiver->size();
+            receiver->resize(origin_level + nrets);
         }
         int i = nrets;
         while (i--) {
             if (receiver) {
-                (*receiver)[i] = results_.top();
+                (*receiver)[origin_level + i] = results_.top();
             }
             results_.pop();
         }

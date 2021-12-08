@@ -1,0 +1,4 @@
+package foo
+
+struct Vec(val x: f32, val y: f32)
+

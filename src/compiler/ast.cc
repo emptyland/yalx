@@ -106,8 +106,11 @@ std::tuple<AstNode *, Statement *> Statement::Owns(bool force) {
     } else if (Definition::Is(this)) {
         return std::make_tuple(static_cast<const Definition *>(this)->owns(), this);
     } else if (force) {
-        return std::make_tuple(down_cast<VariableDeclaration::Item>(this)->owns()->owns(),
-                               down_cast<VariableDeclaration::Item>(this)->owns());
+        auto item = down_cast<VariableDeclaration::Item>(this);
+        if (!item->owns()) {
+            return std::make_tuple(nullptr, nullptr);
+        }
+        return std::make_tuple(item->owns()->owns(), item->owns());
     } else {
         return std::make_tuple(nullptr, nullptr);
     }
@@ -119,7 +122,11 @@ Package *Statement::Pack(bool force) {
     } else if (Definition::Is(this)) {
         return static_cast<const Definition *>(this)->package();
     } else if (force) {
-        return down_cast<VariableDeclaration::Item>(this)->owns()->package();
+        auto item = down_cast<VariableDeclaration::Item>(this);
+        if (!item->owns()) {
+            return nullptr;
+        }
+        return item->owns()->package();
     } else {
         return nullptr;
     }
