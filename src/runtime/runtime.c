@@ -34,6 +34,7 @@ struct stack_pool stack_pool;
 // External symbol from generated code
 extern uint32_t yalx_magic_number1;
 extern uint32_t yalx_magic_number2;
+extern uint32_t yalx_magic_number3;
 
 #ifndef NDEBUG
 
@@ -100,7 +101,7 @@ static void dev_print_fields(const struct dev_struct_field *field) {
 }
 
 static void dev_print_struct_fields() {
-    printf("magic numbers: %u, %u\n", yalx_magic_number1, yalx_magic_number2);
+    printf("magic numbers: %u, %u, %u\n", yalx_magic_number1, yalx_magic_number2, yalx_magic_number3);
     
     printf("struct scheduler:\n");
     dev_print_fields(scheduler_fields);
