@@ -323,6 +323,7 @@ private:
     }
     
     int VisitClassDefinition(ClassDefinition *node) override {
+        printd("reduce class: %s", node->name()->data());
         if (!node->generic_params().empty()) {
             return Return(Unit());
         }
@@ -345,7 +346,11 @@ private:
             if (!symbol) {
                 return -1;
             }
-            node->set_base_of(symbol->AsClassDefinition());
+            auto base_of = symbol->AsClassDefinition();
+            node->set_base_of(base_of);
+        }
+        if (node->base_of() && ProcessDependencySymbolIfNeeded(node->base_of()) < 0) {
+            return -1;
         }
         
         auto classes_count = 0;
@@ -378,6 +383,12 @@ private:
         DataDefinitionScope scope(&location_, node);
         scope.InstallAncestorsSymbols();
         scope.InstallConcepts();
+        auto constructor = GeneratePrimaryConstructor(node, node->base_of(), node->super_calling());
+        node->set_primary_constructor(constructor);
+        if (!constructor || Reduce(constructor) < 0) {
+            return -1;
+        }
+        
         
         // Into class scope:
         //std::map<std::string_view, Statement *> in_class_symols_;
@@ -454,12 +465,12 @@ private:
         }
         
         DataDefinitionScope scope(&location_, node);
-        if (!node->parameters().empty()) {
-            // TODO: Make constructor function
-            UNREACHABLE();
-        }
         scope.InstallAncestorsSymbols();
-        //scope.InstallConcepts();
+        auto constructor = GeneratePrimaryConstructor(node, node->base_of(), node->super_calling());
+        if (!constructor || Reduce(constructor) < 0) {
+            return -1;
+        }
+        node->set_primary_constructor(constructor);
         
         // Into struct scope:
         for (int i = 0; i < node->fields_size(); i++) {
@@ -508,6 +519,84 @@ private:
         return Return(Unit());
     }
     
+    FunctionDeclaration *GeneratePrimaryConstructor(IncompletableDefinition *node,
+                                                    IncompletableDefinition *base_of,
+                                                    Calling *super_calling) {
+        auto prototype = new (arena_) FunctionPrototype(arena_, false/*vargs*/, node->source_position());
+        Type *type = nullptr;
+        if (node->IsStructDefinition()) {
+            type = new (arena_) StructType(arena_, node->AsStructDefinition(), node->source_position());
+        } else {
+            type = new (arena_) ClassType(arena_, node->AsClassDefinition(), node->source_position());
+        }
+        prototype->mutable_return_types()->push_back(type);
+
+        for (auto param : node->parameters()) {
+            VariableDeclaration::Item *var = nullptr;
+            if (param.field_declaration) {
+                var = down_cast<VariableDeclaration::Item>(node->field(param.as_field).declaration->AtItem(0));
+            } else {
+                var = param.as_parameter;
+            }
+            prototype->mutable_params()->push_back(var);
+        }
+        
+        auto buf = node->name()->ToString().append(kPrimaryConstructorPostfix);
+        auto name = String::New(arena_, buf.data(), buf.size());
+        auto fun = new (arena_) FunctionDeclaration(arena_, FunctionDeclaration::kDefault, name, prototype,
+                                                    false/*is_reduct*/, node->source_position());
+        auto body = new (arena_) Block(arena_, node->source_position());
+        fun->set_body(body);
+        
+        auto this_id = new (arena_) Identifier(String::New(arena_, "this"), node->source_position());
+        if (base_of) {
+            //printd("base_of: %s", base_of->name()->data());
+            assert(base_of->primary_constructor());
+            auto super_id = new (arena_) Identifier(base_of->primary_constructor()->name(), node->source_position());
+            if (!super_calling) {
+                auto calling = new (arena_) Calling(arena_, super_id, node->source_position());
+                body->mutable_statements()->push_back(calling);
+            } else {
+                auto calling = new (arena_) Calling(arena_, super_id, node->source_position());
+                calling->mutable_args()->assign(super_calling->args().begin(), super_calling->args().end());
+                body->mutable_statements()->push_back(calling);
+            }
+        }
+
+        for (auto param : node->parameters()) {
+            if (param.field_declaration) {
+                auto var = node->field(param.as_field).declaration;
+                auto dot = new (arena_) Dot(this_id, var->Identifier(), var->source_position());
+                auto ass = new (arena_) Assignment(arena_, var->source_position());
+                ass->set_initial(true);
+                ass->mutable_lvals()->push_back(dot);
+                ass->mutable_rvals()->push_back(new (arena_) Identifier(var->Identifier(), var->source_position()));
+                body->mutable_statements()->push_back(ass);
+            }
+        }
+        for (auto field : node->fields()) {
+            if (field.in_constructor) {
+                continue;
+            }
+            
+            auto ass = new (arena_) Assignment(arena_, field.declaration->source_position());
+            ass->set_initial(true);
+            for (auto i = 0; i < field.declaration->ItemSize(); i++) {
+                auto var = field.declaration->AtItem(i);
+                auto dot = new (arena_) Dot(this_id, var->Identifier(), var->source_position());
+                ass->mutable_lvals()->push_back(dot);
+            }
+            for (auto expr : field.declaration->initilaizers()) {
+                ass->mutable_rvals()->push_back(expr);
+            }
+        }
+        
+        auto ret = new (arena_) class Return(arena_, node->source_position());
+        ret->mutable_returnning_vals()->push_back(this_id);
+        body->mutable_statements()->push_back(ret);
+        return fun;
+    }
+
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
         FunctionScope scope(&location_, node);
 
@@ -540,7 +629,15 @@ private:
         if (nrets < 0) {
             return -1;
         }
-        
+        if (!node->is_reduce()) {
+            // Install signature at last step
+            if (node->prototype()->return_types().empty()) {
+                node->prototype()->mutable_return_types()->push_back(Unit());
+            }
+            node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
+            return Return(Unit());
+        }
+
         if (prototype->return_types_size() > 0) {
             if (prototype->return_types_size() != nrets) {
                 Feedback()->Printf(node->source_position(), "Unexpected return val numbers, %d, %zd", nrets,
@@ -580,18 +677,15 @@ private:
     }
     
     int VisitDot(Dot *node) override {
-        if (node->primary()->IsIdentifier()) {
-            auto id = node->primary()->AsIdentifier();
-            if (MaybePackageName(id)) {
-                auto file_scope = location_->NearlyFileUnitScope();
-                auto symbol = file_scope->FindExportSymbol(id->name()->ToSlice(), node->field()->ToSlice());
-                if (!symbol) {
-                    Feedback()->Printf(node->source_position(), "Symbol: %s.%s not found", id->name()->data(),
-                                       node->field()->data());
-                    return -1;
-                }
-                return ReduceDependencySymbolIfNeeded(id->name()->data(), node, symbol);
+        if (auto id = node->primary()->AsIdentifier(); id && MaybePackageName(id)) {
+            auto file_scope = location_->NearlyFileUnitScope();
+            auto symbol = file_scope->FindExportSymbol(id->name()->ToSlice(), node->field()->ToSlice());
+            if (!symbol) {
+                Feedback()->Printf(node->source_position(), "Symbol: %s.%s not found", id->name()->data(),
+                                   node->field()->data());
+                return -1;
             }
+            return ReduceDependencySymbolIfNeeded(id->name()->data(), node, symbol);
         }
         std::vector<Type *> types;
         if (Reduce(node->primary(), &types) < 0) {
@@ -672,9 +766,15 @@ private:
         Statement *ast = nullptr;
         bool is_others_expr = false;
         switch (node->callee()->kind()) {
-            case Node::kIdentifier:
-                ast = ResolveIdSymbol("Calling", node->callee()->AsIdentifier(), Node::kMaxKinds);
-                break;
+            case Node::kIdentifier: {
+                auto [sym, ns] = location_->FindSymbol(node->callee()->AsIdentifier()->name()->ToSlice());
+                if (!sym) {
+                    Feedback()->Printf(node->callee()->source_position(), "Symbol `%s' not found",
+                                       node->callee()->AsIdentifier()->name()->data());
+                    return -1;
+                }
+                ast = sym;
+            } break;
             case Node::kDot:
                 if (node->callee()->AsDot()->primary()->IsIdentifier()) {
                     ast = ResolveDotSymbol("Calling", node->callee()->AsDot(), Node::kMaxKinds);
@@ -784,13 +884,140 @@ private:
     }
     
 
-    int VisitAssignment(Assignment *node) override { UNREACHABLE(); }
+    int VisitAssignment(Assignment *node) override {
+        std::vector<Type *> rvals;
+        for (auto rval : node->rvals()) {
+            if (Reduce(rval, &rvals) < 0) {
+                return -1;
+            }
+        }
+        
+        std::vector<Declaration *> lvals;
+        for (auto lval : node->lvals()) {
+            Statement *symbol = nullptr;
+            if (auto id = lval->AsIdentifier()) {
+                auto [ast, ns] = location_->FindSymbol(id->name()->ToSlice());
+                symbol = ast;
+                if (!symbol) {
+                    Feedback()->Printf(node->source_position(), "Symbol %s not found", id->name()->data());
+                    return -1;
+                }
+                if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
+                    return -1;
+                }
+            } else if (auto dot = lval->AsDot()) {
+                if (auto id = dot->primary()->AsIdentifier(); id && MaybePackageName(id)) {
+                    auto file_scope = location_->NearlyFileUnitScope();
+                    symbol = file_scope->FindExportSymbol(id->name()->ToSlice(), dot->field()->ToSlice());
+                    if (!symbol) {
+                        Feedback()->Printf(node->source_position(), "Symbol %s.%s not found",
+                                           id->name()->data(), dot->field()->data());
+                        return -1;
+                    }
+                    if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
+                        return -1;
+                    }
+                } else {
+                    std::vector<Type *> types;
+                    if (Reduce(dot->primary(), &types) < 0) {
+                        return -1;
+                    }
+                    if (lvals.size() > 1) {
+                        Feedback()->Printf(node->source_position(), "Too many values for field: %s",
+                                           dot->field()->data());
+                        return -1;
+                    }
+                    symbol = DCHECK_NOTNULL(GetTypeSpecifiedDefinition(types[0]));
+                    if (auto def = symbol->AsClassDefinition()) {
+                        symbol = def->FindSymbolOrNull(dot->field()->ToSlice());
+                    } else if (auto def = symbol->AsStructDefinition()) {
+                        symbol = def->FindSymbolOrNull(dot->field()->ToSlice());
+                    } else {
+                        Feedback()->Printf(node->source_position(), "Invalid rval");
+                        return -1;
+                    }
+                }
+            } else {
+                Feedback()->Printf(node->source_position(), "Invalid rval");
+                return -1;
+            }
+
+            if (auto var = symbol->AsVariableDeclaration()) {
+                if (!node->initial() && var->constraint() == VariableDeclaration::kVal) {
+                    Feedback()->Printf(node->source_position(), "Write `val' constraint value");
+                    return -1;
+                }
+                lvals.push_back(var);
+            } else {
+                auto item = down_cast<VariableDeclaration::Item>(symbol);
+                if (!item->owns()) {
+                    Feedback()->Printf(node->source_position(), "Write `val' constraint value");
+                    return -1;
+                }
+                if (!node->initial() && item->owns()->constraint() == VariableDeclaration::kVal) {
+                    Feedback()->Printf(node->source_position(), "Write `val' constraint value");
+                    return -1;
+                }
+                lvals.push_back(item);
+            }
+        }
+        
+        if (lvals.size() != rvals.size()) {
+            Feedback()->Printf(node->source_position(), "Unexpected number of lvals, %zd vs %zd", lvals.size(),
+                               rvals.size());
+            return -1;
+        }
+        for (auto i = 0; i < lvals.size(); i++) {
+            bool unlinked = false;
+            if (!lvals[i]->Type()->Acceptable(rvals[i], &unlinked)) {
+                Feedback()->Printf(node->source_position(), "Unexpected lvals[%d] type `%s', %s",
+                                   lvals[i]->Type()->ToString().c_str(), rvals[i]->ToString().c_str());
+                return -1;
+            }
+            assert(!unlinked);
+        }
+        return Return(Unit());
+    }
+    
+    int VisitReturn(class Return *node) override {
+        std::vector<Type *> rets;
+        for (auto ret : node->returnning_vals()) {
+            if (Reduce(ret, &rets) < 0) {
+                return -1;
+            }
+        }
+        
+        auto fun_scope = location_->NearlyFunctionScope();
+        auto owns = fun_scope->fun();
+        if (owns->is_reduce()) {
+            Feedback()->Printf(node->source_position(), "Return vals for reducing(`->') function");
+            return -1;
+        }
+        
+        if (rets.size() != owns->prototype()->return_types_size()) {
+            Feedback()->Printf(node->source_position(), "Unexpected number of returning types, %zd vs %zd",
+                               owns->prototype()->return_types_size(), rets.size());
+            return -1;
+        }
+        
+        for (auto i = 0; i < owns->prototype()->return_types_size(); i++) {
+            bool unlinked = false;
+            if (!owns->prototype()->return_type(i)->Acceptable(rets[i], &unlinked)) {
+                Feedback()->Printf(node->source_position(), "Unexpected returning[%d] type `%s', actual is `%s'",
+                                   owns->prototype()->return_type(i)->ToString().c_str(), rets[i]->ToString().c_str());
+                return -1;
+            }
+            assert(!unlinked);
+        }
+        return Return(Unit());
+    }
+    
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
     int VisitBreak(Break *node) override { UNREACHABLE(); }
     int VisitContinue(Continue *node) override { UNREACHABLE(); }
-    int VisitReturn(Return *node) override { UNREACHABLE(); }
+    
     int VisitThrow(Throw *node) override { UNREACHABLE(); }
     int VisitRunCoroutine(RunCoroutine *node) override { UNREACHABLE(); }
     int VisitWhileLoop(WhileLoop *ast) override { UNREACHABLE(); }

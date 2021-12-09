@@ -239,7 +239,9 @@ void DataDefinitionScope::InstallAncestorsSymbols() {
     while (!ancestors.empty()) {
         auto def = ancestors.top();
         ancestors.pop();
-        
+        if (def->primary_constructor()) {
+            base_of_symbols_[def->primary_constructor()->name()->ToSlice()] = def->primary_constructor();
+        }
         for (auto field : def->fields()) {
             base_of_symbols_[field.declaration->Identifier()->ToSlice()] = field.declaration;
         }

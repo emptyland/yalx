@@ -187,10 +187,12 @@ public:
     
     DEF_ARENA_VECTOR_GETTER(Expression *, lval);
     DEF_ARENA_VECTOR_GETTER(Expression *, rval);
+    DEF_VAL_PROP_RW(bool, initial);
     DECLARE_AST_NODE(Assignment);
 private:
     base::ArenaVector<Expression *> lvals_;
     base::ArenaVector<Expression *> rvals_;
+    bool initial_ = false;
 }; // class Assignment
 
 class Return : public Statement {
@@ -595,6 +597,7 @@ public:
     DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, method);
     DEF_ARENA_VECTOR_GETTER(Parameter, parameter);
     DEF_PTR_PROP_RW(Calling, super_calling);
+    DEF_PTR_PROP_RW(FunctionDeclaration, primary_constructor);
     
     Statement *FindLocalSymbolOrNull(std::string_view name) const;
 protected:
@@ -606,6 +609,7 @@ protected:
     base::ArenaVector<Field> fields_;
     base::ArenaVector<FunctionDeclaration *> methods_;
     Calling *super_calling_ = nullptr;
+    FunctionDeclaration *primary_constructor_ = nullptr;
 }; // class IncompletableDefinition
 
 
