@@ -1,0 +1,4 @@
+package lang
+
+@Lang
+native fun println(s: string): unit

@@ -36,6 +36,16 @@ BlockScope *NamespaceScope::NearlyBlockScope() {
     return !prev_ ? nullptr : prev_->NearlyBlockScope();
 }
 
+BlockScope *NamespaceScope::NearlyBlockScope(BlockScopeKind kind) {
+    for (auto scope = NearlyBlockScope(); scope != nullptr && scope->prev_ != nullptr;
+         scope->prev_->NearlyBlockScope()) {
+        if (scope->kind() == kind) {
+            return scope;
+        }
+    }
+    return nullptr;
+}
+
 
 std::tuple<Statement *, NamespaceScope *> NamespaceScope::FindSymbol(std::string_view name) const {
     for (auto node = this; node != nullptr; node = node->prev_) {

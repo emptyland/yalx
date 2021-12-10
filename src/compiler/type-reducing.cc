@@ -601,6 +601,9 @@ private:
         FunctionScope scope(&location_, node);
 
         if (node->IsNative() || node->IsAbstract()) {
+            if (node->prototype()->return_types().empty()) {
+                node->prototype()->mutable_return_types()->push_back(Unit());
+            }
             node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
             return Return(Unit()); // Ignore nobody funs
         }
@@ -1136,14 +1139,14 @@ private:
         }
         return Return(Unit());
     }
+    
+    int VisitBreak(Break *node) override { UNREACHABLE(); }
+    int VisitContinue(Continue *node) override { UNREACHABLE(); }
+    int VisitThrow(Throw *node) override { UNREACHABLE(); }
 
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
-    int VisitBreak(Break *node) override { UNREACHABLE(); }
-    int VisitContinue(Continue *node) override { UNREACHABLE(); }
-    
-    int VisitThrow(Throw *node) override { UNREACHABLE(); }
     int VisitRunCoroutine(RunCoroutine *node) override { UNREACHABLE(); }
     int VisitStringTemplate(StringTemplate *node) override { UNREACHABLE(); }
     int VisitInstantiation(Instantiation *node) override { UNREACHABLE(); }

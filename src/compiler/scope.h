@@ -24,6 +24,12 @@ class AstNode;
 
 using GlobalSymbols = std::unordered_map<std::string_view, GlobalSymbol>;
 
+enum BlockScopeKind {
+    kPlainBlock,
+    kLoopBlock,
+    kBranchBlock,
+};
+
 class NamespaceScope {
 public:
     template<class T> class Keeper {
@@ -44,6 +50,7 @@ public:
     virtual FunctionScope *NearlyFunctionScope();
     virtual BlockScope *NearlyBlockScope();
     
+    BlockScope *NearlyBlockScope(BlockScopeKind kind);
 
     virtual std::tuple<Statement *, NamespaceScope *> FindSymbol(std::string_view name) const;
     virtual Statement *FindLocalSymbol(std::string_view name) const;
@@ -193,11 +200,7 @@ private:
 
 class BlockScope : public NamespaceScope {
 public:
-    enum Kind {
-        kPlain,
-        kLoop,
-        kBranch,
-    };
+    using Kind = BlockScopeKind;
     
     BlockScope(NamespaceScope **location, Kind kind, Statement *owns);
     ~BlockScope() override;
