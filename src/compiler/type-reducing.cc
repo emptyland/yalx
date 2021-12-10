@@ -703,23 +703,24 @@ private:
         }
         
         Statement *field = nullptr;
-        switch (def->kind()) {
-            case Node::kClassDefinition:
-                field = def->AsClassDefinition()->FindSymbolOrNull(node->field()->ToSlice());
-                break;
-            case Node::kStructDefinition:
-                field = def->AsStructDefinition()->FindSymbolOrNull(node->field()->ToSlice());
-                break;
-            case Node::kInterfaceDefinition:
-                field = def->AsInterfaceDefinition()->FindSymbolOrNull(node->field()->ToSlice());
-                break;
-            default:
-                UNREACHABLE();
-                break;
+        const IncompletableDefinition *level = nullptr;
+        if (auto clazz = def->AsClassDefinition()) {
+            auto [ast, ns] = clazz->FindSymbolWithOwns(node->field()->ToSlice());
+            field = ast, level = ns;
+        } else if (auto clazz = def->AsStructDefinition()) {
+            auto [ast, ns] = clazz->FindSymbolWithOwns(node->field()->ToSlice());
+            field = ast, level = ns;
+        } else if (auto clazz = def->AsInterfaceDefinition()) {
+            field = clazz->FindSymbolOrNull(node->field()->ToSlice());
+        } else {
+            UNREACHABLE();
         }
         
         if (!field) {
             Feedback()->Printf(node->source_position(), "Field `%s' not found", node->field()->data());
+            return -1;
+        }
+        if (level && !CheckAccessable(down_cast<IncompletableDefinition>(def), field, level, node->source_position())) {
             return -1;
         }
         
@@ -927,13 +928,20 @@ private:
                                            dot->field()->data());
                         return -1;
                     }
-                    symbol = DCHECK_NOTNULL(GetTypeSpecifiedDefinition(types[0]));
-                    if (auto def = symbol->AsClassDefinition()) {
-                        symbol = def->FindSymbolOrNull(dot->field()->ToSlice());
-                    } else if (auto def = symbol->AsStructDefinition()) {
-                        symbol = def->FindSymbolOrNull(dot->field()->ToSlice());
+                    
+                    const IncompletableDefinition *level = nullptr;
+                    auto owns = DCHECK_NOTNULL(GetTypeSpecifiedDefinition(types[0]));
+                    if (auto def = owns->AsClassDefinition()) {
+                        auto [ast, ns] = def->FindSymbolWithOwns(dot->field()->ToSlice());
+                        symbol = ast, level = ns;
+                    } else if (auto def = owns->AsStructDefinition()) {
+                        auto [ast, ns] = def->FindSymbolWithOwns(dot->field()->ToSlice());
+                        symbol = ast, level = ns;
                     } else {
                         Feedback()->Printf(node->source_position(), "Invalid rval");
+                        return -1;
+                    }
+                    if (!CheckAccessable(down_cast<IncompletableDefinition>(owns), symbol, level, node->source_position())) {
                         return -1;
                     }
                 }
@@ -979,6 +987,39 @@ private:
         return Return(Unit());
     }
     
+    bool CheckAccessable(IncompletableDefinition *owns, Statement *symbol, const IncompletableDefinition *level,
+                         const SourcePosition &source_position) {
+        Access access = kDefault;
+        if (auto var = symbol->AsVariableDeclaration()) {
+            access = var->access();
+        } else if (auto fun = symbol->AsFunctionDeclaration()) {
+            access = fun->access();
+        } else if (auto item = down_cast<VariableDeclaration::Item>(symbol)) {
+            access = DCHECK_NOTNULL(item->owns())->access();
+        } else {
+            UNREACHABLE();
+        }
+        if (access == kDefault) {
+            access = kPublic;
+        }
+        
+        auto def_scope = location_->NearlyDataDefinitionScope();
+        auto in_def_scope = def_scope != nullptr && def_scope->definition() == owns;
+        if (!in_def_scope) {
+            if (access != kPublic) {
+                Feedback()->Printf(source_position, "Access non-public field or method");
+                return false;
+            }
+            return true;
+        }
+        
+        if (level != def_scope->definition() && access != kProtected) {
+            Feedback()->Printf(source_position, "Access private field or method");
+            return false;
+        }
+        return true;
+    }
+    
     int VisitReturn(class Return *node) override {
         std::vector<Type *> rets;
         for (auto ret : node->returnning_vals()) {
@@ -1012,6 +1053,90 @@ private:
         return Return(Unit());
     }
     
+    int VisitWhileLoop(WhileLoop *node) override {
+        return VisitConditionLoop(node);
+    }
+
+    int VisitUnlessLoop(UnlessLoop *node) override {
+        return VisitConditionLoop(node);
+    }
+    
+    int VisitConditionLoop(ConditionLoop *node) {
+        BlockScope scope(&location_, BlockScope::kLoop, node);
+        if (node->initializer()) {
+            if (Reduce(node->initializer()) < 0) {
+                return -1;
+            }
+        }
+        
+        std::vector<Type *> types;
+        if (node->execute_first()) {
+            if (Reduce(node->body()) < 0) {
+                return -1;
+            }
+            if (Reduce(node->condition(), &types) < 0) {
+                return -1;
+            }
+        } else {
+            if (Reduce(node->condition(), &types) < 0) {
+                return -1;
+            }
+            if (Reduce(node->body()) < 0) {
+                return -1;
+            }
+        }
+        if (types[0]->primary_type() != Type::kType_bool) {
+            Feedback()->Printf(node->condition()->source_position(), "Condition must be bool expression");
+            return -1;
+        }
+        return Return(Unit());
+    }
+
+    int VisitForeachLoop(ForeachLoop *node) override {
+        BlockScope scope(&location_, BlockScope::kLoop, node);
+        
+        Type *iteration_type = nullptr;
+        switch (node->iteration()) {
+            case ForeachLoop::kIterator: {
+                std::vector<Type *> types;
+                if (Reduce(node->iterable(), &types) < 0) {
+                    return -1;
+                }
+                iteration_type = GetIterationType(types[0]);
+            } break;
+                
+            case ForeachLoop::kOpenBound:
+            case ForeachLoop::kCloseBound: {
+                std::vector<Type *> types;
+                auto range = node->range();
+                if (Reduce(range.lower, &types) < 0 || Reduce(range.upper, &types) < 0) {
+                    return -1;
+                }
+                if (!types[0]->IsIntegral() || !types[1]->IsIntegral()) {
+                    Feedback()->Printf(node->source_position(), "Invalid for-each bound type, need intergral type");
+                    return -1;
+                }
+                iteration_type = ReduceType(types[0], types[1]);
+            } break;
+                
+            default:
+                UNREACHABLE();
+                return -1;
+        }
+        
+        auto var = new (arena_) VariableDeclaration(arena_, true, VariableDeclaration::kVal,
+                                                    node->iterative_destination()->name(), iteration_type,
+                                                    node->iterative_destination()->source_position());
+        node->set_iterative_destination_var(var);
+        if (Reduce(DCHECK_NOTNULL(node->iterative_destination_var())) < 0) {
+            return -1;
+        }
+        if (Reduce(node->body()) < 0) {
+            return -1;
+        }
+        return Return(Unit());
+    }
+
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
@@ -1020,9 +1145,6 @@ private:
     
     int VisitThrow(Throw *node) override { UNREACHABLE(); }
     int VisitRunCoroutine(RunCoroutine *node) override { UNREACHABLE(); }
-    int VisitWhileLoop(WhileLoop *ast) override { UNREACHABLE(); }
-    int VisitUnlessLoop(UnlessLoop *node) override { UNREACHABLE(); }
-    int VisitForeachLoop(ForeachLoop *node) override { UNREACHABLE(); }
     int VisitStringTemplate(StringTemplate *node) override { UNREACHABLE(); }
     int VisitInstantiation(Instantiation *node) override { UNREACHABLE(); }
     int VisitOr(Or *node) override { UNREACHABLE(); }
@@ -1054,7 +1176,7 @@ private:
     int VisitIndexedGet(IndexedGet *node) override { UNREACHABLE(); }
     int VisitIntLiteral(IntLiteral *node) override { return Return(node->type()); }
     int VisitU64Literal(U64Literal *node) override { UNREACHABLE(); }
-    int VisitBoolLiteral(BoolLiteral *node) override { UNREACHABLE(); }
+    int VisitBoolLiteral(BoolLiteral *node) override { return Return(node->type()); }
     int VisitUnitLiteral(UnitLiteral *node) override { return Return(Unit()); }
     int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
     int VisitGreaterEqual(GreaterEqual *node) override { UNREACHABLE(); }
@@ -1066,6 +1188,49 @@ private:
     int VisitArrayInitializer(ArrayInitializer *node) override { UNREACHABLE(); }
     int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
+    
+    
+    Type *ReduceType(Type *lhs, Type *rhs) {
+        if (lhs->IsNumber() && rhs->IsNumber()) {
+            auto ty = static_cast<Type::Primary>(Constants::ReduceNumberType(lhs->primary_type(), rhs->primary_type()));
+            if (ty == lhs->primary_type()) {
+                return lhs;
+            }
+            if (ty == rhs->primary_type()) {
+                return rhs;
+            }
+            return new (arena_) Type(arena_, ty, lhs->source_position());
+        }
+        UNREACHABLE();
+    }
+    
+    Type *GetIterationType(Type *iterable) {
+        switch (iterable->primary_type()) {
+            case Type::kType_array: {
+                auto at = iterable->AsArrayType();
+                if (at->dimension_count() == 1) {
+                    return at->element_type();
+                }
+                return new (arena_) ArrayType(arena_, at->element_type(), at->dimension_count() - 1,
+                                              iterable->source_position());
+            } break;
+                
+            case Type::kType_channel: {
+                auto ct = iterable->AsChannelType();
+                if (!ct->CanRead()) {
+                    Feedback()->Printf(iterable->source_position(), "Channel `%s' can not be read",
+                                       iterable->ToString().c_str());
+                    return nullptr;
+                }
+                return ct->element_type();
+            } break;
+                
+            default:
+                Feedback()->Printf(iterable->source_position(), "Type `%s' is not iterable",
+                                   iterable->ToString().c_str());
+                return nullptr;
+        }
+    }
     
     Statement *GetTypeSpecifiedDefinition(Type *type) {
         switch (type->primary_type()) {

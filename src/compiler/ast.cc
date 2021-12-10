@@ -639,6 +639,43 @@ bool Type::Is(Node *node) {
     }
 }
 
+bool Type::IsUnsignedIntegral() const {
+    switch (primary_type()) {
+        case kType_u8:
+        case kType_u16:
+        case kType_u32:
+        case kType_u64:
+            return true;
+            
+        default:
+            return false;
+    }
+}
+
+bool Type::IsFloating() const {
+    switch (primary_type()) {
+        case kType_f32:
+        case kType_f64:
+            return true;
+            
+        default:
+            return false;
+    }
+}
+
+bool Type::IsSignedIntegral() const {
+    switch (primary_type()) {
+        case kType_i8:
+        case kType_i16:
+        case kType_i32:
+        case kType_i64:
+            return true;
+            
+        default:
+            return false;
+    }
+}
+
 bool Type::Acceptable(const Type *rhs, bool *unlinked) const {
     if (primary_type() == kType_symbol || rhs->primary_type() == kType_symbol) {
         *unlinked = true;

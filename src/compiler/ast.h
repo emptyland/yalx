@@ -321,6 +321,7 @@ public:
     ForeachLoop(Identifier *iterative_destination, IntRange range, Block *body, const SourcePosition &source_position);
     
     DEF_PTR_GETTER(Identifier, iterative_destination);
+    DEF_PTR_PROP_RW(VariableDeclaration, iterative_destination_var);
     DEF_VAL_GETTER(Iteration, iteration);
     Expression *iterable() const { assert(iteration() == kIterator); return iterable_; }
     const IntRange &range() const { assert(iteration() != kIterator); return range_; }
@@ -334,6 +335,7 @@ private:
         IntRange    range_;
     };
     Iteration iteration_;
+    VariableDeclaration *iterative_destination_var_ = nullptr;
 }; // class ForLoop
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -618,13 +620,18 @@ public:
     StructDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
     
     Statement *FindSymbolOrNull(std::string_view name) const {
+        return std::get<0>(FindSymbolWithOwns(name));
+    }
+    
+    std::tuple<Statement *, const IncompletableDefinition *> FindSymbolWithOwns(std::string_view name) const {
         for (auto owns = this; owns != nullptr; owns = owns->base_of()) {
             if (auto ast = owns->FindLocalSymbolOrNull(name)) {
-                return ast;
+                return std::make_tuple(ast, owns);
             }
         }
-        return nullptr;
+        return std::make_tuple(nullptr, nullptr);
     }
+
     DEF_PTR_PROP_RW(StructDefinition, base_of);
     DECLARE_AST_NODE(StructDefinition);
 private:
@@ -636,12 +643,16 @@ public:
     ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
 
     Statement *FindSymbolOrNull(std::string_view name) const {
+        return std::get<0>(FindSymbolWithOwns(name));
+    }
+    
+    std::tuple<Statement *, const IncompletableDefinition *> FindSymbolWithOwns(std::string_view name) const {
         for (auto owns = this; owns != nullptr; owns = owns->base_of()) {
             if (auto ast = owns->FindLocalSymbolOrNull(name)) {
-                return ast;
+                return std::make_tuple(ast, owns);
             }
         }
-        return nullptr;
+        return std::make_tuple(nullptr, nullptr);
     }
 
     DEF_PTR_PROP_RW(ClassDefinition, base_of);
@@ -1315,6 +1326,12 @@ public:
     bool Is##name##Type() const { return category_ == k##name; }
     DECLARE_TYPE_CATEGORIES(DEFINE_METHOD)
 #undef  DEFINE_METHOD
+    
+    bool IsNumber() const { return IsIntegral() || IsFloating(); }
+    bool IsIntegral() const { return IsUnsignedIntegral() || IsSignedIntegral(); }
+    bool IsFloating() const;
+    bool IsUnsignedIntegral() const;
+    bool IsSignedIntegral() const;
     
     virtual bool Acceptable(const Type *rhs, bool *unlinked) const;
     virtual Type *Link(Linker &&linker);

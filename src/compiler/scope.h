@@ -42,6 +42,7 @@ public:
     virtual FileUnitScope *NearlyFileUnitScope();
     virtual DataDefinitionScope *NearlyDataDefinitionScope();
     virtual FunctionScope *NearlyFunctionScope();
+    virtual BlockScope *NearlyBlockScope();
     
 
     virtual std::tuple<Statement *, NamespaceScope *> FindSymbol(std::string_view name) const;
@@ -97,6 +98,7 @@ public:
     FileUnitScope *NearlyFileUnitScope() override;
     DataDefinitionScope *NearlyDataDefinitionScope() override;
     FunctionScope *NearlyFunctionScope() override;
+    BlockScope *NearlyBlockScope() override;
     
 private:
     Package *pkg_;
@@ -187,6 +189,28 @@ public:
 private:
     FunctionDeclaration *fun_;
 }; // class FunctionScope
+
+
+class BlockScope : public NamespaceScope {
+public:
+    enum Kind {
+        kPlain,
+        kLoop,
+        kBranch,
+    };
+    
+    BlockScope(NamespaceScope **location, Kind kind, Statement *owns);
+    ~BlockScope() override;
+    
+    DEF_PTR_GETTER(Statement, owns);
+    DEF_VAL_GETTER(Kind, kind);
+    
+    FunctionScope *NearlyFunctionScope() override;
+    BlockScope *NearlyBlockScope() override;
+private:
+    Kind kind_;
+    Statement *owns_;
+}; // class BlockScope
 
 } // namespace cpl
 

@@ -10,6 +10,8 @@ namespace cpl {
 
 class Constants final {
 public:
+    
+    static int ReduceNumberType(int lhs, int rhs);
 
     static const char *kPrimitiveTypeClassNames[];
     DISALLOW_ALL_CONSTRUCTORS(Constants);

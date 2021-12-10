@@ -1,0 +1,23 @@
+package main
+
+fun main() {
+    while (true) {
+
+    }
+    do {
+
+    } while (true)
+
+    unless (true) {
+
+    }
+    do {
+
+    } unless(false)
+
+    while (val t = foo(); t) {}
+    unless (val t = bar(); t) {}
+}
+
+fun foo() -> true
+fun bar() -> false

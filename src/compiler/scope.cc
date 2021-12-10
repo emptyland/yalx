@@ -32,6 +32,10 @@ FunctionScope *NamespaceScope::NearlyFunctionScope() {
     return !prev_ ? nullptr : prev_->NearlyFunctionScope();
 }
 
+BlockScope *NamespaceScope::NearlyBlockScope() {
+    return !prev_ ? nullptr : prev_->NearlyBlockScope();
+}
+
 
 std::tuple<Statement *, NamespaceScope *> NamespaceScope::FindSymbol(std::string_view name) const {
     for (auto node = this; node != nullptr; node = node->prev_) {
@@ -88,6 +92,10 @@ DataDefinitionScope *PackageScope::NearlyDataDefinitionScope() {
 }
 
 FunctionScope *PackageScope::NearlyFunctionScope() {
+    return nullptr;
+}
+
+BlockScope *PackageScope::NearlyBlockScope() {
     return nullptr;
 }
 
@@ -360,6 +368,20 @@ FunctionScope::~FunctionScope() {
 }
 
 FunctionScope *FunctionScope::NearlyFunctionScope() { return this; }
+
+BlockScope::BlockScope(NamespaceScope **location, Kind kind, Statement *owns)
+: NamespaceScope(location)
+, kind_(kind)
+, owns_(owns) {
+    Enter();
+}
+
+BlockScope::~BlockScope() {
+    Exit();
+}
+
+FunctionScope *BlockScope::NearlyFunctionScope() { return nullptr; }
+BlockScope *BlockScope::NearlyBlockScope() { return this; }
 
 } // namespace cpl
 
