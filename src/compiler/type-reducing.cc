@@ -990,39 +990,6 @@ private:
         return Return(Unit());
     }
     
-    bool CheckAccessable(IncompletableDefinition *owns, Statement *symbol, const IncompletableDefinition *level,
-                         const SourcePosition &source_position) {
-        Access access = kDefault;
-        if (auto var = symbol->AsVariableDeclaration()) {
-            access = var->access();
-        } else if (auto fun = symbol->AsFunctionDeclaration()) {
-            access = fun->access();
-        } else if (auto item = down_cast<VariableDeclaration::Item>(symbol)) {
-            access = DCHECK_NOTNULL(item->owns())->access();
-        } else {
-            UNREACHABLE();
-        }
-        if (access == kDefault) {
-            access = kPublic;
-        }
-        
-        auto def_scope = location_->NearlyDataDefinitionScope();
-        auto in_def_scope = def_scope != nullptr && def_scope->definition() == owns;
-        if (!in_def_scope) {
-            if (access != kPublic) {
-                Feedback()->Printf(source_position, "Access non-public field or method");
-                return false;
-            }
-            return true;
-        }
-        
-        if (level != def_scope->definition() && access != kProtected) {
-            Feedback()->Printf(source_position, "Access private field or method");
-            return false;
-        }
-        return true;
-    }
-    
     int VisitReturn(class Return *node) override {
         std::vector<Type *> rets;
         for (auto ret : node->returnning_vals()) {
@@ -1065,7 +1032,7 @@ private:
     }
     
     int VisitConditionLoop(ConditionLoop *node) {
-        BlockScope scope(&location_, BlockScope::kLoop, node);
+        BlockScope scope(&location_, kLoopBlock, node);
         if (node->initializer()) {
             if (Reduce(node->initializer()) < 0) {
                 return -1;
@@ -1096,7 +1063,7 @@ private:
     }
 
     int VisitForeachLoop(ForeachLoop *node) override {
-        BlockScope scope(&location_, BlockScope::kLoop, node);
+        BlockScope scope(&location_, kLoopBlock, node);
         
         Type *iteration_type = nullptr;
         switch (node->iteration()) {
@@ -1140,9 +1107,35 @@ private:
         return Return(Unit());
     }
     
-    int VisitBreak(Break *node) override { UNREACHABLE(); }
-    int VisitContinue(Continue *node) override { UNREACHABLE(); }
-    int VisitThrow(Throw *node) override { UNREACHABLE(); }
+    int VisitBreak(Break *node) override {
+        auto scope = location_->NearlyBlockScope(kLoopBlock);
+        if (!scope) {
+            Feedback()->Printf(node->source_position(), "Break at loop outside");
+            return -1;
+        }
+        return Return(Unit());
+    }
+
+    int VisitContinue(Continue *node) override {
+        auto scope = location_->NearlyBlockScope(kLoopBlock);
+        if (!scope) {
+            Feedback()->Printf(node->source_position(), "Continue at loop outside");
+            return -1;
+        }
+        return Return(Unit());
+    }
+
+    int VisitThrow(Throw *node) override {
+        auto scope = location_->NearlyFunctionScope();
+        if (!scope) {
+            Feedback()->Printf(node->source_position(), "Throw at function outside");
+            return -1;
+        }
+        Type *type = nullptr;
+        if (ReduceOnlyOne(node->throwing_val(), &type, "More than one throwing values") < 0) {
+            return -1;
+        }
+    }
 
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
@@ -1193,6 +1186,39 @@ private:
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
     
     
+    bool CheckAccessable(IncompletableDefinition *owns, Statement *symbol, const IncompletableDefinition *level,
+                         const SourcePosition &source_position) {
+        Access access = kDefault;
+        if (auto var = symbol->AsVariableDeclaration()) {
+            access = var->access();
+        } else if (auto fun = symbol->AsFunctionDeclaration()) {
+            access = fun->access();
+        } else if (auto item = down_cast<VariableDeclaration::Item>(symbol)) {
+            access = DCHECK_NOTNULL(item->owns())->access();
+        } else {
+            UNREACHABLE();
+        }
+        if (access == kDefault) {
+            access = kPublic;
+        }
+        
+        auto def_scope = location_->NearlyDataDefinitionScope();
+        auto in_def_scope = def_scope != nullptr && def_scope->definition() == owns;
+        if (!in_def_scope) {
+            if (access != kPublic) {
+                Feedback()->Printf(source_position, "Access non-public field or method");
+                return false;
+            }
+            return true;
+        }
+        
+        if (level != def_scope->definition() && access != kProtected) {
+            Feedback()->Printf(source_position, "Access private field or method");
+            return false;
+        }
+        return true;
+    }
+    
     Type *ReduceType(Type *lhs, Type *rhs) {
         if (lhs->IsNumber() && rhs->IsNumber()) {
             auto ty = static_cast<Type::Primary>(Constants::ReduceNumberType(lhs->primary_type(), rhs->primary_type()));
@@ -1204,6 +1230,7 @@ private:
             }
             return new (arena_) Type(arena_, ty, lhs->source_position());
         }
+        // TODO: other types
         UNREACHABLE();
     }
     
@@ -1448,6 +1475,36 @@ private:
             Return(ty);
         }
         return static_cast<int>(types.size());
+    }
+    
+    int ReduceAtLeastOne(AstNode *node, Type **receiver) {
+        const int nrets = node->Accept(this);
+        if (fail() || nrets < 0) {
+            return -1;
+        }
+        *receiver = results_.top();
+        int i = nrets - 1;
+        while (i--) { results_.pop(); }
+        return nrets;
+    }
+    
+    int ReduceOnlyOne(AstNode *node, Type **receiver, const char *message = nullptr) {
+        const int nrets = node->Accept(this);
+        if (fail() || nrets < 0) {
+            return -1;
+        }
+        if (nrets != 1) {
+            if (message) {
+                Feedback()->Printf(node->source_position(), "%s, actual is %d", message, nrets);
+            } else {
+                Feedback()->Printf(node->source_position(), "More than one values, actual is %d", nrets);
+            }
+            return -1;
+        }
+        *receiver = results_.top();
+        int i = nrets - 1;
+        while (i--) { results_.pop(); }
+        return nrets;
     }
     
     int Reduce(AstNode *node, std::vector<Type *> *receiver = nullptr) {

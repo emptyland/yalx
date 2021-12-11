@@ -2,10 +2,10 @@ package main
 
 fun main() {
     while (true) {
-
+        break
     }
     do {
-
+        continue
     } while (true)
 
     unless (true) {
