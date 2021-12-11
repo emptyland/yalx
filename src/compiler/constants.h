@@ -8,14 +8,32 @@ namespace yalx {
 
 namespace cpl {
 
+enum class CastingRule {
+    DENY,  // deny casting
+    ALLOW, // allow casting directly
+    ALLOW_UNBOX, // allow casting unbox first
+    ALLOW_TYPING, // allow casting check type first
+    ALLOW_TYPING_CONCEPT, // allow casting check type first and concept interface
+    PROTOTYPE, // allow casting check fun prototype first
+    ELEMENT, // check element type first
+    ELEMENT_IN_OUT, // check element type and in/out
+    I8_U8_CHAR_ARRAY_ONLY, // only to i8[], u8[], char[]
+    SELF_ONLY, // only to itself
+    CONCEPT, // check concept interface
+    CHILD_CLASS_ONLY, // child class only
+}; // class enum CastingRule
+
 class Constants final {
 public:
     
     static int ReduceNumberType(int lhs, int rhs);
+    
+    static CastingRule HowToCasting(int dest, int src);
 
     static const char *kPrimitiveTypeClassNames[];
     DISALLOW_ALL_CONSTRUCTORS(Constants);
 }; // class Constants
+
 
 constexpr static char kLangPackageFullName[] = "yalx/lang:lang";
 constexpr static char kAnyClassName[] = "Any";

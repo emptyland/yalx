@@ -684,6 +684,9 @@ public:
         return false;
     }
     
+    bool IsNotConceptOf(const InterfaceDefinition *interface) const { return !IsConceptOf(interface); }
+    bool IsConceptOf(const InterfaceDefinition *interface) const;
+    
     DECLARE_AST_NODE(ClassDefinition);
 private:
     ClassDefinition *base_of_ = nullptr;

@@ -465,6 +465,17 @@ ClassDefinition::ClassDefinition(base::Arena *arena, const String *name, const S
     , concepts_(arena) {
 }
 
+bool ClassDefinition::IsConceptOf(const InterfaceDefinition *interface) const {
+    for (auto owns = this; owns != nullptr; owns = owns->base_of()) {
+        for (auto concept : concepts()) {
+            if (DCHECK_NOTNULL(concept->AsInterfaceType())->definition() == interface) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 AnnotationDeclaration::AnnotationDeclaration(base::Arena *arena, const SourcePosition &source_position)
     : AstNode(Node::kAnnotationDeclaration, source_position)
     , annotations_(arena) {        

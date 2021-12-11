@@ -1145,6 +1145,104 @@ private:
         
         return Return(Unit());
     }
+    
+    int VisitCasting(Casting *node) override {
+        auto dest = LinkType(node->destination());
+        if (!dest) {
+            return -1;
+        }
+        node->set_destination(dest);
+        Type *src = nullptr;
+        if (ReduceReturningOnlyOne(node->source(), &src, "More than one casting values") < 0) {
+            return -1;
+        }
+        switch (Constants::HowToCasting(dest->primary_type(), src->primary_type())) {
+            case CastingRule::DENY:
+                goto not_allow;
+                
+            case CastingRule::ALLOW:
+            case CastingRule::ALLOW_UNBOX:
+            case CastingRule::ALLOW_TYPING:
+            case CastingRule::ALLOW_TYPING_CONCEPT:
+                break;
+                
+            case CastingRule::PROTOTYPE: {
+                auto dest_fun = DCHECK_NOTNULL(dest->AsFunctionPrototype()),
+                     src_fun = DCHECK_NOTNULL(src->AsFunctionPrototype());
+                if (dest_fun->signature() != src_fun->signature()) {
+                    goto not_allow;
+                }
+            } break;
+                
+            case CastingRule::CONCEPT: {
+                auto clazz = DCHECK_NOTNULL(src->AsClassType())->definition();
+                auto interface = DCHECK_NOTNULL(dest->AsInterfaceType())->definition();
+                if (clazz->IsNotConceptOf(interface)) {
+                    goto not_allow;
+                }
+            } break;
+                
+            case CastingRule::ELEMENT: {
+                auto dest_ar = DCHECK_NOTNULL(dest->AsArrayType());
+                auto src_ar = DCHECK_NOTNULL(src->AsArrayType());
+                if (dest_ar->dimension_count() != src_ar->dimension_count()) {
+                    goto not_allow;
+                }
+                bool unlinked = false;
+                if (!dest_ar->element_type()->Acceptable(src_ar->element_type(), &unlinked)) {
+                    goto not_allow;
+                }
+                assert(unlinked);
+            } break;
+                
+            case CastingRule::ELEMENT_IN_OUT:
+            case CastingRule::I8_U8_CHAR_ARRAY_ONLY:
+                // TODO:
+                UNREACHABLE();
+                break;
+                
+            case CastingRule::SELF_ONLY: {
+                auto dest_if = DCHECK_NOTNULL(dest->AsInterfaceType())->definition();
+                auto src_if = DCHECK_NOTNULL(src->AsInterfaceType())->definition();
+                if (dest_if != src_if) {
+                    goto not_allow;
+                }
+            } break;
+                
+            case CastingRule::CHILD_CLASS_ONLY: {
+                if (auto dest_class_ty = dest->AsClassType()) {
+                    if (auto src_class_ty = src->AsClassType()) {
+                        if (src_class_ty->definition()->IsNotBaseOf(dest_class_ty->definition())) {
+                            goto not_allow;
+                        }
+                    } else {
+                        goto not_allow;
+                    }
+                } else {
+                    auto dest_struct_ty = dest->AsStructType();
+                    if (auto src_struct_ty = src->AsStructType()) {
+                        if (src_struct_ty->definition()->IsNotBaseOf(dest_struct_ty->definition())) {
+                            goto not_allow;
+                        }
+                    } else {
+                        goto not_allow;
+                    }
+                }
+            } break;
+                
+            default:
+                UNREACHABLE();
+                break;
+        }
+        
+        return Return(node->destination());
+    not_allow:
+        Feedback()->Printf(node->source_position(), "Type casting is not allow, `%s' <= `%s'",
+                           dest->ToString().c_str(), src->ToString().c_str());
+        return -1;
+    }
+    
+    int VisitTesting(Testing *node) override { UNREACHABLE(); }
 
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
@@ -1164,9 +1262,7 @@ private:
     int VisitRecv(Recv *node) override { UNREACHABLE(); }
     int VisitSend(Send *node) override { UNREACHABLE(); }
     int VisitEqual(Equal *node) override { UNREACHABLE(); }
-    int VisitCasting(Casting *node) override { UNREACHABLE(); }
     int VisitGreater(Greater *node) override { UNREACHABLE(); }
-    int VisitTesting(Testing *node) override { UNREACHABLE(); }
     int VisitNegative(Negative *node) override { UNREACHABLE(); }
     int VisitNotEqual(NotEqual *node) override { UNREACHABLE(); }
     int VisitBitwiseOr(BitwiseOr *node) override { UNREACHABLE(); }
