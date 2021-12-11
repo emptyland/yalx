@@ -696,6 +696,7 @@ bool Type::Acceptable(const Type *rhs, bool *unlinked) const {
         case kType_char:
         case kType_bool:
         case kType_unit:
+        case kType_string:
             return primary_type() == rhs->primary_type();
         case kType_any:
             return rhs->primary_type() != kType_unit;
@@ -813,12 +814,7 @@ bool ClassType::Acceptable(const Type *rhs, bool *unlinked) const {
     if (definition() == type->definition()) {
         return true;
     }
-    for (auto base_of = definition()->base_of(); base_of != nullptr; base_of = base_of->base_of()) {
-        if (base_of == type->definition()) {
-            return true;
-        }
-    }
-    return false;
+    return type->definition()->IsBaseOf(definition());
 }
 
 std::string ClassType::ToString() const { return definition()->FullName(); }
@@ -835,12 +831,7 @@ bool StructType::Acceptable(const Type *rhs, bool *unlinked) const {
     if (definition() == type->definition()) {
         return true;
     }
-    for (auto base_of = definition()->base_of(); base_of != nullptr; base_of = base_of->base_of()) {
-        if (base_of == type->definition()) {
-            return true;
-        }
-    }
-    return false;
+    return type->definition()->IsBaseOf(definition());
 }
 
 std::string StructType::ToString() const { return definition()->FullName(); }

@@ -49,7 +49,7 @@ BlockScope *NamespaceScope::NearlyBlockScope(BlockScopeKind kind) {
 
 std::tuple<Statement *, NamespaceScope *> NamespaceScope::FindSymbol(std::string_view name) const {
     for (auto node = this; node != nullptr; node = node->prev_) {
-        if (auto symbol = node->FindLocalSymbol(name); symbol != nullptr) {
+        if (auto symbol = node->FindLocalSymbol(name)) {
             return std::make_tuple(symbol, const_cast<NamespaceScope *>(node));
         }
     }
@@ -155,10 +155,13 @@ Statement *FileUnitScope::FindLocalSymbol(std::string_view name) const {
     if (iter != symobls_->cend()) {
         return iter->second.ast;
     }
-//    for (auto ias : implicit_alias_) {
-//        full_name = ias.append(":")
-//        
-//    }
+    for (auto ias : implicit_alias_) {
+        full_name = ias.append(".").append(name);
+        iter = symobls_->find(full_name);
+        if (iter != symobls_->cend()) {
+            return iter->second.ast;
+        }
+    }
     return nullptr;
 }
 

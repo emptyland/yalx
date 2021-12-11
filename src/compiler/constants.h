@@ -19,6 +19,7 @@ public:
 
 constexpr static char kLangPackageFullName[] = "yalx/lang:lang";
 constexpr static char kAnyClassName[] = "Any";
+constexpr static char kThrowableClassName[] = "Throwable";
 
 constexpr static char kObjectShadowClassPostfix[] = "$ShadowClass";
 constexpr static char kPrimaryConstructorPostfix[] = "$constructor";

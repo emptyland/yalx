@@ -1,0 +1,20 @@
+package lang
+
+@Lang
+class Throwable(
+    val message: string,
+    val linked: Throwable
+) {
+    
+    override fun toString() -> message
+}
+
+@Lang
+class Exception(message: string, linked: Exception) : Throwable(message, linked)
+
+
+@Lang
+object Throwing {
+
+    native fun empty(): Exception
+}

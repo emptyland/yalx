@@ -631,6 +631,17 @@ public:
         }
         return std::make_tuple(nullptr, nullptr);
     }
+    
+    bool IsNotBaseOf(const IncompletableDefinition *target) const { return !IsBaseOf(target); }
+    
+    bool IsBaseOf(const IncompletableDefinition *target) const {
+        for (auto owns = base_of(); owns != nullptr; owns = owns->base_of()) {
+            if (owns == target) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     DEF_PTR_PROP_RW(StructDefinition, base_of);
     DECLARE_AST_NODE(StructDefinition);
@@ -641,6 +652,13 @@ private:
 class ClassDefinition : public IncompletableDefinition {
 public:
     ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
+
+    DEF_PTR_PROP_RW(ClassDefinition, base_of);
+    DEF_ARENA_VECTOR_GETTER(Type *, concept);
+    Type **mutable_concept(size_t i) {
+        assert(i < concepts_size());
+        return &concepts_[i];
+    }
 
     Statement *FindSymbolOrNull(std::string_view name) const {
         return std::get<0>(FindSymbolWithOwns(name));
@@ -654,14 +672,17 @@ public:
         }
         return std::make_tuple(nullptr, nullptr);
     }
-
-    DEF_PTR_PROP_RW(ClassDefinition, base_of);
-    DEF_ARENA_VECTOR_GETTER(Type *, concept);
-    Type **mutable_concept(size_t i) {
-        assert(i < concepts_size());
-        return &concepts_[i];
+    
+    bool IsNotBaseOf(const IncompletableDefinition *target) const { return !IsBaseOf(target); }
+    
+    bool IsBaseOf(const IncompletableDefinition *target) const {
+        for (auto owns = base_of(); owns != nullptr; owns = owns->base_of()) {
+            if (owns == target) {
+                return true;
+            }
+        }
+        return false;
     }
-    //DEF_ARENA_VECTOR_GETTER(InterfaceDefinition *, implement);
     
     DECLARE_AST_NODE(ClassDefinition);
 private:

@@ -108,7 +108,7 @@ private:
         if (Track(pkg)) {
             return;
         }
-        printd("prepare package: %s", pkg->name()->data());
+        //printd("prepare package: %s", pkg->name()->data());
         error_feedback_->set_package_name(pkg->name()->ToString());
         PrepareInterfaces(pkg);
         PrepareClasses(pkg);
@@ -202,7 +202,7 @@ private:
         NamespaceScope::Keeper<PackageScope> keeper(EnsurePackageScope(node));
         error_feedback_->set_package_name(node->name()->ToString());
         
-        printd("process package: %s", node->name()->data());
+        //printd("process package: %s", node->name()->data());
         for (auto file_scope : keeper.ns()->files()) {
             NamespaceScope::Keeper<FileUnitScope> file_keeper(file_scope);
             error_feedback_->set_file_name(file_scope->file_unit()->file_name()->ToString());
@@ -266,14 +266,13 @@ private:
                 return -1;
             }
         }
-        //if (!node->Type()) {
+
         if (types.size() != node->variables_size()) {
             Feedback()->Printf(node->source_position(),
                                "Different declaration numbers and initilizer numbers, %zd vs %zd",
                                node->variables_size(), types.size());
             return -1;
         }
-        //}
         
         for (size_t i = 0; i < node->variables_size(); i++) {
             auto var = node->variable(i);
@@ -323,7 +322,7 @@ private:
     }
     
     int VisitClassDefinition(ClassDefinition *node) override {
-        printd("reduce class: %s", node->name()->data());
+        //printd("reduce class: %s", node->name()->data());
         if (!node->generic_params().empty()) {
             return Return(Unit());
         }
@@ -599,6 +598,10 @@ private:
 
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
         FunctionScope scope(&location_, node);
+        
+        if (!LinkType(node->prototype())) {
+            return -1;
+        }
 
         if (node->IsNative() || node->IsAbstract()) {
             if (node->prototype()->return_types().empty()) {
@@ -779,13 +782,19 @@ private:
                 }
                 ast = sym;
             } break;
-            case Node::kDot:
-                if (node->callee()->AsDot()->primary()->IsIdentifier()) {
-                    ast = ResolveDotSymbol("Calling", node->callee()->AsDot(), Node::kMaxKinds);
+            case Node::kDot: {
+                auto dot = node->callee()->AsDot();
+                if (auto id = dot->primary()->AsIdentifier()) {
+                    auto [primary, _] = location_->FindSymbol(id->name()->ToSlice());
+                    if (primary) {
+                        is_others_expr = true;
+                    } else {
+                        ast = ResolveDotSymbol("Calling", node->callee()->AsDot(), Node::kMaxKinds);
+                    }
                 } else {
                     is_others_expr = true;
                 }
-                break;
+            } break;
             case Node::kInstantiation:
                 ast = Instantiate("Calling", node->callee()->AsInstantiation(), Node::kMaxKinds);
                 break;
@@ -837,16 +846,12 @@ private:
             }
         }
         
-        std::vector<Type *> types;
-        if (Reduce(node->callee(), &types) < 0) {
+        Type *type = nullptr;
+        if (ReduceReturningOnlyOne(node->callee(), &type, "Too many values for calling") < 0) {
             return -1;
         }
-        if (types.size() > 1) {
-            Feedback()->Printf(node->source_position(), "Too many values for calling");
-            return -1;
-        }
-        if (!types[0]->IsFunctionPrototype()) {
-            Feedback()->Printf(node->source_position(), "Bad type: `%s' for calling", types[0]->ToString().c_str());
+        if (!type->IsFunctionPrototype()) {
+            Feedback()->Printf(node->source_position(), "Bad type: `%s' for calling", type->ToString().c_str());
             return -1;
         }
         
@@ -856,7 +861,7 @@ private:
                 return -1;
             }
         }
-        auto prototype = types[0]->AsFunctionPrototype();
+        auto prototype = type->AsFunctionPrototype();
         if (!prototype->vargs() && args.size() != prototype->params_size()) {
             Feedback()->Printf(node->source_position(), "Unexpected function number of parameters, %zd vs %zd",
                                prototype->params_size(), args.size());
@@ -922,18 +927,13 @@ private:
                         return -1;
                     }
                 } else {
-                    std::vector<Type *> types;
-                    if (Reduce(dot->primary(), &types) < 0) {
+                    Type *type = nullptr;
+                    if (ReduceReturningOnlyOne(dot->primary(), &type, "Too many values for field getter") < 0) {
                         return -1;
                     }
-                    if (lvals.size() > 1) {
-                        Feedback()->Printf(node->source_position(), "Too many values for field: %s",
-                                           dot->field()->data());
-                        return -1;
-                    }
-                    
+
                     const IncompletableDefinition *level = nullptr;
-                    auto owns = DCHECK_NOTNULL(GetTypeSpecifiedDefinition(types[0]));
+                    auto owns = DCHECK_NOTNULL(GetTypeSpecifiedDefinition(type));
                     if (auto def = owns->AsClassDefinition()) {
                         auto [ast, ns] = def->FindSymbolWithOwns(dot->field()->ToSlice());
                         symbol = ast, level = ns;
@@ -944,7 +944,8 @@ private:
                         Feedback()->Printf(node->source_position(), "Invalid rval");
                         return -1;
                     }
-                    if (!CheckAccessable(down_cast<IncompletableDefinition>(owns), symbol, level, node->source_position())) {
+                    if (!CheckAccessable(down_cast<IncompletableDefinition>(owns), symbol, level,
+                                         node->source_position())) {
                         return -1;
                     }
                 }
@@ -1039,23 +1040,23 @@ private:
             }
         }
         
-        std::vector<Type *> types;
+        Type *type = nullptr;
         if (node->execute_first()) {
             if (Reduce(node->body()) < 0) {
                 return -1;
             }
-            if (Reduce(node->condition(), &types) < 0) {
+            if (ReduceReturningAtLeastOne(node->condition(), &type) < 0) {
                 return -1;
             }
         } else {
-            if (Reduce(node->condition(), &types) < 0) {
+            if (ReduceReturningAtLeastOne(node->condition(), &type) < 0) {
                 return -1;
             }
             if (Reduce(node->body()) < 0) {
                 return -1;
             }
         }
-        if (types[0]->primary_type() != Type::kType_bool) {
+        if (type->primary_type() != Type::kType_bool) {
             Feedback()->Printf(node->condition()->source_position(), "Condition must be bool expression");
             return -1;
         }
@@ -1068,11 +1069,11 @@ private:
         Type *iteration_type = nullptr;
         switch (node->iteration()) {
             case ForeachLoop::kIterator: {
-                std::vector<Type *> types;
-                if (Reduce(node->iterable(), &types) < 0) {
+                Type *type = nullptr;
+                if (ReduceReturningAtLeastOne(node->iterable(), &type) < 0) {
                     return -1;
                 }
-                iteration_type = GetIterationType(types[0]);
+                iteration_type = GetIterationType(type);
             } break;
                 
             case ForeachLoop::kOpenBound:
@@ -1132,9 +1133,17 @@ private:
             return -1;
         }
         Type *type = nullptr;
-        if (ReduceOnlyOne(node->throwing_val(), &type, "More than one throwing values") < 0) {
+        if (ReduceReturningOnlyOne(node->throwing_val(), &type, "More than one throwing values") < 0) {
             return -1;
         }
+        
+        const auto throwable = FindSymbol(kLangPackageFullName, kThrowableClassName)->AsClassDefinition();
+        if (!type->IsClassType() || type->AsClassType()->definition()->IsNotBaseOf(throwable)) {
+            Feedback()->Printf(node->source_position(), "Throwing value must base of `Exception`");
+            return -1;
+        }
+        
+        return Return(Unit());
     }
 
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
@@ -1303,7 +1312,7 @@ private:
             }
             types.push_back(linked);
         }
-        
+
         Statement *symbol = nullptr;
         if (auto id = ast->primary()->AsIdentifier()) {
             symbol = ResolveIdSymbol(info, id, kind, types);
@@ -1423,7 +1432,7 @@ private:
                 auto current_file_scope = location_->NearlyFileUnitScope();
                 
                 if (owns != current_file_scope->file_unit()) {
-                    printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
+                    //printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
                     PackageScope *external_scope = nullptr;
                     FileUnitScope *scope = nullptr;
                     if (pkg != current_pkg_scope->pkg()) {
@@ -1477,7 +1486,7 @@ private:
         return static_cast<int>(types.size());
     }
     
-    int ReduceAtLeastOne(AstNode *node, Type **receiver) {
+    int ReduceReturningAtLeastOne(AstNode *node, Type **receiver) {
         const int nrets = node->Accept(this);
         if (fail() || nrets < 0) {
             return -1;
@@ -1488,17 +1497,13 @@ private:
         return nrets;
     }
     
-    int ReduceOnlyOne(AstNode *node, Type **receiver, const char *message = nullptr) {
+    int ReduceReturningOnlyOne(AstNode *node, Type **receiver, const char *message = "More than one values") {
         const int nrets = node->Accept(this);
         if (fail() || nrets < 0) {
             return -1;
         }
         if (nrets != 1) {
-            if (message) {
-                Feedback()->Printf(node->source_position(), "%s, actual is %d", message, nrets);
-            } else {
-                Feedback()->Printf(node->source_position(), "More than one values, actual is %d", nrets);
-            }
+            Feedback()->Printf(node->source_position(), "%s, actual is %d", message, nrets);
             return -1;
         }
         *receiver = results_.top();
@@ -1624,7 +1629,7 @@ private:
             .ast = ast,
         };
         global_symbols_[symbol.symbol->ToSlice()] = symbol;
-        printd("insert global: %s", symbol.symbol->data());
+        //printd("insert global: %s", symbol.symbol->data());
         
         return GlobalSymbol::NotFound();
     }
