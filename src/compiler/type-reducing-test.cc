@@ -202,6 +202,19 @@ TEST_F(TypeReducingTest, WhileLoop01) {
     ASSERT_TRUE(symbols.find("main:main.main") != symbols.end());
 }
 
+// 14-type-casting-01
+TEST_F(TypeReducingTest, TypeCasting01) {
+    base::ArenaMap<std::string_view, Package *> all(&arena_);
+    base::ArenaVector<Package *> entries(&arena_);
+    Package *main_pkg = nullptr;
+    auto rs = Compiler::FindAndParseProjectSourceFiles("tests/14-type-casting-01", "libs", &arena_, &feedback_,
+                                                       &main_pkg, &entries, &all);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    std::unordered_map<std::string_view, GlobalSymbol> symbols;
+    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+}
+
 } // namespace yalx
 
 } // namespace yalx

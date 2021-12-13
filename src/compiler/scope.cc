@@ -370,9 +370,10 @@ Statement *DataDefinitionScope::FindLocalSymbol(std::string_view name) const {
     return iter == base_of_symbols_.end() ? nullptr : iter->second;
 }
 
-FunctionScope::FunctionScope(NamespaceScope **location, FunctionDeclaration *fun)
+FunctionScope::FunctionScope(NamespaceScope **location, FunctionPrototype *prototype, bool fun_is_reducing)
 : NamespaceScope(location)
-, fun_(DCHECK_NOTNULL(fun)) {
+, prototype_(DCHECK_NOTNULL(prototype))
+, fun_is_reducing_(fun_is_reducing) {
     Enter();
 }
 

@@ -186,15 +186,17 @@ private:
 
 class FunctionScope : public NamespaceScope {
 public:
-    FunctionScope(NamespaceScope **location, FunctionDeclaration *fun);
+    FunctionScope(NamespaceScope **location, FunctionPrototype *prototype, bool fun_is_reducing);
     ~FunctionScope() override;
     
-    DEF_PTR_GETTER(FunctionDeclaration, fun);
+    DEF_PTR_GETTER(FunctionPrototype, prototype);
+    DEF_VAL_GETTER(bool, fun_is_reducing);
     
     FunctionScope *NearlyFunctionScope() override;
     
 private:
-    FunctionDeclaration *fun_;
+    FunctionPrototype *prototype_;
+    bool fun_is_reducing_;
 }; // class FunctionScope
 
 

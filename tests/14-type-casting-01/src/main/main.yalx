@@ -1,0 +1,16 @@
+package main
+
+val v1 = 1 as i8
+val v2 = 2 as u8
+val v3 = 3 as i16
+val v4 = 4 as u16
+val v5 = 5 as i32
+val v6 = 6 as u32
+val v7 = 7 as i64
+val v8 = 8 as u64
+val v9 = 9 as f32
+val v10 = 10 as f64
+
+fun main() {
+
+}

@@ -19,9 +19,11 @@ enum class CastingRule {
     ELEMENT, // check element type first
     ELEMENT_IN_OUT, // check element type and in/out
     I8_U8_CHAR_ARRAY_ONLY, // only to i8[], u8[], char[]
+    OPTION_VALUE,
     SELF_ONLY, // only to itself
     CONCEPT, // check concept interface
     CHILD_CLASS_ONLY, // child class only
+    CLASS_BASE_OF, 
 }; // class enum CastingRule
 
 class Constants final {

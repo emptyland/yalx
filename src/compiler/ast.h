@@ -962,7 +962,7 @@ DEFINE_ACTUAL_LITERAL(Bool, bool);
 DEFINE_ACTUAL_LITERAL(String, const String *);
 
 
-class LambdaLiteral : public Literal{
+class LambdaLiteral : public Literal {
 public:
     LambdaLiteral(FunctionPrototype *prototype, Statement *body, const SourcePosition &source_position);
 
@@ -1381,6 +1381,9 @@ public:
     bool IsFloating() const;
     bool IsUnsignedIntegral() const;
     bool IsSignedIntegral() const;
+    
+    bool IsNotConditionVal() const { return !IsConditionVal(); }
+    bool IsConditionVal() const { return IsOptionType() || primary_type() == kType_bool; }
     
     virtual bool Acceptable(const Type *rhs, bool *unlinked) const;
     virtual Type *Link(Linker &&linker);

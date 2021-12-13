@@ -597,8 +597,7 @@ private:
     }
 
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
-        FunctionScope scope(&location_, node);
-        
+        FunctionScope scope(&location_, node->prototype(), node->is_reduce());
         if (!LinkType(node->prototype())) {
             return -1;
         }
@@ -670,6 +669,57 @@ private:
         // Install signature at last step
         node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
         return Return(Unit());
+    }
+    
+    int VisitLambdaLiteral(LambdaLiteral *node) override {
+        FunctionScope scope(&location_, node->prototype(), true/*fun_is_reducing*/);
+        
+        if (!LinkType(node->prototype())) {
+            return -1;
+        }
+        // TODO: insert `callee' symbol
+        auto prototype = node->prototype();
+        for (auto item : prototype->params()) {
+            auto param = static_cast<VariableDeclaration::Item *>(item);
+            scope.FindOrInsertSymbol(param->identifier()->ToSlice(), param);
+        }
+        if (prototype->vargs()) {
+            // TODO:
+            UNREACHABLE();
+        }
+        
+        std::vector<Type *> receiver;
+        int nrets = Reduce(node->body(), &receiver);
+        if (nrets < 0) {
+            return -1;
+        }
+        
+        if (prototype->return_types_size() > 0) {
+            if (prototype->return_types_size() != nrets) {
+                Feedback()->Printf(node->source_position(), "Unexpected return val numbers, %d, %zd", nrets,
+                                   prototype->return_types_size());
+                return -1;
+            }
+            
+            for (auto i = 0; i < prototype->return_types_size(); i++) {
+                bool unlinked = false;
+                if (!receiver[i]->Acceptable(prototype->return_type(i), &unlinked)) {
+                    Feedback()->Printf(node->source_position(), "Return type not accepted, %s <= %s",
+                                       prototype->return_type(i)->ToString().c_str(),
+                                       receiver[i]->ToString().c_str());
+                    return -1;
+                }
+            }
+        } else {
+            assert(prototype->return_types_size() == 0);
+            for (auto ty : receiver) {
+                prototype->mutable_return_types()->push_back(ty);
+            }
+        }
+        
+        // Install signature at last step
+        node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
+        return Return(prototype);
     }
     
     int VisitIdentifier(Identifier *node) override {
@@ -1000,23 +1050,23 @@ private:
         }
         
         auto fun_scope = location_->NearlyFunctionScope();
-        auto owns = fun_scope->fun();
-        if (owns->is_reduce()) {
+        if (fun_scope->fun_is_reducing()) {
             Feedback()->Printf(node->source_position(), "Return vals for reducing(`->') function");
             return -1;
         }
         
-        if (rets.size() != owns->prototype()->return_types_size()) {
+        auto prototype = fun_scope->prototype();
+        if (rets.size() != prototype->return_types_size()) {
             Feedback()->Printf(node->source_position(), "Unexpected number of returning types, %zd vs %zd",
-                               owns->prototype()->return_types_size(), rets.size());
+                               prototype->return_types_size(), rets.size());
             return -1;
         }
         
-        for (auto i = 0; i < owns->prototype()->return_types_size(); i++) {
+        for (auto i = 0; i < prototype->return_types_size(); i++) {
             bool unlinked = false;
-            if (!owns->prototype()->return_type(i)->Acceptable(rets[i], &unlinked)) {
+            if (!prototype->return_type(i)->Acceptable(rets[i], &unlinked)) {
                 Feedback()->Printf(node->source_position(), "Unexpected returning[%d] type `%s', actual is `%s'",
-                                   owns->prototype()->return_type(i)->ToString().c_str(), rets[i]->ToString().c_str());
+                                   prototype->return_type(i)->ToString().c_str(), rets[i]->ToString().c_str());
                 return -1;
             }
             assert(!unlinked);
@@ -1056,8 +1106,8 @@ private:
                 return -1;
             }
         }
-        if (type->primary_type() != Type::kType_bool) {
-            Feedback()->Printf(node->condition()->source_position(), "Condition must be bool expression");
+        if (type->IsNotConditionVal()) {
+            Feedback()->Printf(node->condition()->source_position(), "Condition must be bool expression or option");
             return -1;
         }
         return Return(Unit());
@@ -1156,93 +1206,27 @@ private:
         if (ReduceReturningOnlyOne(node->source(), &src, "More than one casting values") < 0) {
             return -1;
         }
-        switch (Constants::HowToCasting(dest->primary_type(), src->primary_type())) {
-            case CastingRule::DENY:
-                goto not_allow;
-                
-            case CastingRule::ALLOW:
-            case CastingRule::ALLOW_UNBOX:
-            case CastingRule::ALLOW_TYPING:
-            case CastingRule::ALLOW_TYPING_CONCEPT:
-                break;
-                
-            case CastingRule::PROTOTYPE: {
-                auto dest_fun = DCHECK_NOTNULL(dest->AsFunctionPrototype()),
-                     src_fun = DCHECK_NOTNULL(src->AsFunctionPrototype());
-                if (dest_fun->signature() != src_fun->signature()) {
-                    goto not_allow;
-                }
-            } break;
-                
-            case CastingRule::CONCEPT: {
-                auto clazz = DCHECK_NOTNULL(src->AsClassType())->definition();
-                auto interface = DCHECK_NOTNULL(dest->AsInterfaceType())->definition();
-                if (clazz->IsNotConceptOf(interface)) {
-                    goto not_allow;
-                }
-            } break;
-                
-            case CastingRule::ELEMENT: {
-                auto dest_ar = DCHECK_NOTNULL(dest->AsArrayType());
-                auto src_ar = DCHECK_NOTNULL(src->AsArrayType());
-                if (dest_ar->dimension_count() != src_ar->dimension_count()) {
-                    goto not_allow;
-                }
-                bool unlinked = false;
-                if (!dest_ar->element_type()->Acceptable(src_ar->element_type(), &unlinked)) {
-                    goto not_allow;
-                }
-                assert(unlinked);
-            } break;
-                
-            case CastingRule::ELEMENT_IN_OUT:
-            case CastingRule::I8_U8_CHAR_ARRAY_ONLY:
-                // TODO:
-                UNREACHABLE();
-                break;
-                
-            case CastingRule::SELF_ONLY: {
-                auto dest_if = DCHECK_NOTNULL(dest->AsInterfaceType())->definition();
-                auto src_if = DCHECK_NOTNULL(src->AsInterfaceType())->definition();
-                if (dest_if != src_if) {
-                    goto not_allow;
-                }
-            } break;
-                
-            case CastingRule::CHILD_CLASS_ONLY: {
-                if (auto dest_class_ty = dest->AsClassType()) {
-                    if (auto src_class_ty = src->AsClassType()) {
-                        if (src_class_ty->definition()->IsNotBaseOf(dest_class_ty->definition())) {
-                            goto not_allow;
-                        }
-                    } else {
-                        goto not_allow;
-                    }
-                } else {
-                    auto dest_struct_ty = dest->AsStructType();
-                    if (auto src_struct_ty = src->AsStructType()) {
-                        if (src_struct_ty->definition()->IsNotBaseOf(dest_struct_ty->definition())) {
-                            goto not_allow;
-                        }
-                    } else {
-                        goto not_allow;
-                    }
-                }
-            } break;
-                
-            default:
-                UNREACHABLE();
-                break;
+        if (CastingFeasibilityTest(dest, src, node->source_position()) < 0) {
+            return -1;
         }
-        
         return Return(node->destination());
-    not_allow:
-        Feedback()->Printf(node->source_position(), "Type casting is not allow, `%s' <= `%s'",
-                           dest->ToString().c_str(), src->ToString().c_str());
-        return -1;
     }
     
-    int VisitTesting(Testing *node) override { UNREACHABLE(); }
+    int VisitTesting(Testing *node) override {
+        auto dest = LinkType(node->destination());
+        if (!dest) {
+            return -1;
+        }
+        node->set_destination(dest);
+        Type *src = nullptr;
+        if (ReduceReturningOnlyOne(node->source(), &src, "More than one casting values") < 0) {
+            return -1;
+        }
+        if (CastingFeasibilityTest(dest, src, node->source_position()) < 0) {
+            return -1;
+        }
+        return Return(Bool());
+    }
     
     int VisitOptionLiteral(OptionLiteral *node) override {
         if (node->type()) {
@@ -1259,6 +1243,53 @@ private:
         }
         return Return(node->type());
     }
+    
+    int VisitAssertedGet(AssertedGet *node) override {
+        Type *type = nullptr;
+        if (ReduceReturningOnlyOne(node->operand(), &type) < 0) {
+            return -1;
+        }
+        return Return(type);
+    }
+    
+    int VisitOr(Or *node) override {
+        Type *lhs = nullptr, *rhs = nullptr;
+        if (ReduceReturningOnlyOne(node->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(node->rhs(), &rhs) < 0) {
+            return -1;
+        }
+        if (lhs->primary_type() == Type::kType_bool) {
+            return Return(lhs);
+        }
+        if (rhs->primary_type() == Type::kType_bool) {
+            return Return(rhs);
+        }
+        return Return(Bool());
+    }
+
+    int VisitAnd(And *node) override {
+        Type *lhs = nullptr, *rhs = nullptr;
+        if (ReduceReturningOnlyOne(node->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(node->rhs(), &rhs) < 0) {
+            return -1;
+        }
+        if (lhs->primary_type() == Type::kType_bool) {
+            return Return(lhs);
+        }
+        if (rhs->primary_type() == Type::kType_bool) {
+            return Return(rhs);
+        }
+        return Return(Bool());
+    }
+    
+    int VisitNot(Not *node) override {
+        Type *type = nullptr;
+        if (Reduce(node->operand()) < 0) {
+            return -1;
+        }
+        if (type->primary_type() == Type::kType_bool) {
+            return Return(type);
+        }
+        return Return(Bool());
+    }
 
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
@@ -1266,14 +1297,14 @@ private:
     int VisitRunCoroutine(RunCoroutine *node) override { UNREACHABLE(); }
     int VisitStringTemplate(StringTemplate *node) override { UNREACHABLE(); }
     int VisitInstantiation(Instantiation *node) override { UNREACHABLE(); }
-    int VisitAssertedGet(AssertedGet *node) override { UNREACHABLE(); }
-    int VisitOr(Or *node) override { UNREACHABLE(); }
+    
+
     int VisitAdd(Add *node) override { UNREACHABLE(); }
-    int VisitAnd(And *node) override { UNREACHABLE(); }
+    
     int VisitDiv(Div *node) override { UNREACHABLE(); }
     int VisitMod(Mod *node) override { UNREACHABLE(); }
     int VisitMul(Mul *node) override { UNREACHABLE(); }
-    int VisitNot(Not *node) override { UNREACHABLE(); }
+    
     int VisitSub(Sub *node) override { UNREACHABLE(); }
     int VisitLess(Less *node) override { UNREACHABLE(); }
     int VisitRecv(Recv *node) override { UNREACHABLE(); }
@@ -1299,7 +1330,6 @@ private:
     int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
     int VisitGreaterEqual(GreaterEqual *node) override { UNREACHABLE(); }
     int VisitIfExpression(IfExpression *node) override { UNREACHABLE(); }
-    int VisitLambdaLiteral(LambdaLiteral *node) override { UNREACHABLE(); }
     int VisitStringLiteral(StringLiteral *node) override { return Return(node->type()); }
     int VisitWhenExpression(WhenExpression *node) override { UNREACHABLE(); }
     int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
@@ -1307,6 +1337,90 @@ private:
     int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
     
+    int CastingFeasibilityTest(Type *dest, Type *src, const SourcePosition &source_position) {
+        switch (Constants::HowToCasting(dest->primary_type(), src->primary_type())) {
+            case CastingRule::DENY:
+                goto not_allow;
+                
+            case CastingRule::ALLOW:
+            case CastingRule::ALLOW_UNBOX:
+            case CastingRule::ALLOW_TYPING:
+            case CastingRule::ALLOW_TYPING_CONCEPT:
+                break;
+                
+            case CastingRule::PROTOTYPE: {
+                auto dest_fun = DCHECK_NOTNULL(dest->AsFunctionPrototype()),
+                src_fun = DCHECK_NOTNULL(src->AsFunctionPrototype());
+                if (dest_fun->signature() != src_fun->signature()) {
+                    goto not_allow;
+                }
+            } break;
+                
+            case CastingRule::CONCEPT: {
+                auto clazz = DCHECK_NOTNULL(src->AsClassType())->definition();
+                auto interface = DCHECK_NOTNULL(dest->AsInterfaceType())->definition();
+                if (clazz->IsNotConceptOf(interface)) {
+                    goto not_allow;
+                }
+            } break;
+                
+            case CastingRule::OPTION_VALUE:
+            case CastingRule::ELEMENT:
+            case CastingRule::ELEMENT_IN_OUT: {
+                bool unlinked = false;
+                if (!dest->Acceptable(src, &unlinked)) {
+                    goto not_allow;
+                }
+                assert(!unlinked);
+            } break;
+                
+            case CastingRule::I8_U8_CHAR_ARRAY_ONLY:
+                // TODO:
+                UNREACHABLE();
+                break;
+                
+            case CastingRule::SELF_ONLY: {
+                auto dest_if = DCHECK_NOTNULL(dest->AsInterfaceType())->definition();
+                auto src_if = DCHECK_NOTNULL(src->AsInterfaceType())->definition();
+                if (dest_if != src_if) {
+                    goto not_allow;
+                }
+            } break;
+                
+            case CastingRule::CHILD_CLASS_ONLY: {
+                auto dest_struct_ty = DCHECK_NOTNULL(dest->AsStructType());
+                if (auto src_struct_ty = src->AsStructType()) {
+                    if (src_struct_ty->definition()->IsNotBaseOf(dest_struct_ty->definition())) {
+                        goto not_allow;
+                    }
+                } else {
+                    goto not_allow;
+                }
+            } break;
+                
+            case CastingRule::CLASS_BASE_OF: {
+                auto dest_class_ty = DCHECK_NOTNULL(dest->AsClassType());
+                if (auto src_class_ty = src->AsStructType()) {
+                    if (src_class_ty->definition()->IsNotBaseOf(dest_class_ty->definition()) &&
+                        dest_class_ty->definition()->IsNotBaseOf(src_class_ty->definition())) {
+                        goto not_allow;
+                    }
+                } else {
+                    goto not_allow;
+                }
+            } break;
+                
+            default:
+                UNREACHABLE();
+                break;
+        }
+        
+        return 0;
+    not_allow:
+        Feedback()->Printf(source_position, "Type casting is not allow, `%s' <= `%s'", dest->ToString().c_str(),
+                           src->ToString().c_str());
+        return -1;
+    }
     
     bool CheckAccessable(IncompletableDefinition *owns, Statement *symbol, const IncompletableDefinition *level,
                          const SourcePosition &source_position) {
@@ -1800,6 +1914,13 @@ private:
         return i32_;
     }
     
+    Type *Bool() {
+        if (!bool_) {
+            bool_ = new (arena_) Type(arena_, Type::kType_bool, {0,0});
+        }
+        return bool_;
+    }
+    
     bool fail() { return status_.fail(); }
     
     SyntaxFeedback *Feedback() {
@@ -1887,6 +2008,7 @@ private:
     std::unordered_map<std::string_view, String *> prototype_signatures_;
     Type *unit_ = nullptr;
     Type *i32_ = nullptr;
+    Type *bool_ = nullptr;
 }; // class TypeReducingVisitor
 
 TypeReducingVisitor::TypeReducingVisitor(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback)

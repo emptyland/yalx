@@ -563,11 +563,15 @@ Dot::Dot(Expression *primary, const String *field, const SourcePosition &source_
 }
 
 Casting::Casting(Expression *source, Type *destination, const SourcePosition &source_position)
-    : Expression(Node::kCasting, false /*is_lval*/, true /*ls_rval*/, source_position) {
+    : Expression(Node::kCasting, false /*is_lval*/, true /*ls_rval*/, source_position)
+    , source_(source)
+    , destination_(destination) {
 }
 
 Testing::Testing(Expression *source, Type *destination, const SourcePosition &source_position)
-    : Expression(Node::kTesting, false /*is_lval*/, true /*ls_rval*/, source_position) {
+    : Expression(Node::kTesting, false /*is_lval*/, true /*ls_rval*/, source_position)
+    , source_(source)
+    , destination_(destination) {
 }
 
 Calling::Calling(base::Arena *arena, Expression *callee, const SourcePosition &source_position)
