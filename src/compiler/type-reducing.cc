@@ -1243,6 +1243,22 @@ private:
     }
     
     int VisitTesting(Testing *node) override { UNREACHABLE(); }
+    
+    int VisitOptionLiteral(OptionLiteral *node) override {
+        if (node->type()) {
+            return Return(node->type());
+        }
+        if (node->is_some()) {
+            Type *type = nullptr;
+            if (ReduceReturningAtLeastOne(node->value(), &type) < 0) {
+                return -1;
+            }
+            type = new (arena_) OptionType(arena_, type, node->source_position());
+            node->set_type(type);
+            return Return(type);
+        }
+        return Return(node->type());
+    }
 
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
@@ -1250,6 +1266,7 @@ private:
     int VisitRunCoroutine(RunCoroutine *node) override { UNREACHABLE(); }
     int VisitStringTemplate(StringTemplate *node) override { UNREACHABLE(); }
     int VisitInstantiation(Instantiation *node) override { UNREACHABLE(); }
+    int VisitAssertedGet(AssertedGet *node) override { UNREACHABLE(); }
     int VisitOr(Or *node) override { UNREACHABLE(); }
     int VisitAdd(Add *node) override { UNREACHABLE(); }
     int VisitAnd(And *node) override { UNREACHABLE(); }

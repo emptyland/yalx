@@ -35,8 +35,9 @@ namespace cpl {
 //            +- Identifier
 //            +- Literal
 //                +- UnitLiteral
-//                +- ActualLiteral<T>
+//                +- OptionLiteral
 //                +- LambdaLiteral
+//                +- ActualLiteral<T>
 //                    +- IntLiteral
 //                    +- UIntLiteral
 //                    +- I64Literal
@@ -81,6 +82,8 @@ namespace cpl {
 //    +- Type
 //        +- ArrayType
 //        +- ClassType
+//        +- StructType
+//        +- OptionType
 //        +- InterfaceType
 //        +- FunctionPrototype
 //    +- Operand
@@ -138,6 +141,7 @@ namespace cpl {
     V(Identifier) \
     V(UnitLiteral) \
     V(EmptyLiteral) \
+    V(OptionLiteral) \
     V(IntLiteral) \
     V(UIntLiteral) \
     V(I64Literal) \
@@ -171,6 +175,7 @@ namespace cpl {
     V(BitwiseShr) \
     V(Recv) \
     V(Send) \
+    V(AssertedGet) \
     V(IndexedGet) \
     V(Dot) \
     V(Casting) \
@@ -187,6 +192,7 @@ namespace cpl {
     V(ChannelType) \
     V(ClassType) \
     V(StructType) \
+    V(OptionType) \
     V(InterfaceType) \
     V(FunctionPrototype)
 

@@ -109,7 +109,8 @@ public:
     int VisitVariableDeclaration(cpl::VariableDeclaration *node) override { UNREACHABLE(); }
     int VisitUIntLiteral(cpl::UIntLiteral *node) override { UNREACHABLE(); }
     int VisitTryCatchExpression(cpl::TryCatchExpression *node) override { UNREACHABLE(); }
-    
+    int VisitOptionLiteral(cpl::OptionLiteral *node) override { UNREACHABLE(); }
+    int VisitAssertedGet(cpl::AssertedGet *node) override { UNREACHABLE(); }
     
     friend class IRCodeEnvScope;
     friend class IRCodePkgScope;

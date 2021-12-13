@@ -126,13 +126,21 @@ Token Lexer::Next() {
                 
             case '!': {
                 SourcePosition loc{line_, column_};
-                if (ch = MoveNext(); ch == '=') {
+                ch = MoveNext();
+                if (ch == '=') {
                     loc.SetEnd(line_, column_);
                     MoveNext();
                     return Token(Token::kNotEqual, loc);
+                } else if (ch == '!') {
+                    loc.SetEnd(line_, column_);
+                    MoveNext();
+                    return Token(Token::k2Exclamation, loc);
                 }
                 return Token(Token::kNot, loc);
             }
+                
+            case '?':
+                return MatchOne(Token::kQuestion);
                 
             case '/': {
                 SourcePosition loc{line_, column_};

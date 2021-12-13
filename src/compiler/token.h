@@ -56,6 +56,8 @@ using String = base::ArenaString;
     V(And, "&&", none) \
     V(Or, "||", none) \
     V(Not, "!", none) \
+    V(2Exclamation, "!!", none) \
+    V(Question, "?", none) \
     V(More, "..", none) \
     V(Vargs, "...", none) \
     V(Colon, ":", none) \
@@ -122,6 +124,8 @@ using String = base::ArenaString;
     V(Catch, "catch", none) \
     V(Finally, "finally", none) \
     V(Default, "default", none) \
+    V(None, "none", none) \
+    V(Some, "some", none) \
     DECLARE_BASE_TYPE_TOKEN(V)
 
 #define DECLARE_BASE_TYPE_TOKEN(V) \

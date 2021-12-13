@@ -65,6 +65,7 @@ public:
     int VisitGreater(Greater *node) override { return -1; }
     int VisitTesting(Testing *node) override { return -1; }
     int VisitNegative(Negative *node) override { return -1; }
+    int VisitAssertedGet(AssertedGet *node) override { return -1; }
     int VisitIdentifier(Identifier *node) override { return -1; }
     int VisitNotEqual(NotEqual *node) override { return -1; }
     int VisitBitwiseOr(BitwiseOr *node) override { return -1; }
@@ -93,6 +94,7 @@ public:
     int VisitVariableDeclaration(VariableDeclaration *node) override { return -1; }
     int VisitUIntLiteral(UIntLiteral *node) override { return -1; }
     int VisitTryCatchExpression(TryCatchExpression *node) override { return -1; }
+    int VisitOptionLiteral(OptionLiteral *node) override { return -1; }
 
     //void Visit
     std::string buf_;

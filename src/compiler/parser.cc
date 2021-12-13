@@ -36,6 +36,8 @@ struct Operators {
     //    static constexpr auto kDecrement = Operator(Node::kDecrement, 1, kUnaryPrio, kUnaryPrio, true); // expr--
     //    static constexpr auto kDecrementPost = Operator(Node::kDecrementPost, 1, kUnaryPrio, kUnaryPrio, true); // --expr
     
+    static constexpr auto kAssertedGet = Operator(Node::kAssertedGet, 1, kUnaryPrio, kUnaryPrio);
+    
     // Binary:
     static constexpr auto kAdd = Operator(Node::kAdd, 2, 90, 90); // +
     static constexpr auto kSub = Operator(Node::kSub, 2, 90, 90); // -
@@ -81,10 +83,6 @@ static Operator GetPrefixOp(Token::Kind kind) {
             return Operators::kNegative;
         case Token::kLArrow:
             return Operators::kRecv;
-            //        case Token::k2Plus:
-            //            return Operators::kIncrement;
-            //        case Token::k2Minus:
-            //            return Operators::kDecrement;
         default:
             return Operators::NOT_OPERATOR;
     }
@@ -130,10 +128,8 @@ static Operator GetPostfixOp(Token::Kind kind) {
             return Operators::kAnd;
         case Token::kOr:
             return Operators::kOr;
-            //        case Token::k2Plus:
-            //            return Operators::kIncrementPost;
-            //        case Token::k2Minus:
-            //            return Operators::kDecrementPost;
+//        case Token::k2Exclamation:
+//            return Operators::kAssertedGet;
         default:
             return Operators::NOT_OPERATOR;
     }
@@ -1155,10 +1151,19 @@ Expression *Parser::ParseSimple(bool *ok) {
         case Token::kUnitVal:
             MoveNext();
             return new (arena_) UnitLiteral(arena_, location);
-            
-        case Token::kEmptyVal:
+
+        case Token::kNone:
             MoveNext();
-            return new (arena_) EmptyLiteral(location);
+            return new (arena_) OptionLiteral(arena_, nullptr/*value*/, location);
+            
+        case Token::kSome: {
+            MoveNext();
+            Match(Token::kLParen, CHECK_OK);
+            auto expr = ParseExpression(CHECK_OK);
+            location = location.Concat(Peek().source_position());
+            Match(Token::kRParen, CHECK_OK);
+            return new (arena_) OptionLiteral(arena_, expr, location);
+        } break;
             
         case Token::kIf:
             return ParseIfExpression(ok);
@@ -1229,6 +1234,13 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                     *call->mutable_source_position() = location.Concat(call_location);
                     expr = call;
                 }
+            } break;
+
+            case Token::k2Exclamation: {
+                auto assert_get_location = Peek().source_position();
+                MoveNext();
+                expr = NewUnaryExpression(Operators::kAssertedGet, expr,
+                                          expr->source_position().Concat(assert_get_location));
             } break;
                 
             case Token::kIs: { // is
@@ -1882,6 +1894,11 @@ Type *Parser::ParseType(bool *ok) {
         }
         type = new (arena_) ArrayType(arena_, type, dim, location);
         //type = array_type;
+    }
+    
+    if (Peek().Is(Token::kQuestion)) {
+        MoveNext();
+        type = new (arena_) OptionType(arena_, type, location);
     }
     return type;
 }

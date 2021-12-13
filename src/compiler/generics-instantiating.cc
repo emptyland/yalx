@@ -473,6 +473,11 @@ private:
         return Return(new (arena_) IndexedGet(lhs, rhs, node->source_position()));
     }
     
+    int VisitAssertedGet(AssertedGet *node) override {
+        DECL_AND_INSTANTIATE(Expression, opd, node->operand());
+        return Return(new (arena_) AssertedGet(opd, node->source_position()));
+    }
+    
     int VisitIfExpression(IfExpression *node) override {
         Statement *init = nullptr;
         if (node->initializer()) {
@@ -562,6 +567,15 @@ private:
             return Return(copied);
         }
     }
+    
+    int VisitOptionLiteral(OptionLiteral *node) override {
+        if (node->is_some()) {
+            DECL_AND_INSTANTIATE(Expression, value, node->value());
+            return Return(new (arena_) OptionLiteral(arena_, value, node->source_position()));
+        } else {
+            return Return(new (arena_) OptionLiteral(arena_, nullptr, node->source_position()));
+        }
+    }
 
     int VisitBreak(Break *node) override { return Return(node); }
     int VisitContinue(Continue *node) override { return Return(node); }
@@ -575,6 +589,7 @@ private:
     int VisitUnitLiteral(UnitLiteral *node) override { return Return(node); }
     int VisitEmptyLiteral(EmptyLiteral *node) override { return Return(node); }
     int VisitStringLiteral(StringLiteral *node) override { return Return(node); }
+    
     int VisitPackage(Package *node) override { UNREACHABLE(); }
     int VisitFileUnit(FileUnit *node) override { UNREACHABLE(); }
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }

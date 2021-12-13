@@ -834,6 +834,27 @@ public:
 }; // class EmptyLiteral
 
 
+class OptionLiteral : public Literal {
+public:
+    OptionLiteral(base::Arena *arena, Expression *value, const SourcePosition &source_position);
+    DEF_PTR_PROP_RW(Expression, value);
+    
+    bool is_none() { return value() == nullptr; }
+    bool is_some() { return !is_none(); }
+    
+    static OptionLiteral *None(base::Arena *arena, const SourcePosition &source_position) {
+        return new (arena) OptionLiteral(arena, nullptr, source_position);
+    }
+    
+    static OptionLiteral *Some(base::Arena *arena, Expression *value, const SourcePosition &source_position) {
+        return new (arena) OptionLiteral(arena, value, source_position);
+    }
+    
+    DECLARE_AST_NODE(OptionLiteral);
+private:
+    Expression *value_ = nullptr;
+}; // class OptionLiteral
+
 template<class T>
 struct LiteralTraits {
     static constexpr Node::Kind kKind = Node::kMaxKinds;
@@ -1048,7 +1069,8 @@ public:
     V(BitwiseShr,      Binary) \
     V(Recv,            Unary)  \
     V(Send,            Binary) \
-    V(IndexedGet,      Binary)
+    V(IndexedGet,      Binary) \
+    V(AssertedGet,     Unary) \
 
 #define DEFINE_CLASS(name, base) \
     class name : public base##Expression { \
@@ -1287,6 +1309,7 @@ private:
     V(Array,     ArrayType) \
     V(Class,     ClassType) \
     V(Struct,    StructType) \
+    V(Option,    OptionType) \
     V(Interface, InterfaceType) \
     V(Function,  FunctionPrototype)
 
@@ -1310,8 +1333,10 @@ private:
     V(array) \
     V(class) \
     V(struct) \
+    V(option) \
     V(interface) \
     V(function) \
+    V(none) \
     V(symbol)
 
 class Type : public Node {
@@ -1407,6 +1432,19 @@ private:
     int dimension_count_ = 0;
 }; // class ArrayType
 
+class OptionType : public Type {
+public:
+    OptionType(base::Arena *arena, Type *element_type, const SourcePosition &source_position)
+    : Type(arena, Type::kOption, element_type->primary_type(), nullptr, source_position) {
+        mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
+    }
+    
+    Type *element_type() const { return generic_arg(0); }
+    
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    Type *Link(Linker &&linker) override;
+    std::string ToString() const override;
+}; // class OptionType
 
 class ChannelType : public Type {
 public:

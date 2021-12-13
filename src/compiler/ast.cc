@@ -511,6 +511,13 @@ Literal::Literal(Kind kind, Type *type, const SourcePosition &source_position)
     assert(is_only_rval());
 }
 
+OptionLiteral::OptionLiteral(base::Arena *arena, Expression *value, const SourcePosition &source_position)
+    : Literal(kOptionLiteral,
+              !value ? new (arena) Type(arena, Type::kType_none, source_position) : nullptr,
+              source_position)
+    , value_(value) {
+}
+
 UnitLiteral::UnitLiteral(base::Arena *arena, const SourcePosition &source_position)
     : Literal(Node::kUnitLiteral, new (arena) Type(arena, Type::kType_unit, source_position), source_position) {
 }
@@ -800,6 +807,27 @@ std::string ArrayType::ToString() const {
     }
     return element_type()->ToString() + dim;
 }
+
+bool OptionType::Acceptable(const Type *rhs, bool *unlinked) const {
+    if (rhs->IsOptionType()) {
+        return element_type()->Acceptable(rhs->AsOptionType()->element_type(), unlinked);
+    }
+    if (rhs->primary_type() == kType_none) {
+        return true;
+    }
+    return element_type()->Acceptable(rhs, unlinked);
+}
+
+Type *OptionType::Link(Linker &&linker) {
+    auto linked = element_type()->Link(std::move(linker));
+    if (!linked) {
+        return nullptr;
+    }
+    (*mutable_generic_args())[0] = linked;
+    return this;
+}
+
+std::string OptionType::ToString() const { return element_type()->ToString().append("?"); }
 
 bool ChannelType::Acceptable(const Type *rhs, bool *unlinked) const {
     if (rhs->primary_type() == kType_symbol) {

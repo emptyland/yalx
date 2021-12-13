@@ -14,6 +14,7 @@ enum class CastingRule {
     ALLOW_UNBOX, // allow casting unbox first
     ALLOW_TYPING, // allow casting check type first
     ALLOW_TYPING_CONCEPT, // allow casting check type first and concept interface
+    ALLOW_OPTION_TEST, // allow casting and option testing
     PROTOTYPE, // allow casting check fun prototype first
     ELEMENT, // check element type first
     ELEMENT_IN_OUT, // check element type and in/out
