@@ -213,6 +213,24 @@ TEST_F(TypeReducingTest, TypeCasting01) {
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
     rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
+    ASSERT_TRUE(symbols.find("main:main.v1") != symbols.end());
+    auto v1 = down_cast<VariableDeclaration::Item>(symbols["main:main.v1"].ast);
+    ASSERT_NE(nullptr, v1);
+    ASSERT_EQ(Type::kType_i8, v1->type()->primary_type());
+    
+    auto v6 = down_cast<VariableDeclaration::Item>(symbols["main:main.v6"].ast);
+    ASSERT_NE(nullptr, v6);
+    ASSERT_EQ(Type::kType_u32, v6->type()->primary_type());
+    
+    auto v11 = down_cast<VariableDeclaration::Item>(symbols["main:main.v11"].ast);
+    ASSERT_NE(nullptr, v11);
+    ASSERT_TRUE(v11->type()->IsClassType());
+    EXPECT_STREQ("C1", v11->type()->AsClassType()->definition()->name()->data());
+    
+    auto v12 = down_cast<VariableDeclaration::Item>(symbols["main:main.v12"].ast);
+    ASSERT_NE(nullptr, v12);
+    ASSERT_TRUE(v12->type()->IsClassType());
+    EXPECT_STREQ("C3", v12->type()->AsClassType()->definition()->name()->data());
 }
 
 } // namespace yalx

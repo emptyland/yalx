@@ -63,6 +63,7 @@ public:
     Expression *ParseSimple(bool *ok);
     Expression *ParseSuffixed(bool *ok);
     Expression *ParsePrimary(bool *ok);
+    Expression *ParseArrayInitializer(ArrayType *qualified, bool *ok);
     Expression *ParseParenOrLambdaLiteral(bool *ok);
     IfExpression *ParseIfExpression(bool *ok);
     WhenExpression *ParseWhenExpression(bool *ok);

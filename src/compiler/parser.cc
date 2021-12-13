@@ -1263,10 +1263,30 @@ Expression *Parser::ParseSuffixed(bool *ok) {
 
 Expression *Parser::ParsePrimary(bool *ok) {
     auto location = Peek().source_position();
+    if (Peek().Is(Token::kIdentifier)) {
+        auto expr = new (arena_) Identifier(Peek().text_val(), location);
+        MoveNext();
+        return expr;
+    }
+    
+    bool is_type = true;
+    ProbeType(&is_type);
+    if (is_type) {
+        auto type = ParseType(CHECK_OK);
+        if (!type->IsArrayType()) {
+            error_feedback_->Printf(type->source_position(), "None array type for array initializer: `%s'",
+                                    type->ToString().c_str());
+            *ok = false;
+        }
+        return ParseArrayInitializer(type->AsArrayType(), CHECK_OK);
+    }
+    
     Expression *expr = nullptr;
     switch (Peek().kind()) {
         case Token::kLParen:
             return ParseParenOrLambdaLiteral(ok);
+        case Token::kLBrace:
+            return ParseArrayInitializer(nullptr, CHECK_OK);
         case Token::kIdentifier:
             expr = new (arena_) Identifier(Peek().text_val(), location);
             MoveNext();
@@ -1301,6 +1321,19 @@ Expression *Parser::ParsePrimary(bool *ok) {
             return nullptr;
     }
     return expr;
+}
+
+Expression *Parser::ParseArrayInitializer(ArrayType *qualified, bool *ok) {
+    auto location = Peek().source_position();
+    if (qualified) {
+        location = qualified->source_position();
+    }
+    
+    auto dimension_count = !qualified ? 1 : qualified->dimension_count();
+    auto init = new (arena_) ArrayInitializer(arena_, qualified, dimension_count, location);
+    // TODO:
+    UNREACHABLE();
+    return init;
 }
 
 Expression *Parser::ParseParenOrLambdaLiteral(bool *ok) {
@@ -1578,6 +1611,7 @@ bool Parser::ProbeType(bool *ok) {
     switch (Peek().kind()) {
         case Token::kUnit:
         case Token::kBool:
+        case Token::kChar:
         case Token::kI8:
         case Token::kU8:
         case Token::kI16:
@@ -1648,6 +1682,9 @@ bool Parser::ProbeType(bool *ok) {
         while (Probe(Token::kLBrack)) {
             Probe(Token::kRBrack, CHECK_OK);
         }
+    }
+    if (Peek().Is(Token::kQuestion)) {
+        Probe(Token::kQuestion);
     }
     return false;
 }
@@ -1774,6 +1811,10 @@ Type *Parser::ParseType(bool *ok) {
         case Token::kBool:
             MoveNext();
             type = new (arena_) Type(arena_, Type::kType_bool, location);
+            break;
+        case Token::kChar:
+            MoveNext();
+            type = new (arena_) Type(arena_, Type::kType_char, location);
             break;
         case Token::kI8:
             MoveNext();

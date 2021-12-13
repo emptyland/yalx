@@ -788,6 +788,13 @@ std::string Type::ToString() const {
     UNREACHABLE();
 }
 
+ArrayType::ArrayType(base::Arena *arena, Type *element_type, int dimension_count, const SourcePosition &source_position)
+    : Type(arena, Type::kArray, kType_array, nullptr, source_position)
+    , dimension_count_(dimension_count) {
+    assert(dimension_count > 0);
+    mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
+}
+
 bool ArrayType::Acceptable(const Type *rhs, bool *unlinked) const {
     if (!rhs->IsArrayType() || dimension_count() != rhs->AsArrayType()->dimension_count()) {
         return false;
@@ -810,6 +817,11 @@ std::string ArrayType::ToString() const {
         dim.append("]");
     }
     return element_type()->ToString() + dim;
+}
+
+OptionType::OptionType(base::Arena *arena, Type *element_type, const SourcePosition &source_position)
+: Type(arena, Type::kOption, kType_option, nullptr, source_position) {
+    mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
 }
 
 bool OptionType::Acceptable(const Type *rhs, bool *unlinked) const {

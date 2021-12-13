@@ -1290,6 +1290,14 @@ private:
         }
         return Return(Bool());
     }
+    
+    int VisitArrayInitializer(ArrayInitializer *node) override {
+        // TODO:
+        if (auto type = node->type()) {
+            auto ar = DCHECK_NOTNULL(type->AsArrayType());
+        }
+        UNREACHABLE();
+    }
 
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
@@ -1333,7 +1341,6 @@ private:
     int VisitStringLiteral(StringLiteral *node) override { return Return(node->type()); }
     int VisitWhenExpression(WhenExpression *node) override { UNREACHABLE(); }
     int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
-    int VisitArrayInitializer(ArrayInitializer *node) override { UNREACHABLE(); }
     int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
     
@@ -1374,10 +1381,23 @@ private:
                 assert(!unlinked);
             } break;
                 
-            case CastingRule::I8_U8_CHAR_ARRAY_ONLY:
-                // TODO:
-                UNREACHABLE();
-                break;
+            case CastingRule::I8_U8_CHAR_ARRAY_ONLY: {
+                if (dest->primary_type() == Type::kType_string) {
+                    if (auto src_ar = src->AsArrayType()) {
+                        if (src_ar->dimension_count() != 1 ||
+                            src_ar->element_type()->IsNotCharAndByte()) {
+                            goto not_allow;
+                        }
+                    }
+                } else if (auto dest_ar = dest->AsArrayType()) {
+                    if (src->primary_type() == Type::kType_string) {
+                        if (dest_ar->dimension_count() != 1 ||
+                            dest_ar->element_type()->IsNotCharAndByte()) {
+                            goto not_allow;
+                        }
+                    }
+                }
+            } break;
                 
             case CastingRule::SELF_ONLY: {
                 auto dest_if = DCHECK_NOTNULL(dest->AsInterfaceType())->definition();
@@ -1400,7 +1420,7 @@ private:
                 
             case CastingRule::CLASS_BASE_OF: {
                 auto dest_class_ty = DCHECK_NOTNULL(dest->AsClassType());
-                if (auto src_class_ty = src->AsStructType()) {
+                if (auto src_class_ty = src->AsClassType()) {
                     if (src_class_ty->definition()->IsNotBaseOf(dest_class_ty->definition()) &&
                         dest_class_ty->definition()->IsNotBaseOf(src_class_ty->definition())) {
                         goto not_allow;

@@ -1385,6 +1385,11 @@ public:
     bool IsNotConditionVal() const { return !IsConditionVal(); }
     bool IsConditionVal() const { return IsOptionType() || primary_type() == kType_bool; }
     
+    bool IsNotCharAndByte() const { return !IsCharOrByte(); }
+    bool IsCharOrByte() const {
+        return primary_type() == kType_i8 || primary_type() == kType_u8 || primary_type() == kType_char;
+    }
+    
     virtual bool Acceptable(const Type *rhs, bool *unlinked) const;
     virtual Type *Link(Linker &&linker);
     virtual std::string ToString() const;
@@ -1419,12 +1424,7 @@ private:
 
 class ArrayType : public Type {
 public:
-    ArrayType(base::Arena *arena, Type *element_type, int dimension_count, const SourcePosition &source_position)
-        : Type(arena, Type::kArray, element_type->primary_type(), nullptr, source_position)
-        , dimension_count_(dimension_count) {
-        assert(dimension_count > 0);
-        mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
-    }
+    ArrayType(base::Arena *arena, Type *element_type, int dimension_count, const SourcePosition &source_position);
     
     DEF_VAL_GETTER(int, dimension_count);
     Type *element_type() const { return generic_arg(0); }
@@ -1437,10 +1437,7 @@ private:
 
 class OptionType : public Type {
 public:
-    OptionType(base::Arena *arena, Type *element_type, const SourcePosition &source_position)
-    : Type(arena, Type::kOption, element_type->primary_type(), nullptr, source_position) {
-        mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
-    }
+    OptionType(base::Arena *arena, Type *element_type, const SourcePosition &source_position);
     
     Type *element_type() const { return generic_arg(0); }
     

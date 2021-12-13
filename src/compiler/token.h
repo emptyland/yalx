@@ -131,6 +131,7 @@ using String = base::ArenaString;
 #define DECLARE_BASE_TYPE_TOKEN(V) \
     V(Unit, "unit", none) \
     V(Bool, "bool", none) \
+    V(Char, "char", none) \
     V(I8, "i8", none) \
     V(U8, "u8", none) \
     V(I16, "i16", none) \

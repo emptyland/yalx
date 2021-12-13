@@ -1,5 +1,7 @@
 package main
 
+import "foo"
+
 val v1 = 1 as i8
 val v2 = 2 as u8
 val v3 = 3 as i16
@@ -10,6 +12,13 @@ val v7 = 7 as i64
 val v8 = 8 as u64
 val v9 = 9 as f32
 val v10 = 10 as f64
+
+val v11 = foo.C3() as foo.C1
+val v12 = foo.C1() as foo.C3
+
+val v13 = "hello" as u8[]
+val v14 = "world" as i8[]
+val v15 = "hong kong doggy" as char[]
 
 fun main() {
 
