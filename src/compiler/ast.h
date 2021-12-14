@@ -920,6 +920,14 @@ template<> struct LiteralTraits<bool> {
     static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
 }; // struct LiteralTraits<bool>
 
+template<> struct LiteralTraits<char32_t> {
+    static constexpr Node::Kind kKind = Node::kCharLiteral;
+    using NodeType = CharLiteral;
+    
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitCharLiteral(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
+}; // struct LiteralTraits<bool>
+
 template<> struct LiteralTraits<const String *> {
     static constexpr Node::Kind kKind = Node::kStringLiteral;
     using NodeType = StringLiteral;
@@ -959,6 +967,7 @@ DEFINE_ACTUAL_LITERAL(U64, uint64_t);
 DEFINE_ACTUAL_LITERAL(F32, float);
 DEFINE_ACTUAL_LITERAL(F64, double);
 DEFINE_ACTUAL_LITERAL(Bool, bool);
+DEFINE_ACTUAL_LITERAL(Char, char32_t);
 DEFINE_ACTUAL_LITERAL(String, const String *);
 
 
@@ -1595,6 +1604,10 @@ inline Type *LiteralTraits<double>::Mold(base::Arena *arena, const SourcePositio
 
 inline Type *LiteralTraits<bool>::Mold(base::Arena *arena, const SourcePosition &location) {
     return new (arena) Type(arena, Type::kType_bool, location);
+}
+
+inline Type *LiteralTraits<char32_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_char, location);
 }
 
 inline Type *LiteralTraits<const String *>::Mold(base::Arena *arena, const SourcePosition &location) {

@@ -74,7 +74,7 @@ Token Lexer::Next() {
                 return MatchString(ch, true/*escape*/, false/*block*/);
                 
             case '\'':
-                return MatchString(ch, false/*escape*/, false/*block*/);
+                return MatchChar();
                 
             case '`':
                 return MatchString(ch, false/*escape*/, true/*block*/);
@@ -135,6 +135,8 @@ Token Lexer::Next() {
                     loc.SetEnd(line_, column_);
                     MoveNext();
                     return Token(Token::k2Exclamation, loc);
+                } else if (ch == '\"') {
+                    return MatchString(ch, false/*escape*/, false/*block*/);
                 }
                 return Token(Token::kNot, loc);
             }
@@ -534,6 +536,82 @@ Token Lexer::MatchSimpleTemplateString() {
         }
     }
     return Token(Token::kError, {0, 0});
+}
+
+Token Lexer::MatchChar() {
+    SourcePosition loc{line_, column_};
+    MoveNext(); // skip `''
+    std::string buf;
+    if (!MatchUtf8Character(&buf)) {
+        return Token(Token::kError, {0, 0});
+    }
+    
+    // Use UTF-32 BE
+    char32_t val = 0;
+    switch (buf.size()) {
+        case 1:
+            val = buf[0];
+            break;
+        case 2:
+//            val = (static_cast<char32_t>(buf[0]) & 0b11111)
+//            | ((static_cast<char32_t>(buf[1]) & 0b111111) << 5);
+            val = ((static_cast<char32_t>(buf[0]) & 0b11111) << 6)
+            | (static_cast<char32_t>(buf[1]) & 0b111111);
+            break;
+        case 3:
+//            val = (static_cast<char32_t>(buf[0]) & 0b1111)
+//            | ((static_cast<char32_t>(buf[1]) & 0b111111) << 4)
+//            | ((static_cast<char32_t>(buf[2]) & 0b111111) << 10);
+            val = ((static_cast<char32_t>(buf[0]) & 0b1111) << 12)
+            | ((static_cast<char32_t>(buf[1]) & 0b111111) << 6)
+            | (static_cast<char32_t>(buf[2]) & 0b111111);
+            break;
+        case 4:
+//            val = (static_cast<char32_t>(buf[0]) & 0b111)
+//            | ((static_cast<char32_t>(buf[1]) & 0b111111) << 3)
+//            | ((static_cast<char32_t>(buf[2]) & 0b111111) << 9)
+//            | ((static_cast<char32_t>(buf[3]) & 0b111111) << 15);
+            val = ((static_cast<char32_t>(buf[0]) & 0b111) << 18)
+            | ((static_cast<char32_t>(buf[1]) & 0b111111) << 12)
+            | ((static_cast<char32_t>(buf[2]) & 0b111111) << 6)
+            | ((static_cast<char32_t>(buf[3]) & 0b111111));
+            break;
+        case 5:
+//            val = (static_cast<char32_t>(buf[0]) & 0b11)
+//            | ((static_cast<char32_t>(buf[1]) & 0b111111) << 2)
+//            | ((static_cast<char32_t>(buf[2]) & 0b111111) << 8)
+//            | ((static_cast<char32_t>(buf[3]) & 0b111111) << 14)
+//            | ((static_cast<char32_t>(buf[4]) & 0b111111) << 20);
+            val = ((static_cast<char32_t>(buf[0]) & 0b11) << 24)
+            | ((static_cast<char32_t>(buf[1]) & 0b111111) << 18)
+            | ((static_cast<char32_t>(buf[2]) & 0b111111) << 12)
+            | ((static_cast<char32_t>(buf[3]) & 0b111111) << 6)
+            | (static_cast<char32_t>(buf[4]) & 0b111111);
+            break;
+        case 6:
+//            val = (static_cast<char32_t>(buf[0]) & 0b1)
+//            | ((static_cast<char32_t>(buf[1]) & 0b111111) << 1)
+//            | ((static_cast<char32_t>(buf[2]) & 0b111111) << 7)
+//            | ((static_cast<char32_t>(buf[3]) & 0b111111) << 13)
+//            | ((static_cast<char32_t>(buf[4]) & 0b111111) << 19)
+//            | ((static_cast<char32_t>(buf[5]) & 0b111111) << 25);
+            val = ((static_cast<char32_t>(buf[0]) & 0b1) << 30)
+            | ((static_cast<char32_t>(buf[1]) & 0b111111) << 24)
+            | ((static_cast<char32_t>(buf[2]) & 0b111111) << 18)
+            | ((static_cast<char32_t>(buf[3]) & 0b111111) << 12)
+            | ((static_cast<char32_t>(buf[4]) & 0b111111) << 6)
+            | (static_cast<char32_t>(buf[5]) & 0b111111);
+            break;
+        default:
+            UNREACHABLE();
+            break;
+    }
+    loc.SetEnd(line_, column_);
+    if (Peek() != '\'') {
+        return Token(Token::kError, {0, 0});
+    }
+    MoveNext();
+    return Token(Token::kCharVal, loc).With(val);
 }
 
 Token Lexer::MatchString(int quote, bool escape, bool block) {

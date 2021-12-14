@@ -43,6 +43,7 @@ namespace cpl {
 //                    +- I64Literal
 //                    +- U64Literal
 //                    +- BoolLiteral
+//                    +- CharLiteral
 //                    +- StringLiteral
 //            +- ExpressionWithOperands<N>
 //                +- BinaryExpression
@@ -149,6 +150,7 @@ namespace cpl {
     V(F32Literal) \
     V(F64Literal) \
     V(BoolLiteral) \
+    V(CharLiteral) \
     V(StringLiteral) \
     V(LambdaLiteral) \
     V(ArrayInitializer) \

@@ -94,6 +94,26 @@ TEST_F(LexerTest, Annotation) {
     ASSERT_EQ(5, token.source_position().end_column());
 }
 
+TEST_F(LexerTest, CharVal) {
+    SwitchInput("\'1\'\'😤\''汉'");
+    auto token = lexer_.Next();
+    ASSERT_EQ(Token::kCharVal, token.kind());
+    ASSERT_EQ(U'1', token.char_val());
+    ASSERT_EQ(1, token.source_position().begin_line());
+    ASSERT_EQ(1, token.source_position().begin_column());
+    
+    token = lexer_.Next();
+    ASSERT_EQ(Token::kCharVal, token.kind());
+    ASSERT_EQ(U'😤', token.char_val());
+    ASSERT_EQ(1, token.source_position().begin_line());
+    ASSERT_EQ(4, token.source_position().begin_column());
+    
+    token = lexer_.Next();
+    ASSERT_EQ(Token::kCharVal, token.kind());
+    ASSERT_EQ(U'汉', token.char_val());
+    ASSERT_EQ(1, token.source_position().begin_line());
+    ASSERT_EQ(10, token.source_position().begin_column());
+}
 
 } // namespace cpl
 

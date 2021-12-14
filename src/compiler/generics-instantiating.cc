@@ -589,6 +589,7 @@ private:
     int VisitUnitLiteral(UnitLiteral *node) override { return Return(node); }
     int VisitEmptyLiteral(EmptyLiteral *node) override { return Return(node); }
     int VisitStringLiteral(StringLiteral *node) override { return Return(node); }
+    int VisitCharLiteral(CharLiteral *node) override { return Return(node); }
     
     int VisitPackage(Package *node) override { UNREACHABLE(); }
     int VisitFileUnit(FileUnit *node) override { UNREACHABLE(); }

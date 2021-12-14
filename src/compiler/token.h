@@ -26,6 +26,7 @@ using String = base::ArenaString;
     V(StringTempleteSuffix, nullptr, text) \
     V(StringTempleteExpressBegin, "{", text) \
     V(StringTempleteExpressEnd, "}", text) \
+    V(CharVal, nullptr, char) \
     V(IntVal, nullptr, i64) \
     V(UIntVal, nullptr, u64) \
     V(F32Val, nullptr, f32) \
@@ -175,6 +176,7 @@ public:
     DEF_VAL_PROP_RW(double, f64_val);
     DEF_VAL_PROP_RW(int64_t, i64_val);
     DEF_VAL_PROP_RW(uint64_t, u64_val);
+    DEF_VAL_PROP_RW(char32_t, char_val);
     
     bool Is(Kind expect) const { return kind() == expect; }
     bool IsNot(Kind expect) const { return !Is(expect); }
@@ -235,6 +237,11 @@ private:
         void Set(Token *token, double value) { token->f64_val_ = value; }
     };
     
+    template<>
+    struct Setter<char32_t> {
+        void Set(Token *token, char32_t value) { token->char_val_ = value; }
+    };
+    
     static NamePair kNameTable[kMax];
     
     Kind kind_;
@@ -245,6 +252,7 @@ private:
         double   f64_val_;
         uint64_t u64_val_;
         int64_t  i64_val_;
+        char32_t char_val_;
         void    *none_val_;
     };
 }; // class Token

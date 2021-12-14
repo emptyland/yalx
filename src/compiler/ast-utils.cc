@@ -95,6 +95,7 @@ public:
     int VisitUIntLiteral(UIntLiteral *node) override { return -1; }
     int VisitTryCatchExpression(TryCatchExpression *node) override { return -1; }
     int VisitOptionLiteral(OptionLiteral *node) override { return -1; }
+    int VisitCharLiteral(CharLiteral *node) override { return -1; }
 
     //void Visit
     std::string buf_;

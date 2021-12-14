@@ -41,6 +41,7 @@ private:
         kExpressionTemplate,
     };
 
+    Token MatchChar();
     Token MatchString(int quote, bool escape, bool block);
     Token MatchSimpleTemplateString();
     Token MatchIdentifier();

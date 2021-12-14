@@ -1362,6 +1362,7 @@ private:
     int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
     int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
+    int VisitCharLiteral(CharLiteral *node) override { return Return(node->type()); }
     
     Type *ReduceArrayDimension(const base::ArenaVector<AstNode *> &dimension, Type *qualified, int dimensions_limit,
                                int *dimensions_count, const SourcePosition &source_position) {
