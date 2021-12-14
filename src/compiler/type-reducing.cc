@@ -1572,7 +1572,11 @@ private:
             return new (arena_) Type(arena_, ty, lhs->source_position());
         }
         // TODO: other types
+        if (lhs->ToString() == rhs->ToString()) {
+            return lhs;
+        }
         UNREACHABLE();
+        //if (lhs->primary_type() == rhs->primary_type())
     }
     
     Type *GetIterationType(Type *iterable) {

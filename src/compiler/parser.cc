@@ -1310,6 +1310,10 @@ Expression *Parser::ParsePrimary(bool *ok) {
             expr = new (arena_) F64Literal(arena_, Peek().f64_val(), location);
             MoveNext();
             break;
+        case Token::kCharVal:
+            expr = new (arena_) CharLiteral(arena_, Peek().char_val(), location);
+            MoveNext();
+            break;
         case Token::kStringLine:
         case Token::kStringBlock:
             expr = new (arena_) StringLiteral(arena_, Peek().text_val(), location);
