@@ -1,0 +1,39 @@
+package utils
+
+
+
+interface List<T> {
+    fun insertHead(v: T)
+    fun insertTail(v: T)
+    fun head(): T?
+    fun tail(): T?
+    fun size(): i32
+}
+
+
+
+class LinkedList<T> : List<T> {
+    private val dummy = LinkedNode<T>(none, none, none)
+    private var count = 0
+
+    private fun init() {
+        dummy.prev = some(dummy)
+        dummy.next = some(dummy)
+    }
+
+    override fun insertHead(data: T) -> Unit
+    override fun insertTail(data: T) -> Unit
+
+    override fun head(): T? -> if (isEmpty()) none else dummy.prev.value
+    override fun tail(): T? -> if (isEmpty()) none else dummy.next.value
+
+    override fun size() -> count
+
+    fun isEmpty() -> true
+}
+
+class LinkedNode<T>(
+    val value: T?,
+    var prev: LinkedNode<T>?
+    var next: LinkedNode<T>?
+)
