@@ -20,6 +20,9 @@ val v13 = "hello" as u8[]
 val v14 = "world" as i8[]
 val v15 = "hong kong doggy" as char[]
 
+val v16 = u8[] {1,2,3,4} as string
+val v17 = i8[] {1,2,3,4} as string
+
 fun main() {
 
 }

@@ -1292,11 +1292,30 @@ private:
     }
     
     int VisitArrayInitializer(ArrayInitializer *node) override {
-        // TODO:
+        int dimensions_count = 0;
         if (auto type = node->type()) {
             auto ar = DCHECK_NOTNULL(type->AsArrayType());
+            auto rv = ReduceArrayDimension(node->dimensions(), ar->element_type(), ar->dimension_count(),
+                                           &dimensions_count, node->source_position());
+            if (!rv) {
+                return -1;
+            }
+            bool unlinked = false;
+            if (!ar->element_type()->Acceptable(rv, &unlinked)) {
+                Feedback()->Printf(node->source_position(), "Unexpected array element type: `%s', element is `%s'",
+                                   ar->ToString().c_str(), rv->ToString().c_str());
+                return -1;
+            }
+            assert(!unlinked);
+            return Return(ar);
         }
-        UNREACHABLE();
+        
+        auto type = ReduceArrayDimension(node->dimensions(), nullptr/*qualified*/, kMaxArrayInitializerDims,
+                                         &dimensions_count, node->source_position());
+        if (!type) {
+            return -1;
+        }
+        return Return(new (arena_) ArrayType(arena_, type, dimensions_count, node->source_position()));
     }
 
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
@@ -1343,6 +1362,71 @@ private:
     int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
     int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
+    
+    Type *ReduceArrayDimension(const base::ArenaVector<AstNode *> &dimension, Type *qualified, int dimensions_limit,
+                               int *dimensions_count, const SourcePosition &source_position) {
+        (*dimensions_count)++;
+        
+        if (dimensions_limit == 0) {
+            Feedback()->Printf(source_position, "Max array initializer dimensons: %d", *dimensions_count);
+            return nullptr;
+        }
+        
+        if (qualified) {
+            for (auto item : dimension) {
+                Type *type = nullptr;
+                if (auto ar = item->AsArrayInitializer()) {
+                    type = ReduceArrayDimension(ar->dimensions(), qualified, dimensions_limit - 1, dimensions_count,
+                                                item->source_position());
+                } else {
+                    if (ReduceReturningOnlyOne(item, &type) < 0) {
+                        return nullptr;
+                    }
+                }
+
+                if (!ReduceType(qualified, type)) {
+                    Feedback()->Printf(item->source_position(), "Unexpected array type: `%s', element is `%s'",
+                                       qualified->ToString().c_str(), type->ToString().c_str());
+                    return nullptr;
+                }
+            }
+            return qualified;
+        } else {
+            std::vector<Type *> types;
+            for (auto item : dimension) {
+                Type *type = nullptr;
+                size_t dim_size = 0;
+                if (auto ar = item->AsArrayInitializer()) {
+                    if (dim_size != 0 && dim_size != ar->dimensions_size()) {
+                        Feedback()->Printf(item->source_position(), "Diffecent dimension size: %zd vs %zd", dim_size,
+                                           ar->dimensions_size());
+                        return nullptr;
+                    }
+                    type = ReduceArrayDimension(ar->dimensions(), qualified, dimensions_limit - 1, dimensions_count,
+                                                item->source_position());
+                    dim_size = ar->dimensions_size();
+                } else {
+                    if (ReduceReturningOnlyOne(item, &type) < 0) {
+                        return nullptr;
+                    }
+                }
+                types.push_back(type);
+            }
+            
+            if (types.empty()) {
+                Feedback()->Printf(source_position, "No element in array initializer");
+                return nullptr;
+            }
+            if (types.size() == 1) {
+                return types[0];
+            }
+            auto reduced = types[0];
+            for (auto i = 1; i < types.size(); i++) {
+                reduced = ReduceType(reduced, types[i]);
+            }
+            return reduced;
+        }
+    }
     
     int CastingFeasibilityTest(Type *dest, Type *src, const SourcePosition &source_position) {
         switch (Constants::HowToCasting(dest->primary_type(), src->primary_type())) {

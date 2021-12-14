@@ -44,6 +44,8 @@ constexpr static char kThrowableClassName[] = "Throwable";
 
 constexpr static char kObjectShadowClassPostfix[] = "$ShadowClass";
 constexpr static char kPrimaryConstructorPostfix[] = "$constructor";
+
+constexpr static int kMaxArrayInitializerDims = 99;
 } // namespace cpl
 
 } // namespace yalx

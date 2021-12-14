@@ -622,6 +622,34 @@ TEST_F(ParserTest, BreakContinueThrowStatements) {
     
 }
 
+TEST_F(ParserTest, ArrayInitializer) {
+    SwitchInput("{1,2,3}\n"
+                "{{1,2},{3,4}}\n"
+                "int[]{1,2,3}\n");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(ast->IsArrayInitializer());
+    auto ar1 = ast->AsArrayInitializer();
+    ASSERT_EQ(3, ar1->dimensions_size());
+    ASSERT_EQ(nullptr, ar1->type());
+
+    ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_TRUE(ast->IsArrayInitializer());
+    auto ar2 = ast->AsArrayInitializer();
+    ASSERT_EQ(2, ar2->dimensions_size());
+    
+    ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_TRUE(ast->IsArrayInitializer());
+    auto ar3 = ast->AsArrayInitializer();
+    ASSERT_EQ(3, ar3->dimensions_size());
+    ASSERT_NE(nullptr, ar3->type());
+    ASSERT_TRUE(ar3->type()->IsArrayType());
+}
+
 } // namespace cpl
 
 } // namespace yalx

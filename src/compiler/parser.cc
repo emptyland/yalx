@@ -2,6 +2,7 @@
 #include "compiler/ast.h"
 #include "compiler/syntax-feedback.h"
 #include "compiler/lexer.h"
+#include "compiler/constants.h"
 
 namespace yalx {
 
@@ -1270,7 +1271,9 @@ Expression *Parser::ParsePrimary(bool *ok) {
     }
     
     bool is_type = true;
+    auto saved = lookahead_;
     ProbeType(&is_type);
+    lookahead_ = saved;
     if (is_type) {
         auto type = ParseType(CHECK_OK);
         if (!type->IsArrayType()) {
@@ -1278,7 +1281,7 @@ Expression *Parser::ParsePrimary(bool *ok) {
                                     type->ToString().c_str());
             *ok = false;
         }
-        return ParseArrayInitializer(type->AsArrayType(), CHECK_OK);
+        return ParseArrayInitializer(type->AsArrayType(), type->AsArrayType()->dimension_count(), CHECK_OK);
     }
     
     Expression *expr = nullptr;
@@ -1286,7 +1289,7 @@ Expression *Parser::ParsePrimary(bool *ok) {
         case Token::kLParen:
             return ParseParenOrLambdaLiteral(ok);
         case Token::kLBrace:
-            return ParseArrayInitializer(nullptr, CHECK_OK);
+            return ParseArrayInitializer(nullptr, kMaxArrayInitializerDims, CHECK_OK);
         case Token::kIdentifier:
             expr = new (arena_) Identifier(Peek().text_val(), location);
             MoveNext();
@@ -1323,16 +1326,35 @@ Expression *Parser::ParsePrimary(bool *ok) {
     return expr;
 }
 
-Expression *Parser::ParseArrayInitializer(ArrayType *qualified, bool *ok) {
+Expression *Parser::ParseArrayInitializer(ArrayType *qualified, int dimension_limit, bool *ok) {
+    if (dimension_limit == 0) {
+        error_feedback_->Printf(Peek().source_position(), "Max array initializer dimensions");
+        *ok = false;
+        return nullptr;
+    }
+    
     auto location = Peek().source_position();
     if (qualified) {
         location = qualified->source_position();
     }
+    Match(Token::kLBrace, CHECK_OK);
     
     auto dimension_count = !qualified ? 1 : qualified->dimension_count();
     auto init = new (arena_) ArrayInitializer(arena_, qualified, dimension_count, location);
-    // TODO:
-    UNREACHABLE();
+    if (Peek().Is(Token::kLBrace)) {
+        do {
+            auto dim = ParseArrayInitializer(nullptr, dimension_limit - 1, CHECK_OK);
+            init->mutable_dimensions()->push_back(dim);
+        } while(Test(Token::kComma));
+    } else if (Peek().IsNot(Token::kRBrace)) {
+        do {
+            auto expr = ParseExpression(CHECK_OK);
+            init->mutable_dimensions()->push_back(expr);
+        } while(Test(Token::kComma));
+    }
+    
+    *init->mutable_source_position() = location.Concat(Peek().source_position());
+    Match(Token::kRBrace, CHECK_OK);
     return init;
 }
 

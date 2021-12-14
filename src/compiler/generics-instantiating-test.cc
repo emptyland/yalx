@@ -140,15 +140,15 @@ TEST_F(GenericsInstantiatingTest, SelfType) {
     ASSERT_TRUE(inst->IsInterfaceDefinition());
     auto ifdef = inst->AsInterfaceDefinition();
     ASSERT_EQ(3, ifdef->methods_size());
-    ASSERT_EQ(resolver.symbols["main.Foo<i32>"], ifdef->method(0)->prototype()->return_type(0)->AsClassType()->definition());
-    ASSERT_EQ(resolver.symbols["main.Foo<i32>"], ifdef->method(1)->prototype()->return_type(0)->AsClassType()->definition());
-    ASSERT_EQ(resolver.symbols["main.Foo<i64>"], ifdef->method(2)->prototype()->return_type(0)->AsClassType()->definition());
+    ASSERT_EQ(resolver.symbols["main.Foo<i32>"], ifdef->method(0)->prototype()->return_type(0)->AsInterfaceType()->definition());
+    ASSERT_EQ(resolver.symbols["main.Foo<i32>"], ifdef->method(1)->prototype()->return_type(0)->AsInterfaceType()->definition());
+    ASSERT_EQ(resolver.symbols["main.Foo<i64>"], ifdef->method(2)->prototype()->return_type(0)->AsInterfaceType()->definition());
     
     Instantiate(stmt, {f32_}, &inst, &resolver);
     ASSERT_NE(nullptr, inst);
     ASSERT_TRUE(inst->IsInterfaceDefinition());
     ifdef = inst->AsInterfaceDefinition();
-    ASSERT_EQ(resolver.symbols["main.Foo<f32>"], ifdef->method(0)->prototype()->return_type(0)->AsClassType()->definition());
+    ASSERT_EQ(resolver.symbols["main.Foo<f32>"], ifdef->method(0)->prototype()->return_type(0)->AsInterfaceType()->definition());
     
 }
 
