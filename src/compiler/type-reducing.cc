@@ -462,6 +462,9 @@ private:
             }
             node->set_base_of(symbol->AsStructDefinition());
         }
+        if (node->base_of() && ProcessDependencySymbolIfNeeded(node->base_of()) < 0) {
+            return -1;
+        }
         
         DataDefinitionScope scope(&location_, node);
         scope.InstallAncestorsSymbols();

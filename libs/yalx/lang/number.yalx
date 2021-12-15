@@ -1,31 +1,25 @@
 package lang
 
 @Lang
-struct I32(val value: i32) {
-    fun toI8(): i8
-    fun toU8(): u8
-    fun toI16(): i16
-    fun toU16(): u16
-    fun toU32(): u32
-    fun toI64(): i64
-    fun toU64(): u64
-    fun toF32(): f32
-    fun toF64(): f64
-    fun compareTo(a: i32): i32
+struct Number<T>(val value: T) {
+    fun toI8() -> value as i8
+    fun toU8() -> value as u8
+    fun toI16() -> value as i16
+    fun toU16() -> value as u16
+    fun toI32() -> value as i32
+    fun toU32() -> value as u32
+    fun toI64() -> value as i64
+    fun toU64() -> value as u64
+    fun toF32() -> value as f32
+    fun toF64() -> value as f64
+}
+
+@Lang
+struct I32(value: i32): Number<i32>(value) {
     fun toString(): string
 }
 
 @Lang
-struct U32(val value: u32) {
-    fun toI8(): i8
-    fun toU8(): u8
-    fun toI16(): i16
-    fun toU16(): u16
-    fun toI32(): i32
-    fun toI64(): i64
-    fun toU64(): u64
-    fun toF32(): f32
-    fun toF64(): f64
-    fun compareTo(a: u32): i32
+struct U32(value: u32): Number<u32>(value) {
     fun toString(): string
 }

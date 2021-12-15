@@ -93,11 +93,13 @@ public:
         if (ProcessIncompletableDefinition(node, copied, &base_of) < 0) {
             return -1;
         }
-        if (!base_of->IsStructDefinition()) {
-            Feedback()->Printf(node->super_calling()->source_position(), "Only struct can be inherit of struct");
-            return -1;
+        if (base_of) {
+            if (!base_of->IsStructDefinition()) {
+                Feedback()->Printf(node->super_calling()->source_position(), "Only struct can be inherit of struct");
+                return -1;
+            }
+            copied->set_base_of(DCHECK_NOTNULL(base_of->AsStructDefinition()));
         }
-        copied->set_base_of(DCHECK_NOTNULL(base_of->AsStructDefinition()));
         
         return Return(copied);
     }

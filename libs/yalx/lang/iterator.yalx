@@ -1,0 +1,6 @@
+package lang
+
+interface Iterator<T> {
+    fun next(): T
+    fun hasNext(): bool
+}
