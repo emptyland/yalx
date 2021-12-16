@@ -990,11 +990,13 @@ public:
     
     DEF_VAL_PROP_RW(int, dimension_count);
     DEF_ARENA_VECTOR_GETTER(AstNode *, dimension);
+    DEF_PTR_PROP_RW(Expression, filling_value);
 
     DECLARE_AST_NODE(ArrayInitializer);
 private:
     int dimension_count_;
     base::ArenaVector<AstNode *> dimensions_;
+    Expression *filling_value_ = nullptr;
 }; // class ArrayInitializer
 
 
@@ -1435,13 +1437,24 @@ class ArrayType : public Type {
 public:
     ArrayType(base::Arena *arena, Type *element_type, int dimension_count, const SourcePosition &source_position);
     
-    DEF_VAL_GETTER(int, dimension_count);
+    int dimension_count() const { return static_cast<int>(dimension_capacitys_size()); }
     Type *element_type() const { return generic_arg(0); }
+    DEF_ARENA_VECTOR_GETTER(Expression *, dimension_capacity);
+    
+    bool HasNotCapacities() const {
+        return std::count(dimension_capacitys_.begin(), dimension_capacitys_.end(), nullptr) == dimension_count();
+    }
+    
+    bool HasCapacities() const {
+        return std::count_if(dimension_capacitys_.begin(),
+                             dimension_capacitys_.end(),
+                             [](auto expr) { return expr != nullptr; }) == dimension_count();
+    }
     
     bool Acceptable(const Type *rhs, bool *unlinked) const override;
     std::string ToString() const override;
 private:
-    int dimension_count_ = 0;
+    base::ArenaVector<Expression *> dimension_capacitys_;
 }; // class ArrayType
 
 class OptionType : public Type {

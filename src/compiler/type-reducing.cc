@@ -1296,29 +1296,45 @@ private:
     
     int VisitArrayInitializer(ArrayInitializer *node) override {
         int dimensions_count = 0;
-        if (auto type = node->type()) {
-            auto ar = DCHECK_NOTNULL(type->AsArrayType());
-            auto rv = ReduceArrayDimension(node->dimensions(), ar->element_type(), ar->dimension_count(),
-                                           &dimensions_count, node->source_position());
-            if (!rv) {
+        if (!node->type()) {
+            auto type = ReduceArrayDimension(node->dimensions(), nullptr/*qualified*/, kMaxArrayInitializerDims,
+                                             &dimensions_count, node->source_position());
+            if (!type) {
+                return -1;
+            }
+            return Return(new (arena_) ArrayType(arena_, type, dimensions_count, node->source_position()));
+        }
+
+        auto ar = DCHECK_NOTNULL(node->type()->AsArrayType());
+        if (ar->HasCapacities()) {
+            assert(node->filling_value());
+            Type *filling = nullptr;
+            if (ReduceReturningOnlyOne(node->filling_value(), &filling) < 0) {
                 return -1;
             }
             bool unlinked = false;
-            if (!ar->element_type()->Acceptable(rv, &unlinked)) {
-                Feedback()->Printf(node->source_position(), "Unexpected array element type: `%s', element is `%s'",
-                                   ar->ToString().c_str(), rv->ToString().c_str());
+            if (!ar->element_type()->Acceptable(filling, &unlinked)) {
+                Feedback()->Printf(node->source_position(), "Unexpected array element type: `%s', filling value is `%s'",
+                                   ar->ToString().c_str(), filling->ToString().c_str());
                 return -1;
             }
             assert(!unlinked);
             return Return(ar);
         }
         
-        auto type = ReduceArrayDimension(node->dimensions(), nullptr/*qualified*/, kMaxArrayInitializerDims,
-                                         &dimensions_count, node->source_position());
-        if (!type) {
+        auto rv = ReduceArrayDimension(node->dimensions(), ar->element_type(), ar->dimension_count(),
+                                       &dimensions_count, node->source_position());
+        if (!rv) {
             return -1;
         }
-        return Return(new (arena_) ArrayType(arena_, type, dimensions_count, node->source_position()));
+        bool unlinked = false;
+        if (!ar->element_type()->Acceptable(rv, &unlinked)) {
+            Feedback()->Printf(node->source_position(), "Unexpected array element type: `%s', element is `%s'",
+                               ar->ToString().c_str(), rv->ToString().c_str());
+            return -1;
+        }
+        assert(!unlinked);
+        return Return(ar);
     }
 
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }

@@ -790,8 +790,8 @@ std::string Type::ToString() const {
 
 ArrayType::ArrayType(base::Arena *arena, Type *element_type, int dimension_count, const SourcePosition &source_position)
     : Type(arena, Type::kArray, kType_array, nullptr, source_position)
-    , dimension_count_(dimension_count) {
-    assert(dimension_count > 0);
+    , dimension_capacitys_(dimension_count, nullptr, arena) {
+    assert(dimension_count >= 0);
     mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
 }
 

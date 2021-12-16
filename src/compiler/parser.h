@@ -70,6 +70,8 @@ public:
     TryCatchExpression *ParseTryCatchExpression(bool *ok);
     StringTemplate *ParseStringTemplate(bool *ok);
     Type *ParseType(bool *ok);
+    ArrayType *ParseArrayTypeMaybeWithLimits(bool *ok);
+    Type *ParseAtomType(bool *ok);
 private:
     bool ProbeInstantiation() {
         auto saved = lookahead_;
@@ -80,6 +82,7 @@ private:
     }
     bool ProbeInstantiation(bool *ok);
     bool ProbeType(bool *ok);
+    bool ProbeAtomType(bool *ok);
     void *ParseGenericParameters(base::ArenaVector<GenericParameter *> *params, bool *ok);
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *list, Expression *receiver[2], bool *ok);
     Expression *ParseCommaSplittedExpressions(base::ArenaVector<Expression *> *receiver, bool *ok);

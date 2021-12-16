@@ -1272,16 +1272,11 @@ Expression *Parser::ParsePrimary(bool *ok) {
     
     bool is_type = true;
     auto saved = lookahead_;
-    ProbeType(&is_type);
+    ProbeAtomType(&is_type);
     lookahead_ = saved;
     if (is_type) {
-        auto type = ParseType(CHECK_OK);
-        if (!type->IsArrayType()) {
-            error_feedback_->Printf(type->source_position(), "None array type for array initializer: `%s'",
-                                    type->ToString().c_str());
-            *ok = false;
-        }
-        return ParseArrayInitializer(type->AsArrayType(), type->AsArrayType()->dimension_count(), CHECK_OK);
+        auto type = ParseArrayTypeMaybeWithLimits(CHECK_OK);
+        return ParseArrayInitializer(type, type->dimension_count(), CHECK_OK);
     }
     
     Expression *expr = nullptr;
@@ -1340,6 +1335,15 @@ Expression *Parser::ParseArrayInitializer(ArrayType *qualified, int dimension_li
     auto location = Peek().source_position();
     if (qualified) {
         location = qualified->source_position();
+        if (qualified->HasCapacities()) {
+            Match(Token::kLParen, CHECK_OK);
+            auto filling = ParseExpression(CHECK_OK);
+            location.Concat(Peek().source_position());
+            Match(Token::kRParen, CHECK_OK);
+            auto init = new (arena_) ArrayInitializer(arena_, qualified, qualified->dimension_count(), location);
+            init->set_filling_value(filling);
+            return init;
+        }
     }
     Match(Token::kLBrace, CHECK_OK);
     
@@ -1634,6 +1638,22 @@ bool Parser::ProbeInstantiation(bool *ok) {
 }
 
 bool Parser::ProbeType(bool *ok) {
+    ProbeAtomType(CHECK_OK);
+    while (Probe(Token::kQuestion)) {
+        Probe(Token::kQuestion);
+    }
+    if (Peek().Is(Token::kLBrack)) {
+        while (Probe(Token::kLBrack)) {
+            Probe(Token::kRBrack, CHECK_OK);
+        }
+    }
+    while (Probe(Token::kQuestion)) {
+        Probe(Token::kQuestion);
+    }
+    return false;
+}
+
+bool Parser::ProbeAtomType(bool *ok) {
     switch (Peek().kind()) {
         case Token::kUnit:
         case Token::kBool:
@@ -1702,15 +1722,6 @@ bool Parser::ProbeType(bool *ok) {
         default:
             *ok = false;
             return true;
-    }
-    
-    if (Peek().Is(Token::kLBrack)) {
-        while (Probe(Token::kLBrack)) {
-            Probe(Token::kRBrack, CHECK_OK);
-        }
-    }
-    if (Peek().Is(Token::kQuestion)) {
-        Probe(Token::kQuestion);
     }
     return false;
 }
@@ -1827,8 +1838,59 @@ Statement *Parser::ParseInitializerIfExistsWithCondition(Expression **condition,
 // function_type ::= `(' type_list? `)' (`->' type_ref | `(' type_list `)' )
 // symbol ::= identifier | identifier `.' identifier
 Type *Parser::ParseType(bool *ok) {
-    Type *type = nullptr;
     auto location = Peek().source_position();
+    auto type = ParseAtomType(CHECK_OK);
+    while (Test(Token::kQuestion)) {
+        type = new (arena_) OptionType(arena_, type, location);
+    }
+    
+    if (Peek().Is(Token::kLBrack)) {
+        auto ar = new (arena_) ArrayType(arena_, type, 0, location);
+        while (Test(Token::kLBrack)) {
+            ar->mutable_dimension_capacitys()->push_back(nullptr);
+            Match(Token::kRBrack, CHECK_OK);
+        }
+        type = ar;
+    }
+    
+    while (Test(Token::kQuestion)) {
+        type = new (arena_) OptionType(arena_, type, location);
+    }
+    return type;
+}
+
+ArrayType *Parser::ParseArrayTypeMaybeWithLimits(bool *ok) {
+    auto location = Peek().source_position();
+    Type *type = ParseAtomType(CHECK_OK);
+    
+    while (Test(Token::kQuestion)) {
+        type = new (arena_) OptionType(arena_, type, location);
+    }
+    
+    auto ar = new (arena_) ArrayType(arena_, type, 0, location);
+    while (Test(Token::kLBrack)) {
+        if (Peek().Is(Token::kRBrack)) {
+            ar->mutable_dimension_capacitys()->push_back(nullptr);
+            Match(Token::kRBrack, CHECK_OK);
+        } else {
+            auto expr = ParseExpression(CHECK_OK);
+            ar->mutable_dimension_capacitys()->push_back(expr);
+            Match(Token::kRBrack, CHECK_OK);
+        }
+    }
+    
+    if (!ar->HasCapacities() != ar->HasNotCapacities() ||
+        !ar->HasNotCapacities() != ar->HasCapacities()) {
+        error_feedback_->Printf(ar->source_position(), "Bad array type: `%s'", ar->ToString().c_str());
+        *ok = false;
+        return nullptr;
+    }
+    return ar;
+}
+
+Type *Parser::ParseAtomType(bool *ok) {
+    auto location = Peek().source_position();
+    Type *type = nullptr;
     switch (Peek().kind()) {
         case Token::kUnit:
             MoveNext();
@@ -1951,21 +2013,6 @@ Type *Parser::ParseType(bool *ok) {
             *ok = false;
             error_feedback_->Printf(location, "Unexpected 'type_ref', expected: %s", Peek().ToString().c_str());
             return nullptr;
-    }
-    
-    if (Peek().Is(Token::kLBrack)) {
-        int dim = 0;
-        while (Test(Token::kLBrack)) {
-            dim++;
-            Match(Token::kRBrack, CHECK_OK);
-        }
-        type = new (arena_) ArrayType(arena_, type, dim, location);
-        //type = array_type;
-    }
-    
-    if (Peek().Is(Token::kQuestion)) {
-        MoveNext();
-        type = new (arena_) OptionType(arena_, type, location);
     }
     return type;
 }
