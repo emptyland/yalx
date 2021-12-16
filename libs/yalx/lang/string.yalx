@@ -1,0 +1,12 @@
+package lang
+
+@Lang
+class String(
+    val size: u32,
+    val capacity: u32,
+    private val cachedHashCode: u32,
+    private val buf: u8[]
+) {
+    override fun toString(): string
+    override fun hashCode(): u32
+}

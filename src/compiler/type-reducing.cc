@@ -413,7 +413,13 @@ private:
         }
         
         for (auto method : node->methods()) {
-            if (Reduce(method) < 0) {
+            if (LinkType(method->prototype()) == nullptr) {
+                return -1;
+            }
+
+            if (!method->body()) {
+                method->prototype()->set_signature(MakePrototypeSignature(method->prototype()));
+            } else if (Reduce(method) < 0) {
                 return -1;
             }
             
@@ -502,10 +508,8 @@ private:
             }
             if (!method->body()) {
                 method->prototype()->set_signature(MakePrototypeSignature(method->prototype()));
-            } else {
-                if (Reduce(method) < 0) {
-                    return -1;
-                }
+            } else if (Reduce(method) < 0) {
+                return -1;
             }
             
             if (method->decoration() == FunctionDeclaration::kOverride) {
@@ -1336,6 +1340,64 @@ private:
         assert(!unlinked);
         return Return(ar);
     }
+    
+    int VisitIfExpression(IfExpression *node) override {
+        BlockScope scope(&location_, kBranchBlock, node);
+        if (node->initializer()) {
+            if (Reduce(node->initializer()) < 0) {
+                return -1;
+            }
+        }
+        
+        Type *type = nullptr;
+        if (ReduceReturningAtLeastOne(node->condition(), &type) < 0) {
+            return -1;
+        }
+        if (type->IsNotConditionVal()) {
+            Feedback()->Printf(node->condition()->source_position(), "Condition must be bool expression or option");
+            return -1;
+        }
+        
+        std::vector<Type *> then_types;
+        if (Reduce(node->then_clause(), &then_types) < 0) {
+            return -1;
+        }
+        if (!node->else_clause()) {
+            if (then_types.empty()) {
+                return Return(Unit());
+            }
+            std::vector<Type *> results;
+            for (auto type : then_types) {
+                results.push_back(new (arena_) OptionType(arena_, type, type->source_position()));
+            }
+            return Return(results);
+        }
+
+        std::vector<Type *> else_types;
+        if (Reduce(node->else_clause(), &else_types) < 0) {
+            return -1;
+        }
+        if (then_types.size() != else_types.size()) {
+            Feedback()->Printf(node->source_position(), "Different branches values, then is %zd, else is %zd",
+                               then_types.size(), else_types.size());
+            return -1;
+        }
+        if (then_types.empty() && else_types.empty()) {
+            return  Return(Unit());
+        }
+        
+        std::vector<Type *> results;
+        for (int i = 0; i < then_types.size(); i++) {
+            if (auto reduced = ReduceType(then_types[i], else_types[i]); !reduced) {
+                Feedback()->Printf(node->source_position(), "Unacceptable branches types `%s' <=> `%s'",
+                                   then_types[i]->ToString().c_str(), else_types[i]->ToString().c_str());
+                return -1;
+            } else {
+                results.push_back(reduced);
+            }
+        }
+        return Return(results);
+    }
 
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
@@ -1375,7 +1437,6 @@ private:
     int VisitUnitLiteral(UnitLiteral *node) override { return Return(Unit()); }
     int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
     int VisitGreaterEqual(GreaterEqual *node) override { UNREACHABLE(); }
-    int VisitIfExpression(IfExpression *node) override { UNREACHABLE(); }
     int VisitStringLiteral(StringLiteral *node) override { return Return(node->type()); }
     int VisitWhenExpression(WhenExpression *node) override { UNREACHABLE(); }
     int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
@@ -1590,12 +1651,76 @@ private:
             }
             return new (arena_) Type(arena_, ty, lhs->source_position());
         }
-        // TODO: other types
         if (lhs->ToString() == rhs->ToString()) {
             return lhs;
         }
-        UNREACHABLE();
-        //if (lhs->primary_type() == rhs->primary_type())
+
+        switch (Constants::HowToCasting(lhs->primary_type(), rhs->primary_type())) {
+            case CastingRule::DENY:
+            case CastingRule::I8_U8_CHAR_ARRAY_ONLY:
+                break;
+                
+            case CastingRule::ALLOW:
+            case CastingRule::ALLOW_UNBOX:
+            case CastingRule::ALLOW_TYPING:
+            case CastingRule::ALLOW_TYPING_CONCEPT: {
+                if (lhs->primary_type() == Type::kType_any) {
+                    return lhs;
+                }
+                if (rhs->primary_type() == Type::kType_any) {
+                    return rhs;
+                }
+            } break;
+                
+            case CastingRule::PROTOTYPE: {
+                auto lhs_fun = DCHECK_NOTNULL(lhs->AsFunctionPrototype());
+                auto rhs_fun = DCHECK_NOTNULL(rhs->AsFunctionPrototype());
+                if (lhs_fun->signature() == rhs_fun->signature()) {
+                    return lhs;
+                }
+                
+            } break;
+                
+            case CastingRule::CONCEPT: {
+                auto clazz = DCHECK_NOTNULL(rhs->AsClassType())->definition();
+                auto interface = DCHECK_NOTNULL(lhs->AsInterfaceType())->definition();
+                if (clazz->IsConceptOf(interface)) {
+                    return lhs;
+                }
+            } break;
+                
+            case CastingRule::OPTION_VALUE:
+            case CastingRule::ELEMENT:
+            case CastingRule::ELEMENT_IN_OUT: {
+                bool unlinked = false;
+                if (lhs->Acceptable(rhs, &unlinked)) {
+                    return lhs;
+                }
+                assert(!unlinked);
+            } break;
+                
+            case CastingRule::SELF_ONLY: {
+                auto lhs_if = DCHECK_NOTNULL(lhs->AsInterfaceType())->definition();
+                auto rhs_if = DCHECK_NOTNULL(rhs->AsInterfaceType())->definition();
+                if (lhs_if == rhs_if) {
+                    return lhs;
+                }
+            } break;
+                
+            case CastingRule::CHILD_CLASS_ONLY: {
+
+            } break;
+                
+            case CastingRule::CLASS_BASE_OF: {
+
+            } break;
+                
+            default:
+                UNREACHABLE();
+                break;
+        }
+        
+        return nullptr;
     }
     
     Type *GetIterationType(Type *iterable) {
@@ -1786,6 +1911,10 @@ private:
                 auto current_pkg_scope = location_->NearlyPackageScope();
                 auto current_file_scope = location_->NearlyFileUnitScope();
                 
+                if (!RecursionEnterAndTest(ast)) {
+                    Feedback()->Printf(ast->source_position(), "Recursived dependency symbol");
+                    return -1;
+                }
                 if (owns != current_file_scope->file_unit()) {
                     //printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
                     PackageScope *external_scope = nullptr;
@@ -1811,6 +1940,7 @@ private:
                         return -1;
                     }
                 }
+                RecursionExit(ast);
             }
         }
         return 0;
@@ -2124,11 +2254,27 @@ private:
         return sign;
     }
     
+    bool RecursionEnterAndTest(Statement *ast) {
+        auto iter = recursion_tracing_.find(ast);
+        if (iter != recursion_tracing_.end()) {
+            return false;
+        }
+        recursion_tracing_.insert(ast);
+        return true;
+    }
+    
+    void RecursionExit(Statement *ast) {
+        auto iter = recursion_tracing_.find(ast);
+        assert(iter != recursion_tracing_.end());
+        recursion_tracing_.erase(iter);
+    }
+    
     base::Arena *const arena_;
     SyntaxFeedback *const error_feedback_;
     NamespaceScope *location_ = nullptr;
     Package *entry_;
     std::set<Package *> track_;
+    std::set<Statement *> recursion_tracing_; // For
     base::Status status_;
     std::unordered_map<std::string_view, GlobalSymbol> global_symbols_;
     std::map<Package *, PackageScope *> package_scopes_;

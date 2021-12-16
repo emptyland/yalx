@@ -30,6 +30,10 @@ val v20 = v6.toF64()
 val v21 = char[16]('a')
 val v22 = int[16](0)
 
+val v23: foo.C1? = none
+val v24, v25 = if (v23) {1, 2} else {2, 1}
+val v26 = if (v23) 233
+
 fun main() {
 
 }

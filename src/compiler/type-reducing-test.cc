@@ -231,6 +231,11 @@ TEST_F(TypeReducingTest, TypeCasting01) {
     ASSERT_NE(nullptr, v12);
     ASSERT_TRUE(v12->type()->IsClassType());
     EXPECT_STREQ("C3", v12->type()->AsClassType()->definition()->name()->data());
+
+    auto v26 = down_cast<VariableDeclaration::Item>(symbols["main:main.v26"].ast);
+    ASSERT_NE(nullptr, v26);
+    ASSERT_TRUE(v26->type()->IsOptionType());
+    EXPECT_EQ(Type::kType_i32, v26->type()->AsOptionType()->element_type()->primary_type());
 }
 
 } // namespace yalx
