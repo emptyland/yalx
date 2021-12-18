@@ -1272,6 +1272,7 @@ public:
     DEF_PTR_PROP_RW(Statement, initializer);
     DEF_PTR_PROP_RW(Expression, destination);
     DEF_ARENA_VECTOR_GETTER(Case *, case_clause);
+    DEF_ARENA_VECTOR_GETTER(Type *, reduced_type);
     DEF_PTR_PROP_RW(Statement, else_clause);
     
     DECLARE_AST_NODE(WhenExpression);
@@ -1280,6 +1281,7 @@ private:
     Expression *destination_;
     base::ArenaVector<Case *> case_clauses_;
     Statement *else_clause_ = nullptr;
+    base::ArenaVector<Type *> reduced_types_;
 }; // class WhenExpression
 
 class TryCatchExpression : public Expression {

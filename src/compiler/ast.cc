@@ -606,7 +606,8 @@ WhenExpression::WhenExpression(base::Arena *arena, Statement *initializer, Expre
     : Expression(Node::kWhenExpression, false /*is_lval*/, true /*ls_rval*/, source_position)
     , initializer_(initializer)
     , destination_(destination)
-    , case_clauses_(arena) {
+    , case_clauses_(arena)
+    , reduced_types_(arena) {
 }
 
 WhenExpression::ExpectValuesCase::ExpectValuesCase(base::Arena *arena, Statement *then_clause,

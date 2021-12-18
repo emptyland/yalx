@@ -1343,6 +1343,8 @@ private:
     
     int VisitIfExpression(IfExpression *node) override {
         BlockScope scope(&location_, kBranchBlock, node);
+        const auto number_of_branchs = 1 + (node->else_clause() ? 1 : 0);
+        std::unique_ptr<std::vector<Type *>[]> branchs_types(new std::vector<Type *>[number_of_branchs]);
         if (node->initializer()) {
             if (Reduce(node->initializer()) < 0) {
                 return -1;
@@ -1357,46 +1359,270 @@ private:
             Feedback()->Printf(node->condition()->source_position(), "Condition must be bool expression or option");
             return -1;
         }
-        
-        std::vector<Type *> then_types;
-        if (Reduce(node->then_clause(), &then_types) < 0) {
+
+        if (Reduce(node->then_clause(), &branchs_types[0]) < 0) {
             return -1;
-        }
-        if (!node->else_clause()) {
-            if (then_types.empty()) {
-                return Return(Unit());
-            }
-            std::vector<Type *> results;
-            for (auto type : then_types) {
-                results.push_back(new (arena_) OptionType(arena_, type, type->source_position()));
-            }
-            return Return(results);
         }
 
-        std::vector<Type *> else_types;
-        if (Reduce(node->else_clause(), &else_types) < 0) {
-            return -1;
-        }
-        if (then_types.size() != else_types.size()) {
-            Feedback()->Printf(node->source_position(), "Different branches values, then is %zd, else is %zd",
-                               then_types.size(), else_types.size());
-            return -1;
-        }
-        if (then_types.empty() && else_types.empty()) {
-            return  Return(Unit());
-        }
-        
-        std::vector<Type *> results;
-        for (int i = 0; i < then_types.size(); i++) {
-            if (auto reduced = ReduceType(then_types[i], else_types[i]); !reduced) {
-                Feedback()->Printf(node->source_position(), "Unacceptable branches types `%s' <=> `%s'",
-                                   then_types[i]->ToString().c_str(), else_types[i]->ToString().c_str());
+        if (node->else_clause()) {
+            if (Reduce(node->else_clause(), &branchs_types[1]) < 0) {
                 return -1;
-            } else {
-                results.push_back(reduced);
             }
         }
+
+        std::vector<Type *> results;
+        if (ReduceBranchsTypes(branchs_types.get(), number_of_branchs, 1, &results, node->source_position()) < 0) {
+            return -1;
+        }
         return Return(results);
+    }
+    
+    int VisitWhenExpression(WhenExpression *node) override {
+        BlockScope scope(&location_, kBranchBlock, node);
+        const auto number_of_branchs = node->case_clauses_size() + (node->else_clause() ? 1 : 0);
+        std::unique_ptr<std::vector<Type *>[]> branchs_types(new std::vector<Type *>[number_of_branchs]);
+        
+        if (node->initializer()) {
+            if (Reduce(node->initializer()) < 0) {
+                return -1;
+            }
+        }
+        Type *dest_type = nullptr;
+        if (ReduceReturningAtLeastOne(node->destination(), &dest_type) < 0) {
+            return -1;
+        }
+
+        for (size_t i = 0; i < node->case_clauses_size(); i++) {
+            if (auto clause = WhenExpression::ExpectValuesCase::Cast(node->case_clause(i))) {
+                Type *value_type = nullptr;
+                for (auto value : clause->match_values()) {
+                    if (ReduceReturningOnlyOne(value, &value_type) < 0) {
+                        return -1;
+                    }
+                    
+                    bool unlinked = false;
+                    if (!dest_type->Acceptable(value_type, &unlinked)) {
+                        Feedback()->Printf(value->source_position(), "Unacceptable matching value type: `%s'"
+                                           "destination is `%s'", value_type->ToString().c_str(),
+                                           dest_type->ToString().c_str());
+                        return -1;
+                    }
+                    assert(!unlinked);
+                }
+                
+                if (Reduce(clause->then_clause(), &branchs_types[i]) < 0) {
+                    return -1;
+                }
+            } else if (auto clause = WhenExpression::TypeTestingCase::Cast(node->case_clause(i))) {
+                auto match_type = LinkType(clause->match_type());
+                if (!match_type) {
+                    return -1;
+                }
+                clause->set_match_type(match_type);
+                if (CastingFeasibilityTest(match_type, dest_type, clause->source_position()) < 0) {
+                    return -1;
+                }
+                
+                BlockScope inner_scope(&location_, kPlainBlock, clause->then_clause());
+                auto dummy = new (arena_) VariableDeclaration(arena_, false, VariableDeclaration::kVal,
+                                                              clause->name()->name(), match_type,
+                                                              clause->name()->source_position());
+                inner_scope.FindOrInsertSymbol(clause->name()->name()->ToSlice(), dummy->AtItem(0));
+                
+                if (Reduce(clause->then_clause(), &branchs_types[i]) < 0) {
+                    return -1;
+                }
+                continue;
+            } else if (auto clause = WhenExpression::BetweenToCase::Cast(node->case_clause(i))) {
+                Type *lower_type = nullptr, *upper_type = nullptr;
+                if (ReduceReturningOnlyOne(clause->lower(), &lower_type) < 0 ||
+                    ReduceReturningOnlyOne(clause->upper(), &upper_type) < 0) {
+                    return -1;
+                }
+                if (!lower_type->IsNumber() && !upper_type->IsNumber()) {
+                    Feedback()->Printf(clause->source_position(), "Between-and case needs number type, actual is `%s',"
+                                       " `%s'", lower_type->ToString().c_str(), upper_type->ToString().c_str());
+                    return -1;
+                }
+                if (lower_type->primary_type() != upper_type->primary_type()) {
+                    Feedback()->Printf(clause->source_position(), "Between-and case bound has different type: `%s',"
+                                       " `%s'", lower_type->ToString().c_str(), upper_type->ToString().c_str());
+                    return -1;
+                }
+                
+                bool unlinked = false;
+                if (!dest_type->Acceptable(lower_type, &unlinked)) {
+                    Feedback()->Printf(clause->lower()->source_position(), "Unacceptable bundle type: `%s'"
+                                       "destination is `%s'", lower_type->ToString().c_str(),
+                                       dest_type->ToString().c_str());
+                    return -1;
+                }
+                assert(!unlinked);
+                
+                if (Reduce(clause->then_clause(), &branchs_types[i]) < 0) {
+                    return -1;
+                }
+            } else if (auto clause = WhenExpression::StructMatchingCase::Cast(node->case_clause(i))) {
+                auto file_scope = location_->NearlyFileUnitScope();
+                Statement *ast = nullptr;
+                if (clause->symbol()->prefix_name()) {
+                    ast = file_scope->FindExportSymbol(clause->symbol()->prefix_name()->ToSlice(),
+                                                       clause->symbol()->name()->ToSlice());
+                } else {
+                    ast = file_scope->FindLocalSymbol(clause->symbol()->name()->ToSlice());
+                }
+                if (!ast) {
+                    Feedback()->Printf(clause->source_position(), "Symbol: %s not found",
+                                       clause->symbol()->ToString().c_str());
+                    return -1;
+                }
+                if (ProcessDependencySymbolIfNeeded(ast) < 0) {
+                    return -1;
+                }
+                IncompletableDefinition *def = nullptr;
+                switch (ast->kind()) {
+                    case Node::kClassDefinition:
+                    case Node::kStructDefinition:
+                        def = static_cast<IncompletableDefinition *>(ast);
+                        break;
+                    case Node::kObjectDeclaration: {
+                        auto decl = ast->AsObjectDeclaration();
+                        def = DCHECK_NOTNULL(decl->Type()->AsClassType())->definition();
+                    } break;
+                    default:
+                        Feedback()->Printf(clause->source_position(), "Struct/Class: %s not found",
+                                           clause->symbol()->ToString().c_str());
+                        return -1;
+                }
+                
+
+                for (auto id : clause->expecteds()) {
+                    auto field = def->FindLocalSymbolOrNull(id->name()->ToSlice());
+                    if (!field || field->IsFunctionDeclaration()) {
+                        Feedback()->Printf(clause->source_position(), "Matching field: %s not found in %s",
+                                           id->name()->data(), def->FullName().c_str());
+                        return -1;
+                    }
+
+                    BlockScope inner_scope(&location_, kPlainBlock, clause->then_clause());
+                    auto dummy = new (arena_) VariableDeclaration(arena_, false, VariableDeclaration::kVal,
+                                                                  id->name(), down_cast<Declaration>(field)->Type(),
+                                                                  id->source_position());
+                    inner_scope.FindOrInsertSymbol(id->name()->ToSlice(), dummy->AtItem(0));
+                    
+                    if (Reduce(clause->then_clause(), &branchs_types[i]) < 0) {
+                        return -1;
+                    }
+                    continue;
+                }
+            } else {
+                UNREACHABLE();
+            }
+        }
+        if (node->else_clause()) {
+            if (Reduce(node->else_clause(), &branchs_types[number_of_branchs - 1]) < 0) {
+                return -1;
+            }
+        }
+        
+        std::vector<Type *> resutls;
+        if (ReduceBranchsTypes(branchs_types.get(), number_of_branchs, node->case_clauses_size(),
+                               &resutls, node->source_position()) < 0) {
+            return -1;
+        }
+        for (auto type : resutls) { node->mutable_reduced_types()->push_back(type); }
+        return Return(resutls);
+    }
+    
+    int ReduceBranchsTypes(const std::vector<Type *> branchs_rows[],
+                           const size_t number_of_branchs,
+                           const size_t number_of_branchs_without_else,
+                           std::vector<Type *> *resutls,
+                           const SourcePosition &source_position) {
+        size_t max_cols = 0;
+        bool all_unit = true;
+        for (size_t i = 0; i < number_of_branchs; i++) {
+            for (auto type : branchs_rows[i]) {
+                if (type->primary_type() != Type::kType_unit) {
+                    all_unit = false;
+                }
+            }
+            max_cols = std::max(max_cols, branchs_rows[i].size());
+        }
+        if (all_unit) {
+            return Return(Unit());
+        }
+        
+        std::vector<std::vector<Type *>> branchs_cols(max_cols);
+        for (size_t i = 0; i < max_cols; i++) {
+            auto col = &branchs_cols[i];
+            for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                if (j < number_of_branchs) {
+                    col->push_back(branchs_rows[j][i]);
+                } else {
+                    col->push_back(Unit());
+                }
+            }
+        }
+        
+        for (size_t i = 0; i < max_cols; i++) {
+            bool all_unit = true;
+            bool at_least_one_unit = false;
+            
+            for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                if (branchs_cols[i][j]->primary_type() == Type::kType_unit) {
+                    at_least_one_unit = true;
+                } else {
+                    all_unit = false;
+                }
+            }
+            
+            if (all_unit) {
+                resutls->push_back(Unit());
+                continue;
+            }
+            
+            Type *reduced = nullptr;
+            if (at_least_one_unit) {
+                assert(!all_unit);
+                for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                    if (branchs_cols[i][j]->primary_type() != Type::kType_unit) {
+                        if (!reduced) {
+                            reduced = branchs_cols[i][j];
+                            continue;
+                        }
+                        auto ty = ReduceType(reduced, branchs_cols[i][j]);
+                        if (!ty) {
+                            Feedback()->Printf(source_position, "Unacceptable branches types `%s' <=> `%s'",
+                                               reduced->ToString().c_str(), branchs_cols[i][j]->ToString().c_str());
+                            return -1;
+                        }
+                        reduced = ty;
+                    }
+                }
+                reduced = new (arena_) OptionType(arena_, reduced, reduced->source_position());
+                resutls->push_back(reduced);
+                continue;
+            }
+            
+            reduced = branchs_cols[i][0];
+            if (branchs_cols[i].size() == 1) {
+                resutls->push_back(reduced);
+                continue;
+            }
+            
+            for (size_t j = 1; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                auto ty = ReduceType(reduced, branchs_cols[i][j]);
+                if (!ty) {
+                    Feedback()->Printf(source_position, "Unacceptable branches types `%s' <=> `%s'",
+                                       reduced->ToString().c_str(), branchs_cols[i][j]->ToString().c_str());
+                    return -1;
+                }
+                reduced = ty;
+            }
+            resutls->push_back(reduced);
+        }
+        return 0;
     }
 
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
@@ -1438,7 +1664,6 @@ private:
     int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
     int VisitGreaterEqual(GreaterEqual *node) override { UNREACHABLE(); }
     int VisitStringLiteral(StringLiteral *node) override { return Return(node->type()); }
-    int VisitWhenExpression(WhenExpression *node) override { UNREACHABLE(); }
     int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
     int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
     int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
