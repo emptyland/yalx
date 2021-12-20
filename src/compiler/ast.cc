@@ -1,4 +1,5 @@
 #include "compiler/ast.h"
+#include "compiler/constants.h"
 
 namespace yalx {
 
@@ -643,7 +644,8 @@ TryCatchExpression::TryCatchExpression(base::Arena *arena, Block *try_block, Blo
     : Expression(Node::kTryCatchExpression, false /*is_lval*/, true /*ls_rval*/, source_position)
     , try_block_(DCHECK_NOTNULL(try_block))
     , finally_block_(finally_block)
-    , catch_clauses_(arena) {
+    , catch_clauses_(arena)
+    , reduced_types_(arena) {
 }
 
 StringTemplate::StringTemplate(base::Arena *arena, const SourcePosition &source_position)
@@ -660,6 +662,48 @@ bool Type::Is(Node *node) {
         default:
             return false;
     }
+}
+
+bool Type::IsComparable() const {
+    if (IsNumber()) {
+        return true;
+    }
+    Statement *maybe_compare_to_fun = nullptr;
+    switch (primary_type()) {
+        case kType_char:
+        case kType_string:
+            return true;
+        case kType_class: {
+            auto def = AsClassType()->definition();
+            maybe_compare_to_fun = def->FindSymbolOrNull(kCompareToFunName);
+        } break;
+        case kType_struct: {
+            auto def = AsStructType()->definition();
+            maybe_compare_to_fun = def->FindSymbolOrNull(kCompareToFunName);
+        } break;
+        case kType_interface: {
+            auto def = AsInterfaceType()->definition();
+            maybe_compare_to_fun = def->FindSymbolOrNull(kCompareToFunName);
+        } break;
+        default:
+            return false;
+    }
+    
+    if (auto fun = maybe_compare_to_fun->AsFunctionDeclaration()) {
+        if ((fun->access() != kPublic && fun->access() != kDefault) ||
+            fun->prototype()->return_types_size() != 1 ||
+            fun->prototype()->params_size() != 1) {
+            return false;
+        }
+        auto param0 = down_cast<VariableDeclaration::Item>(fun->prototype()->param(0));
+        bool unlinked = false;
+        if (!param0->type()->Acceptable(this, &unlinked)) {
+            return false;
+        }
+        assert(!unlinked);
+        return true;
+    }
+    return false;
 }
 
 bool Type::IsUnsignedIntegral() const {

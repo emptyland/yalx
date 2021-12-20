@@ -224,7 +224,7 @@ private:
                 return -1;
             }
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     int VisitBlock(Block *node) override {
@@ -235,7 +235,7 @@ private:
                 return -1;
             }
         }
-        return Return(types);
+        return Returning(types);
     }
     
     int VisitList(List *node) override {
@@ -246,7 +246,7 @@ private:
             }
         }
         assert(!types.empty());
-        return Return(types);
+        return Returning(types);
     }
     
     int VisitVariableDeclaration(VariableDeclaration *node) override {
@@ -285,12 +285,12 @@ private:
                 }
             }
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     int VisitObjectDeclaration(ObjectDeclaration *node) override {
         if (node->dummy() && node->dummy()->IsClassType()) {
-            return Return(Unit());
+            return Returning(Unit());
         }
         
         std::string buf(node->name()->ToString().append(kObjectShadowClassPostfix));
@@ -318,13 +318,13 @@ private:
             return -1;
         }
 
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     int VisitClassDefinition(ClassDefinition *node) override {
         //printd("reduce class: %s", node->name()->data());
         if (!node->generic_params().empty()) {
-            return Return(Unit());
+            return Returning(Unit());
         }
         if (node->super_calling()) {
             auto super_call = node->super_calling();
@@ -440,12 +440,12 @@ private:
         }) > 0) {
             return -1;
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     int VisitStructDefinition(StructDefinition *node) override {
         if (!node->generic_params().empty()) {
-            return Return(Unit());
+            return Returning(Unit());
         }
         if (node->super_calling()) {
             auto super_call = node->super_calling();
@@ -522,7 +522,7 @@ private:
                 }
             }
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     FunctionDeclaration *GeneratePrimaryConstructor(IncompletableDefinition *node,
@@ -614,7 +614,7 @@ private:
                 node->prototype()->mutable_return_types()->push_back(Unit());
             }
             node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
-            return Return(Unit()); // Ignore nobody funs
+            return Returning(Unit()); // Ignore nobody funs
         }
         
         // Install `this' variable if needed
@@ -647,7 +647,7 @@ private:
                 node->prototype()->mutable_return_types()->push_back(Unit());
             }
             node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
-            return Return(Unit());
+            return Returning(Unit());
         }
 
         if (prototype->return_types_size() > 0) {
@@ -675,7 +675,7 @@ private:
         
         // Install signature at last step
         node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     int VisitLambdaLiteral(LambdaLiteral *node) override {
@@ -726,7 +726,7 @@ private:
         
         // Install signature at last step
         node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
-        return Return(prototype);
+        return Returning(prototype);
     }
     
     int VisitIdentifier(Identifier *node) override {
@@ -789,12 +789,12 @@ private:
         
         switch (field->kind()) {
             case Node::kVariableDeclaration:
-                return Return(field->AsVariableDeclaration()->Type());
+                return Returning(field->AsVariableDeclaration()->Type());
             case Node::kFunctionDeclaration:
-                return Return(field->AsFunctionDeclaration()->prototype());
+                return Returning(field->AsFunctionDeclaration()->prototype());
             default: {
                 if (auto var = down_cast<VariableDeclaration::Item>(field)) {
-                    return Return(var->type());
+                    return Returning(var->type());
                 }
                 UNREACHABLE();
                 return -1;
@@ -805,7 +805,7 @@ private:
 
     int VisitInterfaceDefinition(InterfaceDefinition *node) override {
         if (!node->generic_params().empty()) {
-            return Return(Unit());
+            return Returning(Unit());
         }
         
         std::map<std::string_view, std::string_view> method_names;
@@ -823,7 +823,7 @@ private:
             }
             method_names[method->name()->ToSlice()] = method->prototype()->signature()->ToSlice();
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     int VisitCalling(Calling *node) override {
@@ -896,9 +896,9 @@ private:
                 }
                 
                 if (def->IsClassDefinition()) {
-                    return Return(new (arena_) ClassType(arena_, def->AsClassDefinition(), def->source_position()));
+                    return Returning(new (arena_) ClassType(arena_, def->AsClassDefinition(), def->source_position()));
                 } else {
-                    return Return(new (arena_) StructType(arena_, def->AsStructDefinition(), def->source_position()));
+                    return Returning(new (arena_) StructType(arena_, def->AsStructDefinition(), def->source_position()));
                 }
             }
         }
@@ -946,7 +946,7 @@ private:
         for (auto type : prototype->return_types()) {
             results.push_back(type);
         }
-        return Return(results);
+        return Returning(results);
     }
     
 
@@ -1045,7 +1045,7 @@ private:
             }
             assert(!unlinked);
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     int VisitReturn(class Return *node) override {
@@ -1078,7 +1078,7 @@ private:
             }
             assert(!unlinked);
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     int VisitWhileLoop(WhileLoop *node) override {
@@ -1117,7 +1117,7 @@ private:
             Feedback()->Printf(node->condition()->source_position(), "Condition must be bool expression or option");
             return -1;
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
 
     int VisitForeachLoop(ForeachLoop *node) override {
@@ -1162,7 +1162,7 @@ private:
         if (Reduce(node->body()) < 0) {
             return -1;
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     int VisitBreak(Break *node) override {
@@ -1171,7 +1171,7 @@ private:
             Feedback()->Printf(node->source_position(), "Break at loop outside");
             return -1;
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
 
     int VisitContinue(Continue *node) override {
@@ -1180,7 +1180,7 @@ private:
             Feedback()->Printf(node->source_position(), "Continue at loop outside");
             return -1;
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
 
     int VisitThrow(Throw *node) override {
@@ -1200,7 +1200,7 @@ private:
             return -1;
         }
         
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     int VisitCasting(Casting *node) override {
@@ -1216,7 +1216,7 @@ private:
         if (CastingFeasibilityTest(dest, src, node->source_position()) < 0) {
             return -1;
         }
-        return Return(node->destination());
+        return Returning(node->destination());
     }
     
     int VisitTesting(Testing *node) override {
@@ -1232,12 +1232,12 @@ private:
         if (CastingFeasibilityTest(dest, src, node->source_position()) < 0) {
             return -1;
         }
-        return Return(Bool());
+        return Returning(Bool());
     }
     
     int VisitOptionLiteral(OptionLiteral *node) override {
         if (node->type()) {
-            return Return(node->type());
+            return Returning(node->type());
         }
         if (node->is_some()) {
             Type *type = nullptr;
@@ -1246,9 +1246,9 @@ private:
             }
             type = new (arena_) OptionType(arena_, type, node->source_position());
             node->set_type(type);
-            return Return(type);
+            return Returning(type);
         }
-        return Return(node->type());
+        return Returning(node->type());
     }
     
     int VisitAssertedGet(AssertedGet *node) override {
@@ -1256,7 +1256,7 @@ private:
         if (ReduceReturningOnlyOne(node->operand(), &type) < 0) {
             return -1;
         }
-        return Return(type);
+        return Returning(type);
     }
     
     int VisitOr(Or *node) override {
@@ -1265,12 +1265,12 @@ private:
             return -1;
         }
         if (lhs->primary_type() == Type::kType_bool) {
-            return Return(lhs);
+            return Returning(lhs);
         }
         if (rhs->primary_type() == Type::kType_bool) {
-            return Return(rhs);
+            return Returning(rhs);
         }
-        return Return(Bool());
+        return Returning(Bool());
     }
 
     int VisitAnd(And *node) override {
@@ -1279,12 +1279,12 @@ private:
             return -1;
         }
         if (lhs->primary_type() == Type::kType_bool) {
-            return Return(lhs);
+            return Returning(lhs);
         }
         if (rhs->primary_type() == Type::kType_bool) {
-            return Return(rhs);
+            return Returning(rhs);
         }
-        return Return(Bool());
+        return Returning(Bool());
     }
     
     int VisitNot(Not *node) override {
@@ -1293,9 +1293,9 @@ private:
             return -1;
         }
         if (type->primary_type() == Type::kType_bool) {
-            return Return(type);
+            return Returning(type);
         }
-        return Return(Bool());
+        return Returning(Bool());
     }
     
     int VisitArrayInitializer(ArrayInitializer *node) override {
@@ -1306,7 +1306,7 @@ private:
             if (!type) {
                 return -1;
             }
-            return Return(new (arena_) ArrayType(arena_, type, dimensions_count, node->source_position()));
+            return Returning(new (arena_) ArrayType(arena_, type, dimensions_count, node->source_position()));
         }
 
         auto ar = DCHECK_NOTNULL(node->type()->AsArrayType());
@@ -1323,7 +1323,7 @@ private:
                 return -1;
             }
             assert(!unlinked);
-            return Return(ar);
+            return Returning(ar);
         }
         
         auto rv = ReduceArrayDimension(node->dimensions(), ar->element_type(), ar->dimension_count(),
@@ -1338,7 +1338,7 @@ private:
             return -1;
         }
         assert(!unlinked);
-        return Return(ar);
+        return Returning(ar);
     }
     
     int VisitIfExpression(IfExpression *node) override {
@@ -1374,7 +1374,7 @@ private:
         if (ReduceBranchsTypes(branchs_types.get(), number_of_branchs, 1, &results, node->source_position()) < 0) {
             return -1;
         }
-        return Return(results);
+        return Returning(results);
     }
     
     int VisitWhenExpression(WhenExpression *node) override {
@@ -1531,7 +1531,7 @@ private:
             return -1;
         }
         for (auto type : resutls) { node->mutable_reduced_types()->push_back(type); }
-        return Return(resutls);
+        return Returning(resutls);
     }
     
     int VisitStringTemplate(StringTemplate *node) override {
@@ -1541,7 +1541,7 @@ private:
                 return -1;
             }
         }
-        return Return(StringTy());
+        return Returning(StringTy());
     }
     
     int VisitInstantiation(Instantiation *node) override {
@@ -1556,7 +1556,7 @@ private:
         if (Reduce(node->entry()) < 0) {
             return -1;
         }
-        return Return(Unit());
+        return Returning(Unit());
     }
     
     int VisitTryCatchExpression(TryCatchExpression *node) override {
@@ -1608,41 +1608,103 @@ private:
         if (node->finally_block() && Reduce(node->finally_block()) < 0) {
             return -1;
         }
-        return Return(results);
+        for (auto type : results) { node->mutable_reduced_types()->push_back(type); }
+        return Returning(results);
+    }
+    
+    enum OperatingKind {
+        kNumberTy,
+        kIntegralTyOnly,
+        kComparableTy,
+    };
+    
+    int ReduceBinaryExpression(const char *op, BinaryExpression *expr, OperatingKind kind) {
+        Type *lhs = nullptr, *rhs = nullptr;
+        if (ReduceReturningOnlyOne(expr->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(expr->rhs(), &rhs) < 0) {
+            return -1;
+        }
+        
+        bool ok = true;
+        switch (kind) {
+            case kNumberTy:
+                ok = lhs->IsNumber() && rhs->IsNumber();
+                break;
+            case kIntegralTyOnly:
+                ok = lhs->IsIntegral() && rhs->IsIntegral();
+                break;
+            case kComparableTy:
+                ok = lhs->IsComparable() && rhs->IsComparable();
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+        if (!ok) {
+            Feedback()->Printf(expr->source_position(), "Operand is not correct type, `%s' %s `%s'",
+                               lhs->ToString().c_str(), op, rhs->ToString().c_str());
+            return -1;
+        }
+        
+        bool unlinked = false;
+        if (!lhs->Acceptable(rhs, &unlinked) || !rhs->Acceptable(lhs, &unlinked)) {
+            Feedback()->Printf(expr->source_position(), "Operand is not acceptable each other, `%s' <=> `%s'",
+                               lhs->ToString().c_str(), rhs->ToString().c_str());
+            return -1;
+        }
+        assert(!unlinked);
+        return Returning(kind == kComparableTy ? Bool() : lhs);
+    }
+    
+    int VisitIndexedGet(IndexedGet *node) override {
+        Type *type = nullptr;
+        if (ReduceReturningOnlyOne(node->lhs(), &type) < 0) {
+            return -1;
+        }
+        if (!type->IsArrayType()) {
+            Feedback()->Printf(node->source_position(), "");
+            return -1;
+        }
+        
+        // TODO:
+        UNREACHABLE();
     }
 
-    int VisitAdd(Add *node) override { UNREACHABLE(); }
-    int VisitDiv(Div *node) override { UNREACHABLE(); }
-    int VisitMod(Mod *node) override { UNREACHABLE(); }
-    int VisitMul(Mul *node) override { UNREACHABLE(); }
-    int VisitSub(Sub *node) override { UNREACHABLE(); }
-    int VisitLess(Less *node) override { UNREACHABLE(); }
+    int VisitAdd(Add *node) override { return ReduceBinaryExpression("+", node, kNumberTy); }
+    int VisitDiv(Div *node) override { return ReduceBinaryExpression("/", node, kNumberTy); }
+    int VisitMod(Mod *node) override { return ReduceBinaryExpression("%", node, kIntegralTyOnly); }
+    int VisitMul(Mul *node) override { return ReduceBinaryExpression("*", node, kNumberTy); }
+    int VisitSub(Sub *node) override { return ReduceBinaryExpression("-", node, kNumberTy); }
+    int VisitNegative(Negative *node) override { UNREACHABLE(); }
+    
+    int VisitLess(Less *node) override { return ReduceBinaryExpression("<", node, kComparableTy); }
+    int VisitLessEqual(LessEqual *node) override { return ReduceBinaryExpression("<=", node, kComparableTy); }
+    int VisitGreater(Greater *node) override { return ReduceBinaryExpression(">", node, kComparableTy); }
+    int VisitGreaterEqual(GreaterEqual *node) override { return ReduceBinaryExpression(">=", node, kComparableTy); }
+    int VisitEqual(Equal *node) override { return ReduceBinaryExpression("==", node, kComparableTy); }
+    int VisitNotEqual(NotEqual *node) override { return ReduceBinaryExpression("!=", node, kComparableTy); }
+    
     int VisitRecv(Recv *node) override { UNREACHABLE(); }
     int VisitSend(Send *node) override { UNREACHABLE(); }
-    int VisitEqual(Equal *node) override { UNREACHABLE(); }
-    int VisitGreater(Greater *node) override { UNREACHABLE(); }
-    int VisitNegative(Negative *node) override { UNREACHABLE(); }
-    int VisitNotEqual(NotEqual *node) override { UNREACHABLE(); }
-    int VisitBitwiseOr(BitwiseOr *node) override { UNREACHABLE(); }
-    int VisitLessEqual(LessEqual *node) override { UNREACHABLE(); }
-    int VisitBitwiseAnd(BitwiseAnd *node) override { UNREACHABLE(); }
-    int VisitBitwiseShl(BitwiseShl *node) override { UNREACHABLE(); }
-    int VisitBitwiseShr(BitwiseShr *node) override { UNREACHABLE(); }
-    int VisitBitwiseXor(BitwiseXor *node) override { UNREACHABLE(); }
-    int VisitF32Literal(F32Literal *node) override { return Return(node->type()); }
-    int VisitF64Literal(F64Literal *node) override { UNREACHABLE(); }
-    int VisitI64Literal(I64Literal *node) override { UNREACHABLE(); }
-    int VisitIndexedGet(IndexedGet *node) override { UNREACHABLE(); }
-    int VisitIntLiteral(IntLiteral *node) override { return Return(node->type()); }
-    int VisitU64Literal(U64Literal *node) override { UNREACHABLE(); }
-    int VisitBoolLiteral(BoolLiteral *node) override { return Return(node->type()); }
-    int VisitUnitLiteral(UnitLiteral *node) override { return Return(Unit()); }
-    int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
-    int VisitGreaterEqual(GreaterEqual *node) override { UNREACHABLE(); }
-    int VisitStringLiteral(StringLiteral *node) override { return Return(node->type()); }
+    
+    
+    int VisitBitwiseOr(BitwiseOr *node) override { return ReduceBinaryExpression("|", node, kIntegralTyOnly); }
+    int VisitBitwiseAnd(BitwiseAnd *node) override { return ReduceBinaryExpression("&", node, kIntegralTyOnly); }
+    int VisitBitwiseShl(BitwiseShl *node) override { return ReduceBinaryExpression("<<", node, kIntegralTyOnly); }
+    int VisitBitwiseShr(BitwiseShr *node) override { return ReduceBinaryExpression(">>", node, kIntegralTyOnly); }
+    int VisitBitwiseXor(BitwiseXor *node) override { return ReduceBinaryExpression("^", node, kIntegralTyOnly); }
     int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
-    int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
-    int VisitCharLiteral(CharLiteral *node) override { return Return(node->type()); }
+    
+    int VisitF32Literal(F32Literal *node) override { return Returning(node->type()); }
+    int VisitF64Literal(F64Literal *node) override { return Returning(node->type()); }
+    int VisitI64Literal(I64Literal *node) override { return Returning(node->type()); }
+    int VisitIntLiteral(IntLiteral *node) override { return Returning(node->type()); }
+    int VisitU64Literal(U64Literal *node) override { return Returning(node->type()); }
+    int VisitBoolLiteral(BoolLiteral *node) override { return Returning(node->type()); }
+    int VisitUnitLiteral(UnitLiteral *node) override { return Returning(Unit()); }
+    int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
+    int VisitStringLiteral(StringLiteral *node) override { return Returning(node->type()); }
+    int VisitUIntLiteral(UIntLiteral *node) override { return Returning(node->type()); }
+    int VisitCharLiteral(CharLiteral *node) override { return Returning(node->type()); }
     
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
@@ -1664,7 +1726,7 @@ private:
             max_cols = std::max(max_cols, branchs_rows[i].size());
         }
         if (all_unit) {
-            return Return(Unit());
+            return Returning(Unit());
         }
         
         std::vector<std::vector<Type *>> branchs_cols(max_cols);
@@ -2175,12 +2237,12 @@ private:
         
         switch (ast->kind()) {
             case Node::kFunctionDeclaration:
-                return Return(ast->AsFunctionDeclaration()->prototype());
+                return Returning(ast->AsFunctionDeclaration()->prototype());
             case Node::kObjectDeclaration:
-                return Return(ast->AsObjectDeclaration()->Type());
+                return Returning(ast->AsObjectDeclaration()->Type());
             case Node::kVariableDeclaration:
                 assert(ast->AsVariableDeclaration()->ItemSize() == 1);
-                return Return(ast->AsVariableDeclaration()->Type());
+                return Returning(ast->AsVariableDeclaration()->Type());
             default: {
                 if (auto var = down_cast<VariableDeclaration::Item>(ast)) {
                     assert(var->type() != nullptr);
@@ -2189,7 +2251,7 @@ private:
                         return -1;
                     }
                     var->set_type(ty);
-                    return Return(var->type());
+                    return Returning(var->type());
                 }
             } break;
         }
@@ -2243,14 +2305,14 @@ private:
         return 0;
     }
     
-    int Return(Type *type) {
+    int Returning(Type *type) {
         results_.push(DCHECK_NOTNULL(type));
         return 1;
     }
     
-    int Return(const std::vector<Type *> &types) {
+    int Returning(const std::vector<Type *> &types) {
         for (auto ty : types) {
-            Return(ty);
+            Returning(ty);
         }
         return static_cast<int>(types.size());
     }

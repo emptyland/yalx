@@ -1294,12 +1294,14 @@ public:
     DEF_PTR_PROP_RW(Block, try_block);
     DEF_PTR_PROP_RW(Block, finally_block);
     DEF_ARENA_VECTOR_GETTER(CatchClause *, catch_clause);
+    DEF_ARENA_VECTOR_GETTER(Type *, reduced_type);
     
     DECLARE_AST_NODE(TryCatchExpression);
 private:
     Block *try_block_;
     Block *finally_block_;
     base::ArenaVector<CatchClause *> catch_clauses_;
+    base::ArenaVector<Type *> reduced_types_;
 }; // class TryCatchExpression
 
 class StringTemplate : public Expression {
@@ -1389,6 +1391,7 @@ public:
     DECLARE_TYPE_CATEGORIES(DEFINE_METHOD)
 #undef  DEFINE_METHOD
     
+    bool IsComparable() const;
     bool IsNumber() const { return IsIntegral() || IsFloating(); }
     bool IsIntegral() const { return IsUnsignedIntegral() || IsSignedIntegral(); }
     bool IsFloating() const;
