@@ -1542,6 +1542,14 @@ public:
     ClassType(base::Arena *arena, ClassDefinition *definition, const SourcePosition &source_position)
         : UDTType<ClassDefinition>(arena, definition, source_position) {}
     
+    static bool DoNotClassBaseOf(const Type *type, ClassDefinition *base) {
+        return !DoesClassBaseOf(type, base);
+    }
+    
+    static bool DoesClassBaseOf(const Type *type, ClassDefinition *base) {
+        return !type->IsClassType() ? false : (type->AsClassType()->definition()->IsBaseOf(base));
+    }
+    
     bool Acceptable(const Type *rhs, bool *unlinked) const override;
     std::string ToString() const override;
 }; // class ClassType

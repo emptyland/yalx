@@ -1,0 +1,14 @@
+package main
+
+import "foo"
+
+val v1, v2, v3 = try {
+    foo.foo()
+} catch (e: Exception) {
+    1, e.message
+} catch (e: foo.Exception1) {
+    2
+}
+
+fun main() {
+}

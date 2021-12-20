@@ -1534,6 +1534,120 @@ private:
         return Return(resutls);
     }
     
+    int VisitStringTemplate(StringTemplate *node) override {
+        Type *type = nullptr;
+        for (auto part : node->parts()) {
+            if (ReduceReturningOnlyOne(part, &type) < 0) {
+                return -1;
+            }
+        }
+        return Return(StringTy());
+    }
+    
+    int VisitInstantiation(Instantiation *node) override {
+        Statement *ast = nullptr;
+        if (ast = Instantiate("Instantiation", node, Node::kMaxKinds); !ast) {
+            return -1;
+        }
+        return ast->Accept(this);
+    }
+    
+    int VisitRunCoroutine(RunCoroutine *node) override {
+        if (Reduce(node->entry()) < 0) {
+            return -1;
+        }
+        return Return(Unit());
+    }
+    
+    int VisitTryCatchExpression(TryCatchExpression *node) override {
+        const auto number_of_branchs = node->catch_clauses_size() + 1/*try block*/;
+        std::unique_ptr<std::vector<Type *>[]> branchs_types(new std::vector<Type *>[number_of_branchs]);
+        
+        if (Reduce(node->try_block(), &branchs_types[0]) < 0) {
+            return -1;
+        }
+        
+        auto sym = FindGlobal(kLangPackageFullName, kThrowableClassName);
+        assert(sym.IsFound());
+        auto throwable = DCHECK_NOTNULL(sym.ast->AsClassDefinition());
+        
+        std::map<ClassDefinition *, TryCatchExpression::CatchClause *> unique_types;
+        for (auto i = 0; i < node->catch_clauses_size(); i++) {
+            auto clause = node->catch_clause(i);
+            auto matching_type = LinkType(clause->match_type());
+            if (ClassType::DoNotClassBaseOf(matching_type, throwable)) {
+                Feedback()->Printf(clause->source_position(), "Catch type: `%s' is not base of `Throwable' class",
+                                   matching_type->ToString().c_str());
+                return -1;
+            }
+            if (auto iter = unique_types.find(matching_type->AsClassType()->definition()); iter != unique_types.end()) {
+                Feedback()->Printf(clause->source_position(), "Catch type: `%s' is duplicated, prev one:",
+                                   matching_type->ToString().c_str()); // TODO:
+                return -1;
+            }
+            unique_types[matching_type->AsClassType()->definition()] = clause;
+            clause->set_match_type(matching_type);
+            
+            BlockScope scope(&location_, kPlainBlock, clause->then_clause());
+            auto stub = new (arena_) VariableDeclaration(arena_, false, VariableDeclaration::kVal,
+                                                         clause->name()->name(), matching_type,
+                                                         clause->name()->source_position());
+            scope.FindOrInsertSymbol(stub->Identifier()->ToSlice(), stub->AtItem(0));
+            
+            if (Reduce(clause->then_clause(), &branchs_types[i + 1]) < 0) {
+                return -1;
+            }
+        }
+        
+        std::vector<Type *> results;
+        if (ReduceBranchsTypes(branchs_types.get(), number_of_branchs, number_of_branchs - 1, &results,
+                               node->source_position()) < 0) {
+            return -1;
+        }
+        
+        if (node->finally_block() && Reduce(node->finally_block()) < 0) {
+            return -1;
+        }
+        return Return(results);
+    }
+
+    int VisitAdd(Add *node) override { UNREACHABLE(); }
+    int VisitDiv(Div *node) override { UNREACHABLE(); }
+    int VisitMod(Mod *node) override { UNREACHABLE(); }
+    int VisitMul(Mul *node) override { UNREACHABLE(); }
+    int VisitSub(Sub *node) override { UNREACHABLE(); }
+    int VisitLess(Less *node) override { UNREACHABLE(); }
+    int VisitRecv(Recv *node) override { UNREACHABLE(); }
+    int VisitSend(Send *node) override { UNREACHABLE(); }
+    int VisitEqual(Equal *node) override { UNREACHABLE(); }
+    int VisitGreater(Greater *node) override { UNREACHABLE(); }
+    int VisitNegative(Negative *node) override { UNREACHABLE(); }
+    int VisitNotEqual(NotEqual *node) override { UNREACHABLE(); }
+    int VisitBitwiseOr(BitwiseOr *node) override { UNREACHABLE(); }
+    int VisitLessEqual(LessEqual *node) override { UNREACHABLE(); }
+    int VisitBitwiseAnd(BitwiseAnd *node) override { UNREACHABLE(); }
+    int VisitBitwiseShl(BitwiseShl *node) override { UNREACHABLE(); }
+    int VisitBitwiseShr(BitwiseShr *node) override { UNREACHABLE(); }
+    int VisitBitwiseXor(BitwiseXor *node) override { UNREACHABLE(); }
+    int VisitF32Literal(F32Literal *node) override { return Return(node->type()); }
+    int VisitF64Literal(F64Literal *node) override { UNREACHABLE(); }
+    int VisitI64Literal(I64Literal *node) override { UNREACHABLE(); }
+    int VisitIndexedGet(IndexedGet *node) override { UNREACHABLE(); }
+    int VisitIntLiteral(IntLiteral *node) override { return Return(node->type()); }
+    int VisitU64Literal(U64Literal *node) override { UNREACHABLE(); }
+    int VisitBoolLiteral(BoolLiteral *node) override { return Return(node->type()); }
+    int VisitUnitLiteral(UnitLiteral *node) override { return Return(Unit()); }
+    int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
+    int VisitGreaterEqual(GreaterEqual *node) override { UNREACHABLE(); }
+    int VisitStringLiteral(StringLiteral *node) override { return Return(node->type()); }
+    int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
+    int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
+    int VisitCharLiteral(CharLiteral *node) override { return Return(node->type()); }
+    
+    int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
+    int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
+    int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
+    
     int ReduceBranchsTypes(const std::vector<Type *> branchs_rows[],
                            const size_t number_of_branchs,
                            const size_t number_of_branchs_without_else,
@@ -1624,50 +1738,6 @@ private:
         }
         return 0;
     }
-
-    int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
-    int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
-    int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
-    int VisitRunCoroutine(RunCoroutine *node) override { UNREACHABLE(); }
-    int VisitStringTemplate(StringTemplate *node) override { UNREACHABLE(); }
-    int VisitInstantiation(Instantiation *node) override { UNREACHABLE(); }
-    
-
-    int VisitAdd(Add *node) override { UNREACHABLE(); }
-    
-    int VisitDiv(Div *node) override { UNREACHABLE(); }
-    int VisitMod(Mod *node) override { UNREACHABLE(); }
-    int VisitMul(Mul *node) override { UNREACHABLE(); }
-    
-    int VisitSub(Sub *node) override { UNREACHABLE(); }
-    int VisitLess(Less *node) override { UNREACHABLE(); }
-    int VisitRecv(Recv *node) override { UNREACHABLE(); }
-    int VisitSend(Send *node) override { UNREACHABLE(); }
-    int VisitEqual(Equal *node) override { UNREACHABLE(); }
-    int VisitGreater(Greater *node) override { UNREACHABLE(); }
-    int VisitNegative(Negative *node) override { UNREACHABLE(); }
-    int VisitNotEqual(NotEqual *node) override { UNREACHABLE(); }
-    int VisitBitwiseOr(BitwiseOr *node) override { UNREACHABLE(); }
-    int VisitLessEqual(LessEqual *node) override { UNREACHABLE(); }
-    int VisitBitwiseAnd(BitwiseAnd *node) override { UNREACHABLE(); }
-    int VisitBitwiseShl(BitwiseShl *node) override { UNREACHABLE(); }
-    int VisitBitwiseShr(BitwiseShr *node) override { UNREACHABLE(); }
-    int VisitBitwiseXor(BitwiseXor *node) override { UNREACHABLE(); }
-    int VisitF32Literal(F32Literal *node) override { return Return(node->type()); }
-    int VisitF64Literal(F64Literal *node) override { UNREACHABLE(); }
-    int VisitI64Literal(I64Literal *node) override { UNREACHABLE(); }
-    int VisitIndexedGet(IndexedGet *node) override { UNREACHABLE(); }
-    int VisitIntLiteral(IntLiteral *node) override { return Return(node->type()); }
-    int VisitU64Literal(U64Literal *node) override { UNREACHABLE(); }
-    int VisitBoolLiteral(BoolLiteral *node) override { return Return(node->type()); }
-    int VisitUnitLiteral(UnitLiteral *node) override { return Return(Unit()); }
-    int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
-    int VisitGreaterEqual(GreaterEqual *node) override { UNREACHABLE(); }
-    int VisitStringLiteral(StringLiteral *node) override { return Return(node->type()); }
-    int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
-    int VisitUIntLiteral(UIntLiteral *node) override { return Return(node->type()); }
-    int VisitTryCatchExpression(TryCatchExpression *node) override { UNREACHABLE(); }
-    int VisitCharLiteral(CharLiteral *node) override { return Return(node->type()); }
     
     Type *ReduceArrayDimension(const base::ArenaVector<AstNode *> &dimension, Type *qualified, int dimensions_limit,
                                int *dimensions_count, const SourcePosition &source_position) {
@@ -1933,11 +2003,13 @@ private:
             } break;
                 
             case CastingRule::CHILD_CLASS_ONLY: {
-
+                // TODO:
+                UNREACHABLE();
             } break;
                 
             case CastingRule::CLASS_BASE_OF: {
-
+                // TODO:
+                UNREACHABLE();
             } break;
                 
             default:
@@ -1945,7 +2017,7 @@ private:
                 break;
         }
         
-        return nullptr;
+        return Any();
     }
     
     Type *GetIterationType(Type *iterable) {
@@ -2171,19 +2243,6 @@ private:
         return 0;
     }
     
-    
-    GlobalSymbol GenericsInstantiate(Instantiation *inst) {
-        auto symbol = FindGlobal(inst->primary());
-        if (!symbol.ast) {
-            auto [prefix, name] = GetSymbol(inst->primary());
-            Feedback()->Printf(inst->source_position(), "Symbol: %s.%s not found", prefix.data(), name.data());
-            return GlobalSymbol::NotFound();
-        }
-        
-        UNREACHABLE();
-        return GlobalSymbol::NotFound(); // TODO:
-    }
-    
     int Return(Type *type) {
         results_.push(DCHECK_NOTNULL(type));
         return 1;
@@ -2390,6 +2449,13 @@ private:
         return unit_;
     }
     
+    Type *StringTy() {
+        if (!string_) {
+            string_ = new (arena_) Type(arena_, Type::kType_string, {0,0});
+        }
+        return string_;
+    }
+    
     Type *I32() {
         if (!i32_) {
             i32_ = new (arena_) Type(arena_, Type::kType_i32, {0,0});
@@ -2402,6 +2468,13 @@ private:
             bool_ = new (arena_) Type(arena_, Type::kType_bool, {0,0});
         }
         return bool_;
+    }
+    
+    Type *Any() {
+        if (!any_) {
+            any_ = new (arena_) Type(arena_, Type::kType_any, {0,0});
+        }
+        return any_;
     }
     
     bool fail() { return status_.fail(); }
@@ -2506,7 +2579,9 @@ private:
     std::stack<Type *> results_;
     std::unordered_map<std::string_view, String *> prototype_signatures_;
     Type *unit_ = nullptr;
+    Type *string_ = nullptr;
     Type *i32_ = nullptr;
+    Type *any_ = nullptr;
     Type *bool_ = nullptr;
 }; // class TypeReducingVisitor
 
