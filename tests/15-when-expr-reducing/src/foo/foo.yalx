@@ -1,3 +1,7 @@
 package foo
 
 fun gen() -> 100
+
+fun ran(): any {
+    return 1
+}

@@ -1465,6 +1465,10 @@ public:
     
     Type *element_type() const { return generic_arg(0); }
     
+    static bool DoesElementIs(const Type *type, Primary primary) {
+        return !type->IsOptionType() ? false : (type->AsOptionType()->element_type()->primary_type() == primary);
+    }
+    
     bool Acceptable(const Type *rhs, bool *unlinked) const override;
     Type *Link(Linker &&linker) override;
     std::string ToString() const override;

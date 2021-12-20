@@ -1557,7 +1557,7 @@ private:
         for (size_t i = 0; i < max_cols; i++) {
             auto col = &branchs_cols[i];
             for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
-                if (j < number_of_branchs) {
+                if (j < number_of_branchs && i < branchs_rows[j].size()) {
                     col->push_back(branchs_rows[j][i]);
                 } else {
                     col->push_back(Unit());

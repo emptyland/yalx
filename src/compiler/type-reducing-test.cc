@@ -238,6 +238,43 @@ TEST_F(TypeReducingTest, TypeCasting01) {
     EXPECT_EQ(Type::kType_i32, v26->type()->AsOptionType()->element_type()->primary_type());
 }
 
+// 15-when-expr-reducing
+TEST_F(TypeReducingTest, WhenExprReducing) {
+    base::ArenaMap<std::string_view, Package *> all(&arena_);
+    base::ArenaVector<Package *> entries(&arena_);
+    Package *main_pkg = nullptr;
+    auto rs = Compiler::FindAndParseProjectSourceFiles("tests/15-when-expr-reducing", "libs", &arena_, &feedback_,
+                                                       &main_pkg, &entries, &all);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    std::unordered_map<std::string_view, GlobalSymbol> symbols;
+    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    
+    auto v2 = down_cast<VariableDeclaration::Item>(symbols["main:main.v2"].ast);
+    ASSERT_NE(nullptr, v2);
+    ASSERT_EQ(Type::kType_i32, v2->type()->primary_type());
+    
+    auto v3 = down_cast<VariableDeclaration::Item>(symbols["main:main.v3"].ast);
+    ASSERT_NE(nullptr, v3);
+    EXPECT_TRUE(OptionType::DoesElementIs(v3->type(), Type::kType_i32));
+    
+    auto v4 = down_cast<VariableDeclaration::Item>(symbols["main:main.v4"].ast);
+    ASSERT_NE(nullptr, v4);
+    EXPECT_TRUE(OptionType::DoesElementIs(v4->type(), Type::kType_i32));
+    
+    auto v5 = down_cast<VariableDeclaration::Item>(symbols["main:main.v5"].ast);
+    ASSERT_NE(nullptr, v5);
+    EXPECT_TRUE(OptionType::DoesElementIs(v5->type(), Type::kType_i32));
+    
+    auto v6 = down_cast<VariableDeclaration::Item>(symbols["main:main.v6"].ast);
+    ASSERT_NE(nullptr, v6);
+    EXPECT_TRUE(OptionType::DoesElementIs(v6->type(), Type::kType_i32));
+    
+    auto v7 = down_cast<VariableDeclaration::Item>(symbols["main:main.v7"].ast);
+    ASSERT_NE(nullptr, v7);
+    EXPECT_TRUE(OptionType::DoesElementIs(v7->type(), Type::kType_i32));
+}
+
 } // namespace yalx
 
 } // namespace yalx

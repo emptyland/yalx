@@ -235,7 +235,7 @@ FileUnit *Parser::Parse(bool *ok) {
                 
             case Token::kNative:
             case Token::kFun: {
-                auto fun = ParseFunctionDeclaration(ok);
+                auto fun = ParseFunctionDeclaration(CHECK_OK);
                 file_unit_->Add(fun);
             } break;
                 
@@ -881,6 +881,7 @@ Statement *Parser::ParseStatement(bool *ok) {
             return ParseVariableDeclaration(ok);
             
         case Token::kReturn: {
+            MoveNext();
             auto stmt = new (arena_) Return(arena_, location);
             // return Unit
             if (Peek().Is(Token::kRBrace) || Peek().Is(Token::kSemi)) {
@@ -1514,6 +1515,8 @@ WhenExpression *Parser::ParseWhenExpression(bool *ok) {
                     auto field_name = ParseIdentifier(CHECK_OK);
                     clause->mutable_expecteds()->push_back(field_name);
                 } while (Test(Token::kComma));
+                Match(Token::kRBrace, CHECK_OK);
+                case_clause = clause;
             } else {
                 auto clause = new (arena_) WhenExpression::ExpectValuesCase(arena_, nullptr, case_location);
                 clause->mutable_match_values()->push_back(match_value_or_id);
@@ -1951,6 +1954,10 @@ Type *Parser::ParseAtomType(bool *ok) {
         case Token::kUInt:
             MoveNext();
             type = new (arena_) Type(arena_, Type::kType_u32, location);
+            break;
+        case Token::kAny:
+            MoveNext();
+            type = new (arena_) Type(arena_, Type::kType_any, location);
             break;
         case Token::kString:
             MoveNext();

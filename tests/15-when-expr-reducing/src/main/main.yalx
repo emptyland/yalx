@@ -3,12 +3,32 @@ package main
 import "foo"
 
 val v1 = 100
-val v2 = when (foo.gen()) {
+val v2, v3 = when (foo.gen()) {
     0 -> 10, 1
     1 -> 100, 2
     2 -> 1000
-    3..4 -> 20, 3
+    in 3 .. 4 -> 20, 3
+    else -> 0
 }
+
+val v4, v5 = when (foo.gen()) {
+    0 -> 10, 1
+    1 -> 100, 2
+    2 -> 1000
+    in 3 .. 4 -> 20, 3
+}
+
+val v6, v7 = when (foo.ran()) {
+    n: i32 -> 1, n
+    n: i64 -> 2
+    n: f32 -> 3
+    Box { b } -> 4, b
+    Ball { a } -> 5, a
+}
+
+struct Box(val a: int, val b: int)
+
+class Ball(val a: int, val b: int)
 
 fun main() {
 
