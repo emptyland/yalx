@@ -1,0 +1,5 @@
+package foo
+
+fun ran(): int? {
+    return 100
+}

@@ -298,6 +298,19 @@ TEST_F(TypeReducingTest, TryCatchExprReducing) {
     EXPECT_TRUE(OptionType::DoesElementIs(v3->type(), Type::kType_i32));
 }
 
+// 17-simple-expr-reducing
+TEST_F(TypeReducingTest, SimpleExprReducing) {
+    base::ArenaMap<std::string_view, Package *> all(&arena_);
+    base::ArenaVector<Package *> entries(&arena_);
+    Package *main_pkg = nullptr;
+    auto rs = Compiler::FindAndParseProjectSourceFiles("tests/17-simple-expr-reducing", "libs", &arena_, &feedback_,
+                                                       &main_pkg, &entries, &all);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    std::unordered_map<std::string_view, GlobalSymbol> symbols;
+    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+}
+
 } // namespace yalx
 
 } // namespace yalx

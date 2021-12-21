@@ -540,6 +540,11 @@ ArrayInitializer::ArrayInitializer(base::Arena *arena, Type *type, int dimension
     , dimensions_(arena) {        
 }
 
+ChannelInitializer::ChannelInitializer(Type *type, Expression *capacity, const SourcePosition &source_position)
+    : Literal(kChannelInitializer, type, source_position)
+    , capacity_(capacity) {
+}
+
 BinaryExpression::BinaryExpression(Kind kind, Expression *lhs, Expression *rhs, const SourcePosition &source_position)
     : ExpressionWithOperands<2>(kind, source_position) {
     set_operand(0, lhs);
@@ -695,7 +700,7 @@ bool Type::IsComparable() const {
             fun->prototype()->params_size() != 1) {
             return false;
         }
-        auto param0 = down_cast<VariableDeclaration::Item>(fun->prototype()->param(0));
+        auto param0 = static_cast<VariableDeclaration::Item *>(fun->prototype()->param(0));
         bool unlinked = false;
         if (!param0->type()->Acceptable(this, &unlinked)) {
             return false;

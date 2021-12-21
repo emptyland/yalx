@@ -112,6 +112,7 @@ public:
     int VisitOptionLiteral(cpl::OptionLiteral *node) override { UNREACHABLE(); }
     int VisitAssertedGet(cpl::AssertedGet *node) override { UNREACHABLE(); }
     int VisitCharLiteral(cpl::CharLiteral *node) override { UNREACHABLE(); }
+    int VisitChannelInitializer(cpl::ChannelInitializer *node) override { UNREACHABLE(); }
     
     friend class IRCodeEnvScope;
     friend class IRCodePkgScope;

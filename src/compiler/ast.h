@@ -788,6 +788,9 @@ public:
     
     DEF_PTR_GETTER(const String, name);
     
+    bool IsNotPlaceholder() const { return !IsPlaceholder(); }
+    bool IsPlaceholder() const { return name_->Equal("_"); }
+
     DECLARE_AST_NODE(Identifier);
 private:
     const String *name_;
@@ -999,6 +1002,16 @@ private:
     Expression *filling_value_ = nullptr;
 }; // class ArrayInitializer
 
+class ChannelInitializer : public Literal {
+public:
+    ChannelInitializer(Type *type, Expression *capacity, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Expression, capacity);
+    
+    DECLARE_AST_NODE(ChannelInitializer);
+private:
+    Expression *capacity_;
+}; // class ChannelInitializer
 
 //class ExpressionWithOperands<N>(rval = true, lval = false) : Expression
 //    = lhs(): Expression *

@@ -660,7 +660,7 @@ private:
             for (auto i = 0; i < prototype->return_types_size(); i++) {
                 bool unlinked = false;
                 if (!receiver[i]->Acceptable(prototype->return_type(i), &unlinked)) {
-                    Feedback()->Printf(node->source_position(), "Return type not accepted, %s <= %s",
+                    Feedback()->Printf(node->source_position(), "Return type does not accept, %s <= %s",
                                        prototype->return_type(i)->ToString().c_str(),
                                        receiver[i]->ToString().c_str());
                     return -1;
@@ -1256,7 +1256,12 @@ private:
         if (ReduceReturningOnlyOne(node->operand(), &type) < 0) {
             return -1;
         }
-        return Returning(type);
+        if (!type->IsOptionType()) {
+            Feedback()->Printf(node->source_position(), "Attempt asserted-getting for non-option type: `%s'",
+                               type->ToString().c_str());
+            return -1;
+        }
+        return Returning(type->AsOptionType()->element_type());
     }
     
     int VisitOr(Or *node) override {
@@ -1534,6 +1539,22 @@ private:
         return Returning(resutls);
     }
     
+    int VisitChannelInitializer(ChannelInitializer *node) override {
+        auto type = LinkType(node->type());
+        node->set_type(type);
+        
+        if (ReduceReturningOnlyOne(node->capacity(), &type) < 0) {
+            return -1;
+        }
+        if (!type->IsIntegral()) {
+            Feedback()->Printf(node->capacity()->source_position(), "Incorrect type of channel capacity, need integral,"
+                               "actual is `%s'", type->ToString().c_str());
+            return -1;
+        }
+        
+        return Returning(node->type());
+    }
+    
     int VisitStringTemplate(StringTemplate *node) override {
         Type *type = nullptr;
         for (auto part : node->parts()) {
@@ -1618,6 +1639,128 @@ private:
         kComparableTy,
     };
     
+    int VisitIndexedGet(IndexedGet *node) override {
+        Type *type = nullptr;
+        if (ReduceReturningOnlyOne(node->lhs(), &type) < 0) {
+            return -1;
+        }
+        if (!type->IsArrayType()) {
+            Feedback()->Printf(node->source_position(), "Attempt `[]' operator for none-array type: `%s'",
+                               type->ToString().c_str());
+            return -1;
+        }
+        
+        auto ar = type->AsArrayType();
+        if (ar->dimension_count() == 1) {
+            return Returning(ar->element_type());
+        }
+        return Returning(new (arena_) ArrayType(arena_, ar->element_type(), ar->dimension_count() - 1,
+                                                ar->source_position()));
+    }
+
+    int VisitAdd(Add *node) override { return ReduceBinaryExpression("+", node, kNumberTy); }
+    int VisitDiv(Div *node) override { return ReduceBinaryExpression("/", node, kNumberTy); }
+    int VisitMod(Mod *node) override { return ReduceBinaryExpression("%", node, kIntegralTyOnly); }
+    int VisitMul(Mul *node) override { return ReduceBinaryExpression("*", node, kNumberTy); }
+    int VisitSub(Sub *node) override { return ReduceBinaryExpression("-", node, kNumberTy); }
+    
+    int VisitNegative(Negative *node) override {
+        Type *type = nullptr;
+        if (ReduceReturningOnlyOne(node->operand(), &type) < 0) {
+            return -1;
+        }
+        if (!type->IsFloating() && !type->IsSignedIntegral()) {
+            Feedback()->Printf(node->source_position(), "Incorrect type of operand, -`%s'", type->ToString().c_str());
+            return -1;
+        }
+        return Returning(type);
+    }
+    
+    int VisitLess(Less *node) override { return ReduceBinaryExpression("<", node, kComparableTy); }
+    int VisitLessEqual(LessEqual *node) override { return ReduceBinaryExpression("<=", node, kComparableTy); }
+    int VisitGreater(Greater *node) override { return ReduceBinaryExpression(">", node, kComparableTy); }
+    int VisitGreaterEqual(GreaterEqual *node) override { return ReduceBinaryExpression(">=", node, kComparableTy); }
+    int VisitEqual(Equal *node) override { return ReduceBinaryExpression("==", node, kComparableTy); }
+    int VisitNotEqual(NotEqual *node) override { return ReduceBinaryExpression("!=", node, kComparableTy); }
+    
+    int VisitRecv(Recv *node) override {
+        Type *type = nullptr;
+        if (ReduceReturningOnlyOne(node->operand(), &type) < 0) {
+            return -1;
+        }
+        if (!type->IsChannelType()) {
+            Feedback()->Printf(node->source_position(), "Incorrect type of operand, <-`%s'", type->ToString().c_str());
+            return -1;
+        }
+        auto chan = type->AsChannelType();
+        if (!chan->CanRead()) {
+            Feedback()->Printf(node->source_position(), "Attempt read unreadable channel");
+            return -1;
+        }
+        return Returning({chan->element_type(), Bool()});
+    }
+    
+    int VisitSend(Send *node) override {
+        Type *receiver = nullptr, *sendee = nullptr;
+        if (ReduceReturningOnlyOne(node->lhs(), &receiver) < 0 || ReduceReturningOnlyOne(node->rhs(), &sendee) < 0) {
+            return -1;
+        }
+        if (!receiver->IsChannelType()) {
+            Feedback()->Printf(node->source_position(), "Incorrect type of operand, `%s'<-`%s'",
+                               receiver->ToString().c_str(), sendee->ToString().c_str());
+            return -1;
+        }
+        auto chan = receiver->AsChannelType();
+        if (!chan->CanWrite()) {
+            Feedback()->Printf(node->source_position(), "Attempt write unwritable channel");
+            return -1;
+        }
+        bool unlinked = false;
+        if (!chan->element_type()->Acceptable(sendee, &unlinked)) {
+            Feedback()->Printf(node->source_position(), "Channel does not accept: `%s' <= `%s'",
+                               chan->element_type()->ToString().c_str(),
+                               sendee->ToString().c_str());
+            return -1;
+        }
+        return Returning(Bool());
+    }
+    
+    
+    int VisitBitwiseOr(BitwiseOr *node) override { return ReduceBinaryExpression("|", node, kIntegralTyOnly); }
+    int VisitBitwiseAnd(BitwiseAnd *node) override { return ReduceBinaryExpression("&", node, kIntegralTyOnly); }
+    int VisitBitwiseShl(BitwiseShl *node) override { return ReduceBinaryExpression("<<", node, kIntegralTyOnly); }
+    int VisitBitwiseShr(BitwiseShr *node) override { return ReduceBinaryExpression(">>", node, kIntegralTyOnly); }
+    int VisitBitwiseXor(BitwiseXor *node) override { return ReduceBinaryExpression("^", node, kIntegralTyOnly); }
+    
+    int VisitBitwiseNegative(BitwiseNegative *node) override {
+        Type *type = nullptr;
+        if (ReduceReturningOnlyOne(node->operand(), &type) < 0) {
+            return -1;
+        }
+        if (!type->IsIntegral()) {
+            Feedback()->Printf(node->source_position(), "Incorrect type of operand, ~`%s'", type->ToString().c_str());
+            return -1;
+        }
+        return Returning(type);
+    }
+    
+    int VisitF32Literal(F32Literal *node) override { return Returning(node->type()); }
+    int VisitF64Literal(F64Literal *node) override { return Returning(node->type()); }
+    int VisitI64Literal(I64Literal *node) override { return Returning(node->type()); }
+    int VisitIntLiteral(IntLiteral *node) override { return Returning(node->type()); }
+    int VisitU64Literal(U64Literal *node) override { return Returning(node->type()); }
+    int VisitBoolLiteral(BoolLiteral *node) override { return Returning(node->type()); }
+    int VisitUnitLiteral(UnitLiteral *node) override { return Returning(Unit()); }
+    int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
+    int VisitStringLiteral(StringLiteral *node) override { return Returning(node->type()); }
+    int VisitUIntLiteral(UIntLiteral *node) override { return Returning(node->type()); }
+    int VisitCharLiteral(CharLiteral *node) override { return Returning(node->type()); }
+    
+    int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
+    int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
+    int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
+    
+private:
     int ReduceBinaryExpression(const char *op, BinaryExpression *expr, OperatingKind kind) {
         Type *lhs = nullptr, *rhs = nullptr;
         if (ReduceReturningOnlyOne(expr->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(expr->rhs(), &rhs) < 0) {
@@ -1640,75 +1783,20 @@ private:
                 break;
         }
         if (!ok) {
-            Feedback()->Printf(expr->source_position(), "Operand is not correct type, `%s' %s `%s'",
+            Feedback()->Printf(expr->source_position(), "Incorrect type of operand, `%s' %s `%s'",
                                lhs->ToString().c_str(), op, rhs->ToString().c_str());
             return -1;
         }
         
         bool unlinked = false;
         if (!lhs->Acceptable(rhs, &unlinked) || !rhs->Acceptable(lhs, &unlinked)) {
-            Feedback()->Printf(expr->source_position(), "Operand is not acceptable each other, `%s' <=> `%s'",
+            Feedback()->Printf(expr->source_position(), "Type of operand is not acceptable each other, `%s' <=> `%s'",
                                lhs->ToString().c_str(), rhs->ToString().c_str());
             return -1;
         }
         assert(!unlinked);
         return Returning(kind == kComparableTy ? Bool() : lhs);
     }
-    
-    int VisitIndexedGet(IndexedGet *node) override {
-        Type *type = nullptr;
-        if (ReduceReturningOnlyOne(node->lhs(), &type) < 0) {
-            return -1;
-        }
-        if (!type->IsArrayType()) {
-            Feedback()->Printf(node->source_position(), "");
-            return -1;
-        }
-        
-        // TODO:
-        UNREACHABLE();
-    }
-
-    int VisitAdd(Add *node) override { return ReduceBinaryExpression("+", node, kNumberTy); }
-    int VisitDiv(Div *node) override { return ReduceBinaryExpression("/", node, kNumberTy); }
-    int VisitMod(Mod *node) override { return ReduceBinaryExpression("%", node, kIntegralTyOnly); }
-    int VisitMul(Mul *node) override { return ReduceBinaryExpression("*", node, kNumberTy); }
-    int VisitSub(Sub *node) override { return ReduceBinaryExpression("-", node, kNumberTy); }
-    int VisitNegative(Negative *node) override { UNREACHABLE(); }
-    
-    int VisitLess(Less *node) override { return ReduceBinaryExpression("<", node, kComparableTy); }
-    int VisitLessEqual(LessEqual *node) override { return ReduceBinaryExpression("<=", node, kComparableTy); }
-    int VisitGreater(Greater *node) override { return ReduceBinaryExpression(">", node, kComparableTy); }
-    int VisitGreaterEqual(GreaterEqual *node) override { return ReduceBinaryExpression(">=", node, kComparableTy); }
-    int VisitEqual(Equal *node) override { return ReduceBinaryExpression("==", node, kComparableTy); }
-    int VisitNotEqual(NotEqual *node) override { return ReduceBinaryExpression("!=", node, kComparableTy); }
-    
-    int VisitRecv(Recv *node) override { UNREACHABLE(); }
-    int VisitSend(Send *node) override { UNREACHABLE(); }
-    
-    
-    int VisitBitwiseOr(BitwiseOr *node) override { return ReduceBinaryExpression("|", node, kIntegralTyOnly); }
-    int VisitBitwiseAnd(BitwiseAnd *node) override { return ReduceBinaryExpression("&", node, kIntegralTyOnly); }
-    int VisitBitwiseShl(BitwiseShl *node) override { return ReduceBinaryExpression("<<", node, kIntegralTyOnly); }
-    int VisitBitwiseShr(BitwiseShr *node) override { return ReduceBinaryExpression(">>", node, kIntegralTyOnly); }
-    int VisitBitwiseXor(BitwiseXor *node) override { return ReduceBinaryExpression("^", node, kIntegralTyOnly); }
-    int VisitBitwiseNegative(BitwiseNegative *node) override { UNREACHABLE(); }
-    
-    int VisitF32Literal(F32Literal *node) override { return Returning(node->type()); }
-    int VisitF64Literal(F64Literal *node) override { return Returning(node->type()); }
-    int VisitI64Literal(I64Literal *node) override { return Returning(node->type()); }
-    int VisitIntLiteral(IntLiteral *node) override { return Returning(node->type()); }
-    int VisitU64Literal(U64Literal *node) override { return Returning(node->type()); }
-    int VisitBoolLiteral(BoolLiteral *node) override { return Returning(node->type()); }
-    int VisitUnitLiteral(UnitLiteral *node) override { return Returning(Unit()); }
-    int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
-    int VisitStringLiteral(StringLiteral *node) override { return Returning(node->type()); }
-    int VisitUIntLiteral(UIntLiteral *node) override { return Returning(node->type()); }
-    int VisitCharLiteral(CharLiteral *node) override { return Returning(node->type()); }
-    
-    int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }
-    int VisitAnnotationDeclaration(AnnotationDeclaration *node) override { UNREACHABLE(); }
-    int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
     
     int ReduceBranchsTypes(const std::vector<Type *> branchs_rows[],
                            const size_t number_of_branchs,

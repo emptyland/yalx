@@ -1271,6 +1271,15 @@ Expression *Parser::ParsePrimary(bool *ok) {
         return expr;
     }
     
+    if (Peek().Is(Token::kChan)) {
+        auto type = ParseType(CHECK_OK);
+        Match(Token::kLParen, CHECK_OK);
+        auto capacity = ParseExpression(CHECK_OK);
+        location = location.Concat(Peek().source_position());
+        Match(Token::kRParen, CHECK_OK);
+        return new (arena_) ChannelInitializer(type, capacity, location);
+    }
+    
     bool is_type = true;
     auto saved = lookahead_;
     ProbeAtomType(&is_type);

@@ -593,6 +593,17 @@ private:
     int VisitStringLiteral(StringLiteral *node) override { return Return(node); }
     int VisitCharLiteral(CharLiteral *node) override { return Return(node); }
     
+    int VisitChannelInitializer(ChannelInitializer *node) override {
+        auto ty = DCHECK_NOTNULL(node->type()->AsChannelType());
+        auto copied_ty = new (arena_) ChannelType(arena_, ty->ability(), ty->element_type(), ty->source_position());
+        copied_ty = down_cast<ChannelType>(TypeLink(copied_ty));
+        if (!copied_ty) {
+            return -1;
+        }
+        auto copied = new (arena_) ChannelInitializer(copied_ty, node->capacity(), node->source_position());
+        return Return(copied);
+    }
+    
     int VisitPackage(Package *node) override { UNREACHABLE(); }
     int VisitFileUnit(FileUnit *node) override { UNREACHABLE(); }
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }

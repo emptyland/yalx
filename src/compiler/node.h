@@ -37,6 +37,8 @@ namespace cpl {
 //                +- UnitLiteral
 //                +- OptionLiteral
 //                +- LambdaLiteral
+//                +- ArrayInitializer
+//                +- ChannelInitializer
 //                +- ActualLiteral<T>
 //                    +- IntLiteral
 //                    +- UIntLiteral
@@ -63,7 +65,8 @@ namespace cpl {
 //                    +- BitwiseAnd
 //                    +- BitwiseOr
 //                    +- BitwiseXor
-//                    +- ChannelWrite
+//                    +- Send
+//                    +- Recv
 //                    +- IndexedGet
 //                +- UnaryExpression
 //                    +- Negative
@@ -154,6 +157,7 @@ namespace cpl {
     V(StringLiteral) \
     V(LambdaLiteral) \
     V(ArrayInitializer) \
+    V(ChannelInitializer) \
     V(Negative) \
     V(Add) \
     V(Sub) \
