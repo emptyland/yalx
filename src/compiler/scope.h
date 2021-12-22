@@ -2,7 +2,7 @@
 #ifndef YALX_COMPILER_SCOPE_H_
 #define YALX_COMPILER_SCOPE_H_
 
-#include "compiler/type-reducing.h"
+#include "compiler/global-symbol.h"
 #include "compiler/node.h"
 #include <unordered_map>
 #include <map>

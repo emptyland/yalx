@@ -293,6 +293,7 @@
 		236466CB26F07E870066D168 /* checking.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = checking.cc; path = ../src/base/checking.cc; sourceTree = "<group>"; };
 		23711300275F6889008919BE /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/compiler/constants.h; sourceTree = "<group>"; };
 		23711301275F68CE008919BE /* constants.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = constants.cc; sourceTree = "<group>"; };
+		237A0DAB27731390002180FE /* global-symbol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "global-symbol.h"; path = "../src/compiler/global-symbol.h"; sourceTree = "<group>"; };
 		2387EF9D2681C80D002E6DCF /* compiler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = compiler.h; path = ../src/compiler/compiler.h; sourceTree = "<group>"; };
 		2387EF9E2681C8D3002E6DCF /* compiler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = compiler.cc; path = ../src/compiler/compiler.cc; sourceTree = "<group>"; };
 		2387EFA126842BFF002E6DCF /* object-visitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "object-visitor.h"; path = "../src/runtime/heap/object-visitor.h"; sourceTree = "<group>"; };
@@ -315,7 +316,6 @@
 		23A3AB5F2664DE4D00007658 /* process.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = process.h; path = ../src/runtime/process.h; sourceTree = "<group>"; };
 		23A3AB602664E32E00007658 /* process.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = process.c; path = ../src/runtime/process.c; sourceTree = "<group>"; };
 		23A7F0E02699E22A0060BFB7 /* compiler-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "compiler-test.cc"; path = "../src/compiler/compiler-test.cc"; sourceTree = "<group>"; };
-		23B997D726A467A800DD037B /* type-reducing.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "type-reducing.h"; path = "../src/compiler/type-reducing.h"; sourceTree = "<group>"; };
 		23B997D826A4680300DD037B /* type-reducing.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "type-reducing.cc"; path = "../src/compiler/type-reducing.cc"; sourceTree = "<group>"; };
 		23B997DB26A468BE00DD037B /* scope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scope.h; path = ../src/compiler/scope.h; sourceTree = "<group>"; };
 		23B997DC26A468D500DD037B /* scope.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scope.cc; path = ../src/compiler/scope.cc; sourceTree = "<group>"; };
@@ -507,7 +507,6 @@
 				2362A0EB26A69DC700A972B1 /* generics-instantiating.h */,
 				2362A0E826A67D1000A972B1 /* type-reducing-test.cc */,
 				23B997D826A4680300DD037B /* type-reducing.cc */,
-				23B997D726A467A800DD037B /* type-reducing.h */,
 				23B997DC26A468D500DD037B /* scope.cc */,
 				23B997DB26A468BE00DD037B /* scope.h */,
 				2387EFB2268586F5002E6DCF /* lexer-test.cc */,
@@ -530,6 +529,7 @@
 				232AA00226861D3C0098E6A3 /* parser.h */,
 				23711301275F68CE008919BE /* constants.cc */,
 				23711300275F6889008919BE /* constants.h */,
+				237A0DAB27731390002180FE /* global-symbol.h */,
 			);
 			name = Compiler;
 			sourceTree = "<group>";

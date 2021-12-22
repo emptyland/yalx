@@ -1,9 +1,9 @@
-#include "compiler/type-reducing.h"
 #include "compiler/generics-instantiating.h"
 #include "compiler/syntax-feedback.h"
 #include "compiler/scope.h"
 #include "compiler/ast.h"
 #include "compiler/constants.h"
+#include "compiler/compiler.h"
 #include <stack>
 
 namespace yalx {
@@ -2803,8 +2803,8 @@ TypeReducingVisitor::TypeReducingVisitor(Package *entry, base::Arena *arena, Syn
 }
 
 
-base::Status ReducePackageDependencesType(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback,
-                                          std::unordered_map<std::string_view, GlobalSymbol> *symbols) {
+base::Status Compiler::ReducePackageDependencesType(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback,
+                                                    std::unordered_map<std::string_view, GlobalSymbol> *symbols) {
     TypeReducingVisitor visitor(entry, arena, error_feedback);
     
     auto rs = visitor.Reduce();

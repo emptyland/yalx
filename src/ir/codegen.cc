@@ -14,8 +14,6 @@ namespace yalx {
 namespace ir {
 
 
-
-
 class IRGeneratorAstVisitor : public cpl::AstVisitor {
 public:
     IRGeneratorAstVisitor(IntermediateRepresentationGenerator *owns)
@@ -114,12 +112,6 @@ public:
     int VisitCharLiteral(cpl::CharLiteral *node) override { UNREACHABLE(); }
     int VisitChannelInitializer(cpl::ChannelInitializer *node) override { UNREACHABLE(); }
     
-    friend class IRCodeEnvScope;
-    friend class IRCodePkgScope;
-    friend class IRCodeFileScope;
-    friend class IRCodeStructureScope;
-    friend class IRCodeFunScope;
-    friend class IRCodeBlockScope;
 private:
     struct Symbol {
         cpl::FileUnit *file_unit;
@@ -230,6 +222,8 @@ IntermediateRepresentationGenerator::IntermediateRepresentationGenerator(base::A
     : arena_(DCHECK_NOTNULL(arena))
     , entry_(entry)
     , error_feedback_(error_feedback)
+    , global_udts_(arena)
+    , global_vars_(arena)
     , modules_(arena) {
 }
 

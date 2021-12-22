@@ -2,6 +2,7 @@
 #ifndef YALX_COMPILER_COMPILER_H_
 #define YALX_COMPILER_COMPILER_H_
 
+#include "compiler/global-symbol.h"
 #include "base/arena-utils.h"
 #include "base/status.h"
 #include "base/base.h"
@@ -11,7 +12,9 @@
 #include <set>
 
 namespace yalx {
-
+namespace ir {
+class Module;
+} // namespace ir
 namespace cpl {
 
 class Package;
@@ -75,6 +78,19 @@ public:
                                                 base::Arena *arena,
                                                 SyntaxFeedback *error_feedback,
                                                 Package **receiver);
+    
+    static base::Status ReducePackageDependencesType(Package *entry,
+                                                     base::Arena *arena,
+                                                     SyntaxFeedback *error_feedback,
+                                                     std::unordered_map<std::string_view, GlobalSymbol> *symbols);
+    
+     // intermediate representation
+    static base::Status
+    GenerateIntermediateRepresentationCode(const std::unordered_map<std::string_view, GlobalSymbol> &symbols,
+                                           base::Arena *arena,
+                                           Package *entry,
+                                           SyntaxFeedback *error_feedback,
+                                           base::ArenaVector<ir::Module *> *modules);
     
     static constexpr char kSourceExtendedName[] = ".yalx";
     static constexpr char kSourceDirName[] = "src";

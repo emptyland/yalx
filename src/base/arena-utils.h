@@ -38,6 +38,8 @@ public:
     
     std::string_view ToSlice() const { return std::string_view(data(), size()); }
     
+    ArenaString *Duplicate(base::Arena *arena) const { return New(arena, data(), size()); }
+    
     static ArenaString *New(base::Arena *arena, const char *s, size_t n);
     
     static ArenaString *New(base::Arena *arena, const char *s) {

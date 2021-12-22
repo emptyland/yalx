@@ -14,6 +14,8 @@ class SyntaxFeedback;
 namespace ir {
 
 class Module;
+class Model;
+class Value;
 class IRGeneratorAstVisitor;
 
 class IntermediateRepresentationGenerator {
@@ -31,15 +33,12 @@ private:
     base::Arena *const arena_;
     cpl::Package *entry_;
     cpl::SyntaxFeedback *error_feedback_;
+    base::ArenaMap<std::string_view, Model *> global_udts_;
+    base::ArenaMap<std::string_view, Value *> global_vars_;
     base::ArenaMap<std::string_view, Module *> modules_;
     //base::ArenaVector<Module *> modules_;
 }; // class IntermediateRepresentationGenerator
 
-// intermediate representation
-// base::Status GenerateIntermediateRepresentationCode(base::Arena *arena,
-//                                                     cpl::Package *entry,
-//                                                     cpl::SyntaxFeedback *error_feedback,
-//                                                     base::ArenaVector<Module *> *modules);
 
 } // namespace ir
 

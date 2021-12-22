@@ -2,6 +2,7 @@
 #include "compiler/parser.h"
 #include "compiler/syntax-feedback.h"
 #include "compiler/ast.h"
+#include "ir/codegen.h"
 #include "base/checking.h"
 #include "base/arena.h"
 #include "base/env.h"
@@ -426,6 +427,21 @@ base::Status Compiler::ParsePackageSourceFiles(std::string_view pkg_dir,
     
     return base::Status::OK();
 }
+
+base::Status
+Compiler::GenerateIntermediateRepresentationCode(const std::unordered_map<std::string_view, GlobalSymbol> &symbols,
+                                                 base::Arena *arena,
+                                                 Package *entry,
+                                                 SyntaxFeedback *error_feedback,
+                                                 base::ArenaVector<ir::Module *> *modules) {
+    ir::IntermediateRepresentationGenerator generator(arena, entry, error_feedback);
+    auto rs = generator.Run();
+    if (rs.ok()) {
+        // TODO:
+    }
+    return rs;
+}
+
 
 } // namespace cpl
 

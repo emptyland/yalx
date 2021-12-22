@@ -1,4 +1,3 @@
-#include "compiler/type-reducing.h"
 #include "compiler/compiler.h"
 #include "compiler/syntax-feedback.h"
 #include "compiler/source-position.h"
@@ -61,7 +60,7 @@ TEST_F(TypeReducingTest, Sanity) {
     
     {
         std::unordered_map<std::string_view, GlobalSymbol> symbols;
-        rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+        rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
         ASSERT_TRUE(rs.ok()) << rs.ToString();
 
         auto iter = symbols.find("main:main.Foo");
@@ -87,7 +86,7 @@ TEST_F(TypeReducingTest, ClassVars) {
                                                        &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
-    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     
     auto iter = symbols.find("main:main.Foo");
@@ -111,7 +110,7 @@ TEST_F(TypeReducingTest, FileDeps) {
                                                        &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
-    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
 }
 
@@ -124,7 +123,7 @@ TEST_F(TypeReducingTest, TmplDeps) {
                                                        &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
-    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     ASSERT_TRUE(symbols.find("foo:foo.Foo<i32>") != symbols.end());
     ASSERT_TRUE(symbols.find("foo:foo.Baz<i32>") != symbols.end());
@@ -144,7 +143,7 @@ TEST_F(TypeReducingTest, IntefaceImpls) {
                                                        &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
-    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     ASSERT_TRUE(symbols.find("yalx/lang:lang.I32") != symbols.end());
     ASSERT_TRUE(symbols.find("yalx/lang:lang.U32") != symbols.end());
@@ -159,7 +158,7 @@ TEST_F(TypeReducingTest, ObjectDecls) {
                                                        &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
-    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     ASSERT_TRUE(symbols.find("foo:foo.Foo$ShadowClass") != symbols.end());
     ASSERT_TRUE(symbols.find("foo:foo.Foo") != symbols.end());
@@ -179,7 +178,7 @@ TEST_F(TypeReducingTest, Calling01) {
                                                        &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
-    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     ASSERT_TRUE(symbols.find("main:main.gv") != symbols.end());
     
@@ -197,7 +196,7 @@ TEST_F(TypeReducingTest, WhileLoop01) {
                                                        &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
-    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     ASSERT_TRUE(symbols.find("main:main.main") != symbols.end());
 }
@@ -211,7 +210,7 @@ TEST_F(TypeReducingTest, TypeCasting01) {
                                                        &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
-    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     ASSERT_TRUE(symbols.find("main:main.v1") != symbols.end());
     auto v1 = down_cast<VariableDeclaration::Item>(symbols["main:main.v1"].ast);
@@ -247,7 +246,7 @@ TEST_F(TypeReducingTest, WhenExprReducing) {
                                                        &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
-    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     
     auto v2 = down_cast<VariableDeclaration::Item>(symbols["main:main.v2"].ast);
@@ -284,7 +283,7 @@ TEST_F(TypeReducingTest, TryCatchExprReducing) {
                                                        &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
-    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     
     auto v1 = down_cast<VariableDeclaration::Item>(symbols["main:main.v1"].ast);
@@ -307,7 +306,7 @@ TEST_F(TypeReducingTest, SimpleExprReducing) {
                                                        &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
-    rs = ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
 }
 
