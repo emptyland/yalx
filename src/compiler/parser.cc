@@ -885,7 +885,9 @@ Statement *Parser::ParseStatement(bool *ok) {
             auto stmt = new (arena_) Return(arena_, location);
             // return Unit
             if (Peek().Is(Token::kRBrace) || Peek().Is(Token::kSemi)) {
-                MoveNext();
+                if (Peek().Is(Token::kSemi)) {
+                    MoveNext();
+                }
                 return stmt;
             }
             ParseCommaSplittedExpressions(stmt->mutable_returnning_vals(), CHECK_OK);

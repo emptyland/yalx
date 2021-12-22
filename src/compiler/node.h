@@ -265,9 +265,6 @@ private:
     const String *name_;
 }; // class Symbol
 
-class Visitation {
-    // TODO:
-}; // class Visitation
 
 } // namespace cpl
 

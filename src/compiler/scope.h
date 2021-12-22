@@ -210,7 +210,7 @@ public:
     DEF_PTR_GETTER(Statement, owns);
     DEF_VAL_GETTER(Kind, kind);
     
-    FunctionScope *NearlyFunctionScope() override;
+    //FunctionScope *NearlyFunctionScope() override;
     BlockScope *NearlyBlockScope() override;
 private:
     Kind kind_;

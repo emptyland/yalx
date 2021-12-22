@@ -394,7 +394,7 @@ BlockScope::~BlockScope() {
     Exit();
 }
 
-FunctionScope *BlockScope::NearlyFunctionScope() { return nullptr; }
+//FunctionScope *BlockScope::NearlyFunctionScope() { return nullptr; }
 BlockScope *BlockScope::NearlyBlockScope() { return this; }
 
 } // namespace cpl

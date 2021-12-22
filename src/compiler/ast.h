@@ -789,7 +789,10 @@ public:
     DEF_PTR_GETTER(const String, name);
     
     bool IsNotPlaceholder() const { return !IsPlaceholder(); }
-    bool IsPlaceholder() const { return name_->Equal("_"); }
+    bool IsPlaceholder() const { return IsPlaceholder(name_); }
+    
+    constexpr static bool IsNotPlaceholder(const String *name) { return !IsPlaceholder(name); }
+    constexpr static bool IsPlaceholder(const String *name) { return name->Equal("_"); }
 
     DECLARE_AST_NODE(Identifier);
 private:

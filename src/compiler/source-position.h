@@ -3,6 +3,7 @@
 #define YALX_COMPILER_SOURCE_POSITION_H_
 
 #include "base/status.h"
+#include "base/format.h"
 #include "base/base.h"
 
 namespace yalx {
@@ -31,6 +32,10 @@ public:
     
     SourcePosition Concat(const SourcePosition &end) const {
         return {begin_line_, begin_column_, end.end_line(), end.end_column()};
+    }
+    
+    std::string ToString() const {
+        return base::Sprintf("[(%d,%d)-(%d,%d)]", begin_line(), begin_column(), end_line(), end_column());
     }
 private:
     int begin_line_ = 0;

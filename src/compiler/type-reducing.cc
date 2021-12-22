@@ -252,8 +252,10 @@ private:
     int VisitVariableDeclaration(VariableDeclaration *node) override {
         if (!node->owns()) {
             for (auto var : node->variables()) {
-                auto duplicated = location_->FindOrInsertSymbol(var->identifier()->ToSlice(), var);
-                if (duplicated) {
+                if (Identifier::IsPlaceholder(var->identifier())) {
+                    continue;
+                }
+                if (auto dup = location_->FindOrInsertSymbol(var->identifier()->ToSlice(), var)) {
                     Feedback()->Printf(var->source_position(), "Duplicated symbol: %s", var->identifier()->data());
                     return -1;
                 }
@@ -276,6 +278,9 @@ private:
         
         for (size_t i = 0; i < node->variables_size(); i++) {
             auto var = node->variable(i);
+            if (Identifier::IsPlaceholder(var->identifier())) {
+                continue;
+            }
             if (!var->type()) {
                 var->set_type(types[i]);
             } else {
@@ -627,15 +632,26 @@ private:
         }
         
         auto prototype = node->prototype();
-        for (auto item : prototype->params()) {
-            auto param = static_cast<VariableDeclaration::Item *>(item);
-            scope.FindOrInsertSymbol(param->identifier()->ToSlice(), param);
-        }
         if (prototype->vargs()) {
-            // TODO:
-            UNREACHABLE();
+            auto stub = new (arena_) VariableDeclaration(arena_, false, VariableDeclaration::kVal,
+                                                         String::New(arena_, kArgsName),
+                                                         Array(Any()),
+                                                         prototype->source_position());
+            scope.FindOrInsertSymbol(stub->AtItem(0)->Identifier()->ToSlice(), stub->AtItem(0));
         }
         
+        for (auto item : prototype->params()) {
+            auto param = static_cast<VariableDeclaration::Item *>(item);
+            if (Identifier::IsPlaceholder(param->identifier())) {
+                continue;
+            }
+            if (auto dup = scope.FindOrInsertSymbol(param->identifier()->ToSlice(), param)) {
+                Feedback()->Printf(param->source_position(), "Duplicated fun parameter: %s, prev one: %s",
+                                   param->identifier()->data(), dup->source_position().ToString().c_str());
+                return -1;
+            }
+        }
+
         std::vector<Type *> receiver;
         int nrets = Reduce(node->body(), &receiver);
         if (nrets < 0) {
@@ -684,15 +700,34 @@ private:
         if (!LinkType(node->prototype())) {
             return -1;
         }
-        // TODO: insert `callee' symbol
+
         auto prototype = node->prototype();
+        {
+            auto stub = new (arena_) VariableDeclaration(arena_, false, VariableDeclaration::kVal,
+                                                         String::New(arena_, kCalleeName),
+                                                         prototype,
+                                                         prototype->source_position());
+            scope.FindOrInsertSymbol(stub->AtItem(0)->Identifier()->ToSlice(), stub->AtItem(0));
+        }
+        
+        if (prototype->vargs()) {
+            auto stub = new (arena_) VariableDeclaration(arena_, false, VariableDeclaration::kVal,
+                                                         String::New(arena_, kArgsName),
+                                                         Array(Any()),
+                                                         prototype->source_position());
+            scope.FindOrInsertSymbol(stub->AtItem(0)->Identifier()->ToSlice(), stub->AtItem(0));
+        }
+
         for (auto item : prototype->params()) {
             auto param = static_cast<VariableDeclaration::Item *>(item);
-            scope.FindOrInsertSymbol(param->identifier()->ToSlice(), param);
-        }
-        if (prototype->vargs()) {
-            // TODO:
-            UNREACHABLE();
+            if (Identifier::IsPlaceholder(param->identifier())) {
+                continue;
+            }
+            if (auto dup = scope.FindOrInsertSymbol(param->identifier()->ToSlice(), param)) {
+                Feedback()->Printf(param->source_position(), "Duplicated fun parameter: %s, prev one: %s",
+                                   param->identifier()->data(), dup->source_position().ToString().c_str());
+                return -1;
+            }
         }
         
         std::vector<Type *> receiver;
@@ -723,6 +758,9 @@ private:
                 prototype->mutable_return_types()->push_back(ty);
             }
         }
+        if (prototype->return_types().empty()) {
+            prototype->mutable_return_types()->push_back(Unit());
+        }
         
         // Install signature at last step
         node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
@@ -730,7 +768,10 @@ private:
     }
     
     int VisitIdentifier(Identifier *node) override {
-        //node->name()->data();
+        if (node->IsPlaceholder()) {
+            Feedback()->Printf(node->source_position(), "Do not use placeholder(`_')");
+            return -1;
+        }
         auto [ast, ns] = location_->FindSymbol(node->name()->ToSlice());
         if (!ast) {
             Feedback()->Printf(node->source_position(), "Symbol: `%s' not found", node->name()->data());
@@ -1056,7 +1097,7 @@ private:
             }
         }
         
-        auto fun_scope = location_->NearlyFunctionScope();
+        auto fun_scope = DCHECK_NOTNULL(location_->NearlyFunctionScope());
         if (fun_scope->fun_is_reducing()) {
             Feedback()->Printf(node->source_position(), "Return vals for reducing(`->') function");
             return -1;
@@ -1156,9 +1197,8 @@ private:
                                                     node->iterative_destination()->name(), iteration_type,
                                                     node->iterative_destination()->source_position());
         node->set_iterative_destination_var(var);
-        if (Reduce(DCHECK_NOTNULL(node->iterative_destination_var())) < 0) {
-            return -1;
-        }
+        scope.FindOrInsertSymbol(var->AtItem(0)->Identifier()->ToSlice(), var->AtItem(0));
+
         if (Reduce(node->body()) < 0) {
             return -1;
         }
@@ -1602,8 +1642,9 @@ private:
                 return -1;
             }
             if (auto iter = unique_types.find(matching_type->AsClassType()->definition()); iter != unique_types.end()) {
-                Feedback()->Printf(clause->source_position(), "Catch type: `%s' is duplicated, prev one:",
-                                   matching_type->ToString().c_str()); // TODO:
+                Feedback()->Printf(clause->source_position(), "Catch type: `%s' is duplicated, prev one: %s",
+                                   matching_type->ToString().c_str(),
+                                   iter->second->source_position().ToString().c_str());
                 return -1;
             }
             unique_types[matching_type->AsClassType()->definition()] = clause;
@@ -2153,13 +2194,29 @@ private:
             } break;
                 
             case CastingRule::CHILD_CLASS_ONLY: {
-                // TODO:
-                UNREACHABLE();
+                if (auto lhs_st = lhs->AsStructType()) {
+                    if (auto rhs_st = rhs->AsStructType()) {
+                        if (lhs_st->definition()->IsBaseOf(rhs_st->definition())) {
+                            return rhs;
+                        }
+                        if (rhs_st->definition()->IsBaseOf(lhs_st->definition())) {
+                            return lhs;
+                        }
+                    }
+                }
             } break;
                 
             case CastingRule::CLASS_BASE_OF: {
-                // TODO:
-                UNREACHABLE();
+                if (auto lhs_ty = lhs->AsClassType()) {
+                    if (auto rhs_ty = rhs->AsClassType()) {
+                        if (lhs_ty->definition()->IsBaseOf(rhs_ty->definition())) {
+                            return rhs;
+                        }
+                        if (rhs_ty->definition()->IsBaseOf(lhs_ty->definition())) {
+                            return lhs;
+                        }
+                    }
+                }
             } break;
                 
             default:
@@ -2625,6 +2682,10 @@ private:
             any_ = new (arena_) Type(arena_, Type::kType_any, {0,0});
         }
         return any_;
+    }
+    
+    Type *Array(Type *element_type, const SourcePosition &source_position = {0,0}) {
+        return new (arena_) ArrayType(arena_, element_type, 1, source_position);
     }
     
     bool fail() { return status_.fail(); }

@@ -47,6 +47,9 @@ constexpr static char kPrimaryConstructorPostfix[] = "$constructor";
 
 constexpr static char kCompareToFunName[] = "compareTo";
 
+constexpr static char kArgsName[] = "args";
+constexpr static char kCalleeName[] = "callee";
+
 constexpr static int kMaxArrayInitializerDims = 99;
 } // namespace cpl
 

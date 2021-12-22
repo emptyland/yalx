@@ -227,7 +227,7 @@ ForeachLoop::ForeachLoop(Identifier *iterative_destination, Expression *iterable
                          const SourcePosition &source_position)
     : Circulation(Node::kForeachLoop, body, source_position)
     , iteration_(kIterator)
-    , iterative_destination_(iterative_destination_)
+    , iterative_destination_(iterative_destination)
     , iterable_(iterable) {    
 }
 

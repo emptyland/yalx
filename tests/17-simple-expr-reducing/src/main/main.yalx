@@ -9,6 +9,10 @@ val v3 = v2 + 100
 val v4 = v3 * foo.ran()!!
 val v5, v6 = <-c1
 val v7 = c1 <- v1
+val v8 = (a:int, ...) -> if (a != 0) { 
+    for (i in args) {}
+    callee(a - 1, 1, 2, 3)
+}
 
 fun main() {
 
