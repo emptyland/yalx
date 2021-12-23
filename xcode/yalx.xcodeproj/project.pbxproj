@@ -32,6 +32,8 @@
 		233236E0269EC2EF0078406C /* operator-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 233236DE269EC2EF0078406C /* operator-test.cc */; };
 		233236E2269ECAFA0078406C /* node-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 233236E1269ECAFA0078406C /* node-test.cc */; };
 		233236E3269ECAFA0078406C /* node-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 233236E1269ECAFA0078406C /* node-test.cc */; };
+		2336A2912774168E00346372 /* codegen-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2336A2902774168E00346372 /* codegen-test.cc */; };
+		2336A2922774168E00346372 /* codegen-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2336A2902774168E00346372 /* codegen-test.cc */; };
 		2362A0E926A67D1000A972B1 /* type-reducing-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362A0E826A67D1000A972B1 /* type-reducing-test.cc */; };
 		2362A0EA26A67D1000A972B1 /* type-reducing-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362A0E826A67D1000A972B1 /* type-reducing-test.cc */; };
 		2362A0ED26A69EAF00A972B1 /* generics-instantiating.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362A0EC26A69EAF00A972B1 /* generics-instantiating.cc */; };
@@ -251,6 +253,7 @@
 		233236DD269EC2850078406C /* operators-factory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "operators-factory.h"; path = "../src/ir/operators-factory.h"; sourceTree = "<group>"; };
 		233236DE269EC2EF0078406C /* operator-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "operator-test.cc"; path = "../src/ir/operator-test.cc"; sourceTree = "<group>"; };
 		233236E1269ECAFA0078406C /* node-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "node-test.cc"; path = "../src/ir/node-test.cc"; sourceTree = "<group>"; };
+		2336A2902774168E00346372 /* codegen-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "codegen-test.cc"; path = "../src/ir/codegen-test.cc"; sourceTree = "<group>"; };
 		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
 		2351F80E26648CB200D337EA /* runtime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = runtime.h; path = ../src/runtime/runtime.h; sourceTree = "<group>"; };
 		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
@@ -584,6 +587,7 @@
 				23FA86A526A13DE4001CC777 /* source-position-test.cc */,
 				23FA86A226A121AC001CC777 /* source-position.cc */,
 				23FA86A126A12197001CC777 /* source-position.h */,
+				2336A2902774168E00346372 /* codegen-test.cc */,
 				23FA86A926A161DF001CC777 /* codegen.cc */,
 				23FA86A826A161D0001CC777 /* codegen.h */,
 				23FA86AC26A26CC9001CC777 /* scope-test.cc */,
@@ -696,6 +700,7 @@
 				23D4A44C2680D17D0090C631 /* yalx-string.h in Sources */,
 				23C3543826A1B7E7006607D1 /* scope.cc in Sources */,
 				23D4A44D2680D17D0090C631 /* yalx-string.c in Sources */,
+				2336A2922774168E00346372 /* codegen-test.cc in Sources */,
 				233236E3269ECAFA0078406C /* node-test.cc in Sources */,
 				23D4A44E2680D17D0090C631 /* heap-test.cc in Sources */,
 				23D4A44F2680D17D0090C631 /* heap.h in Sources */,
@@ -864,6 +869,7 @@
 				23D5A651266718ED00635ADB /* stack-test.cc in Sources */,
 				23D5A652266718ED00635ADB /* stack.h in Sources */,
 				23D5A653266718ED00635ADB /* stack.c in Sources */,
+				2336A2912774168E00346372 /* codegen-test.cc in Sources */,
 				23D5A654266718ED00635ADB /* process.h in Sources */,
 				23D5A655266718ED00635ADB /* process.c in Sources */,
 				23D5A656266718ED00635ADB /* checking.h in Sources */,

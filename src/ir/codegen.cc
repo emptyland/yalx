@@ -25,8 +25,7 @@ public:
     int VisitPackage(cpl::Package *node) override {
         assert(module_ == nullptr);
         
-        module_ = new (arena()) Module(arena(), node->name(), node->path(), node->full_path());
-        PrepareAllSymbols(node);
+        //module_ = new (arena()) Module(arena(), node->name(), node->path(), node->full_path());
         if (fail()) {
             return -1;
         }
@@ -40,7 +39,10 @@ public:
         return 0;
     }
 
-    int VisitFileUnit(cpl::FileUnit *node) override { UNREACHABLE(); }
+    int VisitFileUnit(cpl::FileUnit *node) override {
+        // TODO:
+        return 0;
+    }
     int VisitBlock(cpl::Block *node) override { UNREACHABLE(); }
     int VisitList(cpl::List *node) override { UNREACHABLE(); }
     int VisitAssignment(cpl::Assignment *node) override { UNREACHABLE(); }
@@ -113,94 +115,6 @@ public:
     int VisitChannelInitializer(cpl::ChannelInitializer *node) override { UNREACHABLE(); }
     
 private:
-    struct Symbol {
-        cpl::FileUnit *file_unit;
-        cpl::AstNode  *node;
-    };
-    
-    void PrepareAllSymbols(cpl::Package *pkg) {
-        for (auto file_unit : pkg->source_files()) {
-            feedback()->set_file_name(file_unit->file_name()->ToString());
-            
-            
-            for (auto stmt : file_unit->statements()) {
-                SourcePositionTable::Scope scope(file_unit->file_name(), stmt->source_position(),
-                                                 module_->mutable_source_position_table());
-                if (!CheckDuplicatedSymbols(file_unit, stmt)) {
-                    return;
-                }
-
-                switch (stmt->kind()) {
-                    case cpl::Node::kVariableDeclaration: {
-                        auto decl = stmt->AsVariableDeclaration();
-                        for (auto item : decl->variables()) {
-                            auto val = Value::New0(arena(), scope.Position(), Types::Void, ops()->GlobalValue());
-                            module_->InsertGlobalValue(item->identifier(), val);
-                        }
-                    } break;
-
-                    case cpl::Node::kClassDefinition: {
-                        auto def = stmt->AsClassDefinition();
-                        module_->NewClassModel(def->name(), nullptr);
-                    } break;
-
-                    case cpl::Node::kStructDefinition: {
-                        auto def = stmt->AsStructDefinition();
-                        module_->NewStructModel(def->name(), nullptr);
-                    } break;
-
-                    case cpl::Node::kObjectDeclaration: {
-                        auto decl = stmt->AsObjectDeclaration();
-                        auto class_name = base::Sprintf("%s$class", decl->name()->data());
-                        auto model = module_->NewClassModel(String::New(arena(), class_name), nullptr);
-                        
-                        auto val = Value::New0(arena(), scope.Position(), Type::Ref(model), ops()->GlobalValue());
-                        module_->InsertGlobalValue(decl->name(), val);
-                    } break;
-
-                    case cpl::Node::kFunctionDeclaration: {
-                        auto decl = stmt->AsFunctionDeclaration();
-                        auto prototype = new (arena()) PrototypeModel(arena(), decl->prototype()->vargs());
-                        module_->NewFunction(decl->name(), prototype);
-                    } break;
-
-                    case cpl::Node::kAnnotationDefinition:
-                        // Ignore
-                    default:
-                        break;
-                }
-            }
-        }
-    }
-    
-    bool CheckDuplicatedSymbols(cpl::FileUnit *file_unit, cpl::Statement *stmt) {
-        if (cpl::Declaration::Is(stmt)) {
-            auto decl = static_cast<cpl::Declaration *>(stmt);
-            for (int i = 0; i < decl->ItemSize(); i++) {
-                auto name = decl->AtItem(i)->Identifier();
-                if (InnerSymbolExists(name)) {
-                    status_ = ERR_CORRUPTION("Duplicated symbol name");
-                    feedback()->Printf(stmt->source_position(), "Duplicated symbol name: \"%s\"", name->data());
-                    return false;
-                }
-            }
-        } else {
-            assert(cpl::Definition::Is(stmt));
-            auto name = static_cast<cpl::Definition *>(stmt)->name();
-            if (InnerSymbolExists(name)) {
-                status_ = ERR_CORRUPTION("Duplicated symbol name");
-                feedback()->Printf(stmt->source_position(), "Duplicated symbol name: \"%s\"", name->data());
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    bool InnerSymbolExists(const String *name) {
-        return module_->FindFunOrNull(name->ToSlice()) == nullptr && module_->FindValOrNull(name->ToSlice()) == nullptr;
-    }
-    
     bool ok() { return status_.ok(); }
     bool fail() { return status_.fail(); }
     base::Arena *arena() { return owns_->arena_; }
@@ -224,29 +138,130 @@ IntermediateRepresentationGenerator::IntermediateRepresentationGenerator(base::A
     , error_feedback_(error_feedback)
     , global_udts_(arena)
     , global_vars_(arena)
+    , global_funs_(arena)
     , modules_(arena) {
 }
 
 base::Status IntermediateRepresentationGenerator::Run() {
-    if (auto rs = RecursiveGeneratePackage(entry_); rs.fail()) {
+    Prepare0();
+    Prepare1();
+
+    auto accept = [this] (cpl::Package *pkg) {
+        IRGeneratorAstVisitor visitor(this);
+        pkg->Accept(&visitor);
+    };
+    if (auto rs = RecursivePackage(entry_, std::move(accept)); rs.fail()) {
         return rs;
     }
-    IRGeneratorAstVisitor visitor(this);
-    entry_->Accept(&visitor);
+    accept(entry_);
     return base::Status::OK();
 }
 
-base::Status IntermediateRepresentationGenerator::RecursiveGeneratePackage(cpl::Package *root) {
+base::Status IntermediateRepresentationGenerator::Prepare0() {
+    using std::placeholders::_1;
+    
+    if (auto rs = RecursivePackage(entry_, std::bind(&IntermediateRepresentationGenerator::PreparePackage0, this, _1));
+        rs.fail()) {
+        return rs;
+    }
+    PreparePackage0(entry_);
+    return base::Status::OK();
+}
+
+base::Status IntermediateRepresentationGenerator::Prepare1() {
+    using std::placeholders::_1;
+    
+    if (auto rs = RecursivePackage(entry_, std::bind(&IntermediateRepresentationGenerator::PreparePackage1, this, _1));
+        rs.fail()) {
+        return rs;
+    }
+    PreparePackage1(entry_);
+    return base::Status::OK();
+}
+
+void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
+    std::string full_name(pkg->path()->ToString());
+    full_name.append(":").append(pkg->name()->ToString());
+    
+    printd("%s", full_name.c_str());
+    if (auto iter = modules_.find(full_name); iter != modules_.end()) {
+        return; // Ignore duplicated
+    }
+    
+    auto module = new (arena_) Module(arena_,
+                                      pkg->name()->Duplicate(arena_),
+                                      String::New(arena_, full_name),
+                                      pkg->path()->Duplicate(arena_),
+                                      pkg->full_path()->Duplicate(arena_));
+    modules_[module->full_name()->ToSlice()] = module;
+    
+    
+    for (auto file_unit : pkg->source_files()) {
+        for (auto def : file_unit->class_defs()) {
+            if (!def->generic_params().empty()) {
+                continue;
+            }
+            std::string name(full_name + "." + def->name()->ToString());
+            auto model = new (arena_) StructureModel(arena_,
+                                                     def->name()->Duplicate(arena_),
+                                                     String::New(arena_, name),
+                                                     StructureModel::kClass,
+                                                     module,
+                                                     nullptr);
+            global_udts_[model->full_name()->ToSlice()] = model;
+        }
+        
+        for (auto def : file_unit->struct_defs()) {
+            if (!def->generic_params().empty()) {
+                continue;
+            }
+            std::string name(full_name + "." + def->name()->ToString());
+            auto model = new (arena_) StructureModel(arena_,
+                                                     def->name()->Duplicate(arena_),
+                                                     String::New(arena_, name),
+                                                     StructureModel::kStruct,
+                                                     module,
+                                                     nullptr);
+            global_udts_[model->full_name()->ToSlice()] = model;
+        }
+        
+        for (auto def : file_unit->interfaces()) {
+            if (!def->generic_params().empty()) {
+                continue;
+            }
+            std::string name(full_name + "." + def->name()->ToString());
+            auto model = new (arena_) InterfaceModel(arena_,
+                                                     def->name()->Duplicate(arena_),
+                                                     String::New(arena_, name));
+            global_udts_[model->full_name()->ToSlice()] = model;
+        }
+    }
+}
+
+void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
+    std::string full_name(pkg->path()->ToString());
+    full_name.append(":").append(pkg->name()->ToString());
+
+    auto iter = modules_.find(full_name);
+    assert(iter != modules_.end());
+    auto module = iter->second;
+
+    for (auto file_unit : pkg->source_files()) {
+        // TODO:
+    }
+}
+
+base::Status IntermediateRepresentationGenerator::RecursivePackage(cpl::Package *root,
+                                                                   std::function<void(cpl::Package *)> &&callback) {
     if (root->IsTerminator()) {
         return base::Status::OK();
     }
     
     for (auto pkg : root->dependences()) {
-        if (auto rs = RecursiveGeneratePackage(pkg); rs.fail()) {
+        if (auto rs = RecursivePackage(pkg, std::move(callback)); rs.fail()) {
             return rs;
         }
-        IRGeneratorAstVisitor visitor(this);
-        pkg->Accept(&visitor);
+        callback(pkg);
     }
     return base::Status::OK();
 }

@@ -7,10 +7,11 @@ namespace yalx {
 
 namespace ir {
 
-Module::Module(base::Arena *arena, const String *name, const String *path, const String *full_path)
+Module::Module(base::Arena *arena, const String *name, const String *full_name, const String *path, const String *full_path)
     : Node(Node::kModule)
     , arena_(DCHECK_NOTNULL(arena))
     , name_(DCHECK_NOTNULL(name))
+    , full_name_(DCHECK_NOTNULL(full_name))
     , path_(DCHECK_NOTNULL(path))
     , full_path_(DCHECK_NOTNULL(full_path))
     , named_models_(arena)

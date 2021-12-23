@@ -84,11 +84,12 @@ private:
 
 class Module : public Node {
 public:
-    Module(base::Arena *arena, const String *name, const String *path, const String *full_path);
+    Module(base::Arena *arena, const String *name, const String *full_name, const String *path, const String *full_path);
 
     DEF_PTR_GETTER(const String, name);
     DEF_PTR_GETTER(base::Arena, arena);
     DEF_PTR_GETTER(const String, path);
+    DEF_PTR_GETTER(const String, full_name);
     DEF_PTR_GETTER(const String, full_path);
     DEF_ARENA_VECTOR_GETTER(Function *, fun);
     DEF_ARENA_VECTOR_GETTER(Value *, value);
@@ -127,6 +128,7 @@ private:
     
     const String *const name_;
     const String *const path_;
+    const String *const full_name_;
     const String *const full_path_;
     base::Arena *const arena_;
     

@@ -5,7 +5,9 @@ namespace yalx {
 
 namespace ir {
 
-Model::Model(const String *name): name_(DCHECK_NOTNULL(name)) {}
+Model::Model(const String *name, const String *full_name)
+: name_(DCHECK_NOTNULL(name))
+, full_name_(DCHECK_NOTNULL(full_name)){}
 
 std::tuple<Model::Method, bool> Model::FindMethod(std::string_view name) const {
     return std::make_tuple(Method{}, false);
@@ -16,17 +18,17 @@ std::tuple<Model::Field, bool> Model::FindField(std::string_view name) const {
 }
 
 PrototypeModel::PrototypeModel(base::Arena *arena, bool vargs)
-    : Model(String::kEmpty)
-    , params_(DCHECK_NOTNULL(arena))
-    , return_types_(arena)
-    , vargs_(vargs) {
+: Model(String::kEmpty, String::kEmpty)
+, params_(DCHECK_NOTNULL(arena))
+, return_types_(arena)
+, vargs_(vargs) {
 }
 
 size_t PrototypeModel::ReferenceSizeInBytes() const { return kPointerSize; }
 
-InterfaceModel::InterfaceModel(base::Arena *arena, const String *name)
-    : Model(name)
-    , methods_(arena) {
+InterfaceModel::InterfaceModel(base::Arena *arena, const String *name, const String *full_name)
+: Model(name, full_name)
+, methods_(arena) {
 }
 
 void InterfaceModel::InsertMethod(Function *fun) {
@@ -51,16 +53,16 @@ std::tuple<Model::Method, bool> InterfaceModel::FindMethod(std::string_view name
 
 size_t InterfaceModel::ReferenceSizeInBytes() const { return kPointerSize; }
 
-StructureModel::StructureModel(base::Arena *arena, const String *name, Declaration constraint, Module *owns,
-                               StructureModel *base_of)
-    : Model(name)
-    , declaration_(constraint)
-    , owns_(owns)
-    , base_of_(base_of)
-    , implements_(arena)
-    , fields_(arena)
-    , members_(arena)
-    , methods_(arena) {
+StructureModel::StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration constraint,
+                               Module *owns, StructureModel *base_of)
+: Model(name, full_name)
+, declaration_(constraint)
+, owns_(owns)
+, base_of_(base_of)
+, implements_(arena)
+, fields_(arena)
+, members_(arena)
+, methods_(arena) {
 }
 
 void StructureModel::InsertField(const Field &field) {

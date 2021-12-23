@@ -41,14 +41,16 @@ public:
     };
     
     DEF_PTR_GETTER(const String, name);
+    DEF_PTR_GETTER(const String, full_name);
     
     virtual std::tuple<Method, bool> FindMethod(std::string_view name) const;
     virtual std::tuple<Field, bool> FindField(std::string_view name) const;
     virtual size_t ReferenceSizeInBytes() const = 0;
 protected:
-    Model(const String *name);
+    Model(const String *name, const String *full_name);
     
     const String *const name_;
+    const String *const full_name_;
 }; // class Model
 
 class PrototypeModel : public Model {
@@ -68,7 +70,7 @@ private:
 
 class InterfaceModel : public Model {
 public:
-    InterfaceModel(base::Arena *arena, const String *name);
+    InterfaceModel(base::Arena *arena, const String *name, const String *full_name);
     
     void InsertMethod(Function *fun);
 
@@ -107,7 +109,8 @@ public:
         kClass,
         kStruct,
     };
-    StructureModel(base::Arena *arena, const String *name, Declaration declaration, Module *owns, StructureModel *base_of);
+    StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration declaration,
+                   Module *owns, StructureModel *base_of);
     
     DEF_VAL_GETTER(Declaration, declaration);
     DEF_PTR_GETTER(Module, owns);
