@@ -53,7 +53,7 @@ Function *Module::NewFunction(const String *name, StructureModel *owns, Prototyp
     return NewFunction(full_name, prototype);
 }
 
-Function *Module::NewFunction(const String *name, PrototypeModel *prototype) {
+Function *Module::NewFunction(const String *name, const String *full_name, PrototypeModel *prototype) {
     auto fun = new (arena_) Function(arena_, name, this, prototype);
     assert(global_values_.find(name->ToSlice()) == global_values_.end());
     global_values_[name->ToSlice()] = GlobalSlot{funs_size(), true};
@@ -102,10 +102,11 @@ BasicBlock *Function::NewBlock(const String *name) {
     return block;
 }
 
-Function::Function(base::Arena *arena, const String *name, Module *owns, PrototypeModel *prototype)
+Function::Function(base::Arena *arena, const String *name, const String *full_name, Module *owns, PrototypeModel *prototype)
     : Node(Node::kFunction)
     , arena_(DCHECK_NOTNULL(arena))
     , name_(DCHECK_NOTNULL(name))
+    , full_name_(DCHECK_NOTNULL(full_name))
     , owns_(DCHECK_NOTNULL(owns))
     , prototype_(prototype)
     , paramaters_(arena)

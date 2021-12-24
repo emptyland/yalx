@@ -247,7 +247,46 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
     auto module = iter->second;
 
     for (auto file_unit : pkg->source_files()) {
-        // TODO:
+        for (auto def : file_unit->funs()) {
+            std::string name(full_name + "." + def->name()->ToString());
+            auto fun = module->NewFunction(def->name()->Duplicate(arena_),
+                                           String::New(arena_, name),
+                                           BuildFunctionPrototype(def->prototype()));
+            global_funs_[fun->full_name()->ToSlice()] = fun;
+        }
+    }
+}
+
+PrototypeModel *IntermediateRepresentationGenerator::BuildFunctionPrototype(cpl::FunctionPrototype *proto) {
+    auto model = new (arena_) PrototypeModel(arena_, proto->vargs());
+    for (auto param : proto->params()) {
+        const cpl::Type *type = nullptr;
+        if (param->IsType()) {
+            type = param->AsType();
+        } else {
+            type = down_cast<cpl::VariableDeclaration::Item>(param)->type();
+        }
+        model->mutable_params()->push_back(BuildType(type));
+    }
+    
+    for (auto type : proto->return_types()) {
+        model->mutable_return_types()->push_back(BuildType(type));
+    }
+    return model;
+}
+
+Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
+    switch (type->primary_type()) {
+        case cpl::Type::kType_i8:
+            return Types::Int8;
+        case cpl::Type::kType_u8:
+            return Types::UInt8;
+        case cpl::Type::kType_i16:
+            return Types::Int16;
+        case cpl::Type::kType_u16:
+            return Types::UInt16;
+        default:
+            break;
     }
 }
 

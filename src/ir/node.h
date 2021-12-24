@@ -99,7 +99,7 @@ public:
     DEF_VAL_MUTABLE_GETTER(SourcePositionTable, source_position_table);
 
     Function *NewFunction(const String *name, StructureModel *owns, PrototypeModel *prototype);
-    Function *NewFunction(const String *name, PrototypeModel *prototype);
+    Function *NewFunction(const String *name, const String *full_name, PrototypeModel *prototype);
     Function *NewFunction(PrototypeModel *prototype);
     Function *NewStandaloneFunction(const String *name, PrototypeModel *prototype);
     
@@ -150,6 +150,7 @@ public:
     BasicBlock *NewBlock(const String *name);
     
     DEF_PTR_GETTER(const String, name);
+    DEF_PTR_GETTER(const String, full_name);
     DEF_PTR_GETTER(Module, owns);
     DEF_PTR_GETTER(base::Arena, arena);
     DEF_PTR_GETTER(BasicBlock, entry);
@@ -159,9 +160,10 @@ public:
     
     friend class Module;
 private:
-    Function(base::Arena *arena, const String *name, Module *owns, PrototypeModel *prototype);
+    Function(base::Arena *arena, const String *name, const String *full_name, Module *owns, PrototypeModel *prototype);
     
     const String *const name_;
+    const String *const full_name_;
     Module *const owns_;
     base::Arena *const arena_;
     PrototypeModel *const prototype_;
