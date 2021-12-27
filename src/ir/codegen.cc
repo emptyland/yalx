@@ -6,6 +6,7 @@
 #include "ir/metadata.h"
 #include "compiler/ast.h"
 #include "compiler/syntax-feedback.h"
+#include "compiler/constants.h"
 #include "base/checking.h"
 #include "base/format.h"
 
@@ -264,7 +265,7 @@ PrototypeModel *IntermediateRepresentationGenerator::BuildFunctionPrototype(cpl:
         if (param->IsType()) {
             type = param->AsType();
         } else {
-            type = down_cast<cpl::VariableDeclaration::Item>(param)->type();
+            type = static_cast<cpl::VariableDeclaration::Item *>(param)->type();
         }
         model->mutable_params()->push_back(BuildType(type));
     }
@@ -285,7 +286,50 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
             return Types::Int16;
         case cpl::Type::kType_u16:
             return Types::UInt16;
+        case cpl::Type::kType_i32:
+            return Types::Int32;
+        case cpl::Type::kType_u32:
+            return Types::UInt32;
+        case cpl::Type::kType_i64:
+            return Types::Int64;
+        case cpl::Type::kType_u64:
+            return Types::UInt64;
+        case cpl::Type::kType_f32:
+            return Types::Float32;
+        case cpl::Type::kType_f64:
+            return Types::Float64;
+        case cpl::Type::kType_char:
+            return Types::UInt32;
+        case cpl::Type::kType_bool:
+            return Types::UInt8;
+        case cpl::Type::kType_any:
+            return Type::Ref(AssertedGetUdt(cpl::kAnyClassFullName));
+        case cpl::Type::kType_class: {
+            auto clazz = type->AsClassType();
+            return Type::Ref(AssertedGetUdt(clazz->definition()->FullName()));
+        } break;
+        case cpl::Type::kType_struct: {
+            auto clazz = type->AsStructType();
+            return Type::Val(AssertedGetUdt(clazz->definition()->FullName()));
+        } break;
+        case cpl::Type::kType_string:
+            return Types::String;
+        case cpl::Type::kType_array: {
+            auto ar = type->AsArrayType();
+            auto element_ty = BuildType(ar->element_type());
+            
+        } break;
+        case cpl::Type::kType_option:
+        case cpl::Type::kType_channel:
+        case cpl::Type::kType_function:
+        case cpl::Type::kType_interface:
+            break;
+        case cpl::Type::kType_unit:
+            return Types::Void;
+        case cpl::Type::kType_none:
+        case cpl::Type::kType_symbol:
         default:
+            UNREACHABLE();
             break;
     }
 }

@@ -17,7 +17,7 @@ public:
         auto name = String::New(&arena_, "main");
         auto path = String::New(&arena_, "main");
         auto full_path = String::New(&arena_, "project/src/main");
-        auto module = new (&arena_) Module(&arena_, name, path, full_path);
+        auto module = new (&arena_) Module(&arena_, name, name, path, full_path);
         ASSERT_STREQ("main", module->name()->data());
         ASSERT_STREQ("main", module->path()->data());
         ASSERT_STREQ("project/src/main", module->full_path()->data());

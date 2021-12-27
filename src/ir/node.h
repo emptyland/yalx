@@ -103,9 +103,9 @@ public:
     Function *NewFunction(PrototypeModel *prototype);
     Function *NewStandaloneFunction(const String *name, PrototypeModel *prototype);
     
-    InterfaceModel *NewInterfaceModel(const String *name);
-    StructureModel *NewClassModel(const String *name, StructureModel *base_of);
-    StructureModel *NewStructModel(const String *name, StructureModel *base_of);
+    InterfaceModel *NewInterfaceModel(const String *name, const String *full_name);
+    StructureModel *NewClassModel(const String *name, const String *full_name, StructureModel *base_of);
+    StructureModel *NewStructModel(const String *name, const String *full_name, StructureModel *base_of);
 
     void InsertGlobalValue(const String *name, Value *value) {
         assert(global_values_.find(name->ToSlice()) == global_values_.end());

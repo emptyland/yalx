@@ -23,26 +23,26 @@ Module::Module(base::Arena *arena, const String *name, const String *full_name, 
     , source_position_table_(arena) {
 }
 
-InterfaceModel *Module::NewInterfaceModel(const String *name) {
+InterfaceModel *Module::NewInterfaceModel(const String *name, const String *full_name) {
     assert(named_models_.find(name->ToSlice()) == named_models_.end());
-    auto model = new (arena()) InterfaceModel(arena(), name);
+    auto model = new (arena()) InterfaceModel(arena(), name, full_name);
     named_models_[name->ToSlice()] = model;
     interfaces_.push_back(model);
     return model;
 }
 
-StructureModel *Module::NewClassModel(const String *name, StructureModel *base_of) {
+StructureModel *Module::NewClassModel(const String *name, const String *full_name, StructureModel *base_of) {
     assert(named_models_.find(name->ToSlice()) == named_models_.end());
-    auto clazz = new (arena()) StructureModel(arena(), name, StructureModel::kClass, this, base_of);
+    auto clazz = new (arena()) StructureModel(arena(), name, full_name, StructureModel::kClass, this, base_of);
     named_models_[name->ToSlice()] = clazz;
     structures_.push_back(clazz);
     return clazz;
 }
 
-StructureModel *Module::NewStructModel(const String *name, StructureModel *base_of) {
+StructureModel *Module::NewStructModel(const String *name, const String *full_name, StructureModel *base_of) {
     assert(named_models_.find(name->ToSlice()) == named_models_.end());
     assert(named_models_.find(name->ToSlice()) == named_models_.end());
-    auto clazz = new (arena()) StructureModel(arena(), name, StructureModel::kStruct, this, base_of);
+    auto clazz = new (arena()) StructureModel(arena(), name, full_name, StructureModel::kStruct, this, base_of);
     named_models_[name->ToSlice()] = clazz;
     structures_.push_back(clazz);
     return clazz;
@@ -50,11 +50,11 @@ StructureModel *Module::NewStructModel(const String *name, StructureModel *base_
 
 Function *Module::NewFunction(const String *name, StructureModel *owns, PrototypeModel *prototype) {
     auto full_name = String::New(arena(), base::Sprintf("%s.%s.%s", name_->data(), owns->name()->data(), name->data()));
-    return NewFunction(full_name, prototype);
+    return NewFunction(full_name, full_name, prototype);
 }
 
 Function *Module::NewFunction(const String *name, const String *full_name, PrototypeModel *prototype) {
-    auto fun = new (arena_) Function(arena_, name, this, prototype);
+    auto fun = new (arena_) Function(arena_, name, full_name, this, prototype);
     assert(global_values_.find(name->ToSlice()) == global_values_.end());
     global_values_[name->ToSlice()] = GlobalSlot{funs_size(), true};
     funs_.push_back(fun);
@@ -63,12 +63,12 @@ Function *Module::NewFunction(const String *name, const String *full_name, Proto
 
 Function *Module::NewFunction(PrototypeModel *prototype) {
     auto random_name = String::New(arena_, base::Sprintf("$unnamed$_%d", (rand() << 4) | next_unnamed_id_++));
-    auto fun = NewFunction(random_name, prototype);
+    auto fun = NewFunction(random_name, random_name, prototype);
     return fun;
 }
 
 Function *Module::NewStandaloneFunction(const String *name, PrototypeModel *prototype) {
-    return new (arena_) Function(arena_, name, this, prototype);
+    return new (arena_) Function(arena_, name, name, this, prototype);
 }
 
 //Value *Module::NewGlobalValue(SourcePosition source_position, const String *name, Type type) {

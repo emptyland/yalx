@@ -82,6 +82,9 @@ private:
 
 class ArrayModel : public Model {
 public:
+    ArrayModel(base::Arena *arena, const String *name, const String *full_name,
+               int dimension_count, const Type element_type);
+    
     size_t ReferenceSizeInBytes() const override;
 private:
     const Type element_type_;

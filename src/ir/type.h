@@ -4,6 +4,7 @@
 
 #include "base/checking.h"
 #include "base/base.h"
+#include <string>
 
 namespace yalx {
 
@@ -25,7 +26,6 @@ namespace ir {
     V(UInt64,  64, Type::kNumberBit) \
     V(Float32, 32, Type::kSignedBit|Type::kNumberBit) \
     V(Float64, 64, Type::kSignedBit|Type::kNumberBit|Type::kFloatBit) \
-    V(Reference, kPointerSize * 8, Type::kReferenceBit) \
     V(String, kPointerSize * 8, Type::kReferenceBit)
 
 class Model;
@@ -35,7 +35,8 @@ public:
     enum Kind {
 #define DEFINE_KINDS(name, ...) k##name,
         DECLARE_HIR_TYPES(DEFINE_KINDS)
-        kModel,
+        kReference,
+        kValue,
 #undef DEFINE_KINDS
     };
     
@@ -43,6 +44,7 @@ public:
     static constexpr uint32_t kNumberBit = 1u << 1;
     static constexpr uint32_t kFloatBit = 1u << 2;
     static constexpr uint32_t kReferenceBit = 1u << 3;
+    static constexpr uint32_t kNullableBit = 1u << 4;
     
     constexpr Type(): Type(kVoid, 0, 0) {}
     constexpr Type(Kind kind, int bits, uint32_t flags)
@@ -59,9 +61,13 @@ public:
     bool is_float() const { return flags_ & kFloatBit; }
     bool is_number() const { return flags_ & kNumberBit; }
     bool is_reference() const { return flags_ & kReferenceBit; }
-    bool is_model() const { return kind() == kModel; }
+    bool is_none_nullable() const { return !is_nullable(); }
+    bool is_nullable() const { return flags_ & kNullableBit; }
     
-    static Type Ref(Model *model);
+    std::string_view ToString() const;
+
+    static Type Ref(Model *model, bool _nullable = false);
+    static Type Val(Model *model);
 private:
     constexpr Type(Kind kind, int bits, uint32_t flags, Model *model)
         : kind_(kind)

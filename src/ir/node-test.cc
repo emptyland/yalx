@@ -15,7 +15,7 @@ public:
         auto name = String::New(&arena_, "main");
         auto path = String::New(&arena_, "main");
         auto full_path = String::New(&arena_, "project/src/main");
-        auto module = new (&arena_) Module(&arena_, name, path, full_path);
+        auto module = new (&arena_) Module(&arena_, name, name, path, full_path);
         ASSERT_STREQ("main", module->name()->data());
         ASSERT_STREQ("main", module->path()->data());
         ASSERT_STREQ("project/src/main", module->full_path()->data());
@@ -43,7 +43,7 @@ TEST_F(NodeTest, Module) {
     prototype->mutable_params()->push_back(Types::Int32);
     prototype->mutable_params()->push_back(Types::Int32);
     prototype->mutable_return_types()->push_back(Types::Int32);
-    auto fun = module_->NewFunction(module_->name(), prototype);
+    auto fun = module_->NewFunction(module_->name(), module_->name(), prototype);
     EXPECT_EQ(fun, module_->FindFunOrNull(module_->name()->ToSlice()));
     
     auto bb = fun->NewBlock(String::kEmpty);

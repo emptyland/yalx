@@ -53,6 +53,15 @@ std::tuple<Model::Method, bool> InterfaceModel::FindMethod(std::string_view name
 
 size_t InterfaceModel::ReferenceSizeInBytes() const { return kPointerSize; }
 
+ArrayModel::ArrayModel(base::Arena *arena, const String *name, const String *full_name,
+                       int dimension_count, const Type element_type)
+: Model(name, full_name)
+, element_type_(element_type)
+, dimension_count_(dimension_count) {
+}
+
+size_t ArrayModel::ReferenceSizeInBytes() const { return kPointerSize; }
+
 StructureModel::StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration constraint,
                                Module *owns, StructureModel *base_of)
 : Model(name, full_name)

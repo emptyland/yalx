@@ -15,7 +15,7 @@ public:
         auto name = String::New(&arena_, "main");
         auto path = String::New(&arena_, "main");
         auto full_path = String::New(&arena_, "project/src/main");
-        auto module = new (&arena_) Module(&arena_, name, path, full_path);
+        auto module = new (&arena_) Module(&arena_, name, name, path, full_path);
         ASSERT_STREQ("main", module->name()->data());
         ASSERT_STREQ("main", module->path()->data());
         ASSERT_STREQ("project/src/main", module->full_path()->data());
@@ -31,7 +31,7 @@ protected:
 TEST_F(MetadataTest, Sanity) {
     // StructureModel(base::Arena *arena, const String *name, Constraint constraint, Module *owns, StructureModel *base_of);
     auto name = String::New(&arena_, "Foo");
-    auto clazz = module_->NewClassModel(name, nullptr);
+    auto clazz = module_->NewClassModel(name, name, nullptr);
     EXPECT_EQ(StructureModel::kClass, clazz->declaration());
     
     clazz->InsertField({String::New(&arena_, "a"), Model::kVal, kPublic, 0, Types::Int32, false});
@@ -50,7 +50,7 @@ TEST_F(MetadataTest, Sanity) {
 
 TEST_F(MetadataTest, Interface) {
     auto name = String::New(&arena_, "Foo");
-    auto clazz = module_->NewInterfaceModel(name);
+    auto clazz = module_->NewInterfaceModel(name, name);
     
     name = String::New(&arena_, "foo");
     auto prototype = new (&arena_) PrototypeModel(&arena_, false/*vargs*/);

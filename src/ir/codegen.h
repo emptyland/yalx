@@ -40,7 +40,13 @@ private:
     Type BuildType(const cpl::Type *type);
     base::Status RecursivePackage(cpl::Package *root, std::function<void(cpl::Package *)> &&callback);
     
+    Model *AssertedGetUdt(std::string_view name) const { return DCHECK_NOTNULL(FindUdtOrNull(name)); }
     
+    Model *FindUdtOrNull(std::string_view name) const {
+        auto iter = global_udts_.find(name);
+        //assert(iter != global_udts_.end());
+        return iter == global_udts_.end() ? nullptr : iter->second;
+    }
     
     base::Arena *const arena_;
     cpl::Package *entry_;
