@@ -23,7 +23,7 @@ public:
         ASSERT_STREQ("project/src/main", module->full_path()->data());
         module_ = module;
         
-        PrototypeModel *prototype = new (&arena_) PrototypeModel(&arena_, false);
+        PrototypeModel *prototype = new (&arena_) PrototypeModel(&arena_, String::kEmpty, false);
         prototype->mutable_params()->push_back(Types::Void);
         prototype->mutable_return_types()->push_back(Types::Void);
         fun_ = module_->NewFunction(prototype);

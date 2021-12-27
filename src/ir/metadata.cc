@@ -17,11 +17,40 @@ std::tuple<Model::Field, bool> Model::FindField(std::string_view name) const {
     return std::make_tuple(Field{}, false);
 }
 
-PrototypeModel::PrototypeModel(base::Arena *arena, bool vargs)
-: Model(String::kEmpty, String::kEmpty)
+PrototypeModel::PrototypeModel(base::Arena *arena, const String *name, bool vargs)
+: Model(name, name)
 , params_(DCHECK_NOTNULL(arena))
 , return_types_(arena)
 , vargs_(vargs) {
+}
+
+std::string PrototypeModel::ToString(const Type *params, const size_t params_size, const bool vargs,
+                                     const Type *return_types, const size_t return_types_size) {
+    std::string full_name("fun (");
+    for (size_t i = 0; i < params_size; i++) {
+        if (i > 0) {
+            full_name.append(",");
+        }
+        full_name.append(params[i].ToString());
+    }
+    if (vargs) {
+        full_name.append("...");
+    }
+    if (return_types_size > 0) {
+        full_name.append(")->(");
+    } else {
+        full_name.append(")->");
+    }
+    for (size_t i = 0; i < return_types_size; i++) {
+        if (i > 0) {
+            full_name.append(",");
+        }
+        full_name.append(return_types[i].ToString());
+    }
+    if (return_types_size > 0) {
+        full_name.append(")");
+    }
+    return full_name;
 }
 
 size_t PrototypeModel::ReferenceSizeInBytes() const { return kPointerSize; }
@@ -58,6 +87,14 @@ ArrayModel::ArrayModel(base::Arena *arena, const String *name, const String *ful
 : Model(name, full_name)
 , element_type_(element_type)
 , dimension_count_(dimension_count) {
+}
+
+std::string ArrayModel::ToString(int dimension_count, const Type element_type) {
+    std::string full_name(element_type.ToString());
+    for (int i = 0; i < dimension_count; i++) {
+        full_name.append("[]");
+    }
+    return full_name;
 }
 
 size_t ArrayModel::ReferenceSizeInBytes() const { return kPointerSize; }

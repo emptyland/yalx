@@ -39,7 +39,7 @@ TEST_F(NodeTest, Sanity) {
 }
 
 TEST_F(NodeTest, Module) {
-    auto prototype = new (&arena_) PrototypeModel(&arena_, false/*vargs*/);
+    auto prototype = new (&arena_) PrototypeModel(&arena_, String::kEmpty, false/*vargs*/);
     prototype->mutable_params()->push_back(Types::Int32);
     prototype->mutable_params()->push_back(Types::Int32);
     prototype->mutable_return_types()->push_back(Types::Int32);

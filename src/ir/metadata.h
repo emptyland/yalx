@@ -55,7 +55,10 @@ protected:
 
 class PrototypeModel : public Model {
 public:
-    PrototypeModel(base::Arena *arena, bool vargs);
+    PrototypeModel(base::Arena *arena, const String *name, bool vargs);
+    
+    static std::string ToString(const Type *params, const size_t params_size, const bool vargs,
+                                const Type *return_types, const size_t return_types_size);
     
     size_t ReferenceSizeInBytes() const override;
     
@@ -84,6 +87,8 @@ class ArrayModel : public Model {
 public:
     ArrayModel(base::Arena *arena, const String *name, const String *full_name,
                int dimension_count, const Type element_type);
+    
+    static std::string ToString(int dimension_count, const Type element_type);
     
     size_t ReferenceSizeInBytes() const override;
 private:

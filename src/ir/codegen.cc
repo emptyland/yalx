@@ -140,7 +140,8 @@ IntermediateRepresentationGenerator::IntermediateRepresentationGenerator(base::A
     , global_udts_(arena)
     , global_vars_(arena)
     , global_funs_(arena)
-    , modules_(arena) {
+    , modules_(arena)
+    , track_(arena) {
 }
 
 base::Status IntermediateRepresentationGenerator::Run() {
@@ -246,34 +247,19 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
     auto iter = modules_.find(full_name);
     assert(iter != modules_.end());
     auto module = iter->second;
-
+    if (Track(module, 1/*dest*/)) {
+        return;
+    }
     for (auto file_unit : pkg->source_files()) {
         for (auto def : file_unit->funs()) {
             std::string name(full_name + "." + def->name()->ToString());
+            auto ty = BuildType(def->prototype());
             auto fun = module->NewFunction(def->name()->Duplicate(arena_),
                                            String::New(arena_, name),
-                                           BuildFunctionPrototype(def->prototype()));
+                                           down_cast<PrototypeModel>(ty.model()));
             global_funs_[fun->full_name()->ToSlice()] = fun;
         }
     }
-}
-
-PrototypeModel *IntermediateRepresentationGenerator::BuildFunctionPrototype(cpl::FunctionPrototype *proto) {
-    auto model = new (arena_) PrototypeModel(arena_, proto->vargs());
-    for (auto param : proto->params()) {
-        const cpl::Type *type = nullptr;
-        if (param->IsType()) {
-            type = param->AsType();
-        } else {
-            type = static_cast<cpl::VariableDeclaration::Item *>(param)->type();
-        }
-        model->mutable_params()->push_back(BuildType(type));
-    }
-    
-    for (auto type : proto->return_types()) {
-        model->mutable_return_types()->push_back(BuildType(type));
-    }
-    return model;
 }
 
 Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
@@ -315,15 +301,59 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
         case cpl::Type::kType_string:
             return Types::String;
         case cpl::Type::kType_array: {
-            auto ar = type->AsArrayType();
-            auto element_ty = BuildType(ar->element_type());
-            
+            auto ast_ty = type->AsArrayType();
+            auto element_ty = BuildType(ast_ty->element_type());
+            std::string full_name(ArrayModel::ToString(ast_ty->dimension_count(), element_ty));
+            if (auto ar = FindUdtOrNull(full_name)) {
+                return Type::Ref(ar);
+            }
+            auto name = String::New(arena_, full_name);
+            auto ar = new (arena_) ArrayModel(arena_, name, name, ast_ty->dimension_count(),
+                                              element_ty);
+            global_udts_[ar->full_name()->ToSlice()] = ar;
+            return Type::Ref(ar);
         } break;
-        case cpl::Type::kType_option:
+        case cpl::Type::kType_option: {
+            auto ast_ty = type->AsOptionType();
+            auto element_ty = BuildType(ast_ty->element_type());
+            assert(element_ty.is_reference() || element_ty.kind() == Type::kValue);
+            return Type::Ref(element_ty.model(), true/*nullable*/);
+        } break;
         case cpl::Type::kType_channel:
-        case cpl::Type::kType_function:
-        case cpl::Type::kType_interface:
+            UNREACHABLE(); // TODO:
             break;
+        case cpl::Type::kType_function: {
+            auto ast_ty = type->AsFunctionPrototype();
+            std::vector<Type> params;
+            for (auto ty : ast_ty->params()) {
+                if (cpl::Type::Is(ty)) {
+                    params.push_back(BuildType(static_cast<cpl::Type *>(ty)));
+                } else {
+                    auto item = static_cast<cpl::VariableDeclaration::Item *>(ty);
+                    params.push_back(BuildType(item->type()));
+                }
+                
+            }
+            std::vector<Type> return_types;
+            for (auto ty : ast_ty->return_types()) {
+                return_types.push_back(BuildType(ty));
+            }
+            auto full_name(PrototypeModel::ToString(&params[0], params.size(), ast_ty->vargs(),
+                                                    &return_types[0], return_types.size()));
+            if (auto fun = FindUdtOrNull(full_name)) {
+                return Type::Ref(fun);
+            }
+            auto name = String::New(arena_, full_name);
+            auto fun = new (arena_) PrototypeModel(arena_, name, ast_ty->vargs());
+            for (auto ty : params) { fun->mutable_params()->push_back(ty); }
+            for (auto ty : return_types) { fun->mutable_return_types()->push_back(ty); }
+            global_udts_[fun->full_name()->ToSlice()] = fun;
+            return Type::Ref(fun);
+        } break;
+        case cpl::Type::kType_interface: {
+            auto ast_ty = type->AsInterfaceType();
+            return Type::Val(AssertedGetUdt(ast_ty->definition()->FullName()));
+        } break;
         case cpl::Type::kType_unit:
             return Types::Void;
         case cpl::Type::kType_none:

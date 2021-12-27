@@ -36,7 +36,6 @@ private:
     base::Status Prepare1();
     void PreparePackage0(cpl::Package *pkg);
     void PreparePackage1(cpl::Package *pkg);
-    PrototypeModel *BuildFunctionPrototype(cpl::FunctionPrototype *proto);
     Type BuildType(const cpl::Type *type);
     base::Status RecursivePackage(cpl::Package *root, std::function<void(cpl::Package *)> &&callback);
     
@@ -48,6 +47,14 @@ private:
         return iter == global_udts_.end() ? nullptr : iter->second;
     }
     
+    bool Track(Module *module, int dest) {
+        if (auto iter = track_.find(module); iter != track_.end()) {
+            return true;
+        }
+        track_[module] = dest;
+        return false;
+    }
+    
     base::Arena *const arena_;
     cpl::Package *entry_;
     cpl::SyntaxFeedback *error_feedback_;
@@ -55,7 +62,7 @@ private:
     base::ArenaMap<std::string_view, Value *> global_vars_;
     base::ArenaMap<std::string_view, Function *> global_funs_;
     base::ArenaMap<std::string_view, Module *> modules_;
-    //base::ArenaVector<Module *> modules_;
+    base::ArenaMap<Module *, int> track_;
 }; // class IntermediateRepresentationGenerator
 
 
