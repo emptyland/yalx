@@ -36,6 +36,7 @@ private:
     base::Status Prepare1();
     void PreparePackage0(cpl::Package *pkg);
     void PreparePackage1(cpl::Package *pkg);
+    Function *InstallInitFun(Module *module);
     Type BuildType(const cpl::Type *type);
     base::Status RecursivePackage(cpl::Package *root, std::function<void(cpl::Package *)> &&callback);
     

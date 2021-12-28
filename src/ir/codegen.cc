@@ -250,16 +250,63 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
     if (Track(module, 1/*dest*/)) {
         return;
     }
+    auto init = InstallInitFun(module);
+    
+    
+    OperatorsFactory ops(arena_);
     for (auto file_unit : pkg->source_files()) {
+        for (auto var : file_unit->vars()) {
+            for (auto i = 0; i < var->ItemSize(); i++) {
+                SourcePositionTable::Scope scope(file_unit->file_name(), var->source_position(),
+                                                 module->mutable_source_position_table());
+                
+                auto it = var->AtItem(i);
+                auto name = String::New(arena_, full_name + "." + it->Identifier()->ToString());
+                auto val = init->entry()->NewNode(scope.Position(), BuildType(it->Type()), ops.GlobalValue(name));
+                module->InsertGlobalValue(it->Identifier()->Duplicate(arena_), val);
+                global_vars_[name->ToSlice()] = val;
+            }
+        }
+        
+        for (auto var : file_unit->objects()) {
+            SourcePositionTable::Scope scope(file_unit->file_name(), var->source_position(),
+                                             module->mutable_source_position_table());
+            
+            auto name = String::New(arena_, full_name + "." + var->Identifier()->ToString());
+            auto op = ops.LazyValue(name);
+            auto val = init->entry()->NewNode(scope.Position(), BuildType(var->Type()), op);
+            module->InsertGlobalValue(var->Identifier()->Duplicate(arena_), val);
+            global_vars_[name->ToSlice()] = val;
+        }
+        
         for (auto def : file_unit->funs()) {
-            std::string name(full_name + "." + def->name()->ToString());
             auto ty = BuildType(def->prototype());
             auto fun = module->NewFunction(def->name()->Duplicate(arena_),
-                                           String::New(arena_, name),
+                                           String::New(arena_, full_name + "." + def->name()->ToString()),
                                            down_cast<PrototypeModel>(ty.model()));
             global_funs_[fun->full_name()->ToSlice()] = fun;
         }
     }
+}
+
+Function *IntermediateRepresentationGenerator::InstallInitFun(Module *module) {
+    auto name = String::New(arena_, cpl::kModuleInitFunName);
+    std::string buf(module->full_name()->ToString().append(".").append(name->ToString()));
+    auto full_name = String::New(arena_, buf);
+    
+    PrototypeModel *proto = nullptr;
+    auto iter = global_udts_.find(cpl::kModuleInitFunProtoName);
+    if (iter == global_udts_.end()) {
+        proto = new (arena_) PrototypeModel(arena_, String::New(arena_, cpl::kModuleInitFunProtoName), false/*vargs*/);
+        global_udts_[proto->full_name()->ToSlice()] = proto;
+    } else {
+        proto = down_cast<PrototypeModel>(iter->second);
+    }
+    
+    auto init = module->NewFunction(name, full_name, proto);
+    init->NewBlock(String::New(arena_, "boot"));
+    global_funs_[init->full_name()->ToSlice()] = init;
+    return init;
 }
 
 Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {

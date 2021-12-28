@@ -1002,8 +1002,8 @@ bool FunctionPrototype::Acceptable(const Type *rhs, bool *unlinked) const {
 
 Type *FunctionPrototype::Link(Linker &&linker) {
     for (size_t i = 0; i < params_size(); i++) {
-        if (param(i)->IsType()) {
-            auto old = DCHECK_NOTNULL(param(i)->AsType());
+        if (Type::Is(param(i))) {
+            auto old = static_cast<Type *>(param(i));
             auto linked = old->Link(std::move(linker));
             if (!linked) {
                 return nullptr;

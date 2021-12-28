@@ -46,6 +46,9 @@ constexpr static char kStringClassName[] = "String";
 constexpr static char kStringClassFullName[] = "yalx/lang:lang.String";
 constexpr static char kThrowableClassName[] = "Throwable";
 
+constexpr static char kModuleInitFunName[] = "$init";
+constexpr static char kModuleInitFunProtoName[] = "fun ()->void";
+
 constexpr static char kObjectShadowClassPostfix[] = "$ShadowClass";
 constexpr static char kPrimaryConstructorPostfix[] = "$constructor";
 

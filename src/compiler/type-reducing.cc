@@ -968,8 +968,8 @@ private:
         
         for (auto i = 0; i < prototype->params_size(); i++) {
             Type *param = nullptr;
-            if (prototype->param(i)->IsType()) {
-                param = prototype->param(i)->AsType();
+            if (Type::Is(prototype->param(i))) {
+                param = static_cast<Type *>(prototype->param(i));
             } else {
                 param = static_cast<VariableDeclaration::Item *>(prototype->param(i))->type();
             }

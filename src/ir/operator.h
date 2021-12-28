@@ -29,7 +29,9 @@ namespace ir {
 #define DECLARE_IR_GLOBALS(V) \
     V(GlobalValue) \
     V(LoadGlobal) \
-    V(StoreGlobal)
+    V(StoreGlobal) \
+    V(LazyValue) \
+    V(LazyLoad)
 
 #define DECLARE_IR_CALLING(V) \
     V(CallInline) \
