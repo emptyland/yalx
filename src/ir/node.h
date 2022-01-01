@@ -15,6 +15,8 @@ class ArenaString;
 } // namespace base
 namespace ir {
 
+using String = base::ArenaString;
+
 //    +- Operand
 //        +- Argument
 //        +- StackAllocate
@@ -178,6 +180,9 @@ public:
     template<class ...Nodes>
     inline Value *NewNode(SourcePosition source_position, Type type, Operator *op, Nodes... nodes);
     
+    template<class ...Nodes>
+    inline Value *NewNode(const String *name, SourcePosition source_position, Type type, Operator *op, Nodes... nodes);
+    
     DEF_PTR_GETTER(const String, name);
     DEF_PTR_GETTER(base::Arena, arena);
     DEF_ARENA_VECTOR_GETTER(Value *, instruction);
@@ -199,19 +204,29 @@ private:
 class Value : public Node {
 public:
     static Value *New0(base::Arena *arena, SourcePosition source_position, Type type, Operator *op) {
-        //return new (arena) Value(arena, type, op);
+        return New0(arena, nullptr, source_position, type, op);
+    }
+    
+    static Value *New0(base::Arena *arena, const String *name, SourcePosition source_position, Type type, Operator *op) {
         auto chunk = arena->Allocate(RequiredSize(op));
-        return new (chunk) Value(arena, source_position, type, op);
+        return new (chunk) Value(arena, name, source_position, type, op);
     }
     
     template<class ...Nodes>
     static inline Value *New(base::Arena *arena, SourcePosition source_position, Type type, Operator *op, Nodes... nodes) {
         Node *inputs[] = {CheckNode(nodes)...};
-        return NewWithInputs(arena, source_position, type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
+        return NewWithInputs(arena, nullptr, source_position, type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
     }
     
-    static Value *NewWithInputs(base::Arena *arena, SourcePosition source_position, Type type, Operator *op,
-                                Node **inputs, size_t size);
+    template<class ...Nodes>
+    static inline Value *New(base::Arena *arena, const String *name, SourcePosition source_position, Type type,
+                                  Operator *op, Nodes... nodes) {
+        Node *inputs[] = {CheckNode(nodes)...};
+        return NewWithInputs(arena, name, source_position, type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
+    }
+    
+    static Value *NewWithInputs(base::Arena *arena, const String *name, SourcePosition source_position, Type type,
+                                Operator *op, Node **inputs, size_t size);
     
     DEF_PTR_PROP_RW(Operator, op);
     DEF_VAL_GETTER(SourcePosition, source_position);
@@ -252,7 +267,7 @@ public:
     User *FindUser(Value *user);
     User *FindUser(Value *user, int position);
 private:
-    Value(base::Arena *arena, SourcePosition source_position, Type type, Operator *op);
+    Value(base::Arena *arena, const String *name, SourcePosition source_position, Type type, Operator *op);
     
     void *operator new (size_t /*n*/, void *chunk) { return chunk; }
     static Node *CheckNode(Node *node) { return DCHECK_NOTNULL(node); }
@@ -271,6 +286,7 @@ private:
     int control_in_offset() const { return overflow_value_out_offset() + op()->value_out() - 1; }
     int control_out_offset() const { return control_in_offset() + op()->control_in(); }
 
+    const String *name_;
     Type type_;
     Operator *op_;
     SourcePosition source_position_;
@@ -302,7 +318,17 @@ inline T OperatorWith<T>::Data(const ir::Value *node) { return Cast(node->op())-
 template<class ...Nodes>
 inline Value *BasicBlock::NewNode(SourcePosition source_position, Type type, Operator *op, Nodes... nodes) {
     Node *inputs[] = {DCHECK_NOTNULL(nodes)...};
-    auto instr = Value::NewWithInputs(arena(), source_position, type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
+    auto instr = Value::NewWithInputs(arena(), nullptr, source_position, type, op, inputs,
+                                      sizeof(inputs)/sizeof(inputs[0]));
+    instructions_.push_back(instr);
+    return instr;
+}
+
+template<class ...Nodes>
+inline Value *BasicBlock::NewNode(const String *name, SourcePosition source_position, Type type, Operator *op,
+                                  Nodes... nodes) {
+    Node *inputs[] = {DCHECK_NOTNULL(nodes)...};
+    auto instr = Value::NewWithInputs(arena(), name, source_position, type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
     instructions_.push_back(instr);
     return instr;
 }

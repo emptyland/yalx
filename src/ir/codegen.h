@@ -40,6 +40,12 @@ private:
     Type BuildType(const cpl::Type *type);
     base::Status RecursivePackage(cpl::Package *root, std::function<void(cpl::Package *)> &&callback);
     
+    Module *AssertedGetModule(std::string_view name) const {
+        auto iter = modules_.find(name);
+        assert(iter != modules_.end());
+        return iter->second;
+    }
+    
     Model *AssertedGetUdt(std::string_view name) const { return DCHECK_NOTNULL(FindUdtOrNull(name)); }
     
     Model *FindUdtOrNull(std::string_view name) const {

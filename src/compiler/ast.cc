@@ -379,8 +379,13 @@ Definition::Definition(base::Arena *arena, Kind kind, const String *name, const 
 
 std::string Definition::FullName() const {
     switch (owns()->kind()) {
-        case Node::kFileUnit:
-            return owns()->AsFileUnit()->package_name()->ToString() + "." + name()->ToString();
+        case Node::kFileUnit: {
+            std::string buf;
+            if (package()) {
+                buf = package()->path()->ToString().append(":");
+            }
+            return buf.append(owns()->AsFileUnit()->package_name()->ToString()).append(".").append(name()->ToString());
+        }
         case Node::kClassDefinition:
         case Node::kInterfaceDefinition:
         case Node::kStructDefinition: {

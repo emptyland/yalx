@@ -9,6 +9,7 @@
 #include "compiler/constants.h"
 #include "base/checking.h"
 #include "base/format.h"
+#include <stack>
 
 namespace yalx {
 
@@ -21,12 +22,11 @@ public:
         : owns_(owns)
         , ops_(owns->arena_) {
     }
-    
-    // Module(base::Arena *arena, const String *name, const String *path, const String *full_path)
+
     int VisitPackage(cpl::Package *node) override {
         assert(module_ == nullptr);
         
-        //module_ = new (arena()) Module(arena(), node->name(), node->path(), node->full_path());
+        module_ = owns_->AssertedGetModule(node->path()->ToString().append(":").append(node->name()->ToString()));
         if (fail()) {
             return -1;
         }
@@ -122,10 +122,64 @@ private:
     cpl::SyntaxFeedback *feedback() { return owns_->error_feedback_; }
     OperatorsFactory *ops() { return &ops_; }
     
+    int ReduceReturningAtLeastOne(cpl::AstNode *node, Value **receiver) {
+        const int nrets = node->Accept(this);
+        if (fail() || nrets < 0) {
+            return -1;
+        }
+        *receiver = results_.top();
+        int i = nrets - 1;
+        while (i--) { results_.pop(); }
+        return nrets;
+    }
+    
+    int ReduceReturningOnlyOne(cpl::AstNode *node, Value **receiver) {
+        const int nrets = node->Accept(this);
+        if (fail() || nrets < 0) {
+            return -1;
+        }
+        assert(nrets == 1);
+        *receiver = results_.top();
+        int i = nrets - 1;
+        while (i--) { results_.pop(); }
+        return nrets;
+    }
+    
+    int Reduce(cpl::AstNode *node, std::vector<Value *> *receiver = nullptr) {
+        const int nrets = node->Accept(this);
+        if (fail() || nrets < 0) {
+            return -1;
+        }
+        size_t origin_level = 0;
+        if (receiver) {
+            origin_level = receiver->size();
+            receiver->resize(origin_level + nrets);
+        }
+        int i = nrets;
+        while (i--) {
+            if (receiver) {
+                (*receiver)[origin_level + i] = results_.top();
+            }
+            results_.pop();
+        }
+        return nrets;
+    }
+    
+    int Returning(Value *val) {
+        results_.push(DCHECK_NOTNULL(val));
+        return 1;
+    }
+    
+    int Returning(const std::vector<Value *> &vals) {
+        for (auto val : vals) { results_.push(val); }
+        return static_cast<int>(vals.size());
+    }
+    
     IntermediateRepresentationGenerator *const owns_;
-    IRCodeEnvScope *top_ = nullptr;
+    NamespaceScope *top_ = nullptr;
     Module *module_ = nullptr;
     std::map<std::string_view, Symbol> inner_symbols_;
+    std::stack<Value *> results_;
     base::Status status_ = base::Status::OK();
     OperatorsFactory ops_;
 }; // class IntermediateRepresentationGenerator::AstVisitor
@@ -251,8 +305,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
         return;
     }
     auto init = InstallInitFun(module);
-    
-    
+
     OperatorsFactory ops(arena_);
     for (auto file_unit : pkg->source_files()) {
         for (auto var : file_unit->vars()) {
@@ -262,7 +315,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
                 
                 auto it = var->AtItem(i);
                 auto name = String::New(arena_, full_name + "." + it->Identifier()->ToString());
-                auto val = init->entry()->NewNode(scope.Position(), BuildType(it->Type()), ops.GlobalValue(name));
+                auto val = Value::New0(arena_, scope.Position(), BuildType(it->Type()), ops.GlobalValue(name));
                 module->InsertGlobalValue(it->Identifier()->Duplicate(arena_), val);
                 global_vars_[name->ToSlice()] = val;
             }
@@ -274,7 +327,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
             
             auto name = String::New(arena_, full_name + "." + var->Identifier()->ToString());
             auto op = ops.LazyValue(name);
-            auto val = init->entry()->NewNode(scope.Position(), BuildType(var->Type()), op);
+            auto val = Value::New0(arena_, scope.Position(), BuildType(var->Type()), op);
             module->InsertGlobalValue(var->Identifier()->Duplicate(arena_), val);
             global_vars_[name->ToSlice()] = val;
         }

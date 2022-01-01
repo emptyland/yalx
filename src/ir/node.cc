@@ -122,9 +122,9 @@ BasicBlock::BasicBlock(base::Arena *arena, const String *name)
     , outputs_(arena) {
 }
 
-Value *Value::NewWithInputs(base::Arena *arena, SourcePosition source_position, Type type, Operator *op, Node **inputs,
-                            size_t size) {
-    auto value = New0(arena, source_position, type, op);
+Value *Value::NewWithInputs(base::Arena *arena, const String *name, SourcePosition source_position, Type type,
+                            Operator *op, Node **inputs, size_t size) {
+    auto value = New0(arena, name, source_position, type, op);
     assert(size == TotalInOutputs(op));
     ::memcpy(value->io_, inputs, size * sizeof(Node *));
     for (size_t i = 0; i < size; i++) {
@@ -135,8 +135,9 @@ Value *Value::NewWithInputs(base::Arena *arena, SourcePosition source_position, 
     return value;
 }
 
-Value::Value(base::Arena *arena, SourcePosition source_position, Type type, Operator *op)
+Value::Value(base::Arena *arena, const String *name, SourcePosition source_position, Type type, Operator *op)
     : Node(Node::kValue)
+    , name_(name)
     , source_position_(source_position)
     , type_(type)
     , op_(DCHECK_NOTNULL(op))
