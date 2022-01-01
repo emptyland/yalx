@@ -220,7 +220,7 @@ private:
             if (pkg_scope->Track(ast)) {
                 continue;
             }
-            if (auto type = Reduce(ast); !type) {
+            if (auto nrets = Reduce(ast); nrets < 0) {
                 return -1;
             }
         }

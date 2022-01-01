@@ -15,40 +15,94 @@ namespace yalx {
 
 namespace ir {
 
+#define REDUCE(stmt) \
+    if (auto rs = Reduce(stmt); rs < 0) { \
+        return -1; \
+    } (void)0
 
 class IRGeneratorAstVisitor : public cpl::AstVisitor {
 public:
-    IRGeneratorAstVisitor(IntermediateRepresentationGenerator *owns)
-        : owns_(owns)
-        , ops_(owns->arena_) {
-    }
-
+    IRGeneratorAstVisitor(IntermediateRepresentationGenerator *owns): owns_(owns) {}
+    
     int VisitPackage(cpl::Package *node) override {
         assert(module_ == nullptr);
         
-        module_ = owns_->AssertedGetModule(node->path()->ToString().append(":").append(node->name()->ToString()));
-        if (fail()) {
-            return -1;
-        }
+        auto name = node->path()->ToString().append(":").append(node->name()->ToString());
+        module_ = DCHECK_NOTNULL(owns_->AssertedGetModule(name));
+        init_fun_ = DCHECK_NOTNULL(module_->FindFunOrNull(cpl::kModuleInitFunName));
+        init_blk_ = DCHECK_NOTNULL(init_fun_->entry());
+        
+        GlobalSymbols global {
+            .vars = &owns_->global_vars_,
+            .udts = &owns_->global_udts_,
+            .funs = &owns_->global_funs_,
+        };
+        PackageScope scope(&location_, node, global);
+        feedback()->set_package_name(name);
         
         for (auto file_unit : node->source_files()) {
-            file_unit->Accept(this);
-            if (fail()) {
+            feedback()->set_file_name(file_unit->file_name()->ToString());
+            if (auto rs = file_unit->Accept(this); rs < 0 || fail()) {
                 return -1;
             }
         }
         return 0;
     }
-
+    
     int VisitFileUnit(cpl::FileUnit *node) override {
-        // TODO:
+        auto pkg_scope = location_->NearlyPackageScope();
+        auto file_scope = DCHECK_NOTNULL(pkg_scope->FindFileUnitScopeOrNull(node));
+        NamespaceScope::Keeper<FileUnitScope> holder(file_scope);
+        for (auto stmt : node->statements()) {
+            if (pkg_scope->Track(stmt)) {
+                continue;
+            }
+            REDUCE(stmt);
+        }
         return 0;
     }
+    
+    int VisitClassDefinition(cpl::ClassDefinition *node) override {
+        if (!node->generic_params().empty()) {
+            return Returning(Unit());
+        }
+        auto clazz = AssertedGetUdt<StructureModel>(node->FullName());
+        if (node->base_of()) {
+            auto base = AssertedGetUdt<StructureModel>(node->base_of()->FullName());
+            clazz->set_base_of(base);
+        }
+        
+        if (node->primary_constructor()) {
+            auto ctor = GenerateFun(node->primary_constructor());
+            if (!ctor) {
+                return -1;
+            }
+            clazz->set_constructor(ctor);
+        }
+        
+        // TODO:
+        UNREACHABLE();
+        return Returning(Unit());
+    }
+    
+    Function *GenerateFun(const cpl::FunctionDeclaration *ast, Function *fun = nullptr) {
+        if (!fun) {
+            auto full_name = String::New(arena(), ast->FullName());
+            auto type = owns_->BuildType(ast->prototype());
+            fun = module_->NewFunction(ast->name()->Duplicate(arena()), full_name,
+                                       down_cast<PrototypeModel>(type.model()));
+        }
+        auto entry = fun->NewBlock(String::New(arena(), "entry"));
+        // TODO:
+        UNREACHABLE();
+        return fun;
+    }
+    
     int VisitBlock(cpl::Block *node) override { UNREACHABLE(); }
     int VisitList(cpl::List *node) override { UNREACHABLE(); }
     int VisitAssignment(cpl::Assignment *node) override { UNREACHABLE(); }
     int VisitStructDefinition(cpl::StructDefinition *node) override { UNREACHABLE(); }
-    int VisitClassDefinition(cpl::ClassDefinition *node) override { UNREACHABLE(); }
+    
     int VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitInterfaceDefinition(cpl::InterfaceDefinition *node) override { UNREACHABLE(); }
     int VisitFunctionDeclaration(cpl::FunctionDeclaration *node) override { UNREACHABLE(); }
@@ -90,15 +144,7 @@ public:
     int VisitBitwiseShl(cpl::BitwiseShl *node) override { UNREACHABLE(); }
     int VisitBitwiseShr(cpl::BitwiseShr *node) override { UNREACHABLE(); }
     int VisitBitwiseXor(cpl::BitwiseXor *node) override { UNREACHABLE(); }
-    int VisitF32Literal(cpl::F32Literal *node) override { UNREACHABLE(); }
-    int VisitF64Literal(cpl::F64Literal *node) override { UNREACHABLE(); }
-    int VisitI64Literal(cpl::I64Literal *node) override { UNREACHABLE(); }
     int VisitIndexedGet(cpl::IndexedGet *node) override { UNREACHABLE(); }
-    int VisitIntLiteral(cpl::IntLiteral *node) override { UNREACHABLE(); }
-    int VisitU64Literal(cpl::U64Literal *node) override { UNREACHABLE(); }
-    int VisitBoolLiteral(cpl::BoolLiteral *node) override { UNREACHABLE(); }
-    int VisitUnitLiteral(cpl::UnitLiteral *node) override { UNREACHABLE(); }
-    int VisitEmptyLiteral(cpl::EmptyLiteral *node) override { UNREACHABLE(); }
     int VisitGreaterEqual(cpl::GreaterEqual *node) override { UNREACHABLE(); }
     int VisitIfExpression(cpl::IfExpression *node) override { UNREACHABLE(); }
     int VisitLambdaLiteral(cpl::LambdaLiteral *node) override { UNREACHABLE(); }
@@ -108,19 +154,61 @@ public:
     int VisitArrayInitializer(cpl::ArrayInitializer *node) override { UNREACHABLE(); }
     int VisitObjectDeclaration(cpl::ObjectDeclaration *node) override { UNREACHABLE(); }
     int VisitVariableDeclaration(cpl::VariableDeclaration *node) override { UNREACHABLE(); }
-    int VisitUIntLiteral(cpl::UIntLiteral *node) override { UNREACHABLE(); }
     int VisitTryCatchExpression(cpl::TryCatchExpression *node) override { UNREACHABLE(); }
     int VisitOptionLiteral(cpl::OptionLiteral *node) override { UNREACHABLE(); }
     int VisitAssertedGet(cpl::AssertedGet *node) override { UNREACHABLE(); }
-    int VisitCharLiteral(cpl::CharLiteral *node) override { UNREACHABLE(); }
     int VisitChannelInitializer(cpl::ChannelInitializer *node) override { UNREACHABLE(); }
+    
+    int VisitIntLiteral(cpl::IntLiteral *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::Int32, ops()->I32Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitUIntLiteral(cpl::UIntLiteral *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::UInt32, ops()->U32Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitCharLiteral(cpl::CharLiteral *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::UInt32, ops()->U32Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitBoolLiteral(cpl::BoolLiteral *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::Int8, ops()->I8Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitUnitLiteral(cpl::UnitLiteral *node) override { return Returning(Unit()); }
+    
+    int VisitEmptyLiteral(cpl::EmptyLiteral *node) override { return Returning(Nil()); }
+    
+    int VisitI64Literal(cpl::I64Literal *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::Int64, ops()->I64Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitU64Literal(cpl::U64Literal *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::UInt64, ops()->U64Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitF32Literal(cpl::F32Literal *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::Float32, ops()->F32Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitF64Literal(cpl::F64Literal *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::Float64, ops()->F64Constant(node->value()));
+        return Returning(val);
+    }
     
 private:
     bool ok() { return status_.ok(); }
     bool fail() { return status_.fail(); }
     base::Arena *arena() { return owns_->arena_; }
     cpl::SyntaxFeedback *feedback() { return owns_->error_feedback_; }
-    OperatorsFactory *ops() { return &ops_; }
+    OperatorsFactory *ops() { return owns_->ops_; }
     
     int ReduceReturningAtLeastOne(cpl::AstNode *node, Value **receiver) {
         const int nrets = node->Accept(this);
@@ -175,33 +263,43 @@ private:
         return static_cast<int>(vals.size());
     }
     
+    template<class T>
+    inline T *AssertedGetUdt(std::string_view name) {
+        return down_cast<T>(owns_->AssertedGetUdt(name));
+    }
+    
+    Value *Nil() const { return DCHECK_NOTNULL(owns_->nil_val_); }
+    
+    Value *Unit() const { return DCHECK_NOTNULL(owns_->unit_val_); }
+    
     IntermediateRepresentationGenerator *const owns_;
-    NamespaceScope *top_ = nullptr;
+    NamespaceScope *location_ = nullptr;
     Module *module_ = nullptr;
-    std::map<std::string_view, Symbol> inner_symbols_;
+    Function *init_fun_ = nullptr;
+    BasicBlock *init_blk_ = nullptr;
     std::stack<Value *> results_;
     base::Status status_ = base::Status::OK();
-    OperatorsFactory ops_;
 }; // class IntermediateRepresentationGenerator::AstVisitor
 
 
 IntermediateRepresentationGenerator::IntermediateRepresentationGenerator(base::Arena *arena,
                                                                          cpl::Package *entry,
                                                                          cpl::SyntaxFeedback *error_feedback)
-    : arena_(DCHECK_NOTNULL(arena))
-    , entry_(entry)
-    , error_feedback_(error_feedback)
-    , global_udts_(arena)
-    , global_vars_(arena)
-    , global_funs_(arena)
-    , modules_(arena)
-    , track_(arena) {
+: arena_(DCHECK_NOTNULL(arena))
+, entry_(entry)
+, error_feedback_(error_feedback)
+, global_udts_(arena)
+, global_vars_(arena)
+, global_funs_(arena)
+, modules_(arena)
+, track_(arena)
+, ops_(arena->New<OperatorsFactory>(arena)) {
 }
 
 base::Status IntermediateRepresentationGenerator::Run() {
     Prepare0();
     Prepare1();
-
+    
     auto accept = [this] (cpl::Package *pkg) {
         IRGeneratorAstVisitor visitor(this);
         pkg->Accept(&visitor);
@@ -221,6 +319,15 @@ base::Status IntermediateRepresentationGenerator::Prepare0() {
         return rs;
     }
     PreparePackage0(entry_);
+
+    nil_val_ = Value::New0(arena_,
+                           SourcePosition::Unknown(),
+                           Type::Ref(AssertedGetUdt(cpl::kAnyClassFullName)),
+                           ops_->NilConstant());
+    unit_val_ = Value::New0(arena_,
+                            SourcePosition::Unknown(),
+                            Types::Void,
+                            ops_->NilConstant());
     return base::Status::OK();
 }
 
@@ -297,7 +404,7 @@ void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
 void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
     std::string full_name(pkg->path()->ToString());
     full_name.append(":").append(pkg->name()->ToString());
-
+    
     auto iter = modules_.find(full_name);
     assert(iter != modules_.end());
     auto module = iter->second;
@@ -305,8 +412,8 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
         return;
     }
     auto init = InstallInitFun(module);
-
-    OperatorsFactory ops(arena_);
+    
+    //OperatorsFactory ops(arena_);
     for (auto file_unit : pkg->source_files()) {
         for (auto var : file_unit->vars()) {
             for (auto i = 0; i < var->ItemSize(); i++) {
@@ -315,7 +422,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
                 
                 auto it = var->AtItem(i);
                 auto name = String::New(arena_, full_name + "." + it->Identifier()->ToString());
-                auto val = Value::New0(arena_, scope.Position(), BuildType(it->Type()), ops.GlobalValue(name));
+                auto val = Value::New0(arena_, scope.Position(), BuildType(it->Type()), ops_->GlobalValue(name));
                 module->InsertGlobalValue(it->Identifier()->Duplicate(arena_), val);
                 global_vars_[name->ToSlice()] = val;
             }
@@ -326,7 +433,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
                                              module->mutable_source_position_table());
             
             auto name = String::New(arena_, full_name + "." + var->Identifier()->ToString());
-            auto op = ops.LazyValue(name);
+            auto op = ops_->LazyValue(name);
             auto val = Value::New0(arena_, scope.Position(), BuildType(var->Type()), op);
             module->InsertGlobalValue(var->Identifier()->Duplicate(arena_), val);
             global_vars_[name->ToSlice()] = val;

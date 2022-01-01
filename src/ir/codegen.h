@@ -22,6 +22,7 @@ class PrototypeModel;
 class Model;
 class Value;
 class IRGeneratorAstVisitor;
+class OperatorsFactory;
 
 class IntermediateRepresentationGenerator {
 public:
@@ -70,6 +71,9 @@ private:
     base::ArenaMap<std::string_view, Function *> global_funs_;
     base::ArenaMap<std::string_view, Module *> modules_;
     base::ArenaMap<Module *, int> track_;
+    OperatorsFactory *ops_;
+    Value *nil_val_ = nullptr;
+    Value *unit_val_ = nullptr;
 }; // class IntermediateRepresentationGenerator
 
 

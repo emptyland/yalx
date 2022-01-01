@@ -228,6 +228,7 @@ public:
     static Value *NewWithInputs(base::Arena *arena, const String *name, SourcePosition source_position, Type type,
                                 Operator *op, Node **inputs, size_t size);
     
+    DEF_PTR_PROP_RW(const String, name);
     DEF_PTR_PROP_RW(Operator, op);
     DEF_VAL_GETTER(SourcePosition, source_position);
     

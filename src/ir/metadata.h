@@ -122,8 +122,8 @@ public:
     
     DEF_VAL_GETTER(Declaration, declaration);
     DEF_PTR_GETTER(Module, owns);
-    DEF_PTR_GETTER(StructureModel, base_of);
-    DEF_PTR_GETTER(Function, constructor);
+    DEF_PTR_PROP_RW(StructureModel, base_of);
+    DEF_PTR_PROP_RW(Function, constructor);
     DEF_ARENA_VECTOR_GETTER(InterfaceModel *, implement);
     DEF_ARENA_VECTOR_GETTER(Field, field);
     DEF_ARENA_VECTOR_GETTER(Method, method);

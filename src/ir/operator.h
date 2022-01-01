@@ -54,7 +54,8 @@ namespace ir {
     V(U64Constant) \
     V(StringConstant) \
     V(F32Constant) \
-    V(F64Constant)
+    V(F64Constant) \
+    V(NilConstant)
 
 #define DECLARE_IR_BINARY(V) \
     V(Word32Add) \

@@ -71,6 +71,11 @@ public:
     
 #undef DEFINE_CONSTANT
     
+    Operator *NilConstant() {
+        return new (arena_) Operator(Operator::kNilConstant, 0, 0/*value_in*/, 0/*control_in*/, 0/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
 #define DEFINE_BINARY(name) \
     Operator *name() { \
         return new (arena_) Operator(Operator::k##name, 0, 2, 0, 1, 0); \
