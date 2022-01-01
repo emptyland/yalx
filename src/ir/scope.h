@@ -107,6 +107,8 @@ public:
     
     DEF_PTR_GETTER(NamespaceScope, prev);
     DEF_VAL_GETTER(int, level);
+
+    BasicBlock *current_block() const { return DCHECK_NOTNULL(current_block_); }
     
     virtual PackageScope *NearlyPackageScope() { return !prev_ ? nullptr : prev_->NearlyPackageScope(); }
     virtual FileUnitScope *NearlyFileUnitScope() { return !prev_ ? nullptr : prev_->NearlyFileUnitScope(); }
@@ -137,21 +139,25 @@ public:
         level_ = -1;
     }
 protected:
-    NamespaceScope(NamespaceScope **location): location_(location) {}
+    NamespaceScope(NamespaceScope **location, BasicBlock *current_block)
+        : location_(location)
+        , current_block_(current_block) {}
     
     NamespaceScope **location_;
     NamespaceScope *prev_ = nullptr;
     int level_ = 0;
+    BasicBlock *current_block_;
     std::unordered_map<std::string_view, Symbol> symbols_;
 }; // class IRCodeEnvScope
 
 class PackageScope : public NamespaceScope {
 public:
-    PackageScope(NamespaceScope **location, cpl::Package *pkg, GlobalSymbols global);
+    PackageScope(NamespaceScope **location, BasicBlock *current_block, cpl::Package *pkg, GlobalSymbols global);
     ~PackageScope() override;
     
     DEF_PTR_GETTER(cpl::Package, pkg);
     
+    void Enter(NamespaceScope **location);
     PackageScope *NearlyPackageScope() override;
     
     bool Track(cpl::AstNode *ast) {
@@ -178,7 +184,7 @@ private:
 
 class FileUnitScope : public NamespaceScope {
 public:
-    FileUnitScope(NamespaceScope **location, cpl::FileUnit *file_unit, GlobalSymbols symobls);
+    FileUnitScope(NamespaceScope **location, BasicBlock *current_block, cpl::FileUnit *file_unit, GlobalSymbols symobls);
     ~FileUnitScope() override;
     
     DEF_PTR_GETTER(cpl::FileUnit, file_unit);
@@ -219,14 +225,22 @@ public:
 
 class FunctionScope : public NamespaceScope {
 public:
-    FunctionScope *NearlyFunctionScope() override { return this; }
-    BranchScope *NearlyBranchScope() override { return nullptr; }
-}; // class IRCodeStructureScope
+    FunctionScope(NamespaceScope **location, const cpl::FunctionDeclaration *ast, Function *fun);
+    ~FunctionScope() override;
+    
+    FunctionScope *NearlyFunctionScope() override;
+    BranchScope *NearlyBranchScope() override;
+    
+private:
+    const cpl::FunctionDeclaration *ast_;
+    Function *fun_;
+}; // class FunctionScope
 
 // TODO add branch scope
 class BranchScope : public NamespaceScope {
 public:
-    BranchScope(NamespaceScope **location, cpl::Statement *ast, BasicBlock *block, BranchScope *trunk = nullptr);
+    BranchScope(NamespaceScope **location, BasicBlock *current_block, cpl::Statement *ast,
+                BranchScope *trunk = nullptr);
     ~BranchScope() override;
     
     BranchScope *NearlyBranchScope() override { return this; }
@@ -244,7 +258,7 @@ public:
     bool InBranchs(const BranchScope *branch) const;
     
     BranchScope *Branch(cpl::Statement *ast, BasicBlock *block) {
-        auto br = new BranchScope(location_, ast, block, this);
+        auto br = new BranchScope(location_, block, ast, this);
         assert(InBranchs(br));
         return br;
     }
@@ -252,7 +266,6 @@ public:
     void Update(std::string_view name, NamespaceScope *owns, Value *value);
 private:
     cpl::Statement *ast_;
-    BasicBlock *block_;
     BranchScope *trunk_;
     std::vector<BranchScope *> branchs_;
 }; // class BranchScope

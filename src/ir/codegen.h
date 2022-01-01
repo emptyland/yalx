@@ -23,6 +23,7 @@ class Model;
 class Value;
 class IRGeneratorAstVisitor;
 class OperatorsFactory;
+class PackageScope;
 
 class IntermediateRepresentationGenerator {
 public:
@@ -55,6 +56,12 @@ private:
         return iter == global_udts_.end() ? nullptr : iter->second;
     }
     
+    PackageScope *AssertedGetPackageScope(cpl::Package *key) const {
+        auto iter = pkg_scopes_.find(key);
+        assert(iter != pkg_scopes_.end());
+        return iter->second;
+    }
+    
     bool Track(Module *module, int dest) {
         if (auto iter = track_.find(module); iter != track_.end()) {
             return true;
@@ -70,6 +77,7 @@ private:
     base::ArenaMap<std::string_view, Value *> global_vars_;
     base::ArenaMap<std::string_view, Function *> global_funs_;
     base::ArenaMap<std::string_view, Module *> modules_;
+    base::ArenaMap<cpl::Package *, PackageScope *> pkg_scopes_;
     base::ArenaMap<Module *, int> track_;
     OperatorsFactory *ops_;
     Value *nil_val_ = nullptr;

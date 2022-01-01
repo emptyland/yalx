@@ -388,6 +388,7 @@ private:
         scope.InstallAncestorsSymbols();
         scope.InstallConcepts();
         auto constructor = GeneratePrimaryConstructor(node, node->base_of(), node->super_calling());
+        constructor->set_owns(node);
         node->set_primary_constructor(constructor);
         if (!constructor || Reduce(constructor) < 0) {
             return -1;
@@ -483,6 +484,7 @@ private:
         if (!constructor || Reduce(constructor) < 0) {
             return -1;
         }
+        constructor->set_owns(node);
         node->set_primary_constructor(constructor);
         
         // Into struct scope:

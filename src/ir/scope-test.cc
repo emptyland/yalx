@@ -40,14 +40,14 @@ protected:
 TEST_F(ScopeTest, Sanity) {
     auto block = fun_->NewBlock(String::New(&arena_, "l1"));
     
-    BranchScope lv1(&scope_, nullptr, block);
+    BranchScope lv1(&scope_, block, nullptr);
     ASSERT_EQ(scope_, &lv1);
     ASSERT_TRUE(lv1.IsTrunk());
     ASSERT_FALSE(lv1.IsBranch());
     ASSERT_EQ(1, lv1.level());
     
     block = fun_->NewBlock(String::New(&arena_, "l2"));
-    BranchScope lv2(&scope_, nullptr, block);
+    BranchScope lv2(&scope_, block, nullptr);
     ASSERT_EQ(scope_, &lv2);
     EXPECT_EQ(&lv1, scope_->prev());
     ASSERT_TRUE(lv2.IsTrunk());
@@ -58,7 +58,7 @@ TEST_F(ScopeTest, Sanity) {
 TEST_F(ScopeTest, Branchs) {
     auto block = fun_->NewBlock(String::New(&arena_, "l1"));
     
-    BranchScope trunk(&scope_, nullptr, block);
+    BranchScope trunk(&scope_, block, nullptr);
     ASSERT_TRUE(trunk.IsTrunk());
     ASSERT_FALSE(trunk.IsBranch());
     ASSERT_EQ(1, trunk.level());
@@ -91,7 +91,7 @@ TEST_F(ScopeTest, BranchsValueVersions) {
     auto k1 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
     auto k2 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
     
-    BranchScope trunk(&scope_, nullptr, block);
+    BranchScope trunk(&scope_, block, nullptr);
     trunk.PutSymbol("a", k100);
     trunk.PutSymbol("b", k200);
     
@@ -119,7 +119,7 @@ TEST_F(ScopeTest, NestedBranchs) {
     auto k1 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
     auto k2 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
     
-    BranchScope trunk(&scope_, nullptr, block);
+    BranchScope trunk(&scope_, block, nullptr);
     trunk.PutSymbol("a", k100);
     trunk.PutSymbol("b", k200);
     
@@ -128,9 +128,9 @@ TEST_F(ScopeTest, NestedBranchs) {
     br1->Enter();
     {
         block = fun_->NewBlock(String::New(&arena_, "b1"));
-        BranchScope b1(&scope_, nullptr, block);
+        BranchScope b1(&scope_, block, nullptr);
         block = fun_->NewBlock(String::New(&arena_, "b2"));
-        BranchScope b2(&scope_, nullptr, block);
+        BranchScope b2(&scope_, block, nullptr);
         b2.Update("a", &trunk, k1);
         auto sym = b2.FindSymbol("a");
         ASSERT_EQ(Symbol::kValue, sym.kind);

@@ -20,6 +20,11 @@ namespace ir {
         return -1; \
     } (void)0
 
+#define CURRENT_SOUCE_POSITION(ast) \
+    location_->NearlyFileUnitScope()->file_unit()->file_name(), \
+    (ast)->source_position(), \
+    module_->mutable_source_position_table()
+
 class IRGeneratorAstVisitor : public cpl::AstVisitor {
 public:
     IRGeneratorAstVisitor(IntermediateRepresentationGenerator *owns): owns_(owns) {}
@@ -32,20 +37,18 @@ public:
         init_fun_ = DCHECK_NOTNULL(module_->FindFunOrNull(cpl::kModuleInitFunName));
         init_blk_ = DCHECK_NOTNULL(init_fun_->entry());
         
-        GlobalSymbols global {
-            .vars = &owns_->global_vars_,
-            .udts = &owns_->global_udts_,
-            .funs = &owns_->global_funs_,
-        };
-        PackageScope scope(&location_, node, global);
+        auto scope = owns_->AssertedGetPackageScope(node);
+        scope->Enter(&location_);
         feedback()->set_package_name(name);
         
         for (auto file_unit : node->source_files()) {
             feedback()->set_file_name(file_unit->file_name()->ToString());
             if (auto rs = file_unit->Accept(this); rs < 0 || fail()) {
+                scope->Exit();
                 return -1;
             }
         }
+        scope->Exit();
         return 0;
     }
     
@@ -88,18 +91,68 @@ public:
     Function *GenerateFun(const cpl::FunctionDeclaration *ast, Function *fun = nullptr) {
         if (!fun) {
             auto full_name = String::New(arena(), ast->FullName());
-            auto type = owns_->BuildType(ast->prototype());
+            auto type = BuildType(ast->prototype());
             fun = module_->NewFunction(ast->name()->Duplicate(arena()), full_name,
                                        down_cast<PrototypeModel>(type.model()));
+        } else {
+            BuildType(ast->prototype()); // Build prototype always
         }
+    
+        FunctionScope scope(&location_, ast, fun);
         auto entry = fun->NewBlock(String::New(arena(), "entry"));
-        // TODO:
-        UNREACHABLE();
+        int hint = 0;
+        for (auto param : ast->prototype()->params()) {
+            assert(!cpl::Type::Is(param));
+            auto item = static_cast<cpl::VariableDeclaration::Item *>(param);
+            
+            auto type = BuildType(item->type());
+            auto op = ops()->Argument(hint++);
+            auto arg = Value::New(arena(), SourcePosition::Unknown(), type, op);
+            if (cpl::Identifier::IsPlaceholder(item->identifier())) {
+                //continue;
+            } else {
+                arg->set_name(item->identifier()->Duplicate(arena()));
+            }
+            location_->PutSymbol(arg->name()->ToSlice(), arg);
+            fun->mutable_paramaters()->push_back(arg);
+        }
+
+        std::vector<Value *> values;
+        if (auto rs = Reduce(ast->body(), &values); rs < 0) {
+            return nullptr;
+        }
+        
+        if (ast->is_reduce()) {
+            SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(ast->body()));
+            auto last_block = fun->blocks().back();
+            auto op = ops()->Ret(static_cast<int>(values.size()));
+            last_block->NewNodeWithValues(nullptr/*name*/, ss.Position(), Types::Void, op, values);
+        }
         return fun;
     }
     
-    int VisitBlock(cpl::Block *node) override { UNREACHABLE(); }
-    int VisitList(cpl::List *node) override { UNREACHABLE(); }
+    int VisitBlock(cpl::Block *node) override {
+        std::vector<Value *> values = { Unit() };
+        for (auto ast : node->statements()) {
+            values.clear();
+            if (Reduce(ast, &values) < 0) {
+                return -1;
+            }
+        }
+        return Returning(values);
+    }
+    
+    int VisitList(cpl::List *node) override {
+        std::vector<Value *> values;
+        for (auto ast : node->expressions()) {
+            if (Reduce(ast, &values) < 0) {
+                return -1;
+            }
+        }
+        assert(!values.empty());
+        return Returning(values);
+    }
+
     int VisitAssignment(cpl::Assignment *node) override { UNREACHABLE(); }
     int VisitStructDefinition(cpl::StructDefinition *node) override { UNREACHABLE(); }
     
@@ -110,7 +163,26 @@ public:
     int VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
     int VisitBreak(cpl::Break *node) override { UNREACHABLE(); }
     int VisitContinue(cpl::Continue *node) override { UNREACHABLE(); }
-    int VisitReturn(cpl::Return *node) override { UNREACHABLE(); }
+
+    int VisitReturn(cpl::Return *node) override {
+        SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(node));
+        if (node->returnning_vals().empty()) {
+            auto ret = location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->Ret(0));
+            return Returning(ret);
+        }
+        
+        std::vector<Value *> values;
+        for (auto val : node->returnning_vals()) {
+            if (auto rs = Reduce(val, &values); rs < 0) {
+                return -1;
+            }
+        }
+        auto ret = location_->current_block()->NewNodeWithValues(nullptr/*name*/, ss.Position(), Types::Void,
+                                                                 ops()->Ret(static_cast<int>(values.size())),
+                                                                 values);
+        return Returning(ret);
+    }
+
     int VisitThrow(cpl::Throw *node) override { UNREACHABLE(); }
     int VisitRunCoroutine(cpl::RunCoroutine *node) override { UNREACHABLE(); }
     int VisitWhileLoop(cpl::WhileLoop *node) override { UNREACHABLE(); }
@@ -210,6 +282,95 @@ private:
     cpl::SyntaxFeedback *feedback() { return owns_->error_feedback_; }
     OperatorsFactory *ops() { return owns_->ops_; }
     
+    Type BuildType(const cpl::Type *ast) {
+        auto rs = ProcessDependencyTypeIfNeeded(ast);
+        assert(rs >= 0);
+        return owns_->BuildType(ast);
+    }
+    
+    int ProcessDependencyTypeIfNeeded(const cpl::Type *ast) {
+        switch (ast->primary_type()) {
+            case cpl::Type::kType_class:
+                return ProcessDependencySymbolIfNeeded(ast->AsClassType()->definition());
+            case cpl::Type::kType_struct:
+                return ProcessDependencySymbolIfNeeded(ast->AsStructType()->definition());
+            case cpl::Type::kType_option:
+                return ProcessDependencyTypeIfNeeded(ast->AsOptionType()->element_type());
+            case cpl::Type::kType_array:
+                return ProcessDependencyTypeIfNeeded(ast->AsArrayType()->element_type());
+            case cpl::Type::kType_channel:
+                return ProcessDependencyTypeIfNeeded(ast->AsChannelType()->element_type());
+            case cpl::Type::kType_function: {
+                auto proto = ast->AsFunctionPrototype();
+                for (auto param : proto->params()) {
+                    if (cpl::Type::Is(param)) {
+                        if (auto rs = ProcessDependencyTypeIfNeeded(static_cast<cpl::Type *>(param)); rs < 0) {
+                            return -1;
+                        }
+                    } else {
+                        auto item = static_cast<cpl::VariableDeclaration::Item *>(param);
+                        if (auto rs = ProcessDependencyTypeIfNeeded(item->type()); rs < 0) {
+                            return -1;
+                        }
+                    }
+                }
+                for (auto ty : proto->return_types()) {
+                    if (auto rs = ProcessDependencyTypeIfNeeded(ty); rs < 0) {
+                        return -1;
+                    }
+                }
+            } break;
+            case cpl::Type::kType_symbol:
+                UNREACHABLE();
+                break;
+            default:
+                break;
+        }
+        return 0;
+    }
+    
+    int ProcessDependencySymbolIfNeeded(cpl::Statement *ast) {
+        if (ast->IsTemplate()) {
+            return 0; // Ignore template
+        }
+        auto [owns, sym] = ast->Owns(true/*force*/);
+        auto pkg = ast->Pack(true/*force*/);
+        if (auto pkg_scope = owns_->AssertedGetPackageScope(pkg); pkg_scope->HasNotTracked(ast)) {
+            if (owns && owns->IsFileUnit()) {
+                auto current_pkg_scope = location_->NearlyPackageScope();
+                auto current_file_scope = location_->NearlyFileUnitScope();
+
+                if (owns != current_file_scope->file_unit()) {
+                    //printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
+                    PackageScope *external_scope = nullptr;
+                    FileUnitScope *scope = nullptr;
+                    if (pkg != current_pkg_scope->pkg()) {
+                        external_scope = owns_->AssertedGetPackageScope(pkg);
+                        external_scope->Enter(&location_);
+                        scope = DCHECK_NOTNULL(external_scope->FindFileUnitScopeOrNull(owns));
+                    } else {
+                        scope = DCHECK_NOTNULL(current_pkg_scope->FindFileUnitScopeOrNull(owns));
+                    }
+                    assert(scope != current_file_scope);
+                    scope->Enter();
+                    auto rs = Reduce(sym);
+                    pkg_scope->Track(sym);
+                    scope->Exit();
+                    if (external_scope) { external_scope->Exit(); }
+                    if (rs < 0) {
+                        return -1;
+                    }
+                } else {
+                    if (auto rs = Reduce(sym); rs < 0) {
+                        return -1;
+                    }
+                }
+                //RecursionExit(ast);
+            }
+        }
+        return 0;
+    }
+    
     int ReduceReturningAtLeastOne(cpl::AstNode *node, Value **receiver) {
         const int nrets = node->Accept(this);
         if (fail() || nrets < 0) {
@@ -292,6 +453,7 @@ IntermediateRepresentationGenerator::IntermediateRepresentationGenerator(base::A
 , global_vars_(arena)
 , global_funs_(arena)
 , modules_(arena)
+, pkg_scopes_(arena)
 , track_(arena)
 , ops_(arena->New<OperatorsFactory>(arena)) {
 }
@@ -447,6 +609,13 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
             global_funs_[fun->full_name()->ToSlice()] = fun;
         }
     }
+    
+    GlobalSymbols global {
+        .vars = &global_vars_,
+        .udts = &global_udts_,
+        .funs = &global_funs_,
+    };
+    pkg_scopes_[pkg] = new PackageScope(nullptr/*location*/, init->entry(), pkg, global);
 }
 
 Function *IntermediateRepresentationGenerator::InstallInitFun(Module *module) {

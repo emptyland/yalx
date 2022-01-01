@@ -1,5 +1,5 @@
 #include "ir/scope.h"
-
+#include "ir/node.h"
 
 namespace yalx {
 
@@ -28,12 +28,12 @@ void NamespaceScope::PutSymbol(std::string_view name, const Symbol &symbol) {
     symbols_[name] = symbol;
 }
 
-PackageScope::PackageScope(NamespaceScope **location, cpl::Package *pkg, GlobalSymbols global)
-: NamespaceScope(location)
+PackageScope::PackageScope(NamespaceScope **location, BasicBlock *current_block, cpl::Package *pkg, GlobalSymbols global)
+: NamespaceScope(location, nullptr/*current_block*/)
 , pkg_(pkg) {
-    Enter();
+    //Enter();
     for (auto file_unit : pkg_->source_files()) {
-        auto scope = new FileUnitScope(location_, file_unit, global);
+        auto scope = new FileUnitScope(location_, current_block, file_unit, global);
         files_ptrs_[file_unit] = files_.size();
         files_.push_back(scope);
     }
@@ -41,13 +41,22 @@ PackageScope::PackageScope(NamespaceScope **location, cpl::Package *pkg, GlobalS
 
 PackageScope::~PackageScope() {
     for (auto scope : files_) { delete scope; }
-    Exit();
+    //Exit();
+}
+
+void PackageScope::Enter(NamespaceScope **location) {
+    location_ = DCHECK_NOTNULL(location);
+    for (auto file : files_) {
+        static_cast<decltype(this)>(static_cast<NamespaceScope *>(file))->location_ = DCHECK_NOTNULL(location);
+    }
+    NamespaceScope::Enter();
 }
 
 PackageScope *PackageScope::NearlyPackageScope() { return this; }
 
-FileUnitScope::FileUnitScope(NamespaceScope **location, cpl::FileUnit *file_unit, GlobalSymbols symobls)
-: NamespaceScope(location)
+FileUnitScope::FileUnitScope(NamespaceScope **location, BasicBlock *current_block, cpl::FileUnit *file_unit,
+                             GlobalSymbols symobls)
+: NamespaceScope(location, current_block)
 , file_unit_(file_unit)
 , global_udts_(symobls.udts)
 , global_vars_(symobls.vars)
@@ -108,10 +117,20 @@ Symbol FileUnitScope::FindExportSymbol(std::string_view prefix, std::string_view
 }
 
 
-BranchScope::BranchScope(NamespaceScope **location, cpl::Statement *ast, BasicBlock *block, BranchScope *trunk)
-    : NamespaceScope(location)
+FunctionScope::FunctionScope(NamespaceScope **location, const cpl::FunctionDeclaration *ast, Function *fun)
+: NamespaceScope(location, fun->entry())
+, ast_(ast)
+, fun_(fun) { Enter(); }
+
+FunctionScope::~FunctionScope() { Exit(); }
+
+FunctionScope *FunctionScope::NearlyFunctionScope() { return this; }
+
+BranchScope *FunctionScope::NearlyBranchScope() { return nullptr; }
+
+BranchScope::BranchScope(NamespaceScope **location, BasicBlock *current_block, cpl::Statement *ast, BranchScope *trunk)
+    : NamespaceScope(location, current_block)
     , ast_(ast)
-    , block_(block)
     , trunk_(trunk) {
     if (trunk) {
         trunk->branchs_.push_back(this);
