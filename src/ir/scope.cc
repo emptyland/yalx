@@ -1,5 +1,6 @@
 #include "ir/scope.h"
 #include "ir/node.h"
+#include <stack>
 
 namespace yalx {
 
@@ -23,8 +24,8 @@ Symbol NamespaceScope::FindSymbol(std::string_view name) const {
 }
 
 void NamespaceScope::PutSymbol(std::string_view name, const Symbol &symbol) {
-    auto iter = symbols_.find(name);
-    assert(iter == symbols_.end());
+//    auto iter = symbols_.find(name);
+//    assert(iter == symbols_.end());
     symbols_[name] = symbol;
 }
 
@@ -125,6 +126,37 @@ FunctionScope::FunctionScope(NamespaceScope **location, const cpl::FunctionDecla
 FunctionScope::~FunctionScope() { Exit(); }
 
 FunctionScope *FunctionScope::NearlyFunctionScope() { return this; }
+
+
+StructureScope::StructureScope(NamespaceScope **location, const cpl::IncompletableDefinition *definition,
+                               StructureModel *model)
+: NamespaceScope(location, nullptr)
+, ast_(definition)
+, model_(model) {
+    Enter();
+}
+
+StructureScope::~StructureScope() { Exit(); }
+
+void StructureScope::InstallAncestorsSymbols() {
+    std::stack<StructureModel *> ancestors;
+    for (auto base = model()->base_of(); base != nullptr; base = base->base_of()) {
+        ancestors.push(base);
+    }
+    while (!ancestors.empty()) {
+        auto ancestor = ancestors.top();
+        ancestors.pop();
+        
+        for (auto [name, handle] : ancestor->member_handles()) {
+            PutSymbol(name, Symbol::Had(this, handle));
+        }
+    }
+    
+}
+
+StructureScope *StructureScope::NearlyStructureScope() { return this; }
+
+FunctionScope *StructureScope::NearlyFunctionScope() { return nullptr; }
 
 BranchScope *FunctionScope::NearlyBranchScope() { return nullptr; }
 

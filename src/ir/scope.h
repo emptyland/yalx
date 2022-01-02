@@ -22,6 +22,7 @@ class StructureScope;
 class FunctionScope;
 class BranchScope;
 
+class Handle;
 class Model;
 class Value;
 class Function;
@@ -42,7 +43,7 @@ struct Symbol {
         Model *model;
         Value *value;
         Function *fun;
-        ptrdiff_t field_offset; // offset of field
+        Handle *handle;
     } core;
     NamespaceScope *owns;
     
@@ -83,6 +84,17 @@ struct Symbol {
             .owns = owns,
         };
     }
+    
+    static Symbol Had(NamespaceScope *owns, Handle *handle, cpl::Statement *node = nullptr) {
+        return {
+            .kind = kHandle,
+            .node = node,
+            .core = {
+                .handle = handle
+            },
+            .owns = owns,
+        };
+    }
 };
 
 struct GlobalSymbols {
@@ -107,8 +119,7 @@ public:
     
     DEF_PTR_GETTER(NamespaceScope, prev);
     DEF_VAL_GETTER(int, level);
-
-    BasicBlock *current_block() const { return DCHECK_NOTNULL(current_block_); }
+    DEF_PTR_PROP_RW_NOTNULL2(BasicBlock, current_block);
     
     virtual PackageScope *NearlyPackageScope() { return !prev_ ? nullptr : prev_->NearlyPackageScope(); }
     virtual FileUnitScope *NearlyFileUnitScope() { return !prev_ ? nullptr : prev_->NearlyFileUnitScope(); }
@@ -219,8 +230,20 @@ private:
 
 class StructureScope : public NamespaceScope {
 public:
-    StructureScope *NearlyStructureScope() override { return this; }
-    FunctionScope *NearlyFunctionScope() override { return nullptr; }
+    StructureScope(NamespaceScope **location, const cpl::IncompletableDefinition *definition, StructureModel *model);
+    ~StructureScope() override;
+    
+    void InstallAncestorsSymbols();
+    
+    DEF_PTR_GETTER(const cpl::IncompletableDefinition, ast);
+    DEF_PTR_GETTER(StructureModel, model);
+    
+    StructureScope *NearlyStructureScope() override;
+    FunctionScope *NearlyFunctionScope() override;
+    
+private:
+    const cpl::IncompletableDefinition *ast_;
+    StructureModel *model_;
 }; // class IRCodeStructureScope
 
 class FunctionScope : public NamespaceScope {

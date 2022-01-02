@@ -34,15 +34,14 @@ TEST_F(MetadataTest, Sanity) {
     auto clazz = module_->NewClassModel(name, name, nullptr);
     EXPECT_EQ(StructureModel::kClass, clazz->declaration());
     
-    clazz->InsertField({String::New(&arena_, "a"), Model::kVal, kPublic, 0, Types::Int32, false});
-    clazz->InsertField({String::New(&arena_, "b"), Model::kVal, kPublic, 0, Types::Int32, false});
+    clazz->InsertField({String::New(&arena_, "a"), kPublic, 0, Types::Int32, false});
+    clazz->InsertField({String::New(&arena_, "b"), kPublic, 0, Types::Int32, false});
     
     ASSERT_EQ(2, clazz->fields_size());
     if (auto [field, ok] = clazz->FindField("a"); true) {
         ASSERT_TRUE(ok);
         EXPECT_STREQ("a", field.name->data());
         EXPECT_EQ(Type::kInt32, field.type.kind());
-        EXPECT_EQ(Model::kVal, field.constraint);
         EXPECT_EQ(kPublic, field.access);
         EXPECT_FALSE(field.is_volatile);
     }

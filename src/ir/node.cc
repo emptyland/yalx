@@ -49,8 +49,8 @@ StructureModel *Module::NewStructModel(const String *name, const String *full_na
 }
 
 Function *Module::NewFunction(const String *name, StructureModel *owns, PrototypeModel *prototype) {
-    auto full_name = String::New(arena(), base::Sprintf("%s.%s.%s", name_->data(), owns->name()->data(), name->data()));
-    return NewFunction(full_name, full_name, prototype);
+    auto full_name = String::New(arena(), base::Sprintf("%s.%s", owns->full_name()->data(), name->data()));
+    return new (arena_) Function(arena_, name, full_name, this, prototype);
 }
 
 Function *Module::NewFunction(const String *name, const String *full_name, PrototypeModel *prototype) {

@@ -14,18 +14,54 @@ namespace ir {
 
 class Function;
 class Module;
+class Model;
 using String = base::ArenaString;
+
+class Handle : public base::ArenaObject {
+public:
+    DEF_PTR_GETTER(const Model, owns);
+    DEF_VAL_GETTER(size_t, offset);
+    
+    const String *name() const {
+        return reinterpret_cast<const String *>(reinterpret_cast<uintptr_t>(name_) & (~1ULL));
+    }
+
+    bool IsMethod() const { return !IsField(); }
+    bool IsField() const { return reinterpret_cast<uintptr_t>(name_) & 1u; }
+    
+    static Handle *Field(base::Arena *arena, const Model *owns, const String *name, size_t offset) {
+        return new (arena) Handle(owns, name, offset, true/*field_or_method*/);
+    }
+    
+    static Handle *Method(base::Arena *arena, const Model *owns, const String *name, size_t offset) {
+        return new (arena) Handle(owns, name, offset, false/*field_or_method*/);
+    }
+private:
+    Handle(const Model *owns, const String *name, size_t offset, bool field_or_method)
+    : owns_(owns)
+    , name_(MakeTaggedName(name, field_or_method))
+    , offset_(offset) {
+    }
+    
+    static const String *MakeTaggedName(const String *name, bool field_or_method) {
+        auto tagged = reinterpret_cast<uintptr_t>(name);
+        return reinterpret_cast<const String *>(tagged | (field_or_method ? 1u : 0u));
+    }
+    
+    const Model *owns_;
+    const String *name_;
+    const size_t offset_;
+};
 
 class Model : public base::ArenaObject {
 public:
     enum Constraint {
         kVal,
-        kVar,
+        kRef,
     };
     
     struct Field {
         const String *name;
-        Constraint constraint;
         Access access;
         ptrdiff_t offset;
         Type type;
@@ -42,15 +78,18 @@ public:
     
     DEF_PTR_GETTER(const String, name);
     DEF_PTR_GETTER(const String, full_name);
+    DEF_VAL_PROP_RW(Constraint, constraint);
     
     virtual std::tuple<Method, bool> FindMethod(std::string_view name) const;
     virtual std::tuple<Field, bool> FindField(std::string_view name) const;
+    virtual Handle *FindMemberOrNull(std::string_view name) const;
     virtual size_t ReferenceSizeInBytes() const = 0;
 protected:
-    Model(const String *name, const String *full_name);
+    Model(const String *name, const String *full_name, Constraint constraint);
     
     const String *const name_;
     const String *const full_name_;
+    Constraint constraint_;
 }; // class Model
 
 class PrototypeModel : public Model {
@@ -128,24 +167,23 @@ public:
     DEF_ARENA_VECTOR_GETTER(Field, field);
     DEF_ARENA_VECTOR_GETTER(Method, method);
     
-    void InsertField(const Field &field);
-    void InsertMethod(const Method &method);
+    const base::ArenaMap<std::string_view, Handle *> &member_handles() { return members_; }
+    
+    Handle *InsertField(const Field &field);
+    Handle *InsertMethod(const Method &method);
     
     std::tuple<Method, bool> FindMethod(std::string_view name) const override;
     std::tuple<Field, bool> FindField(std::string_view name) const override;
+    Handle *FindMemberOrNull(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
 private:
-    struct Index {
-        size_t offset;
-        bool field_or_method;
-    };
-    
     Declaration const declaration_;
     Module *const owns_;
+    base::Arena * const arena_;
     StructureModel *base_of_;
     Function *constructor_ = nullptr;
     base::ArenaVector<InterfaceModel *> implements_;
-    base::ArenaMap<std::string_view, Index> members_;
+    base::ArenaMap<std::string_view, Handle *> members_;
     base::ArenaVector<Field> fields_;
     base::ArenaVector<Method> methods_;
 }; // class StructureModel

@@ -41,6 +41,7 @@ public:
 constexpr static char kLangPackageFullName[] = "yalx/lang:lang";
 constexpr static char kAnyClassName[] = "Any";
 constexpr static char kAnyClassFullName[] = "yalx/lang:lang.Any";
+constexpr static char kAnyArrayFullName[] = "yalx/lang:lang.Any[]";
 
 constexpr static char kStringClassName[] = "String";
 constexpr static char kStringClassFullName[] = "yalx/lang:lang.String";
@@ -55,6 +56,7 @@ constexpr static char kPrimaryConstructorPostfix[] = "$constructor";
 constexpr static char kCompareToFunName[] = "compareTo";
 
 constexpr static char kArgsName[] = "args";
+constexpr static char kThisName[] = "this";
 constexpr static char kCalleeName[] = "callee";
 
 constexpr static int kMaxArrayInitializerDims = 99;

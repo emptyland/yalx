@@ -10,6 +10,9 @@ namespace yalx {
 
 namespace ir {
 
+class Handle;
+class Function;
+
 class OperatorsFactory final {
 public:
     OperatorsFactory(base::Arena *arena): arena_(arena) {}
@@ -45,6 +48,46 @@ public:
     Operator *StoreGlobal() {
         return new (arena_) Operator(Operator::kStoreGlobal, 0, 1/*value_in*/, 0/*control_in*/, 0/*value_out*/,
                                      0/*control_out*/);
+    }
+    
+    Operator *LoadAccessField(const Handle *handle) {
+        return new (arena_) OperatorWith<const Handle *>(Operator::kLoadAccessField, 0, 1/*value_in*/, 0/*control_in*/,
+                                                         0/*value_out*/, 0/*control_out*/, handle);
+    }
+    
+    Operator *StoreAccessField(const Handle *handle) {
+        return new (arena_) OperatorWith<const Handle *>(Operator::kStoreAccessField, 0, 1/*value_in*/, 0/*control_in*/,
+                                                         1/*value_out*/, 0/*control_out*/, handle);
+    }
+    
+    Operator *LoadEffectField(const Handle *handle) {
+        return new (arena_) OperatorWith<const Handle *>(Operator::kLoadEffectField, 0, 1/*value_in*/, 0/*control_in*/,
+                                                         0/*value_out*/, 0/*control_out*/, handle);
+    }
+    
+    Operator *StoreEffectField(const Handle *handle) {
+        return new (arena_) OperatorWith<const Handle *>(Operator::kStoreEffectField, 0, 1/*value_in*/, 0/*control_in*/,
+                                                         1/*value_out*/, 0/*control_out*/, handle);
+    }
+    
+    Operator *CallHandle(const Handle *handle, int value_out, int value_in) {
+        return new (arena_) OperatorWith<const Handle *>(Operator::kCallHandle, 0, value_in, 0/*control_in*/,
+                                                         value_out, 0/*control_out*/, handle);
+    }
+    
+    Operator *CallDirectly(Function *fun, int value_out, int value_in) {
+        return new (arena_) OperatorWith<Function *>(Operator::kCallDirectly, 0, value_in, 0/*control_in*/,
+                                                     value_out, 0/*control_out*/, fun);
+    }
+
+    Operator *CallIndirectly(int value_out, int value_in) {
+        return new (arena_) Operator(Operator::kCallIndirectly, 0, value_in, 0/*control_in*/, value_out,
+                                     0/*control_out*/);
+    }
+    
+    Operator *ReturningVal(int index) {
+        return new (arena_) OperatorWith<int>(Operator::kReturningVal, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                              0/*control_out*/, index);
     }
     
 #define DEFINE_CONSTANT(name, type) \

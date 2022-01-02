@@ -31,13 +31,18 @@ namespace ir {
     V(LoadGlobal) \
     V(StoreGlobal) \
     V(LazyValue) \
-    V(LazyLoad)
+    V(LazyLoad) \
+    V(LoadAccessField) \
+    V(StoreAccessField) \
+    V(LoadEffectField) \
+    V(StoreEffectField)
 
 #define DECLARE_IR_CALLING(V) \
-    V(CallInline) \
+    V(CallHandle) \
     V(CallDirectly) \
     V(CallIndirectly) \
-    V(CallRuntime)
+    V(CallRuntime) \
+    V(ReturningVal)
 
 #define DECLARE_IR_CONSTANT(V) \
     V(Word8Constant) \

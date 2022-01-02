@@ -17,33 +17,6 @@ namespace ir {
 
 using String = base::ArenaString;
 
-//    +- Operand
-//        +- Argument
-//        +- StackAllocate
-//        +- HeapAllocate
-//        +- StackLoad
-//        +- StackStore
-//        +- GlobalLoad
-//        +- GlobalStore
-//        +- CallRuntime
-//        +- CallDirect
-//        +- CallIndirect
-//        +- CallVirtual
-//        +- Arithmetic<N>
-//            +- I8{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Sar}
-//            +- U8{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Shr}
-//            +- I16{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Sar}
-//            +- U16{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Shr}
-//            +- I32{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Sar}
-//            +- U32{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Shr}
-//            +- I64{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Sar}
-//            +- U64{Add/Sub/Mul/Div/Mod/And/Or/Not/Xor/Inv/Shl/Shr}
-//            +- F32{Add/Sub/Mul/Div}
-//            +- F64{Add/Sub/Mul/Div}
-
-using String = base::ArenaString;
-
-
 #define DECLARE_IR_KINDS(V) \
     V(Module) \
     V(Function) \
@@ -236,6 +209,7 @@ public:
     
     DEF_PTR_PROP_RW(const String, name);
     DEF_PTR_PROP_RW(Operator, op);
+    DEF_VAL_GETTER(Type, type);
     DEF_VAL_GETTER(SourcePosition, source_position);
     
     Value *InputValue(int i) const {

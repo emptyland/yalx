@@ -71,64 +71,75 @@ public:
         }
         auto clazz = AssertedGetUdt<StructureModel>(node->FullName());
         if (node->base_of()) {
+            if (ProcessDependencySymbolIfNeeded(node->base_of()) < 0) {
+                return -1;
+            }
             auto base = AssertedGetUdt<StructureModel>(node->base_of()->FullName());
             clazz->set_base_of(base);
         }
+
+        StructureScope scope(&location_, node, clazz);
+        scope.InstallAncestorsSymbols();
+    
+        for (auto ast : node->fields()) {
+            Model::Field field {
+                ast.declaration->Identifier()->Duplicate(arena()),
+                kPublic, // TODO:
+                0,
+                BuildType(ast.declaration->Type()),
+                false,
+            };
+            auto handle = clazz->InsertField(field);
+            location_->PutSymbol(field.name->ToSlice(), Symbol::Had(location_, handle));
+        }
         
+        for (auto ast : node->methods()) {
+            auto type = BuildType(ast->prototype());
+            auto fun = module_->NewFunction(ast->name(), clazz, down_cast<PrototypeModel>(type.model()));
+            Model::Method method {
+                .fun = fun,
+                .access = kPublic,
+                .offset = 0,
+                .is_native = ast->decoration() == cpl::FunctionDeclaration::kNative,
+                .is_override = ast->decoration() == cpl::FunctionDeclaration::kOverride,
+            };
+            auto handle = clazz->InsertMethod(method);
+            location_->PutSymbol(method.fun->name()->ToSlice(), Symbol::Had(location_, handle));
+        }
+        
+        for (auto ast : node->methods()) {
+            if (ast->decoration() == cpl::FunctionDeclaration::kNative ||
+                ast->body() == nullptr) {
+                continue;
+            }
+            printd("find method: %s", ast->name()->data());
+            auto [method, ok] = clazz->FindMethod(ast->name()->ToSlice());
+            assert(ok);
+            if (!GenerateFun(ast, clazz, method.fun)) {
+                return -1;
+            }
+        }
+
         if (node->primary_constructor()) {
-            auto ctor = GenerateFun(node->primary_constructor());
+            auto ctor = GenerateFun(node->primary_constructor(), clazz);
             if (!ctor) {
                 return -1;
             }
             clazz->set_constructor(ctor);
-        }
-        
-        // TODO:
-        UNREACHABLE();
-        return Returning(Unit());
-    }
-    
-    Function *GenerateFun(const cpl::FunctionDeclaration *ast, Function *fun = nullptr) {
-        if (!fun) {
-            auto full_name = String::New(arena(), ast->FullName());
-            auto type = BuildType(ast->prototype());
-            fun = module_->NewFunction(ast->name()->Duplicate(arena()), full_name,
-                                       down_cast<PrototypeModel>(type.model()));
-        } else {
-            BuildType(ast->prototype()); // Build prototype always
-        }
-    
-        FunctionScope scope(&location_, ast, fun);
-        auto entry = fun->NewBlock(String::New(arena(), "entry"));
-        int hint = 0;
-        for (auto param : ast->prototype()->params()) {
-            assert(!cpl::Type::Is(param));
-            auto item = static_cast<cpl::VariableDeclaration::Item *>(param);
-            
-            auto type = BuildType(item->type());
-            auto op = ops()->Argument(hint++);
-            auto arg = Value::New(arena(), SourcePosition::Unknown(), type, op);
-            if (cpl::Identifier::IsPlaceholder(item->identifier())) {
-                //continue;
-            } else {
-                arg->set_name(item->identifier()->Duplicate(arena()));
-            }
-            location_->PutSymbol(arg->name()->ToSlice(), arg);
-            fun->mutable_paramaters()->push_back(arg);
+            printd("constructor: %s(%s)", ctor->name()->data(), ctor->full_name()->data());
+            Model::Method method {
+                .fun = ctor,
+                .access = kPublic,
+                .offset = 0,
+                .is_native = false,
+                .is_override = false,
+            };
+            clazz->InsertMethod(method);
         }
 
-        std::vector<Value *> values;
-        if (auto rs = Reduce(ast->body(), &values); rs < 0) {
-            return nullptr;
-        }
-        
-        if (ast->is_reduce()) {
-            SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(ast->body()));
-            auto last_block = fun->blocks().back();
-            auto op = ops()->Ret(static_cast<int>(values.size()));
-            last_block->NewNodeWithValues(nullptr/*name*/, ss.Position(), Types::Void, op, values);
-        }
-        return fun;
+        // TODO:
+        // UNREACHABLE();
+        return Returning(Unit());
     }
     
     int VisitBlock(cpl::Block *node) override {
@@ -152,18 +163,7 @@ public:
         assert(!values.empty());
         return Returning(values);
     }
-
-    int VisitAssignment(cpl::Assignment *node) override { UNREACHABLE(); }
-    int VisitStructDefinition(cpl::StructDefinition *node) override { UNREACHABLE(); }
     
-    int VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
-    int VisitInterfaceDefinition(cpl::InterfaceDefinition *node) override { UNREACHABLE(); }
-    int VisitFunctionDeclaration(cpl::FunctionDeclaration *node) override { UNREACHABLE(); }
-    int VisitAnnotationDeclaration(cpl::AnnotationDeclaration *node) override { UNREACHABLE(); }
-    int VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
-    int VisitBreak(cpl::Break *node) override { UNREACHABLE(); }
-    int VisitContinue(cpl::Continue *node) override { UNREACHABLE(); }
-
     int VisitReturn(cpl::Return *node) override {
         SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(node));
         if (node->returnning_vals().empty()) {
@@ -182,6 +182,153 @@ public:
                                                                  values);
         return Returning(ret);
     }
+    
+    int VisitIdentifier(cpl::Identifier *node) override {
+        auto symbol = location_->FindSymbol(node->name()->ToSlice());
+        assert(symbol.IsFound());
+        switch (symbol.kind) {
+            case Symbol::kValue:
+                return Returning(symbol.core.value);
+            case Symbol::kHandle: {
+                auto handle = symbol.core.handle;
+                auto this_val = location_->FindSymbol(cpl::kThisName);
+                assert(this_val.IsFound());
+                auto op = ops()->LoadEffectField(handle);
+                auto [field, ok] = handle->owns()->FindField(handle->name()->ToSlice());
+                assert(ok);
+                auto val = location_->current_block()->NewNode(SourcePosition::Unknown(), field.type, op,
+                                                               this_val.core.value);
+                return Returning(val);
+            } break;
+            case Symbol::kFun: // TODO:
+                UNREACHABLE();
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+    }
+    
+    int VisitCalling(cpl::Calling *node) override {
+        SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(node));
+        std::vector<Value *> args;
+        Handle *handle = nullptr;
+
+        Symbol symbol = Symbol::NotFound();
+        if (auto ast = node->callee()->AsIdentifier()) {
+            symbol = location_->FindSymbol(ast->name()->ToSlice());
+        } else if (auto ast = node->callee()->AsDot()) {
+            if (auto id = ast->primary()->AsIdentifier()) {
+                auto file_scope = DCHECK_NOTNULL(location_->NearlyFileUnitScope());
+                symbol = file_scope->FindExportSymbol(id->name()->ToSlice(), ast->field()->ToSlice());
+            }
+            if (symbol.IsNotFound()) {
+                Value *value = nullptr;
+                if (ReduceReturningOnlyOne(ast->primary(), &value) < 0) {
+                    return -1;
+                }
+                handle = DCHECK_NOTNULL(value->type().model())->FindMemberOrNull(ast->field()->ToSlice());
+                if (handle && handle->IsMethod()) {
+                    args.push_back(value);
+                } else {
+                    handle = nullptr;
+                }
+            }
+        }
+
+        for (auto ast : node->args()) {
+            if (Reduce(ast, &args) < 0) {
+                return -1;
+            }
+        }
+        if (symbol.kind == Symbol::kHandle) {
+            handle = symbol.core.handle;
+            auto arg0 = location_->FindSymbol(cpl::kThisName);
+            assert(arg0.kind == Symbol::kValue);
+            args.insert(args.begin(), arg0.core.value);
+        }
+        if (handle) { // It's method calling
+            auto [method, ok] = DCHECK_NOTNULL(args[0]->type().model())->FindMethod(handle->name()->ToSlice());
+            assert(ok);
+            auto proto = method.fun->prototype();
+            if (proto->vargs()) {
+                // TODO:
+                UNREACHABLE();
+            }
+            auto type = proto->return_type(0);
+            auto value_in = (proto->vargs() ? 1 : 0) + 1 + static_cast<int>(proto->params_size());
+            auto op = ops()->CallHandle(handle, 1, value_in);
+            auto call = location_->current_block()->NewNodeWithValues(nullptr, ss.Position(), type, op, args);
+            std::vector<Value *> results;
+            results.push_back(call);
+            for (int i = 1; i < proto->return_types_size(); i++) {
+                op = ops()->ReturningVal(i);
+                auto rv = location_->current_block()->NewNode(ss.Position(), proto->return_type(i), op, call);
+                results.push_back(rv);
+            }
+            return Returning(results);
+        }
+        
+        if (symbol.IsNotFound()) {
+            Value *callee = nullptr;
+            if (ReduceReturningOnlyOne(node->callee(), &callee) < 0) {
+                return -1;
+            }
+            auto proto = down_cast<PrototypeModel>(callee->type().model());
+            if (proto->vargs()) {
+                // TODO:
+                UNREACHABLE();
+            }
+            auto type = proto->return_type(0);
+            auto value_in = (proto->vargs() ? 1 : 0) + 1 + static_cast<int>(proto->params_size());
+            auto op = ops()->CallIndirectly(1/*value_out*/, value_in);
+            args.insert(args.begin(), callee);
+            auto call = location_->current_block()->NewNodeWithValues(nullptr, ss.Position(), type, op, args);
+            std::vector<Value *> results;
+            results.push_back(call);
+            for (int i = 1; i < proto->return_types_size(); i++) {
+                op = ops()->ReturningVal(i);
+                auto rv = location_->current_block()->NewNode(ss.Position(), proto->return_type(i), op, call);
+                results.push_back(rv);
+            }
+            return Returning(results);
+        }
+        
+        if (symbol.kind == Symbol::kFun) {
+            auto proto = symbol.core.fun->prototype();
+            if (proto->vargs()) {
+                // TODO:
+                UNREACHABLE();
+            }
+            auto type = proto->return_type(0);
+            auto op = ops()->CallDirectly(symbol.core.fun, 1/*value_out*/, static_cast<int>(proto->params_size()));
+            auto call = location_->current_block()->NewNodeWithValues(nullptr, ss.Position(), type, op, args);
+            std::vector<Value *> results;
+            results.push_back(call);
+            for (int i = 1; i < proto->return_types_size(); i++) {
+                op = ops()->ReturningVal(i);
+                auto rv = location_->current_block()->NewNode(ss.Position(), proto->return_type(i), op, call);
+                results.push_back(rv);
+            }
+            return Returning(results);
+        }
+        
+        if (symbol.kind == Symbol::kModel) {
+            // TODO: new
+        }
+        UNREACHABLE();
+    }
+
+    int VisitAssignment(cpl::Assignment *node) override { UNREACHABLE(); }
+    int VisitStructDefinition(cpl::StructDefinition *node) override { UNREACHABLE(); }
+    
+    int VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
+    int VisitInterfaceDefinition(cpl::InterfaceDefinition *node) override { UNREACHABLE(); }
+    int VisitFunctionDeclaration(cpl::FunctionDeclaration *node) override { UNREACHABLE(); }
+    int VisitAnnotationDeclaration(cpl::AnnotationDeclaration *node) override { UNREACHABLE(); }
+    int VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
+    int VisitBreak(cpl::Break *node) override { UNREACHABLE(); }
+    int VisitContinue(cpl::Continue *node) override { UNREACHABLE(); }
 
     int VisitThrow(cpl::Throw *node) override { UNREACHABLE(); }
     int VisitRunCoroutine(cpl::RunCoroutine *node) override { UNREACHABLE(); }
@@ -203,12 +350,10 @@ public:
     int VisitRecv(cpl::Recv *node) override { UNREACHABLE(); }
     int VisitSend(cpl::Send *node) override { UNREACHABLE(); }
     int VisitEqual(cpl::Equal *node) override { UNREACHABLE(); }
-    int VisitCalling(cpl::Calling *node) override { UNREACHABLE(); }
     int VisitCasting(cpl::Casting *node) override { UNREACHABLE(); }
     int VisitGreater(cpl::Greater *node) override { UNREACHABLE(); }
     int VisitTesting(cpl::Testing *node) override { UNREACHABLE(); }
     int VisitNegative(cpl::Negative *node) override { UNREACHABLE(); }
-    int VisitIdentifier(cpl::Identifier *node) override { UNREACHABLE(); }
     int VisitNotEqual(cpl::NotEqual *node) override { UNREACHABLE(); }
     int VisitBitwiseOr(cpl::BitwiseOr *node) override { UNREACHABLE(); }
     int VisitLessEqual(cpl::LessEqual *node) override { UNREACHABLE(); }
@@ -281,6 +426,63 @@ private:
     base::Arena *arena() { return owns_->arena_; }
     cpl::SyntaxFeedback *feedback() { return owns_->error_feedback_; }
     OperatorsFactory *ops() { return owns_->ops_; }
+    
+    Function *GenerateFun(const cpl::FunctionDeclaration *ast, Model *owns, Function *fun = nullptr) {
+        if (!fun) {
+            auto full_name = String::New(arena(), ast->FullName());
+            auto type = BuildType(ast->prototype());
+            fun = module_->NewFunction(ast->name()->Duplicate(arena()), full_name,
+                                       down_cast<PrototypeModel>(type.model()));
+        } else {
+            BuildType(ast->prototype()); // Build prototype always
+        }
+
+        auto entry = fun->NewBlock(String::New(arena(), "entry"));
+        int hint = 0;
+        FunctionScope scope(&location_, ast, fun);
+        if (owns) {
+            auto type = owns->constraint() == Model::kVal ? Type::Val(owns) : Type::Ref(owns);
+            auto op = ops()->Argument(hint++);
+            auto arg = Value::New0(arena(), String::New(arena(), cpl::kThisName), SourcePosition::Unknown(), type, op);
+            location_->PutSymbol(arg->name()->ToSlice(), arg);
+            fun->mutable_paramaters()->push_back(arg);
+        }
+        for (auto param : ast->prototype()->params()) {
+            assert(!cpl::Type::Is(param));
+            auto item = static_cast<cpl::VariableDeclaration::Item *>(param);
+            
+            auto type = BuildType(item->type());
+            auto op = ops()->Argument(hint++);
+            auto arg = Value::New(arena(), SourcePosition::Unknown(), type, op);
+            if (cpl::Identifier::IsPlaceholder(item->identifier())) {
+                //continue;
+            } else {
+                arg->set_name(item->identifier()->Duplicate(arena()));
+            }
+            location_->PutSymbol(arg->name()->ToSlice(), arg);
+            fun->mutable_paramaters()->push_back(arg);
+        }
+        if (ast->prototype()->vargs()) {
+            auto type = Type::Ref(AssertedGetUdt<ArrayModel>(cpl::kAnyArrayFullName));
+            auto op = ops()->Argument(hint++);
+            auto arg = Value::New0(arena(), String::New(arena(), cpl::kArgsName), SourcePosition::Unknown(), type, op);
+            location_->PutSymbol(arg->name()->ToSlice(), arg);
+            fun->mutable_paramaters()->push_back(arg);
+        }
+
+        std::vector<Value *> values;
+        if (auto rs = Reduce(ast->body(), &values); rs < 0) {
+            return nullptr;
+        }
+        
+        if (ast->is_reduce()) {
+            SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(ast->body()));
+            auto last_block = fun->blocks().back();
+            auto op = ops()->Ret(static_cast<int>(values.size()));
+            last_block->NewNodeWithValues(nullptr/*name*/, ss.Position(), Types::Void, op, values);
+        }
+        return fun;
+    }
     
     Type BuildType(const cpl::Type *ast) {
         auto rs = ProcessDependencyTypeIfNeeded(ast);
@@ -616,6 +818,14 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
         .funs = &global_funs_,
     };
     pkg_scopes_[pkg] = new PackageScope(nullptr/*location*/, init->entry(), pkg, global);
+    
+    if (auto iter = global_udts_.find(cpl::kAnyArrayFullName); iter == global_udts_.end()) {
+        auto any = AssertedGetUdt(cpl::kAnyClassFullName);
+        auto name = String::New(arena_, "Any[]");
+        auto full_name = String::New(arena_, cpl::kAnyArrayFullName);
+        auto any_array = new (arena_) ArrayModel(arena_, name, full_name, 1, Type::Ref(any));
+        global_udts_[any_array->full_name()->ToSlice()] = any_array;
+    }
 }
 
 Function *IntermediateRepresentationGenerator::InstallInitFun(Module *module) {
