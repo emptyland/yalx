@@ -57,6 +57,43 @@ private:
 }; // class Node
 
 
+class Function : public Node {
+public:
+    enum Decoration {
+        kDefault,
+        kNative,
+        kAbstract,
+        kOverride,
+    };
+    
+    BasicBlock *NewBlock(const String *name);
+    
+    DEF_PTR_GETTER(const String, name);
+    DEF_PTR_GETTER(const String, full_name);
+    DEF_PTR_GETTER(Module, owns);
+    DEF_PTR_GETTER(base::Arena, arena);
+    DEF_PTR_GETTER(BasicBlock, entry);
+    DEF_PTR_GETTER(PrototypeModel, prototype);
+    DEF_VAL_GETTER(Decoration, decoration);
+    DEF_ARENA_VECTOR_GETTER(Value *, paramater);
+    DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
+    
+    friend class Module;
+private:
+    Function(base::Arena *arena, const Decoration decoration, const String *name, const String *full_name, Module *owns,
+             PrototypeModel *prototype);
+    
+    const String *const name_;
+    const String *const full_name_;
+    Module *const owns_;
+    base::Arena *const arena_;
+    PrototypeModel *const prototype_;
+    Decoration const decoration_;
+    BasicBlock *entry_ = nullptr;
+    base::ArenaVector<Value *> paramaters_;
+    base::ArenaVector<BasicBlock *> blocks_;
+}; // class Function
+
 class Module : public Node {
 public:
     Module(base::Arena *arena, const String *name, const String *full_name, const String *path, const String *full_path);
@@ -73,10 +110,13 @@ public:
     DEF_VAL_GETTER(SourcePositionTable, source_position_table);
     DEF_VAL_MUTABLE_GETTER(SourcePositionTable, source_position_table);
 
-    Function *NewFunction(const String *name, StructureModel *owns, PrototypeModel *prototype);
-    Function *NewFunction(const String *name, const String *full_name, PrototypeModel *prototype);
+    Function *NewFunction(const Function::Decoration decoration, const String *name, StructureModel *owns,
+                          PrototypeModel *prototype);
+    Function *NewFunction(const Function::Decoration decoration, const String *name, const String *full_name,
+                          PrototypeModel *prototype);
     Function *NewFunction(PrototypeModel *prototype);
-    Function *NewStandaloneFunction(const String *name, PrototypeModel *prototype);
+    Function *NewStandaloneFunction(const Function::Decoration decoration, const String *name, const String *full_name,
+                                    PrototypeModel *prototype);
     
     InterfaceModel *NewInterfaceModel(const String *name, const String *full_name);
     StructureModel *NewClassModel(const String *name, const String *full_name, StructureModel *base_of);
@@ -118,34 +158,6 @@ private:
     SourcePositionTable source_position_table_;
     int next_unnamed_id_ = 0;
 }; // class Module
-
-
-class Function : public Node {
-public:
-    BasicBlock *NewBlock(const String *name);
-    
-    DEF_PTR_GETTER(const String, name);
-    DEF_PTR_GETTER(const String, full_name);
-    DEF_PTR_GETTER(Module, owns);
-    DEF_PTR_GETTER(base::Arena, arena);
-    DEF_PTR_GETTER(BasicBlock, entry);
-    DEF_PTR_GETTER(PrototypeModel, prototype);
-    DEF_ARENA_VECTOR_GETTER(Value *, paramater);
-    DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
-    
-    friend class Module;
-private:
-    Function(base::Arena *arena, const String *name, const String *full_name, Module *owns, PrototypeModel *prototype);
-    
-    const String *const name_;
-    const String *const full_name_;
-    Module *const owns_;
-    base::Arena *const arena_;
-    PrototypeModel *const prototype_;
-    BasicBlock *entry_ = nullptr;
-    base::ArenaVector<Value *> paramaters_;
-    base::ArenaVector<BasicBlock *> blocks_;
-}; // class Function
 
 
 class BasicBlock : public Node {
@@ -316,15 +328,12 @@ inline Value *BasicBlock::NewNode(const String *name, SourcePosition source_posi
 
 inline Value *BasicBlock::NewNodeWithValues(const String *name, SourcePosition source_position, Type type, Operator *op,
                                             const std::vector<Value *> &inputs) {
-    return NewNodeWithValues(name, source_position, type, op,
-                             const_cast<Value **>(&inputs[0]),
-                             inputs.size());
+    return NewNodeWithValues(name, source_position, type, op, const_cast<Value **>(&inputs[0]), inputs.size());
 }
 
 inline Value *BasicBlock::NewNodeWithValues(const String *name, SourcePosition source_position, Type type, Operator *op,
                                             Value **inputs, size_t inputs_size) {
-    auto instr = Value::NewWithInputs(arena(), name, source_position, type, op,
-                                      reinterpret_cast<Node **>(inputs),
+    auto instr = Value::NewWithInputs(arena(), name, source_position, type, op, reinterpret_cast<Node **>(inputs),
                                       inputs_size);
     instructions_.push_back(instr);
     return instr;

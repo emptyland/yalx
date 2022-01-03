@@ -8,19 +8,19 @@ namespace yalx {
 namespace ir {
 
 Module::Module(base::Arena *arena, const String *name, const String *full_name, const String *path, const String *full_path)
-    : Node(Node::kModule)
-    , arena_(DCHECK_NOTNULL(arena))
-    , name_(DCHECK_NOTNULL(name))
-    , full_name_(DCHECK_NOTNULL(full_name))
-    , path_(DCHECK_NOTNULL(path))
-    , full_path_(DCHECK_NOTNULL(full_path))
-    , named_models_(arena)
-    , interfaces_(arena)
-    , structures_(arena)
-    , global_values_(arena)
-    , funs_(arena)
-    , values_(arena)
-    , source_position_table_(arena) {
+: Node(Node::kModule)
+, arena_(DCHECK_NOTNULL(arena))
+, name_(DCHECK_NOTNULL(name))
+, full_name_(DCHECK_NOTNULL(full_name))
+, path_(DCHECK_NOTNULL(path))
+, full_path_(DCHECK_NOTNULL(full_path))
+, named_models_(arena)
+, interfaces_(arena)
+, structures_(arena)
+, global_values_(arena)
+, funs_(arena)
+, values_(arena)
+, source_position_table_(arena) {
 }
 
 InterfaceModel *Module::NewInterfaceModel(const String *name, const String *full_name) {
@@ -48,13 +48,15 @@ StructureModel *Module::NewStructModel(const String *name, const String *full_na
     return clazz;
 }
 
-Function *Module::NewFunction(const String *name, StructureModel *owns, PrototypeModel *prototype) {
+Function *Module::NewFunction(const Function::Decoration decoration, const String *name, StructureModel *owns,
+                              PrototypeModel *prototype) {
     auto full_name = String::New(arena(), base::Sprintf("%s.%s", owns->full_name()->data(), name->data()));
-    return new (arena_) Function(arena_, name, full_name, this, prototype);
+    return new (arena_) Function(arena_, decoration, name, full_name, this, prototype);
 }
 
-Function *Module::NewFunction(const String *name, const String *full_name, PrototypeModel *prototype) {
-    auto fun = new (arena_) Function(arena_, name, full_name, this, prototype);
+Function *Module::NewFunction(const Function::Decoration decoration, const String *name, const String *full_name,
+                              PrototypeModel *prototype) {
+    auto fun = new (arena_) Function(arena_, decoration, name, full_name, this, prototype);
     assert(global_values_.find(name->ToSlice()) == global_values_.end());
     global_values_[name->ToSlice()] = GlobalSlot{funs_size(), true};
     funs_.push_back(fun);
@@ -63,19 +65,14 @@ Function *Module::NewFunction(const String *name, const String *full_name, Proto
 
 Function *Module::NewFunction(PrototypeModel *prototype) {
     auto random_name = String::New(arena_, base::Sprintf("$unnamed$_%d", (rand() << 4) | next_unnamed_id_++));
-    auto fun = NewFunction(random_name, random_name, prototype);
+    auto fun = NewFunction(Function::kDefault, random_name, random_name, prototype);
     return fun;
 }
 
-Function *Module::NewStandaloneFunction(const String *name, PrototypeModel *prototype) {
-    return new (arena_) Function(arena_, name, name, this, prototype);
+Function *Module::NewStandaloneFunction(const Function::Decoration decoration, const String *name,
+                                        const String *full_name, PrototypeModel *prototype) {
+    return new (arena_) Function(arena_, decoration, name, full_name, this, prototype);
 }
-
-//Value *Module::NewGlobalValue(SourcePosition source_position, const String *name, Type type) {
-//    assert(global_values_.find(name->ToSlice()) == global_values_.end());
-//    
-//}
-
 
 Function *Module::FindFunOrNull(std::string_view name) const {
     auto iter = global_values_.find(name);
@@ -102,24 +99,26 @@ BasicBlock *Function::NewBlock(const String *name) {
     return block;
 }
 
-Function::Function(base::Arena *arena, const String *name, const String *full_name, Module *owns, PrototypeModel *prototype)
-    : Node(Node::kFunction)
-    , arena_(DCHECK_NOTNULL(arena))
-    , name_(DCHECK_NOTNULL(name))
-    , full_name_(DCHECK_NOTNULL(full_name))
-    , owns_(DCHECK_NOTNULL(owns))
-    , prototype_(prototype)
-    , paramaters_(arena)
-    , blocks_(arena) {
+Function::Function(base::Arena *arena, const Decoration decoration, const String *name, const String *full_name,
+                   Module *owns, PrototypeModel *prototype)
+: Node(Node::kFunction)
+, arena_(DCHECK_NOTNULL(arena))
+, name_(DCHECK_NOTNULL(name))
+, full_name_(DCHECK_NOTNULL(full_name))
+, owns_(DCHECK_NOTNULL(owns))
+, prototype_(prototype)
+, decoration_(decoration)
+, paramaters_(arena)
+, blocks_(arena) {
 }
 
 BasicBlock::BasicBlock(base::Arena *arena, const String *name)
-    : Node(Node::kBasicBlock)
-    , arena_(DCHECK_NOTNULL(arena))
-    , name_(DCHECK_NOTNULL(name))
-    , instructions_(arena)
-    , inputs_(arena)
-    , outputs_(arena) {
+: Node(Node::kBasicBlock)
+, arena_(DCHECK_NOTNULL(arena))
+, name_(DCHECK_NOTNULL(name))
+, instructions_(arena)
+, inputs_(arena)
+, outputs_(arena) {
 }
 
 Value *Value::NewWithInputs(base::Arena *arena, const String *name, SourcePosition source_position, Type type,
@@ -136,18 +135,18 @@ Value *Value::NewWithInputs(base::Arena *arena, const String *name, SourcePositi
 }
 
 Value::Value(base::Arena *arena, const String *name, SourcePosition source_position, Type type, Operator *op)
-    : Node(Node::kValue)
-    , name_(name)
-    , source_position_(source_position)
-    , type_(type)
-    , op_(DCHECK_NOTNULL(op))
-    , has_users_overflow_(0)
-    , users_size_(0)
-    , inline_users_capacity_(0)
-    , inline_users_(nullptr) {
+: Node(Node::kValue)
+, name_(name)
+, source_position_(source_position)
+, type_(type)
+, op_(DCHECK_NOTNULL(op))
+, has_users_overflow_(0)
+, users_size_(0)
+, inline_users_capacity_(0)
+, inline_users_(nullptr) {
     overflow_users_.next = &overflow_users_;
     overflow_users_.prev = &overflow_users_;
-        
+    
 #ifdef DEBUG
     ::memset(io_, 0, TotalInOutputs(op) * sizeof(io_[0]));
 #endif
@@ -188,7 +187,7 @@ Value::User *Value::AddUser(base::Arena *arena, Value *user, int position) {
 }
 
 Value::User *Value::FindUser(Value *user, int position) {
-    for (int i = 0; std::min(users_size_, inline_users_capacity_); i++) {
+    for (int i = 0; i < std::min(users_size_, inline_users_capacity_); i++) {
         if (inline_users_[i].user == user && inline_users_[i].position == position) {
             return &inline_users_[i];
         }

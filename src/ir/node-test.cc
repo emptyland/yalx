@@ -43,7 +43,7 @@ TEST_F(NodeTest, Module) {
     prototype->mutable_params()->push_back(Types::Int32);
     prototype->mutable_params()->push_back(Types::Int32);
     prototype->mutable_return_types()->push_back(Types::Int32);
-    auto fun = module_->NewFunction(module_->name(), module_->name(), prototype);
+    auto fun = module_->NewFunction(Function::kDefault, module_->name(), module_->name(), prototype);
     EXPECT_EQ(fun, module_->FindFunOrNull(module_->name()->ToSlice()));
     
     auto bb = fun->NewBlock(String::kEmpty);

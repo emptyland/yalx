@@ -5,10 +5,11 @@ namespace yalx {
 
 namespace ir {
 
-Model::Model(const String *name, const String *full_name, Constraint constraint)
+Model::Model(const String *name, const String *full_name, Constraint constraint, Declaration declaration)
 : name_(DCHECK_NOTNULL(name))
 , full_name_(DCHECK_NOTNULL(full_name))
-, constraint_(constraint) {}
+, constraint_(constraint)
+, declaration_(declaration) {}
 
 std::tuple<Model::Method, bool> Model::FindMethod(std::string_view name) const {
     return std::make_tuple(Method{}, false);
@@ -23,7 +24,7 @@ Handle *Model::FindMemberOrNull(std::string_view name) const {
 }
 
 PrototypeModel::PrototypeModel(base::Arena *arena, const String *name, bool vargs)
-: Model(name, name, kRef)
+: Model(name, name, kRef, kFunction)
 , params_(DCHECK_NOTNULL(arena))
 , return_types_(arena)
 , vargs_(vargs) {
@@ -61,27 +62,33 @@ std::string PrototypeModel::ToString(const Type *params, const size_t params_siz
 size_t PrototypeModel::ReferenceSizeInBytes() const { return kPointerSize; }
 
 InterfaceModel::InterfaceModel(base::Arena *arena, const String *name, const String *full_name)
-: Model(name, full_name, kVal)
-, methods_(arena) {
+: Model(name, full_name, kVal, kInterface)
+, arena_(arena)
+, methods_(arena)
+, members_(arena) {
 }
 
-void InterfaceModel::InsertMethod(Function *fun) {
-    assert(!fun->entry() && fun->blocks().empty() && "Function must be a prototype");
-    assert(methods_.find(fun->name()->ToSlice()) == methods_.end() && "Duplicated method name");
-    methods_[fun->name()->ToSlice()] = {
+Handle *InterfaceModel::InsertMethod(Function *fun) {
+    assert(fun->decoration() == Function::kAbstract && !fun->entry() && fun->blocks().empty()
+           && "Function must be a prototype");
+    auto name = fun->name()->ToSlice();
+    auto iter = members_.find(name);
+    assert(iter == members_.end() || !iter->second->IsMethod());
+    auto handle = Handle::Method(arena_, this, fun->name(), methods_size());
+    members_[name] = handle;
+    methods_.push_back({
         .fun = fun,
         .access = kPublic,
-        .offset = static_cast<int>(methods_.size()),
-        .is_native = false,
-        .is_override = false,
-    };
+        .offset = static_cast<int>(methods_size()),
+    });
+    return handle;
 }
 
 std::tuple<Model::Method, bool> InterfaceModel::FindMethod(std::string_view name) const {
-    if (auto iter = methods_.find(name); iter == methods_.end()) {
+    if (auto iter = members_.find(name); iter == members_.end()) {
         return std::make_tuple(Method{}, false);
     } else {
-        return std::make_tuple(iter->second, true);
+        return std::make_tuple(methods_[iter->second->offset()], true);
     }
 }
 
@@ -89,7 +96,7 @@ size_t InterfaceModel::ReferenceSizeInBytes() const { return kPointerSize; }
 
 ArrayModel::ArrayModel(base::Arena *arena, const String *name, const String *full_name,
                        int dimension_count, const Type element_type)
-: Model(name, full_name, kRef)
+: Model(name, full_name, kRef, kArray)
 , element_type_(element_type)
 , dimension_count_(dimension_count) {
 }
@@ -104,10 +111,9 @@ std::string ArrayModel::ToString(int dimension_count, const Type element_type) {
 
 size_t ArrayModel::ReferenceSizeInBytes() const { return kPointerSize; }
 
-StructureModel::StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration constraint,
+StructureModel::StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration declaration,
                                Module *owns, StructureModel *base_of)
-: Model(name, full_name, constraint == kClass ? kRef : kVal)
-, declaration_(constraint)
+: Model(name, full_name, declaration == kClass ? kRef : kVal, declaration)
 , owns_(owns)
 , arena_(arena)
 , base_of_(base_of)
@@ -131,7 +137,7 @@ Handle *StructureModel::InsertMethod(const Method &method) {
     auto name = method.fun->name()->ToSlice();
     auto iter = members_.find(name);
     assert(iter == members_.end() || !iter->second->IsMethod());
-    auto handle = Handle::Method(arena_, this, method.fun->name(), fields_size());
+    auto handle = Handle::Method(arena_, this, method.fun->name(), methods_size());
     members_[name] = handle;
     methods_.push_back(method);
     return handle;
@@ -149,7 +155,7 @@ std::tuple<Model::Method, bool> StructureModel::FindMethod(std::string_view name
     for (auto model = this; model != nullptr; model = model->base_of()) {
         auto iter = model->members_.find(name);
         if (iter != model->members_.end() && iter->second->IsMethod()) {
-            return std::make_tuple(methods_[iter->second->offset()], true);
+            return std::make_tuple(model->methods_[iter->second->offset()], true);
         }
     }
     return std::make_tuple(Method{}, false);

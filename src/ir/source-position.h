@@ -5,6 +5,7 @@
 #include "base/arena-utils.h"
 #include "base/checking.h"
 #include "base/base.h"
+#include <string_view>
 
 namespace yalx {
 namespace cpl {
@@ -42,7 +43,7 @@ class SourcePositionTable final {
 public:
     class Scope {
     public:
-        Scope(const base::ArenaString *file_name, const cpl::SourcePosition &bound, SourcePositionTable *owns);
+        Scope(std::string_view file_name, const cpl::SourcePosition &bound, SourcePositionTable *owns);
         Scope(const cpl::SourcePosition &bound, Scope *prev);
         
         DEF_VAL_GETTER(int, current_line);
@@ -63,10 +64,11 @@ public:
     
     DEF_ARENA_VECTOR_GETTER(const base::ArenaString *, file_name);
     
-    int FindOrInsertFileName(const base::ArenaString *file_name);
+    int FindOrInsertFileName(std::string_view file_name);
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(SourcePositionTable);
 private:
+    base::Arena *arena_;
     base::ArenaMap<std::string_view, int> file_ids_;
     base::ArenaVector<const base::ArenaString *> file_names_;
 }; // class SourcePositionTable

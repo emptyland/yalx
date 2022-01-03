@@ -21,7 +21,7 @@ namespace ir {
     } (void)0
 
 #define CURRENT_SOUCE_POSITION(ast) \
-    location_->NearlyFileUnitScope()->file_unit()->file_name(), \
+    CurrentFileName()->ToSlice(), \
     (ast)->source_position(), \
     module_->mutable_source_position_table()
 
@@ -95,13 +95,12 @@ public:
         
         for (auto ast : node->methods()) {
             auto type = BuildType(ast->prototype());
-            auto fun = module_->NewFunction(ast->name(), clazz, down_cast<PrototypeModel>(type.model()));
+            auto fun = module_->NewFunction(ToDecoration(ast), ast->name(), clazz,
+                                            down_cast<PrototypeModel>(type.model()));
             Model::Method method {
                 .fun = fun,
                 .access = kPublic,
-                .offset = 0,
-                .is_native = ast->decoration() == cpl::FunctionDeclaration::kNative,
-                .is_override = ast->decoration() == cpl::FunctionDeclaration::kOverride,
+                .offset = 0
             };
             auto handle = clazz->InsertMethod(method);
             location_->PutSymbol(method.fun->name()->ToSlice(), Symbol::Had(location_, handle));
@@ -131,8 +130,6 @@ public:
                 .fun = ctor,
                 .access = kPublic,
                 .offset = 0,
-                .is_native = false,
-                .is_override = false,
             };
             clazz->InsertMethod(method);
         }
@@ -140,6 +137,25 @@ public:
         // TODO:
         // UNREACHABLE();
         return Returning(Unit());
+    }
+    
+    static Function::Decoration ToDecoration(const cpl::FunctionDeclaration *ast) {
+        if (!ast->body()) {
+            return Function::kAbstract;
+        }
+        switch (ast->decoration()) {
+            case cpl::FunctionDeclaration::kDefault:
+                return Function::kDefault;
+            case cpl::FunctionDeclaration::kAbstract:
+                return Function::kAbstract;
+            case cpl::FunctionDeclaration::kNative:
+                return Function::kNative;
+            case cpl::FunctionDeclaration::kOverride:
+                return Function::kOverride;
+            default:
+                UNREACHABLE();
+                break;
+        }
     }
     
     int VisitBlock(cpl::Block *node) override {
@@ -319,12 +335,90 @@ public:
         UNREACHABLE();
     }
 
-    int VisitAssignment(cpl::Assignment *node) override { UNREACHABLE(); }
     int VisitStructDefinition(cpl::StructDefinition *node) override { UNREACHABLE(); }
+
+    int VisitAssignment(cpl::Assignment *node) override {
+        std::vector<Value *> rvals;
+        for (auto ast : node->rvals()) {
+            if (Reduce(ast, &rvals) < 0) {
+                return -1;
+            }
+        }
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        assert(rvals.size() == node->lvals_size());
+        for (auto i = 0; i < node->lvals_size(); i++) {
+            Symbol symbol = Symbol::NotFound();
+            
+            auto rval = rvals[i];
+            auto lval = node->lval(i);
+            SourcePositionTable::Scope ss(lval->source_position(), &root_ss);
+            if (auto ast = lval->AsIdentifier()) {
+                symbol = location_->FindSymbol(ast->name()->ToSlice());
+                assert(symbol.IsFound());
+                if (symbol.kind == Symbol::kValue) {
+                    if (symbol.owns->IsFileUnitScope()) { // Global var
+                        location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), rval);
+                    } else if (ShouldCaptureVal(symbol.owns, symbol.core.value)) {
+                        // TODO: Capture Val
+                        UNREACHABLE();
+                    } else {
+                        location_->PutSymbol(ast->name()->ToSlice(), rval);
+                    }
+                } else {
+                    assert(symbol.kind == Symbol::kHandle);
+                    EmitStoreField(ss.Position(), symbol.core.handle, rval);
+                }
+            } else if (auto ast = lval->AsDot()) {
+                if (auto id = ast->primary()->AsIdentifier()) {
+                    auto file_scope = location_->NearlyFileUnitScope();
+                    symbol = file_scope->FindExportSymbol(id->name()->ToSlice(), ast->field()->ToSlice());
+                }
+                if (symbol.IsFound()) {
+                    assert(symbol.owns->IsFileUnitScope());
+                    location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), rval);
+                } else {
+                    Value *primary = nullptr;
+                    if (ReduceReturningOnlyOne(ast->primary(), &primary) < 0) {
+                        return -1;
+                    }
+                    auto handle = DCHECK_NOTNULL(primary->type().model())->FindMemberOrNull(ast->field()->ToSlice());
+                    assert(handle != nullptr);
+                    EmitStoreField(ss.Position(), handle, rval);
+                }
+            } else {
+                UNREACHABLE();
+            }
+        }
+        return Returning(Unit());
+    }
+    
+    int VisitFunctionDeclaration(cpl::FunctionDeclaration *node) override {
+        if (!node->generic_params().empty()) {
+            return Returning(Unit());
+        }
+        assert(location_->IsFileUnitScope());
+        auto full_name = MakeFullName(node->name());
+        if (!GenerateFun(node, nullptr/*owns*/, owns_->AssertedGetFun(full_name))) {
+            return -1;
+        }
+        return Returning(Unit());
+    }
+    
+    int VisitInterfaceDefinition(cpl::InterfaceDefinition *node) override {
+        if (!node->generic_params().empty()) {
+            return Returning(Unit());
+        }
+        assert(location_->IsFileUnitScope());
+        auto full_name = MakeFullName(node->name());
+        auto model = AssertedGetUdt<InterfaceModel>(full_name);
+        
+        
+        return Returning(Unit());
+    }
     
     int VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
-    int VisitInterfaceDefinition(cpl::InterfaceDefinition *node) override { UNREACHABLE(); }
-    int VisitFunctionDeclaration(cpl::FunctionDeclaration *node) override { UNREACHABLE(); }
+    
+    
     int VisitAnnotationDeclaration(cpl::AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
     int VisitBreak(cpl::Break *node) override { UNREACHABLE(); }
@@ -427,11 +521,24 @@ private:
     cpl::SyntaxFeedback *feedback() { return owns_->error_feedback_; }
     OperatorsFactory *ops() { return owns_->ops_; }
     
+    std::string MakeFullName(const String *name) const {
+        return module_->full_name()->ToString().append(".").append(name->ToString());
+    }
+    
+    void EmitStoreField(SourcePosition source_position, Handle *handle, Value *input) {
+        auto op = handle->owns()->constraint() == Model::kRef ? ops()->StoreEffectField(handle)
+            : ops()->StoreAccessField(handle);
+        auto type = handle->owns()->constraint() == Model::kRef
+            ? Type::Ref(const_cast<Model *>(handle->owns()))
+            : Type::Val(const_cast<Model *>(handle->owns()));
+        location_->current_block()->NewNode(source_position, type, op, input);
+    }
+    
     Function *GenerateFun(const cpl::FunctionDeclaration *ast, Model *owns, Function *fun = nullptr) {
         if (!fun) {
             auto full_name = String::New(arena(), ast->FullName());
             auto type = BuildType(ast->prototype());
-            fun = module_->NewFunction(ast->name()->Duplicate(arena()), full_name,
+            fun = module_->NewFunction(ToDecoration(ast), ast->name()->Duplicate(arena()), full_name,
                                        down_cast<PrototypeModel>(type.model()));
         } else {
             BuildType(ast->prototype()); // Build prototype always
@@ -469,6 +576,9 @@ private:
             location_->PutSymbol(arg->name()->ToSlice(), arg);
             fun->mutable_paramaters()->push_back(arg);
         }
+        if (!ast->body()) {
+            return fun;
+        }
 
         std::vector<Value *> values;
         if (auto rs = Reduce(ast->body(), &values); rs < 0) {
@@ -482,6 +592,25 @@ private:
             last_block->NewNodeWithValues(nullptr/*name*/, ss.Position(), Types::Void, op, values);
         }
         return fun;
+    }
+    
+    bool ShouldCaptureVal(NamespaceScope *scope, Value *val) {
+        if (scope->IsFileUnitScope() || scope->IsStructureScope()) {
+            return false;
+        }
+        auto fun_scope = location_->NearlyFunctionScope();
+        if (!fun_scope) {
+            return false;
+        }
+        for (auto sp = fun_scope->prev(); sp != nullptr; sp = sp->prev()) {
+            if (sp->IsFileUnitScope() || sp->IsStructureScope()) {
+                break;
+            }
+            if (sp == scope) {
+                return true;
+            }
+        }
+        return false;
     }
     
     Type BuildType(const cpl::Type *ast) {
@@ -624,6 +753,10 @@ private:
     int Returning(const std::vector<Value *> &vals) {
         for (auto val : vals) { results_.push(val); }
         return static_cast<int>(vals.size());
+    }
+    
+    const String *CurrentFileName() const {
+        return DCHECK_NOTNULL(location_->NearlyFileUnitScope())->file_unit()->file_name();
     }
     
     template<class T>
@@ -781,7 +914,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
     for (auto file_unit : pkg->source_files()) {
         for (auto var : file_unit->vars()) {
             for (auto i = 0; i < var->ItemSize(); i++) {
-                SourcePositionTable::Scope scope(file_unit->file_name(), var->source_position(),
+                SourcePositionTable::Scope scope(file_unit->file_name()->ToSlice(), var->source_position(),
                                                  module->mutable_source_position_table());
                 
                 auto it = var->AtItem(i);
@@ -793,7 +926,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
         }
         
         for (auto var : file_unit->objects()) {
-            SourcePositionTable::Scope scope(file_unit->file_name(), var->source_position(),
+            SourcePositionTable::Scope scope(file_unit->file_name()->ToSlice(), var->source_position(),
                                              module->mutable_source_position_table());
             
             auto name = String::New(arena_, full_name + "." + var->Identifier()->ToString());
@@ -805,7 +938,8 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
         
         for (auto def : file_unit->funs()) {
             auto ty = BuildType(def->prototype());
-            auto fun = module->NewFunction(def->name()->Duplicate(arena_),
+            auto fun = module->NewFunction(IRGeneratorAstVisitor::ToDecoration(def),
+                                           def->name()->Duplicate(arena_),
                                            String::New(arena_, full_name + "." + def->name()->ToString()),
                                            down_cast<PrototypeModel>(ty.model()));
             global_funs_[fun->full_name()->ToSlice()] = fun;
@@ -842,7 +976,7 @@ Function *IntermediateRepresentationGenerator::InstallInitFun(Module *module) {
         proto = down_cast<PrototypeModel>(iter->second);
     }
     
-    auto init = module->NewFunction(name, full_name, proto);
+    auto init = module->NewFunction(Function::kDefault, name, full_name, proto);
     init->NewBlock(String::New(arena_, "boot"));
     global_funs_[init->full_name()->ToSlice()] = init;
     return init;

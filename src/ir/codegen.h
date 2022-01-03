@@ -56,6 +56,13 @@ private:
         return iter == global_udts_.end() ? nullptr : iter->second;
     }
     
+    Function *AssertedGetFun(std::string_view name) const { return DCHECK_NOTNULL(FindFunOrNull(name)); }
+    
+    Function *FindFunOrNull(std::string_view name) const {
+        auto iter = global_funs_.find(name);
+        return iter == global_funs_.end() ? nullptr : iter->second;
+    }
+    
     PackageScope *AssertedGetPackageScope(cpl::Package *key) const {
         auto iter = pkg_scopes_.find(key);
         assert(iter != pkg_scopes_.end());

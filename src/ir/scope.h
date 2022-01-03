@@ -121,6 +121,9 @@ public:
     DEF_VAL_GETTER(int, level);
     DEF_PTR_PROP_RW_NOTNULL2(BasicBlock, current_block);
     
+    inline bool IsFileUnitScope();
+    inline bool IsStructureScope();
+    
     virtual PackageScope *NearlyPackageScope() { return !prev_ ? nullptr : prev_->NearlyPackageScope(); }
     virtual FileUnitScope *NearlyFileUnitScope() { return !prev_ ? nullptr : prev_->NearlyFileUnitScope(); }
     virtual StructureScope *NearlyStructureScope() { return !prev_ ? nullptr : prev_->NearlyStructureScope(); }
@@ -292,6 +295,10 @@ private:
     BranchScope *trunk_;
     std::vector<BranchScope *> branchs_;
 }; // class BranchScope
+
+inline bool NamespaceScope::IsFileUnitScope() { return NearlyFileUnitScope() == this; }
+
+inline bool NamespaceScope::IsStructureScope() { return NearlyStructureScope() == this; }
 
 } // namespace ir
 

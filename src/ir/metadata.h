@@ -60,6 +60,15 @@ public:
         kRef,
     };
     
+    enum Declaration {
+        kClass,
+        kStruct,
+        kInterface,
+        kFunction,
+        kArray,
+        kChannel,
+    };
+    
     struct Field {
         const String *name;
         Access access;
@@ -72,23 +81,23 @@ public:
         Function *fun;
         Access access;
         int offset;
-        bool is_native;
-        bool is_override;
     };
     
     DEF_PTR_GETTER(const String, name);
     DEF_PTR_GETTER(const String, full_name);
     DEF_VAL_PROP_RW(Constraint, constraint);
+    DEF_VAL_GETTER(Declaration, declaration);
     
     virtual std::tuple<Method, bool> FindMethod(std::string_view name) const;
     virtual std::tuple<Field, bool> FindField(std::string_view name) const;
     virtual Handle *FindMemberOrNull(std::string_view name) const;
     virtual size_t ReferenceSizeInBytes() const = 0;
 protected:
-    Model(const String *name, const String *full_name, Constraint constraint);
+    Model(const String *name, const String *full_name, Constraint constraint, Declaration declaration);
     
     const String *const name_;
     const String *const full_name_;
+    Declaration const declaration_;
     Constraint constraint_;
 }; // class Model
 
@@ -114,12 +123,16 @@ class InterfaceModel : public Model {
 public:
     InterfaceModel(base::Arena *arena, const String *name, const String *full_name);
     
-    void InsertMethod(Function *fun);
+    DEF_ARENA_VECTOR_GETTER(Method, method);
+    
+    Handle *InsertMethod(Function *fun);
 
     std::tuple<Method, bool> FindMethod(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
 private:
-    base::ArenaMap<std::string_view, Method> methods_;
+    base::Arena *const arena_;
+    base::ArenaMap<std::string_view, Handle *> members_;
+    base::ArenaVector<Method> methods_;
 }; // class InterfaceModel
 
 class ArrayModel : public Model {
@@ -152,14 +165,9 @@ private:
 
 class StructureModel : public Model {
 public:
-    enum Declaration {
-        kClass,
-        kStruct,
-    };
     StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration declaration,
                    Module *owns, StructureModel *base_of);
     
-    DEF_VAL_GETTER(Declaration, declaration);
     DEF_PTR_GETTER(Module, owns);
     DEF_PTR_PROP_RW(StructureModel, base_of);
     DEF_PTR_PROP_RW(Function, constructor);
@@ -177,7 +185,6 @@ public:
     Handle *FindMemberOrNull(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
 private:
-    Declaration const declaration_;
     Module *const owns_;
     base::Arena * const arena_;
     StructureModel *base_of_;

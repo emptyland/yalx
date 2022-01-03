@@ -56,7 +56,7 @@ TEST_F(MetadataTest, Interface) {
     prototype->mutable_params()->push_back(Types::Int32);
     prototype->mutable_params()->push_back(Types::Int32);
     prototype->mutable_return_types()->push_back(Types::Int32);
-    auto fun = module_->NewStandaloneFunction(name, prototype);
+    auto fun = module_->NewStandaloneFunction(Function::kDefault, name, name, prototype);
     
     fun->mutable_paramaters()->push_back(Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(0)));
     fun->mutable_paramaters()->push_back(Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(1)));
@@ -67,8 +67,6 @@ TEST_F(MetadataTest, Interface) {
         EXPECT_EQ(0, method.offset);
         EXPECT_EQ(kPublic, method.access);
         EXPECT_STREQ("foo", method.fun->name()->data());
-        EXPECT_FALSE(method.is_native);
-        EXPECT_FALSE(method.is_override);
     }
 }
 
