@@ -24,9 +24,11 @@ Symbol NamespaceScope::FindSymbol(std::string_view name) const {
 }
 
 void NamespaceScope::PutSymbol(std::string_view name, const Symbol &symbol) {
-//    auto iter = symbols_.find(name);
-//    assert(iter == symbols_.end());
-    symbols_[name] = symbol;
+    if (symbol.owns != this) {
+        const_cast<NamespaceScope *>(symbol.owns)->symbols_[name] = symbol;
+    } else {
+        symbols_[name] = symbol;
+    }
 }
 
 PackageScope::PackageScope(NamespaceScope **location, BasicBlock *current_block, cpl::Package *pkg, GlobalSymbols global)
@@ -177,6 +179,38 @@ BranchScope::~BranchScope() {
     if (IsTrunk()) {
         Exit();
     }
+}
+
+BranchScope *BranchScope::NearlyBranchScope() { return this; }
+
+NamespaceScope *BranchScope::Trunk() const { return trunk_; }
+
+void BranchScope::PutSymbol(std::string_view name, const Symbol &symbol) {
+    if (symbol.owns == this || IsTrunk()) { // Itself or trunk
+        NamespaceScope::PutSymbol(name, symbol);
+        return;
+    }
+
+    // Trunk v0
+    //  +-- Branch-1 v1
+    //  +-- Branch-2/Trunk v2
+    //       +-- Branch-2/1/Trunk v4
+    //            +-- Branch-2/1/1 v5
+    //            +-- Branch-2/1/2 v6
+    //       +-- Branch-2/2 v7
+    auto const limit = DCHECK_NOTNULL(Trunk())->NearlyFunctionScope(); // Function is limit side
+    assert(prev() == Trunk());
+    for (auto ns = Trunk(); ns != nullptr; ns = ns->prev()) {
+        auto exists_one = ns->FindLocalSymbol(name);
+        if (exists_one.IsFound()) {
+            conflicts_[name] = Conflict { symbol, current_block() };
+            break;
+        }
+        if (ns == limit) {
+            break;
+        }
+    }
+    NamespaceScope::PutSymbol(name, symbol);
 }
 
 bool BranchScope::IsTrunk() const {

@@ -1463,7 +1463,7 @@ IfExpression *Parser::ParseIfExpression(bool *ok) {
         location = location.Concat(else_clause->source_position());
     }
     
-    return new (arena_) IfExpression(initializer, condition, then_clause, else_clause, location);
+    return new (arena_) IfExpression(arena_, initializer, condition, then_clause, else_clause, location);
 }
 
 // when_statement ::= `when' `{' when_condition_clause+ when_else_clause? `}'

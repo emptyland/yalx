@@ -173,8 +173,8 @@ size_t StructureModel::ReferenceSizeInBytes() const {
     if (declaration() == kClass) {
         return kPointerSize;
     }
-    UNREACHABLE();
-    return 0;
+    //UNREACHABLE();
+    return 1;
 }
 
 } // namespace ir

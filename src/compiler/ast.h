@@ -1176,13 +1176,14 @@ private:
 
 class IfExpression : public Expression {
 public:
-    IfExpression(Statement *initializer, Expression *condition, Statement *then_clause, Statement *else_clause,
-                 const SourcePosition &source_position);
+    IfExpression(base::Arena *arena, Statement *initializer, Expression *condition, Statement *then_clause,
+                 Statement *else_clause, const SourcePosition &source_position);
     
     DEF_PTR_PROP_RW(Statement, initializer);
     DEF_PTR_PROP_RW(Expression, condition);
     DEF_PTR_PROP_RW(Statement, then_clause);
     DEF_PTR_PROP_RW(Statement, else_clause);
+    DEF_ARENA_VECTOR_GETTER(Type *, reduced_type);
     
     DECLARE_AST_NODE(IfExpression);
 private:
@@ -1190,6 +1191,7 @@ private:
     Expression *condition_;
     Statement *then_clause_;
     Statement *else_clause_;
+    base::ArenaVector<Type *> reduced_types_;
 }; // class IfExpression
 
 class CaseWhenPattern : public Node {

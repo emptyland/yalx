@@ -12,6 +12,8 @@ namespace ir {
 
 class Handle;
 class Function;
+class StructureModel;
+class InterfaceModel;
 
 class OperatorsFactory final {
 public:
@@ -24,6 +26,11 @@ public:
     
     Operator *Phi(int value_in, int control_in) {
         return new (arena_) Operator(Operator::kPhi, 0, value_in, control_in, 1/*value_out*/, 0/*control_out*/);
+    }
+    
+    Operator *Br(int value_in, int control_out) {
+        return new (arena_) Operator(Operator::kBr, 0, value_in, 0/*control_in*/, 1/*value_out*/,
+                                     control_out/*control_out*/);
     }
     
     Operator *Ret(int value_in) {
@@ -79,7 +86,7 @@ public:
         return new (arena_) OperatorWith<Function *>(Operator::kCallDirectly, 0, value_in, 0/*control_in*/,
                                                      value_out, 0/*control_out*/, fun);
     }
-
+    
     Operator *CallIndirectly(int value_out, int value_in) {
         return new (arena_) Operator(Operator::kCallIndirectly, 0, value_in, 0/*control_in*/, value_out,
                                      0/*control_out*/);
@@ -91,14 +98,14 @@ public:
     }
     
 #define DEFINE_CONSTANT(name, type) \
-    Operator *name##Constant(type value) { \
-        return new (arena_) OperatorWith<type>(Operator::k##name##Constant, 0, 0, 0, 0, 0, value); \
-    }
+Operator *name##Constant(type value) { \
+return new (arena_) OperatorWith<type>(Operator::k##name##Constant, 0, 0, 0, 0, 0, value); \
+}
     DEFINE_CONSTANT(Word8, uint8_t)
     DEFINE_CONSTANT(Word16, uint16_t)
     DEFINE_CONSTANT(Word32, uint32_t)
     DEFINE_CONSTANT(Word64, uint64_t)
-
+    
     DEFINE_CONSTANT(I8, int8_t)
     DEFINE_CONSTANT(I16, int16_t)
     DEFINE_CONSTANT(I32, int32_t)
@@ -115,18 +122,93 @@ public:
 #undef DEFINE_CONSTANT
     
     Operator *NilConstant() {
-        return new (arena_) Operator(Operator::kNilConstant, 0, 0/*value_in*/, 0/*control_in*/, 0/*value_out*/,
+        return new (arena_) Operator(Operator::kNilConstant, 0, 0/*value_in*/, 0/*control_in*/, 1/*value_out*/,
                                      0/*control_out*/);
     }
     
 #define DEFINE_BINARY(name) \
-    Operator *name() { \
-        return new (arena_) Operator(Operator::k##name, 0, 2, 0, 1, 0); \
-    }
+Operator *name() { \
+return new (arena_) Operator(Operator::k##name, 0, 2, 0, 1, 0); \
+}
     
     DECLARE_IR_BINARY(DEFINE_BINARY)
     
 #undef DEFINE_BINARY
+
+    Operator *TruncTo() {
+        return new (arena_) Operator(Operator::kTruncTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
+    Operator *ZextTo() {
+        return new (arena_) Operator(Operator::kZextTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+
+    Operator *SextTo() {
+        return new (arena_) Operator(Operator::kSextTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
+    Operator *FPTruncTo() {
+        return new (arena_) Operator(Operator::kFPTruncTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
+    Operator *FPExtTo() {
+        return new (arena_) Operator(Operator::kFPExtTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
+    Operator *FPToUI() {
+        return new (arena_) Operator(Operator::kFPToUI, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+
+    Operator *FPToSI() {
+        return new (arena_) Operator(Operator::kFPToSI, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
+    Operator *UIToFP() {
+        return new (arena_) Operator(Operator::kUIToFP, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+
+    Operator *SIToFP() {
+        return new (arena_) Operator(Operator::kSIToFP, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
+    Operator *BitCastTo() {
+        return new (arena_) Operator(Operator::kBitCastTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
+    Operator *IfaceToRef(const InterfaceModel *src) {
+        return new (arena_) OperatorWith<const InterfaceModel *>(Operator::kIfaceToRef, 0, 1/*value_in*/,
+                                                                 0/*control_in*/, 1/*value_out*/, 0/*control_out*/, src);
+    }
+    
+    Operator *RefToIface(const StructureModel *src) {
+        return new (arena_) OperatorWith<const StructureModel *>(Operator::kRefToIface, 0, 1/*value_in*/,
+                                                                 0/*control_in*/, 1/*value_out*/, 0/*control_out*/, src);
+    }
+    
+    Operator *RefAssertedTo(const StructureModel *src) {
+        return new (arena_) OperatorWith<const StructureModel *>(Operator::kRefAssertedTo, 0, 1/*value_in*/,
+                                                                 0/*control_in*/, 1/*value_out*/, 0/*control_out*/, src);
+    }
+    
+    Operator *BoxingTo(const StructureModel *src) {
+        return new (arena_) OperatorWith<const StructureModel *>(Operator::kBoxingTo, 0, 1/*value_in*/,
+                                                                 0/*control_in*/, 1/*value_out*/, 0/*control_out*/, src);
+    }
+    
+    Operator *UnboxingTo(const StructureModel *src) {
+        return new (arena_) OperatorWith<const StructureModel *>(Operator::kUnboxingTo, 0, 1/*value_in*/,
+                                                                 0/*control_in*/, 1/*value_out*/, 0/*control_out*/, src);
+    }
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(OperatorsFactory);
 private:

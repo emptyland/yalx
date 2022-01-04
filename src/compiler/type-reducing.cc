@@ -1421,6 +1421,7 @@ private:
         if (ReduceBranchsTypes(branchs_types.get(), number_of_branchs, 1, &results, node->source_position()) < 0) {
             return -1;
         }
+        for (auto type : results) { node->mutable_reduced_types()->push_back(type); }
         return Returning(results);
     }
     

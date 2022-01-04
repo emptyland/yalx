@@ -92,13 +92,13 @@ TEST_F(ScopeTest, BranchsValueVersions) {
     auto k2 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
     
     BranchScope trunk(&scope_, block, nullptr);
-    trunk.PutSymbol("a", k100);
-    trunk.PutSymbol("b", k200);
+    trunk.PutValue("a", k100);
+    trunk.PutValue("b", k200);
     
     block = fun_->NewBlock(String::New(&arena_, "br1"));
     auto br1 = trunk.Branch(nullptr, block);
     br1->Enter();
-    br1->Update("a", &trunk, k1);
+    br1->PutSymbol("a", Symbol::Val(&trunk, k1));
     ASSERT_EQ(k1, br1->FindLocalSymbol("a").core.value);
     ASSERT_EQ(k100, trunk.FindLocalSymbol("a").core.value);
     br1->Exit();
@@ -106,7 +106,7 @@ TEST_F(ScopeTest, BranchsValueVersions) {
     block = fun_->NewBlock(String::New(&arena_, "br2"));
     auto br2 = trunk.Branch(nullptr, block);
     br2->Enter();
-    br2->Update("b", &trunk, k2);
+    br2->PutSymbol("b", Symbol::Val(&trunk, k2));
     ASSERT_EQ(k2, br2->FindLocalSymbol("b").core.value);
     br2->Exit();
 }
@@ -120,8 +120,8 @@ TEST_F(ScopeTest, NestedBranchs) {
     auto k2 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
     
     BranchScope trunk(&scope_, block, nullptr);
-    trunk.PutSymbol("a", k100);
-    trunk.PutSymbol("b", k200);
+    trunk.PutValue("a", k100);
+    trunk.PutValue("b", k200);
     
     block = fun_->NewBlock(String::New(&arena_, "br1"));
     auto br1 = trunk.Branch(nullptr, block);

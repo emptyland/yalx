@@ -597,13 +597,14 @@ Calling::Calling(base::Arena *arena, Expression *callee, const SourcePosition &s
 //    , args_(arena) {
 //}
 
-IfExpression::IfExpression(Statement *initializer, Expression *condition, Statement *then_clause, Statement *else_clause,
-                           const SourcePosition &source_position)
+IfExpression::IfExpression(base::Arena *arena, Statement *initializer, Expression *condition, Statement *then_clause,
+                           Statement *else_clause, const SourcePosition &source_position)
     : Expression(Node::kIfExpression, false /*is_lval*/, true /*ls_rval*/, source_position)
     , initializer_(initializer)
     , condition_(DCHECK_NOTNULL(condition))
     , then_clause_(then_clause)
-    , else_clause_(else_clause) {
+    , else_clause_(else_clause)
+    , reduced_types_(arena) {
 }
 
 CaseWhenPattern::CaseWhenPattern(Pattern pattern, Statement *then_clause, const SourcePosition &source_position)

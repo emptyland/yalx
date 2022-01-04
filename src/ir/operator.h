@@ -16,12 +16,14 @@ namespace ir {
     DECLARE_IR_CONSTANT(V) \
     DECLARE_IR_CALLING(V) \
     DECLARE_IR_BINARY(V) \
-    DECLARE_IR_GLOBALS(V)
+    DECLARE_IR_GLOBALS(V) \
+    DECLARE_IR_CONVERSION(V)
 
 
 #define DECLARE_IR_INNER(V) \
     V(FrameState) \
     V(Phi) \
+    V(Br) \
     V(Argument) \
     V(Parameter) \
     V(Ret)
@@ -75,7 +77,22 @@ namespace ir {
     V(U32BitwiseShr) \
     V(I32BitwiseShr)
 
-// V(Word32BitwiseNegative) \
+#define DECLARE_IR_CONVERSION(V) \
+    V(TruncTo) \
+    V(ZextTo) \
+    V(SextTo) \
+    V(FPTruncTo) \
+    V(FPExtTo) \
+    V(FPToUI) \
+    V(FPToSI) \
+    V(UIToFP) \
+    V(SIToFP) \
+    V(BitCastTo) \
+    V(IfaceToRef) \
+    V(RefToIface) \
+    V(RefAssertedTo) \
+    V(BoxingTo) \
+    V(UnboxingTo) 
 
 class Node;
 class Value;

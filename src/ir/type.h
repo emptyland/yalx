@@ -26,7 +26,7 @@ namespace ir {
     V(UInt64,  64, Type::kNumberBit) \
     V(Float32, 32, Type::kSignedBit|Type::kNumberBit) \
     V(Float64, 64, Type::kSignedBit|Type::kNumberBit|Type::kFloatBit) \
-    V(String, kPointerSize * 8, Type::kReferenceBit)
+    V(String,  kPointerSize * 8, Type::kReferenceBit)
 
 class Model;
 
@@ -56,13 +56,14 @@ public:
     
     int bytes() const { return bits_ / 8; }
     
-    bool is_signed() const { return flags_ & kSignedBit; }
-    bool is_unsigned() const { return !is_signed(); }
-    bool is_float() const { return flags_ & kFloatBit; }
-    bool is_number() const { return flags_ & kNumberBit; }
-    bool is_reference() const { return flags_ & kReferenceBit; }
-    bool is_none_nullable() const { return !is_nullable(); }
-    bool is_nullable() const { return flags_ & kNullableBit; }
+    bool IsSigned() const { return flags_ & kSignedBit; }
+    bool IsUnsigned() const { return !IsSigned(); }
+    bool IsFloating() const { return flags_ & kFloatBit; }
+    bool IsIntegral() const { return !IsFloating(); }
+    bool IsNumber() const { return flags_ & kNumberBit; }
+    bool IsReference() const { return flags_ & kReferenceBit; }
+    bool IsNoneNullable() const { return !IsNullable(); }
+    bool IsNullable() const { return flags_ & kNullableBit; }
     
     std::string_view ToString() const;
 

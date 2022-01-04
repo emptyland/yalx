@@ -132,7 +132,8 @@ public:
     
     virtual Symbol FindLocalSymbol(std::string_view name) const;
     virtual Symbol FindSymbol(std::string_view name) const;
-    void PutSymbol(std::string_view name, Value *value, cpl::Statement *node = nullptr) {
+
+    void PutValue(std::string_view name, Value *value, cpl::Statement *node = nullptr) {
         PutSymbol(name, Symbol::Val(this, value, node));
     }
     virtual void PutSymbol(std::string_view name, const Symbol &symbol);
@@ -254,6 +255,8 @@ public:
     FunctionScope(NamespaceScope **location, const cpl::FunctionDeclaration *ast, Function *fun);
     ~FunctionScope() override;
     
+    DEF_PTR_GETTER(Function, fun);
+    
     FunctionScope *NearlyFunctionScope() override;
     BranchScope *NearlyBranchScope() override;
     
@@ -269,11 +272,13 @@ public:
                 BranchScope *trunk = nullptr);
     ~BranchScope() override;
     
-    BranchScope *NearlyBranchScope() override { return this; }
+    const std::vector<BranchScope *> &branchs() const { return branchs_; }
     
-    //Symbol FindLocalSymbol(std::string_view name) override;
+    BranchScope *NearlyBranchScope() override;
     
-    NamespaceScope *Trunk() const override { return trunk_; }
+    void PutSymbol(std::string_view name, const Symbol &symbol) override;
+    
+    NamespaceScope *Trunk() const override;
     
     bool IsTrunk() const;
     
@@ -291,9 +296,15 @@ public:
     
     void Update(std::string_view name, NamespaceScope *owns, Value *value);
 private:
+    struct Conflict {
+        Symbol symbol;
+        BasicBlock *routine;
+    };
+    
     cpl::Statement *ast_;
     BranchScope *trunk_;
     std::vector<BranchScope *> branchs_;
+    std::unordered_map<std::string_view, Conflict> conflicts_;
 }; // class BranchScope
 
 inline bool NamespaceScope::IsFileUnitScope() { return NearlyFileUnitScope() == this; }

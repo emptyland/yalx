@@ -491,7 +491,8 @@ private:
         if (node->else_clause()) {
             INSTANTIATE(else_clause, node->else_clause());
         }
-        return Return(new (arena_) IfExpression(init, condition, then_clause, else_clause, node->source_position()));
+        return Return(new (arena_) IfExpression(arena_, init, condition, then_clause, else_clause,
+                                                node->source_position()));
     }
     
     int VisitLambdaLiteral(LambdaLiteral *node) override {
