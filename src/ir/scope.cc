@@ -210,7 +210,7 @@ void BranchScope::PutSymbol(std::string_view name, const Symbol &symbol) {
             break;
         }
     }
-    NamespaceScope::PutSymbol(name, symbol);
+    symbols_[name] = symbol;
 }
 
 bool BranchScope::IsTrunk() const {
