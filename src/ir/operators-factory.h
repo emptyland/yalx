@@ -117,7 +117,7 @@ return new (arena_) OperatorWith<type>(Operator::k##name##Constant, 0, 0, 0, 0, 
     DEFINE_CONSTANT(F32, float)
     DEFINE_CONSTANT(F64, double)
     
-    DEFINE_CONSTANT(String, String*)
+    DEFINE_CONSTANT(String, String const*)
     
 #undef DEFINE_CONSTANT
     
@@ -135,80 +135,15 @@ return new (arena_) Operator(Operator::k##name, 0, 2, 0, 1, 0); \
     
 #undef DEFINE_BINARY
 
-    Operator *TruncTo() {
-        return new (arena_) Operator(Operator::kTruncTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
-                                     0/*control_out*/);
+#define DEFINE_CONVERSION(name) \
+    Operator *name() { \
+        return new (arena_) Operator(Operator::k##name, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/, \
+                                     0/*control_out*/); \
     }
     
-    Operator *ZextTo() {
-        return new (arena_) Operator(Operator::kZextTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
-                                     0/*control_out*/);
-    }
-
-    Operator *SextTo() {
-        return new (arena_) Operator(Operator::kSextTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
-                                     0/*control_out*/);
-    }
+    DECLARE_IR_CONVERSION(DEFINE_CONVERSION)
     
-    Operator *FPTruncTo() {
-        return new (arena_) Operator(Operator::kFPTruncTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
-                                     0/*control_out*/);
-    }
-    
-    Operator *FPExtTo() {
-        return new (arena_) Operator(Operator::kFPExtTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
-                                     0/*control_out*/);
-    }
-    
-    Operator *FPToUI() {
-        return new (arena_) Operator(Operator::kFPToUI, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
-                                     0/*control_out*/);
-    }
-
-    Operator *FPToSI() {
-        return new (arena_) Operator(Operator::kFPToSI, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
-                                     0/*control_out*/);
-    }
-    
-    Operator *UIToFP() {
-        return new (arena_) Operator(Operator::kUIToFP, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
-                                     0/*control_out*/);
-    }
-
-    Operator *SIToFP() {
-        return new (arena_) Operator(Operator::kSIToFP, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
-                                     0/*control_out*/);
-    }
-    
-    Operator *BitCastTo() {
-        return new (arena_) Operator(Operator::kBitCastTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
-                                     0/*control_out*/);
-    }
-    
-    Operator *IfaceToRef(const InterfaceModel *src) {
-        return new (arena_) OperatorWith<const InterfaceModel *>(Operator::kIfaceToRef, 0, 1/*value_in*/,
-                                                                 0/*control_in*/, 1/*value_out*/, 0/*control_out*/, src);
-    }
-    
-    Operator *RefToIface(const StructureModel *src) {
-        return new (arena_) OperatorWith<const StructureModel *>(Operator::kRefToIface, 0, 1/*value_in*/,
-                                                                 0/*control_in*/, 1/*value_out*/, 0/*control_out*/, src);
-    }
-    
-    Operator *RefAssertedTo(const StructureModel *src) {
-        return new (arena_) OperatorWith<const StructureModel *>(Operator::kRefAssertedTo, 0, 1/*value_in*/,
-                                                                 0/*control_in*/, 1/*value_out*/, 0/*control_out*/, src);
-    }
-    
-    Operator *BoxingTo(const StructureModel *src) {
-        return new (arena_) OperatorWith<const StructureModel *>(Operator::kBoxingTo, 0, 1/*value_in*/,
-                                                                 0/*control_in*/, 1/*value_out*/, 0/*control_out*/, src);
-    }
-    
-    Operator *UnboxingTo(const StructureModel *src) {
-        return new (arena_) OperatorWith<const StructureModel *>(Operator::kUnboxingTo, 0, 1/*value_in*/,
-                                                                 0/*control_in*/, 1/*value_out*/, 0/*control_out*/, src);
-    }
+#undef DEFINE_CONVERSION
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(OperatorsFactory);
 private:

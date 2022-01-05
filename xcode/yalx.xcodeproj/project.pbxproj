@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		230167692669C5DB007E8322 /* yalx-string.c in Sources */ = {isa = PBXBuildFile; fileRef = 230167682669C5DB007E8322 /* yalx-string.c */; };
 		2301676B266A27CF007E8322 /* heap-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2301676A266A27CF007E8322 /* heap-test.cc */; };
+		230C85FE27853E4D00298122 /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 230C85FD27853E4D00298122 /* constants.cc */; };
+		230C85FF27853E4D00298122 /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 230C85FD27853E4D00298122 /* constants.cc */; };
 		231C4B8C268DA7AD00D4AC62 /* boot-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8A268DA7AD00D4AC62 /* boot-posix-arm64.s */; };
 		231C4B8D268DA7AD00D4AC62 /* test-stub-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8B268DA7AD00D4AC62 /* test-stub-posix-arm64.s */; };
 		231C4B90268DA7D200D4AC62 /* yalx-string-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8E268DA7D200D4AC62 /* yalx-string-posix-arm64.s */; };
@@ -227,6 +229,8 @@
 		230167672669C575007E8322 /* yalx-string.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "yalx-string.h"; path = "../src/runtime/object/yalx-string.h"; sourceTree = "<group>"; };
 		230167682669C5DB007E8322 /* yalx-string.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "yalx-string.c"; path = "../src/runtime/object/yalx-string.c"; sourceTree = "<group>"; };
 		2301676A266A27CF007E8322 /* heap-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "heap-test.cc"; path = "../src/runtime/heap/heap-test.cc"; sourceTree = "<group>"; };
+		230C85FC27853D6600298122 /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/ir/constants.h; sourceTree = "<group>"; };
+		230C85FD27853E4D00298122 /* constants.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = constants.cc; path = ../src/ir/constants.cc; sourceTree = "<group>"; };
 		231C4B8A268DA7AD00D4AC62 /* boot-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "boot-posix-arm64.s"; path = "../src/runtime/boot-posix-arm64.s"; sourceTree = "<group>"; };
 		231C4B8B268DA7AD00D4AC62 /* test-stub-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "test-stub-posix-arm64.s"; path = "../src/runtime/test-stub-posix-arm64.s"; sourceTree = "<group>"; };
 		231C4B8E268DA7D200D4AC62 /* yalx-string-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "yalx-string-posix-arm64.s"; path = "../src/runtime/object/yalx-string-posix-arm64.s"; sourceTree = "<group>"; };
@@ -593,6 +597,8 @@
 				23FA86AC26A26CC9001CC777 /* scope-test.cc */,
 				23C3543626A1B7E7006607D1 /* scope.cc */,
 				23C3543526A1B7A6006607D1 /* scope.h */,
+				230C85FD27853E4D00298122 /* constants.cc */,
+				230C85FC27853D6600298122 /* constants.h */,
 			);
 			name = Ir;
 			sourceTree = "<group>";
@@ -704,6 +710,7 @@
 				233236E3269ECAFA0078406C /* node-test.cc in Sources */,
 				23D4A44E2680D17D0090C631 /* heap-test.cc in Sources */,
 				23D4A44F2680D17D0090C631 /* heap.h in Sources */,
+				230C85FF27853E4D00298122 /* constants.cc in Sources */,
 				23A7F0E22699E22A0060BFB7 /* compiler-test.cc in Sources */,
 				23D4A4502680D17D0090C631 /* heap.c in Sources */,
 				23D4A4512680D17D0090C631 /* runtime-test.cc in Sources */,
@@ -879,6 +886,7 @@
 				23D5A65A266718ED00635ADB /* asm-x64-test.cc in Sources */,
 				2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */,
 				23D5A65B266718ED00635ADB /* asm-x64.cc in Sources */,
+				230C85FE27853E4D00298122 /* constants.cc in Sources */,
 				23D5A65C266718ED00635ADB /* asm-x64.h in Sources */,
 				232AA00026861A060098E6A3 /* ast-test.cc in Sources */,
 				23D5A65D266718ED00635ADB /* gtest-all.cc in Sources */,

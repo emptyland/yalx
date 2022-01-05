@@ -4,6 +4,7 @@
 #include "ir/operator.h"
 #include "ir/node.h"
 #include "ir/metadata.h"
+#include "ir/constants.h"
 #include "compiler/ast.h"
 #include "compiler/syntax-feedback.h"
 #include "compiler/constants.h"
@@ -25,369 +26,6 @@ namespace ir {
     (ast)->source_position(), \
     module_->mutable_source_position_table()
 
-
-Operator::Value kConversionRulers[Operator::kMaxValues][Operator::kMaxValues] = {
-    /* Void */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kMaxValues,
-        /* Word16    */ Operator::kMaxValues,
-        /* Word32    */ Operator::kMaxValues,
-        /* Word64    */ Operator::kMaxValues,
-        /* Int8      */ Operator::kMaxValues,
-        /* Int16     */ Operator::kMaxValues,
-        /* Int32     */ Operator::kMaxValues,
-        /* Int64     */ Operator::kMaxValues,
-        /* UInt8     */ Operator::kMaxValues,
-        /* UInt16    */ Operator::kMaxValues,
-        /* UInt32    */ Operator::kMaxValues,
-        /* UInt64    */ Operator::kMaxValues,
-        /* Float32   */ Operator::kMaxValues,
-        /* Float64   */ Operator::kMaxValues,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kMaxValues,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* Word8 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kBitCastTo,
-        /* Word16    */ Operator::kZextTo,
-        /* Word32    */ Operator::kZextTo,
-        /* Word64    */ Operator::kZextTo,
-        /* Int8      */ Operator::kBitCastTo,
-        /* Int16     */ Operator::kZextTo,
-        /* Int32     */ Operator::kZextTo,
-        /* Int64     */ Operator::kZextTo,
-        /* UInt8     */ Operator::kBitCastTo,
-        /* UInt16    */ Operator::kZextTo,
-        /* UInt32    */ Operator::kZextTo,
-        /* UInt64    */ Operator::kZextTo,
-        /* Float32   */ Operator::kUIToFP,
-        /* Float64   */ Operator::kUIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* Word16 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kTruncTo,
-        /* Word16    */ Operator::kBitCastTo,
-        /* Word32    */ Operator::kZextTo,
-        /* Word64    */ Operator::kZextTo,
-        /* Int8      */ Operator::kTruncTo,
-        /* Int16     */ Operator::kBitCastTo,
-        /* Int32     */ Operator::kZextTo,
-        /* Int64     */ Operator::kZextTo,
-        /* UInt8     */ Operator::kTruncTo,
-        /* UInt16    */ Operator::kBitCastTo,
-        /* UInt32    */ Operator::kZextTo,
-        /* UInt64    */ Operator::kZextTo,
-        /* Float32   */ Operator::kUIToFP,
-        /* Float64   */ Operator::kUIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* Word32 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kTruncTo,
-        /* Word16    */ Operator::kTruncTo,
-        /* Word32    */ Operator::kBitCastTo,
-        /* Word64    */ Operator::kZextTo,
-        /* Int8      */ Operator::kTruncTo,
-        /* Int16     */ Operator::kTruncTo,
-        /* Int32     */ Operator::kBitCastTo,
-        /* Int64     */ Operator::kZextTo,
-        /* UInt8     */ Operator::kTruncTo,
-        /* UInt16    */ Operator::kTruncTo,
-        /* UInt32    */ Operator::kBitCastTo,
-        /* UInt64    */ Operator::kZextTo,
-        /* Float32   */ Operator::kUIToFP,
-        /* Float64   */ Operator::kUIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* Word64 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kTruncTo,
-        /* Word16    */ Operator::kTruncTo,
-        /* Word32    */ Operator::kTruncTo,
-        /* Word64    */ Operator::kBitCastTo,
-        /* Int8      */ Operator::kTruncTo,
-        /* Int16     */ Operator::kTruncTo,
-        /* Int32     */ Operator::kTruncTo,
-        /* Int64     */ Operator::kBitCastTo,
-        /* UInt8     */ Operator::kTruncTo,
-        /* UInt16    */ Operator::kTruncTo,
-        /* UInt32    */ Operator::kTruncTo,
-        /* UInt64    */ Operator::kBitCastTo,
-        /* Float32   */ Operator::kUIToFP,
-        /* Float64   */ Operator::kUIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* Int8 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kBitCastTo,
-        /* Word16    */ Operator::kZextTo,
-        /* Word32    */ Operator::kZextTo,
-        /* Word64    */ Operator::kZextTo,
-        /* Int8      */ Operator::kBitCastTo,
-        /* Int16     */ Operator::kSextTo,
-        /* Int32     */ Operator::kSextTo,
-        /* Int64     */ Operator::kSextTo,
-        /* UInt8     */ Operator::kBitCastTo,
-        /* UInt16    */ Operator::kZextTo,
-        /* UInt32    */ Operator::kZextTo,
-        /* UInt64    */ Operator::kZextTo,
-        /* Float32   */ Operator::kSIToFP,
-        /* Float64   */ Operator::kSIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* Int16 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kTruncTo,
-        /* Word16    */ Operator::kBitCastTo,
-        /* Word32    */ Operator::kZextTo,
-        /* Word64    */ Operator::kZextTo,
-        /* Int8      */ Operator::kTruncTo,
-        /* Int16     */ Operator::kBitCastTo,
-        /* Int32     */ Operator::kSextTo,
-        /* Int64     */ Operator::kSextTo,
-        /* UInt8     */ Operator::kTruncTo,
-        /* UInt16    */ Operator::kBitCastTo,
-        /* UInt32    */ Operator::kZextTo,
-        /* UInt64    */ Operator::kZextTo,
-        /* Float32   */ Operator::kSIToFP,
-        /* Float64   */ Operator::kSIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* Int32 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kTruncTo,
-        /* Word16    */ Operator::kTruncTo,
-        /* Word32    */ Operator::kBitCastTo,
-        /* Word64    */ Operator::kZextTo,
-        /* Int8      */ Operator::kTruncTo,
-        /* Int16     */ Operator::kTruncTo,
-        /* Int32     */ Operator::kBitCastTo,
-        /* Int64     */ Operator::kSextTo,
-        /* UInt8     */ Operator::kTruncTo,
-        /* UInt16    */ Operator::kTruncTo,
-        /* UInt32    */ Operator::kBitCastTo,
-        /* UInt64    */ Operator::kZextTo,
-        /* Float32   */ Operator::kSIToFP,
-        /* Float64   */ Operator::kSIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* Int64 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kTruncTo,
-        /* Word16    */ Operator::kTruncTo,
-        /* Word32    */ Operator::kTruncTo,
-        /* Word64    */ Operator::kBitCastTo,
-        /* Int8      */ Operator::kTruncTo,
-        /* Int16     */ Operator::kTruncTo,
-        /* Int32     */ Operator::kTruncTo,
-        /* Int64     */ Operator::kBitCastTo,
-        /* UInt8     */ Operator::kTruncTo,
-        /* UInt16    */ Operator::kTruncTo,
-        /* UInt32    */ Operator::kTruncTo,
-        /* UInt64    */ Operator::kBitCastTo,
-        /* Float32   */ Operator::kSIToFP,
-        /* Float64   */ Operator::kSIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* UInt8 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kBitCastTo,
-        /* Word16    */ Operator::kZextTo,
-        /* Word32    */ Operator::kZextTo,
-        /* Word64    */ Operator::kZextTo,
-        /* Int8      */ Operator::kBitCastTo,
-        /* Int16     */ Operator::kZextTo,
-        /* Int32     */ Operator::kZextTo,
-        /* Int64     */ Operator::kZextTo,
-        /* UInt8     */ Operator::kBitCastTo,
-        /* UInt16    */ Operator::kZextTo,
-        /* UInt32    */ Operator::kZextTo,
-        /* UInt64    */ Operator::kZextTo,
-        /* Float32   */ Operator::kUIToFP,
-        /* Float64   */ Operator::kUIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* UInt16 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kTruncTo,
-        /* Word16    */ Operator::kBitCastTo,
-        /* Word32    */ Operator::kZextTo,
-        /* Word64    */ Operator::kZextTo,
-        /* Int8      */ Operator::kTruncTo,
-        /* Int16     */ Operator::kBitCastTo,
-        /* Int32     */ Operator::kZextTo,
-        /* Int64     */ Operator::kZextTo,
-        /* UInt8     */ Operator::kTruncTo,
-        /* UInt16    */ Operator::kBitCastTo,
-        /* UInt32    */ Operator::kZextTo,
-        /* UInt64    */ Operator::kZextTo,
-        /* Float32   */ Operator::kUIToFP,
-        /* Float64   */ Operator::kUIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* UInt32 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kTruncTo,
-        /* Word16    */ Operator::kTruncTo,
-        /* Word32    */ Operator::kBitCastTo,
-        /* Word64    */ Operator::kZextTo,
-        /* Int8      */ Operator::kTruncTo,
-        /* Int16     */ Operator::kTruncTo,
-        /* Int32     */ Operator::kBitCastTo,
-        /* Int64     */ Operator::kZextTo,
-        /* UInt8     */ Operator::kTruncTo,
-        /* UInt16    */ Operator::kTruncTo,
-        /* UInt32    */ Operator::kBitCastTo,
-        /* UInt64    */ Operator::kZextTo,
-        /* Float32   */ Operator::kUIToFP,
-        /* Float64   */ Operator::kUIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* UInt64 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kTruncTo,
-        /* Word16    */ Operator::kTruncTo,
-        /* Word32    */ Operator::kTruncTo,
-        /* Word64    */ Operator::kBitCastTo,
-        /* Int8      */ Operator::kTruncTo,
-        /* Int16     */ Operator::kTruncTo,
-        /* Int32     */ Operator::kTruncTo,
-        /* Int64     */ Operator::kBitCastTo,
-        /* UInt8     */ Operator::kTruncTo,
-        /* UInt16    */ Operator::kTruncTo,
-        /* UInt32    */ Operator::kTruncTo,
-        /* UInt64    */ Operator::kBitCastTo,
-        /* Float32   */ Operator::kUIToFP,
-        /* Float64   */ Operator::kUIToFP,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* Float32 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kFPToUI,
-        /* Word16    */ Operator::kFPToUI,
-        /* Word32    */ Operator::kFPToUI,
-        /* Word64    */ Operator::kFPToUI,
-        /* Int8      */ Operator::kFPToSI,
-        /* Int16     */ Operator::kFPToSI,
-        /* Int32     */ Operator::kFPToSI,
-        /* Int64     */ Operator::kFPToSI,
-        /* UInt8     */ Operator::kFPToUI,
-        /* UInt16    */ Operator::kFPToUI,
-        /* UInt32    */ Operator::kFPToUI,
-        /* UInt64    */ Operator::kFPToUI,
-        /* Float32   */ Operator::kBitCastTo,
-        /* Float64   */ Operator::kFPExtTo,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* Float64 */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kFPToUI,
-        /* Word16    */ Operator::kFPToUI,
-        /* Word32    */ Operator::kFPToUI,
-        /* Word64    */ Operator::kFPToUI,
-        /* Int8      */ Operator::kFPToSI,
-        /* Int16     */ Operator::kFPToSI,
-        /* Int32     */ Operator::kFPToSI,
-        /* Int64     */ Operator::kFPToSI,
-        /* UInt8     */ Operator::kFPToUI,
-        /* UInt16    */ Operator::kFPToUI,
-        /* UInt32    */ Operator::kFPToUI,
-        /* UInt64    */ Operator::kFPToUI,
-        /* Float32   */ Operator::kFPTruncTo,
-        /* Float64   */ Operator::kBitCastTo,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* String */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kMaxValues,
-        /* Word16    */ Operator::kMaxValues,
-        /* Word32    */ Operator::kMaxValues,
-        /* Word64    */ Operator::kMaxValues,
-        /* Int8      */ Operator::kMaxValues,
-        /* Int16     */ Operator::kMaxValues,
-        /* Int32     */ Operator::kMaxValues,
-        /* Int64     */ Operator::kMaxValues,
-        /* UInt8     */ Operator::kMaxValues,
-        /* UInt16    */ Operator::kMaxValues,
-        /* UInt32    */ Operator::kMaxValues,
-        /* UInt64    */ Operator::kMaxValues,
-        /* Float32   */ Operator::kMaxValues,
-        /* Float64   */ Operator::kMaxValues,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kMaxValues,
-        /* Value     */ Operator::kMaxValues,
-    },
-    /* Reference */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kUnboxingTo,
-        /* Word16    */ Operator::kUnboxingTo,
-        /* Word32    */ Operator::kUnboxingTo,
-        /* Word64    */ Operator::kUnboxingTo,
-        /* Int8      */ Operator::kUnboxingTo,
-        /* Int16     */ Operator::kUnboxingTo,
-        /* Int32     */ Operator::kUnboxingTo,
-        /* Int64     */ Operator::kUnboxingTo,
-        /* UInt8     */ Operator::kUnboxingTo,
-        /* UInt16    */ Operator::kUnboxingTo,
-        /* UInt32    */ Operator::kUnboxingTo,
-        /* UInt64    */ Operator::kUnboxingTo,
-        /* Float32   */ Operator::kUnboxingTo,
-        /* Float64   */ Operator::kUnboxingTo,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kRefAssertedTo,
-        /* Value     */ Operator::kUnboxingTo,
-    },
-    /* Value */ {
-        /* Void      */ Operator::kMaxValues,
-        /* Word8     */ Operator::kMaxValues,
-        /* Word16    */ Operator::kMaxValues,
-        /* Word32    */ Operator::kMaxValues,
-        /* Word64    */ Operator::kMaxValues,
-        /* Int8      */ Operator::kMaxValues,
-        /* Int16     */ Operator::kMaxValues,
-        /* Int32     */ Operator::kMaxValues,
-        /* Int64     */ Operator::kMaxValues,
-        /* UInt8     */ Operator::kMaxValues,
-        /* UInt16    */ Operator::kMaxValues,
-        /* UInt32    */ Operator::kMaxValues,
-        /* UInt64    */ Operator::kMaxValues,
-        /* Float32   */ Operator::kMaxValues,
-        /* Float64   */ Operator::kMaxValues,
-        /* String    */ Operator::kMaxValues,
-        /* Reference */ Operator::kBoxingTo,
-        /* Value     */ Operator::kMaxValues,
-    },
-};
 
 class IRGeneratorAstVisitor : public cpl::AstVisitor {
 public:
@@ -475,7 +113,7 @@ public:
                 ast->body() == nullptr) {
                 continue;
             }
-            printd("find method: %s", ast->name()->data());
+            //printd("find method: %s", ast->name()->data());
             auto [method, ok] = clazz->FindMethod(ast->name()->ToSlice());
             assert(ok);
             if (!GenerateFun(ast, clazz, method.fun)) {
@@ -489,7 +127,7 @@ public:
                 return -1;
             }
             clazz->set_constructor(ctor);
-            printd("constructor: %s(%s)", ctor->name()->data(), ctor->full_name()->data());
+            //printd("constructor: %s(%s)", ctor->name()->data(), ctor->full_name()->data());
             Model::Method method {
                 .fun = ctor,
                 .access = kPublic,
@@ -528,11 +166,6 @@ public:
                 BuildType(ast.declaration->Type()),
                 false,
             };
-//            printd("insert field: [%s] %d %s.%s",
-//                   ast.declaration->source_position().ToString().c_str(),
-//                   ast.in_constructor,
-//                   node->name()->data(),
-//                   field.name->data());
             auto handle = clazz->InsertField(field);
             location_->PutSymbol(field.name->ToSlice(), Symbol::Had(location_, handle));
         }
@@ -555,7 +188,7 @@ public:
                 ast->body() == nullptr) {
                 continue;
             }
-            printd("find method: %s", ast->name()->data());
+            //printd("find method: %s", ast->name()->data());
             auto [method, ok] = clazz->FindMethod(ast->name()->ToSlice());
             assert(ok);
             if (!GenerateFun(ast, clazz, method.fun)) {
@@ -564,13 +197,12 @@ public:
         }
         
         if (node->primary_constructor()) {
-            printd("ast=%p", node);
             auto ctor = GenerateFun(node->primary_constructor(), clazz);
             if (!ctor) {
                 return -1;
             }
             clazz->set_constructor(ctor);
-            printd("constructor: %s(%s)", ctor->name()->data(), ctor->full_name()->data());
+            //printd("constructor: %s(%s)", ctor->name()->data(), ctor->full_name()->data());
             Model::Method method {
                 .fun = ctor,
                 .access = kPublic,
@@ -584,23 +216,41 @@ public:
         return Returning(Unit());
     }
     
-    static Function::Decoration ToDecoration(const cpl::FunctionDeclaration *ast) {
-        if (!ast->body()) {
-            return Function::kAbstract;
+    int VisitObjectDeclaration(cpl::ObjectDeclaration *node) override {
+        SourcePositionTable::Scope ss_root(CURRENT_SOUCE_POSITION(node));
+        assert(location_->IsFileUnitScope());
+        auto op = ops()->StoreGlobal();
+        location_->current_block()->NewNode(ss_root.Position(), Types::Void, op, Nil());
+        return Returning(Unit());
+    }
+    
+    int VisitVariableDeclaration(cpl::VariableDeclaration *node) override {
+        SourcePositionTable::Scope ss_root(CURRENT_SOUCE_POSITION(node));
+        const bool in_global_space = location_->IsFileUnitScope();
+        
+        std::vector<Value *> init_vals;
+        for (auto ast : node->initilaizers()) {
+            if (Reduce(ast, &init_vals) < 0) {
+                return -1;
+            }
         }
-        switch (ast->decoration()) {
-            case cpl::FunctionDeclaration::kDefault:
-                return Function::kDefault;
-            case cpl::FunctionDeclaration::kAbstract:
-                return Function::kAbstract;
-            case cpl::FunctionDeclaration::kNative:
-                return Function::kNative;
-            case cpl::FunctionDeclaration::kOverride:
-                return Function::kOverride;
-            default:
-                UNREACHABLE();
-                break;
+        
+        assert(init_vals.size() == node->ItemSize());
+        for (auto i = 0; i < node->ItemSize(); i++) {
+            auto ast = node->AtItem(i);
+            SourcePositionTable::Scope ss(ast->source_position(), &ss_root);
+            if (cpl::Identifier::IsPlaceholder(ast->Identifier())) {
+                continue;
+            }
+            if (in_global_space) {
+                auto op = ops()->StoreGlobal();
+                location_->current_block()->NewNode(ss.Position(), Types::Void, op, init_vals[i]);
+            } else {
+                location_->PutValue(ast->Identifier()->ToSlice(), init_vals[i], ast);
+            }
         }
+        
+        return Returning(Unit());
     }
     
     int VisitBlock(cpl::Block *node) override {
@@ -921,58 +571,30 @@ public:
         }
         auto type = BuildType(node->destination());
         SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(node));
-        auto dest = EmitCasting(type, source, ss.Position());
+        auto dest = EmitCastingIfNeeded(type, source, ss.Position());
         return Returning(dest);
     }
     
-    Value *EmitCasting(Type dest, Value *src, SourcePosition source_position) {
+    Value *EmitCastingIfNeeded(Type dest, Value *src, SourcePosition source_position) {
         if (dest.kind() == src->type().kind() && dest.model() == src->type().model()) {
             return src;
         }
 
-        if (src->type().IsNumber() && dest.IsNumber()) {
-            Operator *op = nullptr;
-            auto opcode = kConversionRulers[src->type().kind()][dest.kind()];
-            switch (opcode) {
-                case Operator::kTruncTo:
-                    op = ops()->TruncTo();
-                    break;
-                case Operator::kZextTo:
-                    op = ops()->ZextTo();
-                    break;
-                case Operator::kSextTo:
-                    op = ops()->SextTo();
-                    break;
-                case Operator::kFPTruncTo:
-                    op = ops()->FPTruncTo();
-                    break;
-                case Operator::kFPExtTo:
-                    op = ops()->FPExtTo();
-                    break;
-                case Operator::kFPToUI:
-                    op = ops()->FPToUI();
-                    break;
-                case Operator::kFPToSI:
-                    op = ops()->FPToSI();
-                    break;
-                case Operator::kUIToFP:
-                    op = ops()->UIToFP();
-                    break;
-                case Operator::kSIToFP:
-                    op = ops()->SIToFP();
-                    break;
-                case Operator::kBitCastTo:
-                    op = ops()->BitCastTo();
-                    break;
-                default:
-                    UNREACHABLE();
-                    break;
-            }
-            return location_->current_block()->NewNode(source_position, dest, op, src);
+        Operator *op = nullptr;
+        auto const hint = GetConversionHint(dest, src->type());
+        switch (hint) {
+        #define DEFINE_CASE(name) case k##name: op = ops()->name(); break;
+            DECLARE_IR_CONVERSION(DEFINE_CASE)
+        #undef DEFINE_CASE
+            case kKeep:
+                return src;
+
+            case kDeny:
+            default:
+                UNREACHABLE();
+                break;
         }
-    
-        // TODO:
-        UNREACHABLE();
+        return location_->current_block()->NewNode(source_position, dest, op, src);
     }
     
     int VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
@@ -1014,12 +636,9 @@ public:
     int VisitIndexedGet(cpl::IndexedGet *node) override { UNREACHABLE(); }
     int VisitGreaterEqual(cpl::GreaterEqual *node) override { UNREACHABLE(); }
     int VisitLambdaLiteral(cpl::LambdaLiteral *node) override { UNREACHABLE(); }
-    int VisitStringLiteral(cpl::StringLiteral *node) override { UNREACHABLE(); }
     int VisitWhenExpression(cpl::WhenExpression *node) override { UNREACHABLE(); }
     int VisitBitwiseNegative(cpl::BitwiseNegative *node) override { UNREACHABLE(); }
     int VisitArrayInitializer(cpl::ArrayInitializer *node) override { UNREACHABLE(); }
-    int VisitObjectDeclaration(cpl::ObjectDeclaration *node) override { UNREACHABLE(); }
-    int VisitVariableDeclaration(cpl::VariableDeclaration *node) override { UNREACHABLE(); }
     int VisitTryCatchExpression(cpl::TryCatchExpression *node) override { UNREACHABLE(); }
     int VisitOptionLiteral(cpl::OptionLiteral *node) override { UNREACHABLE(); }
     int VisitAssertedGet(cpl::AssertedGet *node) override { UNREACHABLE(); }
@@ -1069,6 +688,29 @@ public:
         return Returning(val);
     }
     
+    int VisitStringLiteral(cpl::StringLiteral *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::String, ops()->StringConstant(node->value()));
+        return Returning(val);
+    }
+
+    static Function::Decoration ToDecoration(const cpl::FunctionDeclaration *ast) {
+        if (!ast->body()) {
+            return Function::kAbstract;
+        }
+        switch (ast->decoration()) {
+            case cpl::FunctionDeclaration::kDefault:
+                return Function::kDefault;
+            case cpl::FunctionDeclaration::kAbstract:
+                return Function::kAbstract;
+            case cpl::FunctionDeclaration::kNative:
+                return Function::kNative;
+            case cpl::FunctionDeclaration::kOverride:
+                return Function::kOverride;
+            default:
+                UNREACHABLE();
+                break;
+        }
+    }
 private:
     bool ok() { return status_.ok(); }
     bool fail() { return status_.fail(); }
@@ -1400,7 +1042,7 @@ void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
     std::string full_name(pkg->path()->ToString());
     full_name.append(":").append(pkg->name()->ToString());
     
-    printd("%s", full_name.c_str());
+    //printd("%s", full_name.c_str());
     if (auto iter = modules_.find(full_name); iter != modules_.end()) {
         return; // Ignore duplicated
     }

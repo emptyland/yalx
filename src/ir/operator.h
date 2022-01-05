@@ -26,6 +26,8 @@ namespace ir {
     V(Br) \
     V(Argument) \
     V(Parameter) \
+    V(HeapAlloc) \
+    V(StackAlloc) \
     V(Ret)
 
 #define DECLARE_IR_GLOBALS(V) \

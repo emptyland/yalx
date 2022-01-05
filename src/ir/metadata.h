@@ -67,6 +67,7 @@ public:
         kFunction,
         kArray,
         kChannel,
+        kMaxDeclarations,
     };
     
     struct Field {
