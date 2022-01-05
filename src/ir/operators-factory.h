@@ -82,6 +82,16 @@ public:
                                                          value_out, 0/*control_out*/, handle);
     }
     
+    Operator *CallVirtual(const Handle *handle, int value_out, int value_in) {
+        return new (arena_) OperatorWith<const Handle *>(Operator::kCallVirtual, 0, value_in, 0/*control_in*/,
+                                                         value_out, 0/*control_out*/, handle);
+    }
+    
+    Operator *CallAbstract(const Handle *handle, int value_out, int value_in) {
+        return new (arena_) OperatorWith<const Handle *>(Operator::kCallAbstract, 0, value_in, 0/*control_in*/,
+                                                         value_out, 0/*control_out*/, handle);
+    }
+    
     Operator *CallDirectly(Function *fun, int value_out, int value_in) {
         return new (arena_) OperatorWith<Function *>(Operator::kCallDirectly, 0, value_in, 0/*control_in*/,
                                                      value_out, 0/*control_out*/, fun);

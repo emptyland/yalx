@@ -38,12 +38,11 @@ TEST_F(MetadataTest, Sanity) {
     clazz->InsertField({String::New(&arena_, "b"), kPublic, 0, Types::Int32, false});
     
     ASSERT_EQ(2, clazz->fields_size());
-    if (auto [field, ok] = clazz->FindField("a"); true) {
-        ASSERT_TRUE(ok);
-        EXPECT_STREQ("a", field.name->data());
-        EXPECT_EQ(Type::kInt32, field.type.kind());
-        EXPECT_EQ(kPublic, field.access);
-        EXPECT_FALSE(field.is_volatile);
+    if (auto field = clazz->FindField("a")) {
+        EXPECT_STREQ("a", field->name->data());
+        EXPECT_EQ(Type::kInt32, field->type.kind());
+        EXPECT_EQ(kPublic, field->access);
+        EXPECT_FALSE(field->is_volatile);
     }
 }
 
@@ -62,11 +61,11 @@ TEST_F(MetadataTest, Interface) {
     fun->mutable_paramaters()->push_back(Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(1)));
     clazz->InsertMethod(fun);
     
-    if (auto [method, ok] = clazz->FindMethod("foo"); true) {
-        ASSERT_TRUE(ok);
-        EXPECT_EQ(0, method.offset);
-        EXPECT_EQ(kPublic, method.access);
-        EXPECT_STREQ("foo", method.fun->name()->data());
+    if (auto method = clazz->FindMethod("foo")) {
+        EXPECT_EQ(0, method->in_itab);
+        EXPECT_EQ(0, method->in_vtab);
+        EXPECT_EQ(kPublic, method->access);
+        EXPECT_STREQ("foo", method->fun->name()->data());
     }
 }
 

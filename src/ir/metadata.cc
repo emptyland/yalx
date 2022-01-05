@@ -1,5 +1,6 @@
 #include "ir/metadata.h"
 #include "ir/node.h"
+#include <stack>
 
 namespace yalx {
 
@@ -11,12 +12,16 @@ Model::Model(const String *name, const String *full_name, Constraint constraint,
 , constraint_(constraint)
 , declaration_(declaration) {}
 
-std::tuple<Model::Method, bool> Model::FindMethod(std::string_view name) const {
-    return std::make_tuple(Method{}, false);
+std::optional<Model::Method> Model::FindMethod(std::string_view name) const {
+    return std::nullopt;
 }
 
-std::tuple<Model::Field, bool> Model::FindField(std::string_view name) const {
-    return std::make_tuple(Field{}, false);
+std::optional<Model::Field> Model::FindField(std::string_view name) const {
+    return std::nullopt;
+}
+
+Model::Member Model::GetMember(const Handle *handle) const {
+    return static_cast<const Field *>(nullptr);
 }
 
 Handle *Model::FindMemberOrNull(std::string_view name) const {
@@ -79,16 +84,24 @@ Handle *InterfaceModel::InsertMethod(Function *fun) {
     methods_.push_back({
         .fun = fun,
         .access = kPublic,
-        .offset = static_cast<int>(methods_size()),
+        .in_vtab = 0,
+        .in_itab = 0,
     });
     return handle;
 }
 
-std::tuple<Model::Method, bool> InterfaceModel::FindMethod(std::string_view name) const {
+Model::Member InterfaceModel::GetMember(const Handle *handle) const {
+    assert(handle->owns() == this);
+    assert(handle->offset() >= 0);
+    assert(handle->offset() < methods_size());
+    return &methods_[handle->offset()];
+}
+
+std::optional<Model::Method> InterfaceModel::FindMethod(std::string_view name) const {
     if (auto iter = members_.find(name); iter == members_.end()) {
-        return std::make_tuple(Method{}, false);
+        return std::nullopt;
     } else {
-        return std::make_tuple(methods_[iter->second->offset()], true);
+        return std::optional<Model::Method>{methods_[iter->second->offset()]};
     }
 }
 
@@ -120,7 +133,9 @@ StructureModel::StructureModel(base::Arena *arena, const String *name, const Str
 , implements_(arena)
 , fields_(arena)
 , members_(arena)
-, methods_(arena) {
+, methods_(arena)
+, vtab_(arena)
+, itab_(arena) {
 }
 
 Handle *StructureModel::InsertField(const Field &field) {
@@ -143,22 +158,41 @@ Handle *StructureModel::InsertMethod(const Method &method) {
     return handle;
 }
 
-std::tuple<Model::Field, bool> StructureModel::FindField(std::string_view name) const {
-    auto iter = members_.find(name);
-    if (iter == members_.end() || !iter->second->IsField()) {
-        return std::make_tuple(Field{}, false);
+Model::Member StructureModel::GetMember(const Handle *handle) const {
+    const StructureModel *model = nullptr;
+    for (auto it = this; it != nullptr; it = it->base_of()) {
+        if (handle->owns() == it) {
+            model = it;
+            break;
+        }
     }
-    return std::make_tuple(fields_[iter->second->offset()], true);
+    assert(model);
+    assert(handle->offset() >= 0);
+    if (handle->IsMethod()) {
+        assert(handle->offset() < model->methods_size());
+        return &model->methods_[handle->offset()];
+    } else {
+        assert(handle->offset() < model->fields_size());
+        return &model->fields_[handle->offset()];
+    }
 }
 
-std::tuple<Model::Method, bool> StructureModel::FindMethod(std::string_view name) const {
+std::optional<Model::Field> StructureModel::FindField(std::string_view name) const {
+    auto iter = members_.find(name);
+    if (iter == members_.end() || !iter->second->IsField()) {
+        return std::nullopt;
+    }
+    return std::optional<Model::Field>{fields_[iter->second->offset()]};
+}
+
+std::optional<Model::Method> StructureModel::FindMethod(std::string_view name) const {
     for (auto model = this; model != nullptr; model = model->base_of()) {
         auto iter = model->members_.find(name);
         if (iter != model->members_.end() && iter->second->IsMethod()) {
-            return std::make_tuple(model->methods_[iter->second->offset()], true);
+            return std::optional<Model::Method>{model->methods_[iter->second->offset()]};
         }
     }
-    return std::make_tuple(Method{}, false);
+    return std::nullopt;
 }
 
 Handle *StructureModel::FindMemberOrNull(std::string_view name) const {
@@ -175,6 +209,74 @@ size_t StructureModel::ReferenceSizeInBytes() const {
     }
     //UNREACHABLE();
     return 1;
+}
+
+void StructureModel::InstallVirtualTables(bool force) {
+    if (declaration() == kClass && !base_of()) {
+        for (auto [name, handle] : members_) {
+            if (!handle->IsMethod()) {
+                continue;
+            }
+            auto method = &methods_[handle->offset()];
+            method->in_vtab = true;
+            method->id_vtab = static_cast<int>(vtab_.size());
+            vtab_.push_back(handle);
+        }
+        return;
+    }
+    size_t max_vtab_len = 0;
+    for (auto base = base_of(); base != nullptr; base = base->base_of()) {
+        max_vtab_len = std::max(max_vtab_len, base->vtab_.size());
+    }
+    vtab_.resize(max_vtab_len, nullptr);
+
+    for (auto [name, handle] : members_) {
+        if (!handle->IsMethod()) {
+            continue;
+        }
+        auto method = &methods_[handle->offset()];
+        if (method->fun->decoration() == Function::kOverride && !method->in_vtab) {
+            for (auto base = base_of(); base != nullptr; base = base->base_of()) {
+                if (auto vf = base->FindMemberOrNull(handle->name()->ToSlice()); vf != nullptr && vf->IsMethod()) {
+                    auto vm = &base->methods_[vf->offset()];
+                    if (vm->in_vtab) {
+                        method->in_vtab = true;
+                        method->id_vtab = vm->id_vtab;
+                        assert(method->id_vtab < vtab_.size());
+                        vtab_[vm->id_vtab] = handle;
+                    } else {
+                        vm->in_vtab = true;
+                        vm->id_vtab = static_cast<int>(base->vtab_.size());
+                        base->vtab_.push_back(vf);
+                        
+                        assert(vtab_.size() == vm->id_vtab);
+                        method->in_vtab = true;
+                        method->id_vtab = vm->id_vtab;
+                        vtab_.push_back(handle);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}
+
+bool StructureModel::In_itab(Handle *handle) const {
+    for (auto it : itab_) {
+        if (it == handle) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool StructureModel::In_vtab(Handle *handle) const {
+    for (auto it : vtab_) {
+        if (it == handle) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace ir

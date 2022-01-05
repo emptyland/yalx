@@ -43,6 +43,8 @@ namespace ir {
 
 #define DECLARE_IR_CALLING(V) \
     V(CallHandle) \
+    V(CallVirtual) \
+    V(CallAbstract) \
     V(CallDirectly) \
     V(CallIndirectly) \
     V(CallRuntime) \

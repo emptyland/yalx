@@ -112,7 +112,8 @@ public:
             Model::Method method {
                 .fun = fun,
                 .access = kPublic,
-                .offset = 0
+                .in_itab = 0,
+                .in_vtab = 0,
             };
             auto handle = clazz->InsertMethod(method);
             location_->PutSymbol(method.fun->name()->ToSlice(), Symbol::Had(location_, handle));
@@ -124,9 +125,9 @@ public:
                 continue;
             }
             //printd("find method: %s", ast->name()->data());
-            auto [method, ok] = clazz->FindMethod(ast->name()->ToSlice());
-            assert(ok);
-            if (!GenerateFun(ast, clazz, method.fun)) {
+            auto method = clazz->FindMethod(ast->name()->ToSlice());
+            assert(method.has_value());
+            if (!GenerateFun(ast, clazz, method->fun)) {
                 return -1;
             }
         }
@@ -141,7 +142,8 @@ public:
             Model::Method method {
                 .fun = ctor,
                 .access = kPublic,
-                .offset = 0,
+                .in_vtab = 0,
+                .in_itab = 0,
             };
             clazz->InsertMethod(method);
         }
@@ -245,9 +247,8 @@ public:
                 auto this_val = location_->FindSymbol(cpl::kThisName);
                 assert(this_val.IsFound());
                 auto op = ops()->LoadEffectField(handle);
-                auto [field, ok] = handle->owns()->FindField(handle->name()->ToSlice());
-                assert(ok);
-                auto val = location_->current_block()->NewNode(SourcePosition::Unknown(), field.type, op,
+                auto field = std::get<const Model::Field *>(handle->owns()->GetMember(handle));
+                auto val = location_->current_block()->NewNode(SourcePosition::Unknown(), field->type, op,
                                                                this_val.core.value);
                 return Returning(val);
             } break;
@@ -299,16 +300,26 @@ public:
             args.insert(args.begin(), arg0.core.value);
         }
         if (handle) { // It's method calling
-            auto [method, ok] = DCHECK_NOTNULL(args[0]->type().model())->FindMethod(handle->name()->ToSlice());
-            assert(ok);
-            auto proto = method.fun->prototype();
+            auto method = std::get<const Model::Method *>(DCHECK_NOTNULL(args[0]->type().model())->GetMember(handle));
+            auto proto = method->fun->prototype();
             if (proto->vargs()) {
                 // TODO:
                 UNREACHABLE();
             }
             auto type = proto->return_type(0);
             auto value_in = (proto->vargs() ? 1 : 0) + 1 + static_cast<int>(proto->params_size());
-            auto op = ops()->CallHandle(handle, 1, value_in);
+            Operator *op = nullptr;
+            switch (method->fun->decoration()) {
+                case Function::kAbstract:
+                    op = ops()->CallAbstract(handle, 1, value_in);
+                    break;
+                case Function::kOverride:
+                    op = ops()->CallVirtual(handle, 1, value_in);
+                    break;
+                default:
+                    op = ops()->CallHandle(handle, 1, value_in);
+                    break;
+            }
             auto call = location_->current_block()->NewNodeWithValues(nullptr, ss.Position(), type, op, args);
             std::vector<Value *> results;
             results.push_back(call);
@@ -630,7 +641,8 @@ public:
     }
     
     int VisitStringLiteral(cpl::StringLiteral *node) override {
-        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::String, ops()->StringConstant(node->value()));
+        auto kstr = node->value()->Duplicate(arena());
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::String, ops()->StringConstant(kstr));
         return Returning(val);
     }
 

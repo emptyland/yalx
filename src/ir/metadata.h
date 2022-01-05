@@ -6,7 +6,8 @@
 #include "base/checking.h"
 #include "base/arena-utils.h"
 #include "base/arena.h"
-#include <tuple>
+#include <optional>
+#include <variant>
 
 namespace yalx {
 
@@ -81,16 +82,21 @@ public:
     struct Method {
         Function *fun;
         Access access;
-        int offset;
+        int in_vtab: 1;
+        int id_vtab: 31;
+        int in_itab;
     };
+    
+    using Member = std::variant<const Field *, const Method *>;
     
     DEF_PTR_GETTER(const String, name);
     DEF_PTR_GETTER(const String, full_name);
     DEF_VAL_PROP_RW(Constraint, constraint);
     DEF_VAL_GETTER(Declaration, declaration);
     
-    virtual std::tuple<Method, bool> FindMethod(std::string_view name) const;
-    virtual std::tuple<Field, bool> FindField(std::string_view name) const;
+    virtual std::optional<Method> FindMethod(std::string_view name) const;
+    virtual std::optional<Field> FindField(std::string_view name) const;
+    virtual Member GetMember(const Handle *handle) const;
     virtual Handle *FindMemberOrNull(std::string_view name) const;
     virtual size_t ReferenceSizeInBytes() const = 0;
 protected:
@@ -128,7 +134,8 @@ public:
     
     Handle *InsertMethod(Function *fun);
 
-    std::tuple<Method, bool> FindMethod(std::string_view name) const override;
+    Member GetMember(const Handle *handle) const override;
+    std::optional<Method> FindMethod(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
 private:
     base::Arena *const arena_;
@@ -181,11 +188,17 @@ public:
     Handle *InsertField(const Field &field);
     Handle *InsertMethod(const Method &method);
     
-    std::tuple<Method, bool> FindMethod(std::string_view name) const override;
-    std::tuple<Field, bool> FindField(std::string_view name) const override;
+    std::optional<Method> FindMethod(std::string_view name) const override;
+    std::optional<Field> FindField(std::string_view name) const override;
+    Member GetMember(const Handle *handle) const override;
     Handle *FindMemberOrNull(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
+    
+    void InstallVirtualTables(bool force);
+    bool In_itab(Handle *) const;
+    bool In_vtab(Handle *) const;
 private:
+    
     Module *const owns_;
     base::Arena * const arena_;
     StructureModel *base_of_;
@@ -194,6 +207,8 @@ private:
     base::ArenaMap<std::string_view, Handle *> members_;
     base::ArenaVector<Field> fields_;
     base::ArenaVector<Method> methods_;
+    base::ArenaVector<Handle *> vtab_;
+    base::ArenaVector<Handle *> itab_;
 }; // class StructureModel
 
 } // namespace ir
