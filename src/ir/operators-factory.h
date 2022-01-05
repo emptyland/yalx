@@ -53,7 +53,7 @@ public:
     }
     
     Operator *StoreGlobal() {
-        return new (arena_) Operator(Operator::kStoreGlobal, 0, 1/*value_in*/, 0/*control_in*/, 0/*value_out*/,
+        return new (arena_) Operator(Operator::kStoreGlobal, 0, 2/*value_in*/, 0/*control_in*/, 0/*value_out*/,
                                      0/*control_out*/);
     }
     

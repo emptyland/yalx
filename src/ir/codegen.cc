@@ -67,85 +67,20 @@ public:
         return 0;
     }
     
-    int VisitClassDefinition(cpl::ClassDefinition *node) override {
+    int VisitClassDefinition(cpl::ClassDefinition *node) override { return GenerateStructureModel(node); }
+    
+    int VisitStructDefinition(cpl::StructDefinition *node) override { return GenerateStructureModel(node); }
+    
+    template<class T> int GenerateStructureModel(T *node) {
         if (!node->generic_params().empty()) {
             return Returning(Unit());
         }
-        auto clazz = AssertedGetUdt<StructureModel>(node->FullName());
-        if (node->base_of()) {
-            if (ProcessDependencySymbolIfNeeded(node->base_of()) < 0) {
-                return -1;
-            }
-            auto base = AssertedGetUdt<StructureModel>(node->base_of()->FullName());
-            clazz->set_base_of(base);
-        }
-
-        StructureScope scope(&location_, node, clazz);
-        scope.InstallAncestorsSymbols();
-    
-        for (auto ast : node->fields()) {
-            Model::Field field {
-                ast.declaration->Identifier()->Duplicate(arena()),
-                kPublic, // TODO:
-                0,
-                BuildType(ast.declaration->Type()),
-                false,
-            };
-            auto handle = clazz->InsertField(field);
-            location_->PutSymbol(field.name->ToSlice(), Symbol::Had(location_, handle));
+        if (node->IsClassDefinition()) {
+            printd("class %s", node->FullName().c_str());
+        } else {
+            printd("struct %s", node->FullName().c_str());
         }
         
-        for (auto ast : node->methods()) {
-            auto type = BuildType(ast->prototype());
-            auto fun = module_->NewFunction(ToDecoration(ast), ast->name(), clazz,
-                                            down_cast<PrototypeModel>(type.model()));
-            Model::Method method {
-                .fun = fun,
-                .access = kPublic,
-                .offset = 0
-            };
-            auto handle = clazz->InsertMethod(method);
-            location_->PutSymbol(method.fun->name()->ToSlice(), Symbol::Had(location_, handle));
-        }
-        
-        for (auto ast : node->methods()) {
-            if (ast->decoration() == cpl::FunctionDeclaration::kNative ||
-                ast->body() == nullptr) {
-                continue;
-            }
-            //printd("find method: %s", ast->name()->data());
-            auto [method, ok] = clazz->FindMethod(ast->name()->ToSlice());
-            assert(ok);
-            if (!GenerateFun(ast, clazz, method.fun)) {
-                return -1;
-            }
-        }
-
-        if (node->primary_constructor()) {
-            auto ctor = GenerateFun(node->primary_constructor(), clazz);
-            if (!ctor) {
-                return -1;
-            }
-            clazz->set_constructor(ctor);
-            //printd("constructor: %s(%s)", ctor->name()->data(), ctor->full_name()->data());
-            Model::Method method {
-                .fun = ctor,
-                .access = kPublic,
-                .offset = 0,
-            };
-            clazz->InsertMethod(method);
-        }
-
-        // TODO:
-        // UNREACHABLE();
-        return Returning(Unit());
-    }
-    
-    int VisitStructDefinition(cpl::StructDefinition *node) override {
-        if (!node->generic_params().empty()) {
-            return Returning(Unit());
-        }
-        printd("struct %s", node->FullName().c_str());
         auto clazz = AssertedGetUdt<StructureModel>(node->FullName());
         if (node->base_of()) {
             if (ProcessDependencySymbolIfNeeded(node->base_of()) < 0) {
@@ -219,8 +154,11 @@ public:
     int VisitObjectDeclaration(cpl::ObjectDeclaration *node) override {
         SourcePositionTable::Scope ss_root(CURRENT_SOUCE_POSITION(node));
         assert(location_->IsFileUnitScope());
+        
+        auto full_name = MakeFullName(node->name());
+        auto value = owns_->AssertedGetVal(full_name);
         auto op = ops()->StoreGlobal();
-        location_->current_block()->NewNode(ss_root.Position(), Types::Void, op, Nil());
+        location_->current_block()->NewNode(ss_root.Position(), Types::Void, op, value, Nil(value->type()));
         return Returning(Unit());
     }
     
@@ -243,8 +181,10 @@ public:
                 continue;
             }
             if (in_global_space) {
+                auto dest = location_->FindSymbol(ast->Identifier()->ToSlice());
+                assert(dest.IsFound());
                 auto op = ops()->StoreGlobal();
-                location_->current_block()->NewNode(ss.Position(), Types::Void, op, init_vals[i]);
+                location_->current_block()->NewNode(ss.Position(), Types::Void, op, dest.core.value, init_vals[i]);
             } else {
                 location_->PutValue(ast->Identifier()->ToSlice(), init_vals[i], ast);
             }
@@ -450,7 +390,8 @@ public:
                 assert(symbol.IsFound());
                 if (symbol.kind == Symbol::kValue) {
                     if (symbol.owns->IsFileUnitScope()) { // Global var
-                        location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), rval);
+                        location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(),
+                                                            symbol.core.value, rval);
                     } else if (ShouldCaptureVal(symbol.owns, symbol.core.value)) {
                         // TODO: Capture Val
                         UNREACHABLE();
@@ -964,6 +905,12 @@ private:
     }
     
     Value *Nil() const { return DCHECK_NOTNULL(owns_->nil_val_); }
+    
+    Value *Nil(const Type &type) {
+        auto op = ops()->NilConstant();
+        assert(type.IsReference());
+        return Value::New(arena(), SourcePosition::Unknown(), type, op);
+    }
     
     Value *Unit() const { return DCHECK_NOTNULL(owns_->unit_val_); }
     

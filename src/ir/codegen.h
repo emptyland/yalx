@@ -48,6 +48,13 @@ private:
         return iter->second;
     }
     
+    Value *AssertedGetVal(std::string_view name) const { return DCHECK_NOTNULL(FindValOrNull(name)); }
+    
+    Value *FindValOrNull(std::string_view name) const {
+        auto iter = global_vars_.find(name);
+        return iter == global_vars_.end() ? nullptr : iter->second;
+    }
+    
     Model *AssertedGetUdt(std::string_view name) const { return DCHECK_NOTNULL(FindUdtOrNull(name)); }
     
     Model *FindUdtOrNull(std::string_view name) const {
