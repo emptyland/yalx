@@ -38,6 +38,8 @@ namespace ir {
     V(LazyLoad) \
     V(LoadAccessField) \
     V(StoreAccessField) \
+    V(LoadInlineField) \
+    V(StoreInlineField) \
     V(LoadEffectField) \
     V(StoreEffectField)
 
@@ -69,17 +71,17 @@ namespace ir {
     V(NilConstant)
 
 #define DECLARE_IR_BINARY(V) \
-    V(Word32Add) \
-    V(Word32Sub) \
-    V(U32Mul) \
-    V(U32Div) \
-    V(I32Mul) \
-    V(I32Div) \
-    V(Word32BitwiseAnd) \
-    V(Word32BitwiseOr) \
-    V(Word32BitwiseShl) \
-    V(U32BitwiseShr) \
-    V(I32BitwiseShr)
+    V(Add) \
+    V(Sub) \
+    V(Mul) \
+    V(Div) \
+    V(UMul) \
+    V(UDiv) \
+    V(BitwiseAnd) \
+    V(BitwiseOr) \
+    V(BitwiseShl) \
+    V(BitwiseShr) \
+
 
 #define DECLARE_IR_CONVERSION(V) \
     V(TruncTo) \
@@ -92,6 +94,8 @@ namespace ir {
     V(UIToFP) \
     V(SIToFP) \
     V(BitCastTo) \
+    V(GetAddr) \
+    V(Dref) \
     V(IfaceToRef) \
     V(RefToIface) \
     V(RefAssertedTo) \

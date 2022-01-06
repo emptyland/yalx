@@ -44,7 +44,8 @@ public:
     static constexpr uint32_t kNumberBit = 1u << 1;
     static constexpr uint32_t kFloatBit = 1u << 2;
     static constexpr uint32_t kReferenceBit = 1u << 3;
-    static constexpr uint32_t kNullableBit = 1u << 4;
+    static constexpr uint32_t kPointerBit = 1u << 4;
+    static constexpr uint32_t kNullableBit = 1u << 5;
     
     constexpr Type(): Type(kVoid, 0, 0) {}
     constexpr Type(Kind kind, int bits, uint32_t flags)
@@ -62,13 +63,15 @@ public:
     bool IsIntegral() const { return !IsFloating(); }
     bool IsNumber() const { return flags_ & kNumberBit; }
     bool IsReference() const { return flags_ & kReferenceBit; }
+    bool IsNotPointer() const { return !IsPointer(); }
+    bool IsPointer() const { return flags_ & kPointerBit; }
     bool IsNoneNullable() const { return !IsNullable(); }
     bool IsNullable() const { return flags_ & kNullableBit; }
     
     std::string_view ToString() const;
 
     static Type Ref(Model *model, bool _nullable = false);
-    static Type Val(Model *model);
+    static Type Val(Model *model, bool pointer = false);
 private:
     constexpr Type(Kind kind, int bits, uint32_t flags, Model *model)
         : kind_(kind)
@@ -76,10 +79,10 @@ private:
         , flags_(flags)
         , model_(model) {}
     
-    const Kind kind_;
-    const int bits_;
-    const uint32_t flags_;
-    Model *const model_;
+    Kind kind_;
+    int bits_;
+    uint32_t flags_;
+    Model *model_;
 }; // class Type
 
 struct Types {

@@ -106,9 +106,8 @@ public:
         }
         
         for (auto ast : node->methods()) {
-            auto type = BuildType(ast->prototype());
-            auto fun = module_->NewFunction(ToDecoration(ast), ast->name(), clazz,
-                                            down_cast<PrototypeModel>(type.model()));
+            auto proto = owns_->BuildPrototype(ast->prototype(), clazz);
+            auto fun = module_->NewFunction(ToDecoration(ast), ast->name(), clazz, proto);
             Model::Method method {
                 .fun = fun,
                 .access = kPublic,
@@ -174,7 +173,7 @@ public:
                 return -1;
             }
         }
-        
+
         assert(init_vals.size() == node->ItemSize());
         for (auto i = 0; i < node->ItemSize(); i++) {
             auto ast = node->AtItem(i);
@@ -237,6 +236,8 @@ public:
     }
     
     int VisitIdentifier(cpl::Identifier *node) override {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        
         auto symbol = location_->FindSymbol(node->name()->ToSlice());
         assert(symbol.IsFound());
         switch (symbol.kind) {
@@ -246,11 +247,7 @@ public:
                 auto handle = symbol.core.handle;
                 auto this_val = location_->FindSymbol(cpl::kThisName);
                 assert(this_val.IsFound());
-                auto op = ops()->LoadEffectField(handle);
-                auto field = std::get<const Model::Field *>(handle->owns()->GetMember(handle));
-                auto val = location_->current_block()->NewNode(SourcePosition::Unknown(), field->type, op,
-                                                               this_val.core.value);
-                return Returning(val);
+                return Returning(EmitLoadField(this_val.core.value, handle, root_ss.Position()));
             } break;
             case Symbol::kFun: // TODO:
                 UNREACHABLE();
@@ -259,6 +256,21 @@ public:
                 UNREACHABLE();
                 break;
         }
+    }
+    
+    Value *EmitLoadField(Value *value, Handle *handle, SourcePosition source_position) {
+        Operator *op = nullptr;
+        if (value->type().IsReference()) {
+            op = ops()->LoadEffectField(handle);
+        } else if (value->type().IsPointer()) {
+            assert(value->type().kind() == Type::kValue);
+            op = ops()->LoadAccessField(handle);
+        } else {
+            assert(value->type().kind() == Type::kValue);
+            op = ops()->LoadInlineField(handle);
+        }
+        auto field = std::get<const Model::Field *>(handle->owns()->GetMember(handle));
+        return location_->current_block()->NewNode(source_position, field->type, op, value);
     }
     
     int VisitCalling(cpl::Calling *node) override {
@@ -302,12 +314,8 @@ public:
         if (handle) { // It's method calling
             auto method = std::get<const Model::Method *>(DCHECK_NOTNULL(args[0]->type().model())->GetMember(handle));
             auto proto = method->fun->prototype();
-            if (proto->vargs()) {
-                // TODO:
-                UNREACHABLE();
-            }
             auto type = proto->return_type(0);
-            auto value_in = (proto->vargs() ? 1 : 0) + 1 + static_cast<int>(proto->params_size());
+            auto value_in = static_cast<int>(proto->params_size());
             Operator *op = nullptr;
             switch (method->fun->decoration()) {
                 case Function::kAbstract:
@@ -320,14 +328,8 @@ public:
                     op = ops()->CallHandle(handle, 1, value_in);
                     break;
             }
-            auto call = location_->current_block()->NewNodeWithValues(nullptr, ss.Position(), type, op, args);
             std::vector<Value *> results;
-            results.push_back(call);
-            for (int i = 1; i < proto->return_types_size(); i++) {
-                op = ops()->ReturningVal(i);
-                auto rv = location_->current_block()->NewNode(ss.Position(), proto->return_type(i), op, call);
-                results.push_back(rv);
-            }
+            EmitCall(op, proto, std::move(args), &results, ss.Position());
             return Returning(results);
         }
         
@@ -337,41 +339,21 @@ public:
                 return -1;
             }
             auto proto = down_cast<PrototypeModel>(callee->type().model());
-            if (proto->vargs()) {
-                // TODO:
-                UNREACHABLE();
-            }
             auto type = proto->return_type(0);
-            auto value_in = (proto->vargs() ? 1 : 0) + 1 + static_cast<int>(proto->params_size());
+            auto value_in = static_cast<int>(proto->params_size());
             auto op = ops()->CallIndirectly(1/*value_out*/, value_in);
             args.insert(args.begin(), callee);
-            auto call = location_->current_block()->NewNodeWithValues(nullptr, ss.Position(), type, op, args);
             std::vector<Value *> results;
-            results.push_back(call);
-            for (int i = 1; i < proto->return_types_size(); i++) {
-                op = ops()->ReturningVal(i);
-                auto rv = location_->current_block()->NewNode(ss.Position(), proto->return_type(i), op, call);
-                results.push_back(rv);
-            }
+            EmitCall(op, proto, std::move(args), &results, ss.Position());
             return Returning(results);
         }
         
         if (symbol.kind == Symbol::kFun) {
             auto proto = symbol.core.fun->prototype();
-            if (proto->vargs()) {
-                // TODO:
-                UNREACHABLE();
-            }
-            auto type = proto->return_type(0);
-            auto op = ops()->CallDirectly(symbol.core.fun, 1/*value_out*/, static_cast<int>(proto->params_size()));
-            auto call = location_->current_block()->NewNodeWithValues(nullptr, ss.Position(), type, op, args);
+            auto value_in = static_cast<int>(proto->params_size());
+            auto op = ops()->CallDirectly(symbol.core.fun, 1/*value_out*/, value_in);
             std::vector<Value *> results;
-            results.push_back(call);
-            for (int i = 1; i < proto->return_types_size(); i++) {
-                op = ops()->ReturningVal(i);
-                auto rv = location_->current_block()->NewNode(ss.Position(), proto->return_type(i), op, call);
-                results.push_back(rv);
-            }
+            EmitCall(op, proto, std::move(args), &results, ss.Position());
             return Returning(results);
         }
         
@@ -379,6 +361,29 @@ public:
             // TODO: new
         }
         UNREACHABLE();
+    }
+    
+    Value *EmitCall(Operator *op, PrototypeModel *proto, std::vector<Value *> &&args,
+                    std::vector<Value *> *returning_vals, SourcePosition source_position) {
+        if (proto->vargs()) {
+            // TODO:
+            UNREACHABLE();
+        }
+        assert(args.size() == proto->params_size());
+        for (size_t i = 0; i < proto->params_size(); i++) {
+            args[i] = EmitCastingIfNeeded(proto->param(i), args[i], source_position);
+        }
+        
+        auto type = proto->return_type(0);
+        auto call = location_->current_block()->NewNodeWithValues(nullptr, source_position, type, op, args);
+        std::vector<Value *> results;
+        results.push_back(call);
+        for (int i = 1; i < proto->return_types_size(); i++) {
+            op = ops()->ReturningVal(i);
+            auto rv = location_->current_block()->NewNode(source_position, proto->return_type(i), op, call);
+            returning_vals->push_back(rv);
+        }
+        return call;
     }
 
     int VisitAssignment(cpl::Assignment *node) override {
@@ -530,6 +535,11 @@ public:
     Value *EmitCastingIfNeeded(Type dest, Value *src, SourcePosition source_position) {
         if (dest.kind() == src->type().kind() && dest.model() == src->type().model()) {
             return src;
+        }
+        if (dest.IsPointer() && src->type().IsNotPointer()) {
+            src = location_->current_block()->NewNode(source_position, dest, ops()->GetAddr(), src);
+        } else if (dest.IsNotPointer() && src->type().IsPointer()) {
+            src = location_->current_block()->NewNode(source_position, dest, ops()->Dref(), src);
         }
 
         Operator *op = nullptr;
@@ -687,9 +697,8 @@ private:
     Function *GenerateFun(const cpl::FunctionDeclaration *ast, Model *owns, Function *fun = nullptr) {
         if (!fun) {
             auto full_name = String::New(arena(), ast->FullName());
-            auto type = BuildType(ast->prototype());
-            fun = module_->NewFunction(ToDecoration(ast), ast->name()->Duplicate(arena()), full_name,
-                                       down_cast<PrototypeModel>(type.model()));
+            auto proto = owns_->BuildPrototype(ast->prototype(), down_cast<StructureModel>(owns));
+            fun = module_->NewFunction(ToDecoration(ast), ast->name()->Duplicate(arena()), full_name, proto);
         } else {
             BuildType(ast->prototype()); // Build prototype always
         }
@@ -698,7 +707,7 @@ private:
         int hint = 0;
         FunctionScope scope(&location_, ast, fun);
         if (owns) {
-            auto type = owns->constraint() == Model::kVal ? Type::Val(owns) : Type::Ref(owns);
+            auto type = owns->declaration() == Model::kStruct ? Type::Val(owns, true/*is_pointer*/) : Type::Ref(owns);
             auto op = ops()->Argument(hint++);
             auto arg = Value::New0(arena(), String::New(arena(), cpl::kThisName), SourcePosition::Unknown(), type, op);
             location_->PutValue(arg->name()->ToSlice(), arg);
@@ -1068,7 +1077,14 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
     }
     auto init = InstallInitFun(module);
     
-    //OperatorsFactory ops(arena_);
+    if (auto iter = global_udts_.find(cpl::kAnyArrayFullName); iter == global_udts_.end()) {
+        auto any = AssertedGetUdt(cpl::kAnyClassFullName);
+        auto name = String::New(arena_, "Any[]");
+        auto full_name = String::New(arena_, cpl::kAnyArrayFullName);
+        auto any_array = new (arena_) ArrayModel(arena_, name, full_name, 1, Type::Ref(any));
+        global_udts_[any_array->full_name()->ToSlice()] = any_array;
+    }
+
     for (auto file_unit : pkg->source_files()) {
         for (auto var : file_unit->vars()) {
             for (auto i = 0; i < var->ItemSize(); i++) {
@@ -1110,14 +1126,6 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
         .funs = &global_funs_,
     };
     pkg_scopes_[pkg] = new PackageScope(nullptr/*location*/, init->entry(), pkg, global);
-    
-    if (auto iter = global_udts_.find(cpl::kAnyArrayFullName); iter == global_udts_.end()) {
-        auto any = AssertedGetUdt(cpl::kAnyClassFullName);
-        auto name = String::New(arena_, "Any[]");
-        auto full_name = String::New(arena_, cpl::kAnyArrayFullName);
-        auto any_array = new (arena_) ArrayModel(arena_, name, full_name, 1, Type::Ref(any));
-        global_udts_[any_array->full_name()->ToSlice()] = any_array;
-    }
 }
 
 Function *IntermediateRepresentationGenerator::InstallInitFun(Module *module) {
@@ -1200,34 +1208,8 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
         case cpl::Type::kType_channel:
             UNREACHABLE(); // TODO:
             break;
-        case cpl::Type::kType_function: {
-            auto ast_ty = type->AsFunctionPrototype();
-            std::vector<Type> params;
-            for (auto ty : ast_ty->params()) {
-                if (cpl::Type::Is(ty)) {
-                    params.push_back(BuildType(static_cast<cpl::Type *>(ty)));
-                } else {
-                    auto item = static_cast<cpl::VariableDeclaration::Item *>(ty);
-                    params.push_back(BuildType(item->type()));
-                }
-                
-            }
-            std::vector<Type> return_types;
-            for (auto ty : ast_ty->return_types()) {
-                return_types.push_back(BuildType(ty));
-            }
-            auto full_name(PrototypeModel::ToString(&params[0], params.size(), ast_ty->vargs(),
-                                                    &return_types[0], return_types.size()));
-            if (auto fun = FindUdtOrNull(full_name)) {
-                return Type::Ref(fun);
-            }
-            auto name = String::New(arena_, full_name);
-            auto fun = new (arena_) PrototypeModel(arena_, name, ast_ty->vargs());
-            for (auto ty : params) { fun->mutable_params()->push_back(ty); }
-            for (auto ty : return_types) { fun->mutable_return_types()->push_back(ty); }
-            global_udts_[fun->full_name()->ToSlice()] = fun;
-            return Type::Ref(fun);
-        } break;
+        case cpl::Type::kType_function:
+            return Type::Ref(BuildPrototype(type->AsFunctionPrototype()));
         case cpl::Type::kType_interface: {
             auto ast_ty = type->AsInterfaceType();
             return Type::Val(AssertedGetUdt(ast_ty->definition()->FullName()));
@@ -1240,6 +1222,47 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
             UNREACHABLE();
             break;
     }
+}
+
+PrototypeModel *IntermediateRepresentationGenerator::BuildPrototype(const cpl::FunctionPrototype *ast,
+                                                                    StructureModel *owns) {
+    std::vector<Type> params;
+    if(owns) {
+        if (owns->declaration() == Model::kClass) {
+            params.push_back(Type::Ref(owns));
+        } else {
+            assert(owns->declaration() == Model::kStruct);
+            params.push_back(Type::Val(owns, true/*is_pointer*/));
+        }
+    }
+    
+    for (auto ty : ast->params()) {
+        if (cpl::Type::Is(ty)) {
+            params.push_back(BuildType(static_cast<cpl::Type *>(ty)));
+        } else {
+            auto item = static_cast<cpl::VariableDeclaration::Item *>(ty);
+            params.push_back(BuildType(item->type()));
+        }
+    }
+    
+    if (ast->vargs()) {
+        params.push_back(Type::Ref(AssertedGetUdt(cpl::kAnyArrayFullName)));
+    }
+    
+    std::vector<Type> return_types;
+    for (auto ty : ast->return_types()) {
+        return_types.push_back(BuildType(ty));
+    }
+    auto full_name(PrototypeModel::ToString(&params[0], params.size(), ast->vargs(),
+                                            &return_types[0], return_types.size()));
+    if (auto fun = FindUdtOrNull(full_name)) {
+        return down_cast<PrototypeModel>(fun);
+    }
+    auto name = String::New(arena_, full_name);
+    auto fun = new (arena_) PrototypeModel(arena_, name, ast->vargs());
+    for (auto ty : params) { fun->mutable_params()->push_back(ty); }
+    for (auto ty : return_types) { fun->mutable_return_types()->push_back(ty); }
+    return fun;
 }
 
 base::Status IntermediateRepresentationGenerator::RecursivePackage(cpl::Package *root,

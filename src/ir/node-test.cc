@@ -52,7 +52,7 @@ TEST_F(NodeTest, Module) {
     fun->mutable_paramaters()->push_back(Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(0)));
     fun->mutable_paramaters()->push_back(Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(1)));
     
-    auto val = bb->NewNode(SourcePosition::Unknown(), Types::Int32, ops_.Word32Add(), fun->paramater(0), fun->paramater(1));
+    auto val = bb->NewNode(SourcePosition::Unknown(), Types::Int32, ops_.Add(), fun->paramater(0), fun->paramater(1));
     val = bb->NewNode(SourcePosition::Unknown(), Types::Void, ops_.Ret(1), val);
     USE(val);
 }

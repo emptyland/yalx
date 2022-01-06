@@ -41,17 +41,17 @@ std::string_view Type::ToString() const {
     return "";
 }
 
-Type Type::Ref(Model *model, bool _nullable) {
+Type Type::Ref(Model *model, bool nullable) {
     return Type(kReference,
                 (DCHECK_NOTNULL(model)->ReferenceSizeInBytes() << 3),
-                (_nullable ? kNullableBit : 0) | kReferenceBit,
+                (nullable ? kNullableBit : 0) | kReferenceBit,
                 DCHECK_NOTNULL(model));
 }
 
-Type Type::Val(Model *model) {
+Type Type::Val(Model *model, bool is_pointer) {
     return Type(kValue,
                 (DCHECK_NOTNULL(model)->ReferenceSizeInBytes() << 3),
-                0,
+                (is_pointer ? kPointerBit : 0),
                 DCHECK_NOTNULL(model));
 }
 

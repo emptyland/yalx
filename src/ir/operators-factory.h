@@ -57,6 +57,16 @@ public:
                                      0/*control_out*/);
     }
     
+    Operator *LoadInlineField(const Handle *handle) {
+        return new (arena_) OperatorWith<const Handle *>(Operator::kLoadInlineField, 0, 1/*value_in*/, 0/*control_in*/,
+                                                         0/*value_out*/, 0/*control_out*/, handle);
+    }
+    
+    Operator *StoreInlineField(const Handle *handle) {
+        return new (arena_) OperatorWith<const Handle *>(Operator::kStoreInlineField, 0, 1/*value_in*/, 0/*control_in*/,
+                                                         1/*value_out*/, 0/*control_out*/, handle);
+    }
+    
     Operator *LoadAccessField(const Handle *handle) {
         return new (arena_) OperatorWith<const Handle *>(Operator::kLoadAccessField, 0, 1/*value_in*/, 0/*control_in*/,
                                                          0/*value_out*/, 0/*control_out*/, handle);
