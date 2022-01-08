@@ -1,7 +1,10 @@
 #include "ir/codegen.h"
+#include "ir/metadata.h"
+#include "ir/node.h"
 #include "compiler/compiler.h"
 #include "compiler/syntax-feedback.h"
 #include "compiler/source-position.h"
+#include "base/io.h"
 #include <gtest/gtest.h>
 
 namespace yalx {
@@ -27,7 +30,7 @@ public:
     void SetUp() override {}
     void TearDown() override {}
     
-    void IRGen(const char *project_dir, base::ArenaVector<ir::Module *> *modules, bool *ok) {
+    void IRGen(const char *project_dir, base::ArenaMap<std::string_view, Module *> *modules, bool *ok) {
         base::ArenaMap<std::string_view, cpl::Package *> all(&ast_arean_);
         base::ArenaVector<cpl::Package *> entries(&ast_arean_);
         cpl::Package *main_pkg = nullptr;
@@ -52,11 +55,19 @@ protected:
 
 TEST_F(IntermediateRepresentationGeneratorTest, Sanity) {
     bool ok = false;
-    base::ArenaVector<ir::Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arean_);
     IRGen("tests/18-ir-gen-sanity", &modules, &ok);
     ASSERT_TRUE(ok);
     
+    ASSERT_TRUE(modules.find("yalx/lang:lang") != modules.end());
+    ASSERT_TRUE(modules.find("foo:foo") != modules.end());
     
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    modules["yalx/lang:lang"]->PrintTo(&printer);
+    modules["foo:foo"]->PrintTo(&printer);
+    
+    printf("%s\n", buf.data());
 }
 
 } // namespace ir

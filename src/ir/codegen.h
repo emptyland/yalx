@@ -32,6 +32,8 @@ public:
     
     base::Status Run();
     
+    void MoveModules(base::ArenaMap<std::string_view, Module *> *modules) { *modules = std::move(modules_); }
+    
     friend class IRGeneratorAstVisitor;
     DISALLOW_IMPLICIT_CONSTRUCTORS(IntermediateRepresentationGenerator);
 private:

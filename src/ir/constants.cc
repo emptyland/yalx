@@ -870,6 +870,12 @@ ConversionHint GetConversionHint(const Type &dest, const Type &src) {
     return kConversionRules[from_index][to_index];
 }
 
+const char *kOpcodeNames[Operator::kMaxValues] = {
+#define DEFINE_NAME(name) #name,
+    DECLARE_ALL_IR(DEFINE_NAME)
+#undef  DEFINE_NAME
+};
+
 } // namespace ir
 
 } // namespace yalx

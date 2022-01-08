@@ -1,5 +1,6 @@
 #include "ir/type.h"
 #include "ir/metadata.h"
+#include "base/io.h"
 
 namespace yalx {
 
@@ -53,6 +54,28 @@ Type Type::Val(Model *model, bool is_pointer) {
                 (DCHECK_NOTNULL(model)->ReferenceSizeInBytes() << 3),
                 (is_pointer ? kPointerBit : 0),
                 DCHECK_NOTNULL(model));
+}
+
+void Type::PrintTo(base::PrintingWriter *printer) const {
+    switch (kind()) {
+        case kReference: {
+            printer->Write("ref ")->Write(model()->full_name()->ToSlice());
+            if (IsNullable()) {
+                printer->Write("?");
+            }
+        } break;
+            
+        case kValue: {
+            printer->Write("val ")->Write(model()->full_name()->ToSlice());
+            if (IsPointer()) {
+                printer->Write("*");
+            }
+        } break;
+            
+        default:
+            printer->Write(kTypeNames[kind()]);
+            break;
+    }
 }
 
 } // namespace ir

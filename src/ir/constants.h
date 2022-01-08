@@ -21,6 +21,8 @@ enum ConversionHint {
 
 ConversionHint GetConversionHint(const Type &dest, const Type &src);
 
+extern const char *kOpcodeNames[Operator::kMaxValues];
+
 } // namespace ir
 
 } // namespace yalx

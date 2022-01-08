@@ -4,6 +4,7 @@
 
 #include "base/status.h"
 #include "base/base.h"
+#include <stdarg.h>
 #include <string_view>
 #include <string>
 
@@ -41,8 +42,55 @@ public:
     virtual Status GetFileSize(uint64_t *size) = 0;
 }; // class RandomAccessFile
 
+class PrintingWriter final {
+public:
+    static constexpr int kMaxInlineIndents = 6;
+    
+    PrintingWriter(WritableFile *file, bool ownership = false)
+        : file_(file)
+        , ownership_(ownership) {}
+    ~PrintingWriter() {
+        if (ownership_) { delete file_; }
+    }
+    
+    PrintingWriter *Print(const char *fmt, ...);
+
+    PrintingWriter *Println(const char *fmt, ...);
+    
+    PrintingWriter *Indent(int indent) {
+        if (indent < kMaxInlineIndents) {
+            return Write(kInlineIndents[indent]);
+        }
+        Write(kInlineIndents[kMaxInlineIndents - 1]);
+        for (int i = 0; i < indent - (kMaxInlineIndents - 1); i++) {
+            Write(kInlineIndents[1]);
+        }
+        return this;
+    }
+    
+    PrintingWriter *Write(std::string_view str) {
+        auto rs = file_->Append(str);
+        assert(rs.ok());
+        return this;
+    }
+    
+    PrintingWriter *Writeln(std::string_view str) {
+        Write(str);
+        Write("\n");
+        return this;
+    }
+private:
+    static const char *kInlineIndents[kMaxInlineIndents];
+    
+    WritableFile *file_;
+    bool ownership_;
+};
+
 SequentialFile *NewMemorySequentialFile(const std::string &buf);
 SequentialFile *NewMemorySequentialFile(const char *z, size_t n);
+
+WritableFile *NewWritableFile(FILE *fp);
+WritableFile *NewMemoryWritableFile(std::string *buf);
 
 } // namespace base
 

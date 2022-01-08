@@ -7,7 +7,10 @@
 #include <string>
 
 namespace yalx {
-
+namespace base {
+class ArenaString;
+class PrintingWriter;
+} // namespace base
 namespace ir {
 
 #define DECLARE_HIR_TYPES(V) \
@@ -69,6 +72,7 @@ public:
     bool IsNullable() const { return flags_ & kNullableBit; }
     
     std::string_view ToString() const;
+    void PrintTo(base::PrintingWriter *printer) const;
 
     static Type Ref(Model *model, bool _nullable = false);
     static Type Val(Model *model, bool pointer = false);

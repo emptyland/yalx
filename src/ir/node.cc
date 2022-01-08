@@ -1,5 +1,8 @@
 #include "ir/node.h"
 #include "ir/metadata.h"
+#include "ir/utils.h"
+#include "ir/constants.h"
+#include "base/io.h"
 #include "base/format.h"
 #include <string.h>
 
@@ -88,6 +91,19 @@ Value *Module::FindValOrNull(std::string_view name) const {
         return nullptr;
     }
     return iter->second.fun_or_val ? nullptr : value(iter->second.offset);
+}
+
+void Module::PrintTo(base::PrintingWriter *printer) const {
+    printer
+    ->Println("module %s @%s {", name()->data(), full_name()->data())
+    ->Println("globals:");
+    
+    PrintingContext global_ctx(1);
+    for (auto value : values_) {
+        value->PrintTo(&global_ctx, printer);
+    }
+    
+    printer->Println("} // @%s", full_name()->data());
 }
 
 BasicBlock *Function::NewBlock(const String *name) {
@@ -198,6 +214,61 @@ Value::User *Value::FindUser(Value *user, int position) {
         }
     }
     return nullptr;
+}
+
+void Value::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const {
+    assert(op()->value() >= 0);
+    assert(op()->value() < Operator::kMaxValues);
+    ctx
+    ->OfIndent(printer)
+    ->OfName(this, printer)
+    ->Write(" = ")
+    ->Write(kOpcodeNames[op()->value()]);
+    
+    type().PrintTo(printer->Write(" "));
+    
+    if (op()->value_out() > 1) {
+        printer->Write(" out ");
+        for (int i = 1; i < op()->value_out(); i++) {
+            if (i > 1) {
+                printer->Write(", ");
+            }
+            OutputValue(i)->type().PrintTo(printer);
+            ctx->OfName(OutputValue(i), printer->Write(" "));
+        }
+    }
+    
+    for (int i = 0; i < op()->value_in(); i++) {
+        if (i > 0) {
+            printer->Write(", ");
+        }
+        InputValue(i)->type().PrintTo(printer);
+        ctx->OfName(InputValue(i), printer->Write(" "));
+    }
+    
+    if (op()->control_in() > 0) {
+        printer->Write(" in [");
+        for (int i = 0; i < op()->control_in(); i++) {
+            if (i > 0) {
+                printer->Write(", ");
+            }
+            ctx->OfName(InputControl(i), printer);
+        }
+        printer->Write("]");
+    }
+    
+    if (op()->control_out() > 0) {
+        printer->Write(" out [");
+        for (int i = 0; i < op()->control_out(); i++) {
+            if (i > 0) {
+                printer->Write(", ");
+            }
+            ctx->OfName(OutputControl(i), printer);
+        }
+        printer->Write("]");
+    }
+    
+    printer->Write("\n");
 }
 
 } // namespace ir

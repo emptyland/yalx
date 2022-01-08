@@ -90,7 +90,7 @@ public:
                                            base::Arena *arena,
                                            Package *entry,
                                            SyntaxFeedback *error_feedback,
-                                           base::ArenaVector<ir::Module *> *modules);
+                                           base::ArenaMap<std::string_view, ir::Module *> *modules);
     
     static constexpr char kSourceExtendedName[] = ".yalx";
     static constexpr char kSourceDirName[] = "src";

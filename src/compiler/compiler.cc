@@ -433,11 +433,11 @@ Compiler::GenerateIntermediateRepresentationCode(const std::unordered_map<std::s
                                                  base::Arena *arena,
                                                  Package *entry,
                                                  SyntaxFeedback *error_feedback,
-                                                 base::ArenaVector<ir::Module *> *modules) {
+                                                 base::ArenaMap<std::string_view, ir::Module *> *modules) {
     ir::IntermediateRepresentationGenerator generator(arena, entry, error_feedback);
     auto rs = generator.Run();
     if (rs.ok()) {
-        // TODO:
+        generator.MoveModules(modules);
     }
     return rs;
 }

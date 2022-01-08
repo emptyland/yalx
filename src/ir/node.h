@@ -12,6 +12,7 @@
 namespace yalx {
 namespace base {
 class ArenaString;
+class PrintingWriter;
 } // namespace base
 namespace ir {
 
@@ -27,6 +28,7 @@ using String = base::ArenaString;
     DECLARE_IR_KINDS(DEFINE_PREDECL)
 #undef DEFINE_PREDECL
 
+class PrintingContext;
 class Model;
 class PrototypeModel;
 class InterfaceModel;
@@ -78,6 +80,7 @@ public:
     DEF_ARENA_VECTOR_GETTER(Value *, paramater);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
     
+    void PrintTo(int ident, base::PrintingWriter *printer) const {/*TODO*/}
     friend class Module;
 private:
     Function(base::Arena *arena, const Decoration decoration, const String *name, const String *full_name, Module *owns,
@@ -135,6 +138,8 @@ public:
         auto iter = named_models_.find(name);
         return iter == named_models_.end() ? nullptr : iter->second;
     }
+    
+    void PrintTo(base::PrintingWriter *printer) const;
 private:
     struct GlobalSlot {
         size_t offset;
@@ -229,9 +234,9 @@ public:
         return DCHECK_NOTNULL(io_[value_in_offset() + i]->AsValue());
     }
     
-    Value *OutputValue(int i) {
+    Value *OutputValue(int i) const {
         assert(i >= 0 && i < op()->value_out());
-        return i == 0 ? this : OverflowOutputValue(i);
+        return i == 0 ? const_cast<Value *>(this) : OverflowOutputValue(i);
     }
     
     Value *OverflowOutputValue(int i) const {
@@ -250,15 +255,17 @@ public:
     }
     
     struct User {
-        User *prev;
-        User *next;
+        User  *prev;
+        User  *next;
         Value *user;
-        int position;
+        int    position;
     }; // class User
     
     User *AddUser(base::Arena *arena, Value *user, int position);
     User *FindUser(Value *user);
     User *FindUser(Value *user, int position);
+    
+    void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
 private:
     Value(base::Arena *arena, const String *name, SourcePosition source_position, Type type, Operator *op);
     
