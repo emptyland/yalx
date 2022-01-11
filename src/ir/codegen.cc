@@ -416,7 +416,10 @@ public:
                     }
                 } else {
                     assert(symbol.kind == Symbol::kHandle);
-                    EmitStoreField(ss.Position(), symbol.core.handle, rval);
+                    auto this_symbol = location_->FindSymbol(cpl::kThisName);
+                    assert(this_symbol.kind == Symbol::kValue);
+                    auto this_replace = EmitStoreField(ss.Position(), symbol.core.handle, this_symbol.core.value, rval);
+                    location_->PutValue(cpl::kThisName, this_replace);
                 }
             } else if (auto ast = lval->AsDot()) {
                 if (auto id = ast->primary()->AsIdentifier()) {
@@ -433,7 +436,10 @@ public:
                     }
                     auto handle = DCHECK_NOTNULL(primary->type().model())->FindMemberOrNull(ast->field()->ToSlice());
                     assert(handle != nullptr);
-                    EmitStoreField(ss.Position(), handle, rval);
+                    primary = EmitStoreField(ss.Position(), handle, primary, rval);
+                    if (auto id = ast->primary()->AsIdentifier()) {
+                        location_->PutValue(id->name()->ToSlice(), primary);
+                    }
                 }
             } else {
                 UNREACHABLE();
@@ -685,20 +691,25 @@ private:
         return module_->full_name()->ToString().append(".").append(name->ToString());
     }
     
-    void EmitStoreField(SourcePosition source_position, Handle *handle, Value *input) {
+    Value *EmitStoreField(SourcePosition source_position, Handle *handle, Value *primary, Value *input) {
         auto op = handle->owns()->constraint() == Model::kRef ? ops()->StoreEffectField(handle)
             : ops()->StoreAccessField(handle);
         auto type = handle->owns()->constraint() == Model::kRef
             ? Type::Ref(const_cast<Model *>(handle->owns()))
             : Type::Val(const_cast<Model *>(handle->owns()));
-        location_->current_block()->NewNode(source_position, type, op, input);
+        return location_->current_block()->NewNode(source_position, type, op, primary, input);
     }
     
     Function *GenerateFun(const cpl::FunctionDeclaration *ast, Model *owns, Function *fun = nullptr) {
         if (!fun) {
             auto full_name = String::New(arena(), ast->FullName());
             auto proto = owns_->BuildPrototype(ast->prototype(), down_cast<StructureModel>(owns));
-            fun = module_->NewFunction(ToDecoration(ast), ast->name()->Duplicate(arena()), full_name, proto);
+            if (owns) {
+                fun = module_->NewFunction(ToDecoration(ast), ast->name()->Duplicate(arena()),
+                                           down_cast<StructureModel>(owns), proto);
+            } else {
+                fun = module_->NewFunction(ToDecoration(ast), ast->name()->Duplicate(arena()), full_name, proto);
+            }
         } else {
             BuildType(ast->prototype()); // Build prototype always
         }
@@ -1029,26 +1040,18 @@ void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
                 continue;
             }
             std::string name(full_name + "." + def->name()->ToString());
-            auto model = new (arena_) StructureModel(arena_,
-                                                     def->name()->Duplicate(arena_),
-                                                     String::New(arena_, name),
-                                                     StructureModel::kClass,
-                                                     module,
-                                                     nullptr);
+            auto model = module->NewClassModel(def->name()->Duplicate(arena_), String::New(arena_, name),
+                                               nullptr/*base_of*/);
             global_udts_[model->full_name()->ToSlice()] = model;
         }
-        
+
         for (auto def : file_unit->struct_defs()) {
             if (!def->generic_params().empty()) {
                 continue;
             }
             std::string name(full_name + "." + def->name()->ToString());
-            auto model = new (arena_) StructureModel(arena_,
-                                                     def->name()->Duplicate(arena_),
-                                                     String::New(arena_, name),
-                                                     StructureModel::kStruct,
-                                                     module,
-                                                     nullptr);
+            auto model = module->NewStructModel(def->name()->Duplicate(arena_), String::New(arena_, name),
+                                                nullptr/*base_of*/);
             global_udts_[model->full_name()->ToSlice()] = model;
         }
         
@@ -1057,9 +1060,7 @@ void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
                 continue;
             }
             std::string name(full_name + "." + def->name()->ToString());
-            auto model = new (arena_) InterfaceModel(arena_,
-                                                     def->name()->Duplicate(arena_),
-                                                     String::New(arena_, name));
+            auto model = module->NewInterfaceModel(def->name()->Duplicate(arena_), String::New(arena_, name));
             global_udts_[model->full_name()->ToSlice()] = model;
         }
     }
@@ -1093,7 +1094,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
                 
                 auto it = var->AtItem(i);
                 auto name = String::New(arena_, full_name + "." + it->Identifier()->ToString());
-                auto val = Value::New0(arena_, scope.Position(), BuildType(it->Type()), ops_->GlobalValue(name));
+                auto val = Value::New0(arena_, name, scope.Position(), BuildType(it->Type()), ops_->GlobalValue(name));
                 module->InsertGlobalValue(it->Identifier()->Duplicate(arena_), val);
                 global_vars_[name->ToSlice()] = val;
             }
@@ -1105,7 +1106,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
             
             auto name = String::New(arena_, full_name + "." + var->Identifier()->ToString());
             auto op = ops_->LazyValue(name);
-            auto val = Value::New0(arena_, scope.Position(), BuildType(var->Type()), op);
+            auto val = Value::New0(arena_, name, scope.Position(), BuildType(var->Type()), op);
             module->InsertGlobalValue(var->Identifier()->Duplicate(arena_), val);
             global_vars_[name->ToSlice()] = val;
         }
@@ -1137,6 +1138,7 @@ Function *IntermediateRepresentationGenerator::InstallInitFun(Module *module) {
     auto iter = global_udts_.find(cpl::kModuleInitFunProtoName);
     if (iter == global_udts_.end()) {
         proto = new (arena_) PrototypeModel(arena_, String::New(arena_, cpl::kModuleInitFunProtoName), false/*vargs*/);
+        proto->mutable_return_types()->push_back(Types::Void);
         global_udts_[proto->full_name()->ToSlice()] = proto;
     } else {
         proto = down_cast<PrototypeModel>(iter->second);

@@ -1,5 +1,7 @@
 #include "ir/metadata.h"
 #include "ir/node.h"
+#include "ir/utils.h"
+#include "base/io.h"
 #include <stack>
 
 namespace yalx {
@@ -22,6 +24,10 @@ std::optional<Model::Field> Model::FindField(std::string_view name) const {
 
 Model::Member Model::GetMember(const Handle *handle) const {
     return static_cast<const Field *>(nullptr);
+}
+
+void Model::PrintTo(int indent, base::PrintingWriter *printer) const {
+    printer->Indent(indent)->Writeln(full_name()->ToSlice());
 }
 
 Handle *Model::FindMemberOrNull(std::string_view name) const {
@@ -66,6 +72,12 @@ std::string PrototypeModel::ToString(const Type *params, const size_t params_siz
 
 size_t PrototypeModel::ReferenceSizeInBytes() const { return kPointerSize; }
 
+void PrototypeModel::PrintTo(int indent, base::PrintingWriter *printer) const {
+    printer
+    ->Indent(indent)
+    ->Write(ToString(&params_[0], params_size(), vargs(), &return_types_[0], return_types_size()));
+}
+
 InterfaceModel::InterfaceModel(base::Arena *arena, const String *name, const String *full_name)
 : Model(name, full_name, kVal, kInterface)
 , arena_(arena)
@@ -106,6 +118,15 @@ std::optional<Model::Method> InterfaceModel::FindMethod(std::string_view name) c
 }
 
 size_t InterfaceModel::ReferenceSizeInBytes() const { return kPointerSize; }
+
+void InterfaceModel::PrintTo(int indent, base::PrintingWriter *printer) const {
+    printer->Indent(indent)->Println("interface %s @%s {", name()->data(), full_name()->data());
+    PrintingContext ctx(indent + 1);
+    for (auto method : methods()) {
+        method.fun->PrintTo(&ctx, printer);
+    }
+    printer->Indent(indent)->Println("} // %s", full_name()->data());
+}
 
 ArrayModel::ArrayModel(base::Arena *arena, const String *name, const String *full_name,
                        int dimension_count, const Type element_type)
@@ -259,6 +280,28 @@ void StructureModel::InstallVirtualTables(bool force) {
             }
         }
     }
+}
+
+void StructureModel::PrintTo(int indent, base::PrintingWriter *printer) const {
+    printer
+    ->Indent(indent)
+    ->Write(declaration() == kClass ? "class" : "struct")
+    ->Println(" %s @%s {", name()->data(), full_name()->data());
+    
+    if (base_of()) {
+        printer->Indent(indent + 1)->Println("[base_of: @%s]", base_of()->full_name()->data());
+    }
+    
+    for (const auto &field : fields()) {
+        printer
+        ->Indent(indent + 1)
+        ->Write(field.name->ToSlice())
+        ->Write(": ");
+        field.type.PrintTo(printer);
+        printer->Write("\n");
+    }
+    
+    printer->Indent(indent)->Println("} // %s", full_name()->data());
 }
 
 bool StructureModel::In_itab(Handle *handle) const {

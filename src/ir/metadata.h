@@ -10,7 +10,9 @@
 #include <variant>
 
 namespace yalx {
-
+namespace base {
+class PrintingWriter;
+} // namespace base
 namespace ir {
 
 class Function;
@@ -99,6 +101,7 @@ public:
     virtual Member GetMember(const Handle *handle) const;
     virtual Handle *FindMemberOrNull(std::string_view name) const;
     virtual size_t ReferenceSizeInBytes() const = 0;
+    virtual void PrintTo(int indent, base::PrintingWriter *printer) const;
 protected:
     Model(const String *name, const String *full_name, Constraint constraint, Declaration declaration);
     
@@ -116,6 +119,8 @@ public:
                                 const Type *return_types, const size_t return_types_size);
     
     size_t ReferenceSizeInBytes() const override;
+    
+    void PrintTo(int indent, base::PrintingWriter *printer) const override;
     
     DEF_ARENA_VECTOR_GETTER(Type, param);
     DEF_ARENA_VECTOR_GETTER(Type, return_type);
@@ -137,6 +142,7 @@ public:
     Member GetMember(const Handle *handle) const override;
     std::optional<Method> FindMethod(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
+    void PrintTo(int indent, base::PrintingWriter *printer) const override;
 private:
     base::Arena *const arena_;
     base::ArenaMap<std::string_view, Handle *> members_;
@@ -193,6 +199,7 @@ public:
     Member GetMember(const Handle *handle) const override;
     Handle *FindMemberOrNull(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
+    void PrintTo(int indent, base::PrintingWriter *printer) const override;
     
     void InstallVirtualTables(bool force);
     bool In_itab(Handle *) const;

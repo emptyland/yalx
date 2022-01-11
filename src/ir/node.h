@@ -80,7 +80,7 @@ public:
     DEF_ARENA_VECTOR_GETTER(Value *, paramater);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
     
-    void PrintTo(int ident, base::PrintingWriter *printer) const {/*TODO*/}
+    void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer, Model *owns = nullptr) const;
     friend class Module;
 private:
     Function(base::Arena *arena, const Decoration decoration, const String *name, const String *full_name, Module *owns,
@@ -185,6 +185,7 @@ public:
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, input);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, output);
     
+    void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
     friend class Function;
 private:
     BasicBlock(base::Arena *arena, const String *name);
@@ -266,6 +267,7 @@ public:
     User *FindUser(Value *user, int position);
     
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
+    void IfConstantPrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
 private:
     Value(base::Arena *arena, const String *name, SourcePosition source_position, Type type, Operator *op);
     

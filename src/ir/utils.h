@@ -19,6 +19,9 @@ public:
     explicit PrintingContext(int indent): indent_(indent) {}
     DEF_VAL_GETTER(int, indent);
     
+    void EnterIndent() { indent_++; }
+    void ExitIndent() { indent_--; }
+    
     PrintingContext *OfIndent(base::PrintingWriter *printer);
     base::PrintingWriter *OfName(const Value *val, base::PrintingWriter *printer);
     base::PrintingWriter *OfName(const BasicBlock *val, base::PrintingWriter *printer);
@@ -43,7 +46,7 @@ public:
         }
     }
 private:
-    const int indent_;
+    int indent_;
     int next_value_id_ = 0;
     std::unordered_map<const Value *, int> value_ids_;
     int next_block_id_ = 0;

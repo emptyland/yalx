@@ -4,11 +4,115 @@
 #include "ir/constants.h"
 #include "base/io.h"
 #include "base/format.h"
+#include <inttypes.h>
 #include <string.h>
 
 namespace yalx {
 
 namespace ir {
+
+namespace {
+
+template<class T>
+struct OperatorPrinting {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {}
+};
+
+template <>
+struct OperatorPrinting<Function *> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        auto fun_name = OperatorWith<Function *>::Data(op)->full_name();
+        printer->Write("fun ")->Write(fun_name->ToSlice());
+    }
+};
+
+template <>
+struct OperatorPrinting<const Handle *> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        auto handle = OperatorWith<const Handle *>::Data(op);
+        printer->Print("%s::%s", handle->owns()->full_name()->data(), handle->name()->data());
+    }
+};
+
+template <>
+struct OperatorPrinting<const String *> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        auto str = OperatorWith<const String *>::Data(op);
+        printer->Print("\"%s\"", str->data());
+    }
+};
+
+template <>
+struct OperatorPrinting<int8_t> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        printer->Print("%" PRId8, OperatorWith<int8_t>::Data(op));
+    }
+};
+
+template <>
+struct OperatorPrinting<uint8_t> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        printer->Print("%" PRIu8, OperatorWith<uint8_t>::Data(op));
+    }
+};
+
+template <>
+struct OperatorPrinting<int16_t> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        printer->Print("%" PRId16, OperatorWith<int16_t>::Data(op));
+    }
+};
+
+template <>
+struct OperatorPrinting<uint16_t> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        printer->Print("%" PRIu16, OperatorWith<uint16_t>::Data(op));
+    }
+};
+
+template <>
+struct OperatorPrinting<int32_t> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        printer->Print("%" PRId32, OperatorWith<int32_t>::Data(op));
+    }
+};
+
+template <>
+struct OperatorPrinting<uint32_t> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        printer->Print("%" PRIu32, OperatorWith<uint32_t>::Data(op));
+    }
+};
+
+template <>
+struct OperatorPrinting<int64_t> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        printer->Print("%" PRId64, OperatorWith<int64_t>::Data(op));
+    }
+};
+
+template <>
+struct OperatorPrinting<uint64_t> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        printer->Print("%" PRIu64, OperatorWith<uint64_t>::Data(op));
+    }
+};
+
+template <>
+struct OperatorPrinting<float> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        printer->Print("%f", OperatorWith<float>::Data(op));
+    }
+};
+
+template <>
+struct OperatorPrinting<double> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        printer->Print("%f", OperatorWith<double>::Data(op));
+    }
+};
+
+} // namespace
 
 Module::Module(base::Arena *arena, const String *name, const String *full_name, const String *path, const String *full_path)
 : Node(Node::kModule)
@@ -103,6 +207,33 @@ void Module::PrintTo(base::PrintingWriter *printer) const {
         value->PrintTo(&global_ctx, printer);
     }
     
+    printer->Println("interfaces:");
+    for (auto iface : interfaces()) {
+        iface->PrintTo(1, printer);
+        printer->Write("\n");
+    }
+    
+    printer->Println("structures:");
+    for (auto clazz : structures()) {
+        clazz->PrintTo(1, printer);
+        printer->Write("\n");
+    }
+    
+    printer->Println("functions:");
+    for (auto fun : funs()) {
+        PrintingContext fun_ctx(1);
+        fun->PrintTo(&fun_ctx, printer);
+        printer->Write("\n");
+    }
+    
+    for (auto clazz : structures()) {
+        for (auto method : clazz->methods()) {
+            PrintingContext fun_ctx(1);
+            method.fun->PrintTo(&fun_ctx, printer, clazz);
+            printer->Write("\n");
+        }
+    }
+    
     printer->Println("} // @%s", full_name()->data());
 }
 
@@ -128,6 +259,63 @@ Function::Function(base::Arena *arena, const Decoration decoration, const String
 , blocks_(arena) {
 }
 
+void Function::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer, Model *owns) const {
+    if (owns) {
+        printer->Indent(ctx->indent())->Print("fun %s::%s(", owns->name()->data(), name()->data());
+    } else {
+        printer->Indent(ctx->indent())->Print("fun %s(", name()->data());
+    }
+    
+    int i = 0;
+    for (auto param : paramaters()) {
+        if (i > 0) {
+            printer->Write(", ");
+        }
+        ctx->OfName(param, printer);
+        printer->Write(": ");
+        param->type().PrintTo(printer);
+        i++;
+    }
+    
+    printer->Print("):");
+    i = 0;
+    for (auto type : prototype()->return_types()) {
+        if (i > 0) {
+            printer->Write(", ");
+        }
+        type.PrintTo(printer);
+    }
+    
+    if (prototype()->vargs()) {
+        printer->Write(" VARGS");
+    }
+    
+    switch (decoration()) {
+        case kNative:
+            printer->Write(" NATIVE");
+            break;
+        case kAbstract:
+            printer->Write(" ABSTRACT");
+            break;
+        case kOverride:
+            printer->Write(" OVERRIDE");
+            break;
+        default:
+            break;
+    }
+    
+    if (blocks().empty()) {
+        printer->Write("\n");
+        return;
+    }
+    
+    printer->Writeln(" {");
+    for (auto block : blocks()) {
+        block->PrintTo(ctx, printer);
+    }
+    printer->Indent(ctx->indent())->Println("} // %s", full_name()->data());
+}
+
 BasicBlock::BasicBlock(base::Arena *arena, const String *name)
 : Node(Node::kBasicBlock)
 , arena_(DCHECK_NOTNULL(arena))
@@ -135,6 +323,18 @@ BasicBlock::BasicBlock(base::Arena *arena, const String *name)
 , instructions_(arena)
 , inputs_(arena)
 , outputs_(arena) {
+}
+
+void BasicBlock::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const {
+    ctx
+    ->OfIndent(printer)
+    ->OfName(this, printer)
+    ->Writeln("");
+    for (auto instr : instructions()) {
+        ctx->EnterIndent();
+        instr->PrintTo(ctx, printer);
+        ctx->ExitIndent();
+    }
 }
 
 Value *Value::NewWithInputs(base::Arena *arena, const String *name, SourcePosition source_position, Type type,
@@ -219,14 +419,19 @@ Value::User *Value::FindUser(Value *user, int position) {
 void Value::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const {
     assert(op()->value() >= 0);
     assert(op()->value() < Operator::kMaxValues);
-    ctx
-    ->OfIndent(printer)
-    ->OfName(this, printer)
-    ->Write(" = ")
-    ->Write(kOpcodeNames[op()->value()]);
+    
+    if (type().kind() == Type::kVoid) {
+        ctx->OfIndent(printer);
+        printer->Write(kOpcodeNames[op()->value()]);
+    } else {
+        ctx
+        ->OfIndent(printer)
+        ->OfName(this, printer)
+        ->Write(" = ")
+        ->Write(kOpcodeNames[op()->value()]);
+    }
     
     type().PrintTo(printer->Write(" "));
-    
     if (op()->value_out() > 1) {
         printer->Write(" out ");
         for (int i = 1; i < op()->value_out(); i++) {
@@ -234,16 +439,19 @@ void Value::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const {
                 printer->Write(", ");
             }
             OutputValue(i)->type().PrintTo(printer);
-            ctx->OfName(OutputValue(i), printer->Write(" "));
+            OutputValue(i)->IfConstantPrintTo(ctx, printer->Write(" "));
         }
     }
     
-    for (int i = 0; i < op()->value_in(); i++) {
-        if (i > 0) {
-            printer->Write(", ");
+    if (op()->value_in() > 0) {
+        printer->Write(" ");
+        for (int i = 0; i < op()->value_in(); i++) {
+            if (i > 0) {
+                printer->Write(", ");
+            }
+            InputValue(i)->type().PrintTo(printer);
+            InputValue(i)->IfConstantPrintTo(ctx, printer->Write(" "));
         }
-        InputValue(i)->type().PrintTo(printer);
-        ctx->OfName(InputValue(i), printer->Write(" "));
     }
     
     if (op()->control_in() > 0) {
@@ -268,7 +476,45 @@ void Value::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const {
         printer->Write("]");
     }
     
+    // DECL_OPERATORS_WITH_DATA
+    switch (op()->value()) {
+    #define DEFINE_CASE(name, type) \
+        case Operator::k##name: \
+            printer->Write(" <"); \
+            OperatorPrinting<type>().PrintTo(op(), printer); \
+            printer->Write(">"); \
+            break;
+            
+            DECL_OPERATORS_WITH_DATA(DEFINE_CASE)
+            
+    #undef DEFINE_CASE
+            
+        default:
+            break;
+    }
+    
     printer->Write("\n");
+}
+
+void Value::IfConstantPrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const {
+    switch (op()->value()) {
+    #define DEFINE_CASE(name, type) \
+        case Operator::k##name: \
+            OperatorPrinting<type>().PrintTo(op(), printer); \
+            break;
+            
+        DECL_CONSTANTS_WITH_DATA(DEFINE_CASE)
+            
+    #undef DEFINE_CASE
+            
+        case Operator::kNilConstant:
+            printer->Write("nil");
+            break;
+
+        default:
+            ctx->OfName(this, printer);
+            break;
+    }
 }
 
 } // namespace ir

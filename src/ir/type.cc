@@ -59,14 +59,14 @@ Type Type::Val(Model *model, bool is_pointer) {
 void Type::PrintTo(base::PrintingWriter *printer) const {
     switch (kind()) {
         case kReference: {
-            printer->Write("ref ")->Write(model()->full_name()->ToSlice());
+            printer->Write("ref[")->Write(model()->full_name()->ToSlice())->Write("]");
             if (IsNullable()) {
                 printer->Write("?");
             }
         } break;
             
         case kValue: {
-            printer->Write("val ")->Write(model()->full_name()->ToSlice());
+            printer->Write("val[")->Write(model()->full_name()->ToSlice())->Write("]");
             if (IsPointer()) {
                 printer->Write("*");
             }

@@ -102,6 +102,41 @@ namespace ir {
     V(BoxingTo) \
     V(UnboxingTo) 
 
+
+#define DECL_OPERATORS_WITH_DATA(V) \
+    V(Argument,         int) \
+    V(ReturningVal,     int) \
+    V(GlobalValue,      String const *) \
+    V(LazyValue,        String const *) \
+    V(LoadInlineField,  Handle const *) \
+    V(LoadAccessField,  Handle const *) \
+    V(LoadEffectField,  Handle const *) \
+    V(StoreInlineField, Handle const *) \
+    V(StoreAccessField, Handle const *) \
+    V(StoreEffectField, Handle const *) \
+    V(CallHandle,       Handle const *) \
+    V(CallVirtual,      Handle const *) \
+    V(CallAbstract,     Handle const *) \
+    V(CallDirectly,     Function *) \
+    DECL_CONSTANTS_WITH_DATA(V)
+
+#define DECL_CONSTANTS_WITH_DATA(V) \
+    V(Word8Constant, uint8_t) \
+    V(Word16Constant, uint16_t) \
+    V(Word32Constant, uint32_t) \
+    V(Word64Constant, uint64_t) \
+    V(I8Constant, int8_t) \
+    V(I16Constant, int16_t) \
+    V(I32Constant, int32_t) \
+    V(I64Constant, int64_t) \
+    V(U8Constant, uint8_t) \
+    V(U16Constant, uint16_t) \
+    V(U32Constant, uint32_t) \
+    V(U64Constant, uint64_t) \
+    V(F32Constant, float) \
+    V(F64Constant, double) \
+    V(StringConstant, String const *)
+
 class Node;
 class Value;
 using String = base::ArenaString;

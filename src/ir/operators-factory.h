@@ -15,6 +15,7 @@ class Function;
 class StructureModel;
 class InterfaceModel;
 
+
 class OperatorsFactory final {
 public:
     OperatorsFactory(base::Arena *arena): arena_(arena) {}
@@ -63,7 +64,7 @@ public:
     }
     
     Operator *StoreInlineField(const Handle *handle) {
-        return new (arena_) OperatorWith<const Handle *>(Operator::kStoreInlineField, 0, 1/*value_in*/, 0/*control_in*/,
+        return new (arena_) OperatorWith<const Handle *>(Operator::kStoreInlineField, 0, 2/*value_in*/, 0/*control_in*/,
                                                          1/*value_out*/, 0/*control_out*/, handle);
     }
     
@@ -73,7 +74,7 @@ public:
     }
     
     Operator *StoreAccessField(const Handle *handle) {
-        return new (arena_) OperatorWith<const Handle *>(Operator::kStoreAccessField, 0, 1/*value_in*/, 0/*control_in*/,
+        return new (arena_) OperatorWith<const Handle *>(Operator::kStoreAccessField, 0, 2/*value_in*/, 0/*control_in*/,
                                                          1/*value_out*/, 0/*control_out*/, handle);
     }
     
@@ -83,7 +84,7 @@ public:
     }
     
     Operator *StoreEffectField(const Handle *handle) {
-        return new (arena_) OperatorWith<const Handle *>(Operator::kStoreEffectField, 0, 1/*value_in*/, 0/*control_in*/,
+        return new (arena_) OperatorWith<const Handle *>(Operator::kStoreEffectField, 0, 2/*value_in*/, 0/*control_in*/,
                                                          1/*value_out*/, 0/*control_out*/, handle);
     }
     
@@ -118,26 +119,11 @@ public:
     }
     
 #define DEFINE_CONSTANT(name, type) \
-Operator *name##Constant(type value) { \
-return new (arena_) OperatorWith<type>(Operator::k##name##Constant, 0, 0, 0, 0, 0, value); \
+Operator *name(type value) { \
+return new (arena_) OperatorWith<type>(Operator::k##name, 0, 0, 0, 0, 0, value); \
 }
-    DEFINE_CONSTANT(Word8, uint8_t)
-    DEFINE_CONSTANT(Word16, uint16_t)
-    DEFINE_CONSTANT(Word32, uint32_t)
-    DEFINE_CONSTANT(Word64, uint64_t)
     
-    DEFINE_CONSTANT(I8, int8_t)
-    DEFINE_CONSTANT(I16, int16_t)
-    DEFINE_CONSTANT(I32, int32_t)
-    DEFINE_CONSTANT(I64, int64_t)
-    DEFINE_CONSTANT(U8, uint8_t)
-    DEFINE_CONSTANT(U16, uint16_t)
-    DEFINE_CONSTANT(U32, uint32_t)
-    DEFINE_CONSTANT(U64, uint64_t)
-    DEFINE_CONSTANT(F32, float)
-    DEFINE_CONSTANT(F64, double)
-    
-    DEFINE_CONSTANT(String, String const*)
+    DECL_CONSTANTS_WITH_DATA(DEFINE_CONSTANT)
     
 #undef DEFINE_CONSTANT
     
