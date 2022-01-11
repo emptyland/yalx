@@ -97,11 +97,6 @@ struct Symbol {
     }
 };
 
-struct GlobalSymbols {
-    const base::ArenaMap<std::string_view, Model *> *udts;
-    const base::ArenaMap<std::string_view, Value *> *vars;
-    const base::ArenaMap<std::string_view, Function *> *funs;
-};
 
 class NamespaceScope {
 public:
@@ -167,7 +162,8 @@ protected:
 
 class PackageScope : public NamespaceScope {
 public:
-    PackageScope(NamespaceScope **location, BasicBlock *current_block, cpl::Package *pkg, GlobalSymbols global);
+    PackageScope(NamespaceScope **location, BasicBlock *current_block, cpl::Package *pkg,
+                 base::ArenaMap<std::string_view, Symbol> *global);
     ~PackageScope() override;
     
     DEF_PTR_GETTER(cpl::Package, pkg);
@@ -199,7 +195,8 @@ private:
 
 class FileUnitScope : public NamespaceScope {
 public:
-    FileUnitScope(NamespaceScope **location, BasicBlock *current_block, cpl::FileUnit *file_unit, GlobalSymbols symobls);
+    FileUnitScope(NamespaceScope **location, BasicBlock *current_block, cpl::FileUnit *file_unit,
+                  base::ArenaMap<std::string_view, Symbol> *symobls);
     ~FileUnitScope() override;
     
     DEF_PTR_GETTER(cpl::FileUnit, file_unit);
@@ -211,25 +208,12 @@ public:
     Symbol FindExportSymbol(std::string_view prefix, std::string_view name) const;
     
 private:
-    Symbol Lookup(std::string_view name) const {
-        if (auto iter = global_udts_->find(name); iter != global_udts_->end()) {
-            return Symbol::Udt(const_cast<FileUnitScope *>(this), iter->second);
-        }
-        if (auto iter = global_funs_->find(name); iter != global_funs_->end()) {
-            return Symbol::Fun(const_cast<FileUnitScope *>(this), iter->second);
-        }
-        if (auto iter = global_vars_->find(name); iter != global_vars_->end()) {
-            return Symbol::Val(const_cast<FileUnitScope *>(this), iter->second);
-        }
-        return Symbol::NotFound();
-    }
+    Symbol Lookup(std::string_view name) const;
     
     cpl::FileUnit *file_unit_;
     std::map<std::string_view, std::string> alias_;
     std::vector<std::string> implicit_alias_;
-    const base::ArenaMap<std::string_view, Model *> *global_udts_;
-    const base::ArenaMap<std::string_view, Value *> *global_vars_;
-    const base::ArenaMap<std::string_view, Function *> *global_funs_;
+    const base::ArenaMap<std::string_view, Symbol> *proxy_symbols_;
 }; // class IRCodeFileScope
 
 class StructureScope : public NamespaceScope {

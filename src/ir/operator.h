@@ -106,6 +106,8 @@ namespace ir {
 #define DECL_OPERATORS_WITH_DATA(V) \
     V(Argument,         int) \
     V(ReturningVal,     int) \
+    V(HeapAlloc,        Model const *) \
+    V(StackAlloc,       Model const *) \
     V(GlobalValue,      String const *) \
     V(LazyValue,        String const *) \
     V(LoadInlineField,  Handle const *) \

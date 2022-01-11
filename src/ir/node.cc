@@ -43,6 +43,14 @@ struct OperatorPrinting<const String *> {
 };
 
 template <>
+struct OperatorPrinting<const Model *> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        auto model = OperatorWith<const Model *>::Data(op);
+        printer->Write(model->name()->ToSlice());
+    }
+};
+
+template <>
 struct OperatorPrinting<int8_t> {
     void PrintTo(Operator *op, base::PrintingWriter *printer) {
         printer->Print("%" PRId8, OperatorWith<int8_t>::Data(op));
@@ -277,7 +285,7 @@ void Function::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer, Mode
         i++;
     }
     
-    printer->Print("):");
+    printer->Print("): ");
     i = 0;
     for (auto type : prototype()->return_types()) {
         if (i > 0) {

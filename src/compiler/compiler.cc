@@ -434,7 +434,7 @@ Compiler::GenerateIntermediateRepresentationCode(const std::unordered_map<std::s
                                                  Package *entry,
                                                  SyntaxFeedback *error_feedback,
                                                  base::ArenaMap<std::string_view, ir::Module *> *modules) {
-    ir::IntermediateRepresentationGenerator generator(arena, entry, error_feedback);
+    ir::IntermediateRepresentationGenerator generator(symbols, arena, entry, error_feedback);
     auto rs = generator.Run();
     if (rs.ok()) {
         generator.MoveModules(modules);

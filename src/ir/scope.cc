@@ -31,7 +31,8 @@ void NamespaceScope::PutSymbol(std::string_view name, const Symbol &symbol) {
     }
 }
 
-PackageScope::PackageScope(NamespaceScope **location, BasicBlock *current_block, cpl::Package *pkg, GlobalSymbols global)
+PackageScope::PackageScope(NamespaceScope **location, BasicBlock *current_block, cpl::Package *pkg,
+                           base::ArenaMap<std::string_view, Symbol> *global)
 : NamespaceScope(location, nullptr/*current_block*/)
 , pkg_(pkg) {
     //Enter();
@@ -58,12 +59,10 @@ void PackageScope::Enter(NamespaceScope **location) {
 PackageScope *PackageScope::NearlyPackageScope() { return this; }
 
 FileUnitScope::FileUnitScope(NamespaceScope **location, BasicBlock *current_block, cpl::FileUnit *file_unit,
-                             GlobalSymbols symobls)
+                             base::ArenaMap<std::string_view, Symbol> *symobls)
 : NamespaceScope(location, current_block)
 , file_unit_(file_unit)
-, global_udts_(symobls.udts)
-, global_vars_(symobls.vars)
-, global_funs_(symobls.funs) {
+, proxy_symbols_(symobls) {
     for (auto import : file_unit->imports()) {
         std::string full_name(import->package_path()->ToString());
         full_name.append(":")
@@ -116,6 +115,16 @@ Symbol FileUnitScope::FindExportSymbol(std::string_view prefix, std::string_view
     if (symbol.IsFound()) {
         return symbol;
     }
+    return Symbol::NotFound();
+}
+
+Symbol FileUnitScope::Lookup(std::string_view name) const {
+    if (auto iter = proxy_symbols_->find(name); iter != proxy_symbols_->end()) {
+        auto symbol = iter->second;
+        symbol.owns = const_cast<FileUnitScope *>(this);
+        return symbol;
+    }
+    
     return Symbol::NotFound();
 }
 

@@ -66,6 +66,7 @@ TEST_F(IntermediateRepresentationGeneratorTest, Sanity) {
     base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
     modules["yalx/lang:lang"]->PrintTo(&printer);
     modules["foo:foo"]->PrintTo(&printer);
+    modules["main:main"]->PrintTo(&printer);
     
     printf("%s\n", buf.data());
 }

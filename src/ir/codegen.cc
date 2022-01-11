@@ -102,7 +102,7 @@ public:
                 false,
             };
             auto handle = clazz->InsertField(field);
-            location_->PutSymbol(field.name->ToSlice(), Symbol::Had(location_, handle));
+            location_->PutSymbol(field.name->ToSlice(), Symbol::Had(location_, handle, ast.declaration));
         }
         
         for (auto ast : node->methods()) {
@@ -115,7 +115,7 @@ public:
                 .in_vtab = 0,
             };
             auto handle = clazz->InsertMethod(method);
-            location_->PutSymbol(method.fun->name()->ToSlice(), Symbol::Had(location_, handle));
+            location_->PutSymbol(method.fun->name()->ToSlice(), Symbol::Had(location_, handle, ast));
         }
         
         for (auto ast : node->methods()) {
@@ -238,6 +238,7 @@ public:
     int VisitIdentifier(cpl::Identifier *node) override {
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
         
+        //printd("find symbol: %s", node->name()->data());
         auto symbol = location_->FindSymbol(node->name()->ToSlice());
         assert(symbol.IsFound());
         switch (symbol.kind) {
@@ -358,7 +359,34 @@ public:
         }
         
         if (symbol.kind == Symbol::kModel) {
-            // TODO: new
+            assert(symbol.core.model->declaration() == Model::kClass ||
+                   symbol.core.model->declaration() == Model::kStruct);
+            if (symbol.node && ProcessDependencySymbolIfNeeded(symbol.node) < 0) {
+                return -1;
+            }
+            
+            auto clazz = down_cast<StructureModel>(symbol.core.model);
+            
+            Operator *op = nullptr;
+            Type type = Types::Void;
+            if (clazz->constraint() == Model::kVal) {
+                op = ops()->StackAlloc(clazz);
+                type = Type::Val(clazz);
+            } else {
+                op = ops()->HeapAlloc(clazz);
+                type = Type::Ref(clazz);
+            }
+            auto ob = location_->current_block()->NewNode(ss.Position(), type, op);
+            
+            auto proto = clazz->constructor()->prototype();
+            auto value_in = static_cast<int>(proto->params_size());
+            auto handle = DCHECK_NOTNULL(clazz->FindMemberOrNull(clazz->constructor()->name()->ToSlice()));
+            op = ops()->CallHandle(handle, 1, value_in);
+            std::vector<Value *> results;
+            args.insert(args.begin(), ob);
+            EmitCall(op, proto, std::move(args), &results, ss.Position());
+            return Returning(results);
+            
         }
         UNREACHABLE();
     }
@@ -376,8 +404,9 @@ public:
         
         auto type = proto->return_type(0);
         auto call = location_->current_block()->NewNodeWithValues(nullptr, source_position, type, op, args);
-        std::vector<Value *> results;
-        results.push_back(call);
+        returning_vals->push_back(call);
+//        std::vector<Value *> results;
+//        results.push_back(call);
         for (int i = 1; i < proto->return_types_size(); i++) {
             op = ops()->ReturningVal(i);
             auto rv = location_->current_block()->NewNode(source_position, proto->return_type(i), op, call);
@@ -956,15 +985,18 @@ private:
 }; // class IntermediateRepresentationGenerator::AstVisitor
 
 
-IntermediateRepresentationGenerator::IntermediateRepresentationGenerator(base::Arena *arena,
+IntermediateRepresentationGenerator::IntermediateRepresentationGenerator(const std::unordered_map<std::string_view, cpl::GlobalSymbol> &symbols,
+                                                                         base::Arena *arena,
                                                                          cpl::Package *entry,
                                                                          cpl::SyntaxFeedback *error_feedback)
-: arena_(DCHECK_NOTNULL(arena))
+: ast_nodes_(symbols)
+, arena_(DCHECK_NOTNULL(arena))
 , entry_(entry)
 , error_feedback_(error_feedback)
-, global_udts_(arena)
-, global_vars_(arena)
-, global_funs_(arena)
+//, global_udts_(arena)
+//, global_vars_(arena)
+//, global_funs_(arena)
+, symbols_(arena)
 , modules_(arena)
 , pkg_scopes_(arena)
 , track_(arena)
@@ -1042,7 +1074,7 @@ void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
             std::string name(full_name + "." + def->name()->ToString());
             auto model = module->NewClassModel(def->name()->Duplicate(arena_), String::New(arena_, name),
                                                nullptr/*base_of*/);
-            global_udts_[model->full_name()->ToSlice()] = model;
+            symbols_[model->full_name()->ToSlice()] = Symbol::Udt(nullptr, model, def);
         }
 
         for (auto def : file_unit->struct_defs()) {
@@ -1052,7 +1084,7 @@ void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
             std::string name(full_name + "." + def->name()->ToString());
             auto model = module->NewStructModel(def->name()->Duplicate(arena_), String::New(arena_, name),
                                                 nullptr/*base_of*/);
-            global_udts_[model->full_name()->ToSlice()] = model;
+            symbols_[model->full_name()->ToSlice()] = Symbol::Udt(nullptr, model, def);
         }
         
         for (auto def : file_unit->interfaces()) {
@@ -1061,7 +1093,7 @@ void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
             }
             std::string name(full_name + "." + def->name()->ToString());
             auto model = module->NewInterfaceModel(def->name()->Duplicate(arena_), String::New(arena_, name));
-            global_udts_[model->full_name()->ToSlice()] = model;
+            symbols_[model->full_name()->ToSlice()] = Symbol::Udt(nullptr, model, def);
         }
     }
 }
@@ -1078,12 +1110,12 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
     }
     auto init = InstallInitFun(module);
     
-    if (auto iter = global_udts_.find(cpl::kAnyArrayFullName); iter == global_udts_.end()) {
+    if (auto iter = symbols_.find(cpl::kAnyArrayFullName); iter == symbols_.end()) {
         auto any = AssertedGetUdt(cpl::kAnyClassFullName);
         auto name = String::New(arena_, "Any[]");
         auto full_name = String::New(arena_, cpl::kAnyArrayFullName);
         auto any_array = new (arena_) ArrayModel(arena_, name, full_name, 1, Type::Ref(any));
-        global_udts_[any_array->full_name()->ToSlice()] = any_array;
+        symbols_[any_array->full_name()->ToSlice()] = Symbol::Udt(nullptr, any_array);
     }
 
     for (auto file_unit : pkg->source_files()) {
@@ -1096,7 +1128,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
                 auto name = String::New(arena_, full_name + "." + it->Identifier()->ToString());
                 auto val = Value::New0(arena_, name, scope.Position(), BuildType(it->Type()), ops_->GlobalValue(name));
                 module->InsertGlobalValue(it->Identifier()->Duplicate(arena_), val);
-                global_vars_[name->ToSlice()] = val;
+                symbols_[name->ToSlice()] = Symbol::Val(nullptr, val, it);
             }
         }
         
@@ -1108,7 +1140,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
             auto op = ops_->LazyValue(name);
             auto val = Value::New0(arena_, name, scope.Position(), BuildType(var->Type()), op);
             module->InsertGlobalValue(var->Identifier()->Duplicate(arena_), val);
-            global_vars_[name->ToSlice()] = val;
+            symbols_[name->ToSlice()] = Symbol::Val(nullptr, val, var);
         }
         
         for (auto def : file_unit->funs()) {
@@ -1117,16 +1149,11 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
                                            def->name()->Duplicate(arena_),
                                            String::New(arena_, full_name + "." + def->name()->ToString()),
                                            down_cast<PrototypeModel>(ty.model()));
-            global_funs_[fun->full_name()->ToSlice()] = fun;
+            symbols_[fun->full_name()->ToSlice()] = Symbol::Fun(nullptr, fun, def);
         }
     }
     
-    GlobalSymbols global {
-        .vars = &global_vars_,
-        .udts = &global_udts_,
-        .funs = &global_funs_,
-    };
-    pkg_scopes_[pkg] = new PackageScope(nullptr/*location*/, init->entry(), pkg, global);
+    pkg_scopes_[pkg] = new PackageScope(nullptr/*location*/, init->entry(), pkg, &symbols_);
 }
 
 Function *IntermediateRepresentationGenerator::InstallInitFun(Module *module) {
@@ -1135,18 +1162,17 @@ Function *IntermediateRepresentationGenerator::InstallInitFun(Module *module) {
     auto full_name = String::New(arena_, buf);
     
     PrototypeModel *proto = nullptr;
-    auto iter = global_udts_.find(cpl::kModuleInitFunProtoName);
-    if (iter == global_udts_.end()) {
+    if (auto model = FindUdtOrNull(cpl::kModuleInitFunProtoName)) {
+        proto = down_cast<PrototypeModel>(model);
+    } else {
         proto = new (arena_) PrototypeModel(arena_, String::New(arena_, cpl::kModuleInitFunProtoName), false/*vargs*/);
         proto->mutable_return_types()->push_back(Types::Void);
-        global_udts_[proto->full_name()->ToSlice()] = proto;
-    } else {
-        proto = down_cast<PrototypeModel>(iter->second);
+        symbols_[proto->full_name()->ToSlice()] = Symbol::Udt(nullptr, proto);
     }
     
     auto init = module->NewFunction(Function::kDefault, name, full_name, proto);
     init->NewBlock(String::New(arena_, "boot"));
-    global_funs_[init->full_name()->ToSlice()] = init;
+    symbols_[init->full_name()->ToSlice()] = Symbol::Fun(nullptr, init);
     return init;
 }
 
@@ -1198,7 +1224,7 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
             auto name = String::New(arena_, full_name);
             auto ar = new (arena_) ArrayModel(arena_, name, name, ast_ty->dimension_count(),
                                               element_ty);
-            global_udts_[ar->full_name()->ToSlice()] = ar;
+            symbols_[ar->full_name()->ToSlice()] = Symbol::Udt(nullptr, ar);
             return Type::Ref(ar);
         } break;
         case cpl::Type::kType_option: {

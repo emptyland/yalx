@@ -4,4 +4,7 @@ import "foo"
 
 fun main() {
     foo.hello()
+    val bar = Bar(1, 2)
 }
+
+class Bar(val i: int, val j: int)

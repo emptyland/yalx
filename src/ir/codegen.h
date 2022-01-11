@@ -2,7 +2,9 @@
 #ifndef YALX_IR_CODEGEN_H_
 #define YALX_IR_CODEGEN_H_
 
+#include "compiler/global-symbol.h"
 #include "ir/type.h"
+#include "ir/scope.h"
 #include "base/arena-utils.h"
 #include "base/status.h"
 #include "base/base.h"
@@ -28,7 +30,10 @@ class PackageScope;
 
 class IntermediateRepresentationGenerator {
 public:
-    IntermediateRepresentationGenerator(base::Arena *arena, cpl::Package *entry, cpl::SyntaxFeedback *error_feedback);
+    IntermediateRepresentationGenerator(const std::unordered_map<std::string_view, cpl::GlobalSymbol> &symbols,
+                                        base::Arena *arena,
+                                        cpl::Package *entry,
+                                        cpl::SyntaxFeedback *error_feedback);
     
     base::Status Run();
     
@@ -55,23 +60,22 @@ private:
     Value *AssertedGetVal(std::string_view name) const { return DCHECK_NOTNULL(FindValOrNull(name)); }
     
     Value *FindValOrNull(std::string_view name) const {
-        auto iter = global_vars_.find(name);
-        return iter == global_vars_.end() ? nullptr : iter->second;
+        auto iter = symbols_.find(name);
+        return (iter == symbols_.end() || iter->second.kind != Symbol::kValue) ? nullptr : iter->second.core.value;
     }
     
     Model *AssertedGetUdt(std::string_view name) const { return DCHECK_NOTNULL(FindUdtOrNull(name)); }
     
     Model *FindUdtOrNull(std::string_view name) const {
-        auto iter = global_udts_.find(name);
-        //assert(iter != global_udts_.end());
-        return iter == global_udts_.end() ? nullptr : iter->second;
+        auto iter = symbols_.find(name);
+        return (iter == symbols_.end() || iter->second.kind != Symbol::kModel) ? nullptr : iter->second.core.model;
     }
     
     Function *AssertedGetFun(std::string_view name) const { return DCHECK_NOTNULL(FindFunOrNull(name)); }
     
     Function *FindFunOrNull(std::string_view name) const {
-        auto iter = global_funs_.find(name);
-        return iter == global_funs_.end() ? nullptr : iter->second;
+        auto iter = symbols_.find(name);
+        return (iter == symbols_.end() || iter->second.kind != Symbol::kFun) ? nullptr : iter->second.core.fun;
     }
     
     PackageScope *AssertedGetPackageScope(cpl::Package *key) const {
@@ -88,12 +92,14 @@ private:
         return false;
     }
     
+    const std::unordered_map<std::string_view, cpl::GlobalSymbol> &ast_nodes_;
     base::Arena *const arena_;
     cpl::Package *entry_;
     cpl::SyntaxFeedback *error_feedback_;
-    base::ArenaMap<std::string_view, Model *> global_udts_;
-    base::ArenaMap<std::string_view, Value *> global_vars_;
-    base::ArenaMap<std::string_view, Function *> global_funs_;
+//    base::ArenaMap<std::string_view, Model *> global_udts_;
+//    base::ArenaMap<std::string_view, Value *> global_vars_;
+//    base::ArenaMap<std::string_view, Function *> global_funs_;
+    base::ArenaMap<std::string_view, Symbol> symbols_;
     base::ArenaMap<std::string_view, Module *> modules_;
     base::ArenaMap<cpl::Package *, PackageScope *> pkg_scopes_;
     base::ArenaMap<Module *, int> track_;
