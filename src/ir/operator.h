@@ -36,6 +36,7 @@ namespace ir {
     V(StoreGlobal) \
     V(LazyValue) \
     V(LazyLoad) \
+    V(LoadEffectAddress) \
     V(LoadAccessField) \
     V(StoreAccessField) \
     V(LoadInlineField) \
@@ -94,8 +95,8 @@ namespace ir {
     V(UIToFP) \
     V(SIToFP) \
     V(BitCastTo) \
-    V(GetAddr) \
-    V(Dref) \
+    V(LoadAddress) \
+    V(Deref) \
     V(IfaceToRef) \
     V(RefToIface) \
     V(RefAssertedTo) \

@@ -70,6 +70,15 @@ public:
                                      0/*control_out*/);
     }
     
+    // Load Value type's pointer of field
+    // input[0]: Value pinter
+    Operator *LoadEffectAddress(const Handle *handle) {
+        return new (arena_) OperatorWith<const Handle *>(Operator::kLoadEffectAddress, 0, 1/*value_in*/, 0/*control_in*/,
+                                                         0/*value_out*/, 0/*control_out*/, handle);
+    }
+    
+    // Load Value type
+    // input[0] must be a value
     Operator *LoadInlineField(const Handle *handle) {
         return new (arena_) OperatorWith<const Handle *>(Operator::kLoadInlineField, 0, 1/*value_in*/, 0/*control_in*/,
                                                          0/*value_out*/, 0/*control_out*/, handle);
@@ -80,6 +89,8 @@ public:
                                                          1/*value_out*/, 0/*control_out*/, handle);
     }
     
+    // Load pointer type
+    // input[0] must be a value pointer
     Operator *LoadAccessField(const Handle *handle) {
         return new (arena_) OperatorWith<const Handle *>(Operator::kLoadAccessField, 0, 1/*value_in*/, 0/*control_in*/,
                                                          0/*value_out*/, 0/*control_out*/, handle);
@@ -90,6 +101,8 @@ public:
                                                          1/*value_out*/, 0/*control_out*/, handle);
     }
     
+    // Load ref type
+    // input[0] must be a ref type object
     Operator *LoadEffectField(const Handle *handle) {
         return new (arena_) OperatorWith<const Handle *>(Operator::kLoadEffectField, 0, 1/*value_in*/, 0/*control_in*/,
                                                          0/*value_out*/, 0/*control_out*/, handle);

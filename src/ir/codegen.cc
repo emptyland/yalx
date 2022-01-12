@@ -259,21 +259,6 @@ public:
         }
     }
     
-    Value *EmitLoadField(Value *value, Handle *handle, SourcePosition source_position) {
-        Operator *op = nullptr;
-        if (value->type().IsReference()) {
-            op = ops()->LoadEffectField(handle);
-        } else if (value->type().IsPointer()) {
-            assert(value->type().kind() == Type::kValue);
-            op = ops()->LoadAccessField(handle);
-        } else {
-            assert(value->type().kind() == Type::kValue);
-            op = ops()->LoadInlineField(handle);
-        }
-        auto field = std::get<const Model::Field *>(handle->owns()->GetMember(handle));
-        return location_->current_block()->NewNode(source_position, field->type, op, value);
-    }
-    
     int VisitCalling(cpl::Calling *node) override {
         SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(node));
         std::vector<Value *> args;
@@ -405,8 +390,6 @@ public:
         auto type = proto->return_type(0);
         auto call = location_->current_block()->NewNodeWithValues(nullptr, source_position, type, op, args);
         returning_vals->push_back(call);
-//        std::vector<Value *> results;
-//        results.push_back(call);
         for (int i = 1; i < proto->return_types_size(); i++) {
             op = ops()->ReturningVal(i);
             auto rv = location_->current_block()->NewNode(source_position, proto->return_type(i), op, call);
@@ -447,7 +430,7 @@ public:
                     assert(symbol.kind == Symbol::kHandle);
                     auto this_symbol = location_->FindSymbol(cpl::kThisName);
                     assert(this_symbol.kind == Symbol::kValue);
-                    auto this_replace = EmitStoreField(ss.Position(), symbol.core.handle, this_symbol.core.value, rval);
+                    auto this_replace = EmitStoreField(this_symbol.core.value, rval, symbol.core.handle, ss.Position());
                     location_->PutValue(cpl::kThisName, this_replace);
                 }
             } else if (auto ast = lval->AsDot()) {
@@ -459,15 +442,8 @@ public:
                     assert(symbol.owns->IsFileUnitScope());
                     location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), rval);
                 } else {
-                    Value *primary = nullptr;
-                    if (ReduceReturningOnlyOne(ast->primary(), &primary) < 0) {
+                    if (ProcessDotChainAssignment(ast, rval) < 0) {
                         return -1;
-                    }
-                    auto handle = DCHECK_NOTNULL(primary->type().model())->FindMemberOrNull(ast->field()->ToSlice());
-                    assert(handle != nullptr);
-                    primary = EmitStoreField(ss.Position(), handle, primary, rval);
-                    if (auto id = ast->primary()->AsIdentifier()) {
-                        location_->PutValue(id->name()->ToSlice(), primary);
                     }
                 }
             } else {
@@ -572,9 +548,9 @@ public:
             return src;
         }
         if (dest.IsPointer() && src->type().IsNotPointer()) {
-            src = location_->current_block()->NewNode(source_position, dest, ops()->GetAddr(), src);
+            src = location_->current_block()->NewNode(source_position, dest, ops()->LoadAddress(), src);
         } else if (dest.IsNotPointer() && src->type().IsPointer()) {
-            src = location_->current_block()->NewNode(source_position, dest, ops()->Dref(), src);
+            src = location_->current_block()->NewNode(source_position, dest, ops()->Deref(), src);
         }
 
         Operator *op = nullptr;
@@ -720,13 +696,109 @@ private:
         return module_->full_name()->ToString().append(".").append(name->ToString());
     }
     
-    Value *EmitStoreField(SourcePosition source_position, Handle *handle, Value *primary, Value *input) {
-        auto op = handle->owns()->constraint() == Model::kRef ? ops()->StoreEffectField(handle)
-            : ops()->StoreAccessField(handle);
+    int ProcessDotChainAssignment(cpl::Dot *ast, Value *rval) {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
+        // a.b.c.d
+        // ["a","b","c","d"]
+        // a.b().c.d = 1
+        // %0 = load a
+        // %1 = call_handle %0 <b>
+        // %2 = load %1 <c>
+        // %3 = store %2, 1 <d>
+        //
+        std::vector<const String *> parts;
+        cpl::Statement *node = ast;
+        while (node->IsDot()) {
+            auto dot = node->AsDot();
+            parts.insert(parts.begin(), dot->field());
+            node = dot->primary();
+        }
+        // `node` is first part of dot chain
+        Value *primary = nullptr;
+        if (ReduceReturningOnlyOne(node, &primary) < 0) {
+            return -1;
+        }
+        assert(primary->type().kind() == Type::kValue || primary->type().kind() == Type::kReference);
+        
+        // a.b.c.d = x
+        // ["b", "c", "d"]
+        // %a.0 = load a
+        // %b.1 = load %a.0 <b>
+        // %c.2 = load %b.1 <c>
+        // %c.3 = store %c.2, %x <d>
+        // %b.4 = store %b.1, %c.3 <c>
+        // %a.5 = store %a.0, %b.4 <b>
+        // store a, %a.5
+        // ----------------
+        // bar.baz.i = x
+        // ["baz", "i"]
+        // %bar.0 = load bar
+        // %baz.1 = load %bar.0 <baz>
+        // %baz.2 = store %baz.1, %x <i>
+        // %bar.3 = store %bar.0, %baz.2 <baz>
+        // store bar, %bar.3
+        Value *value = primary;
+        std::stack<Value *> records;
+        //records.push(value);
+        for (size_t i = 0; i < parts.size() - 1; i++) {
+            auto handle = DCHECK_NOTNULL(value->type().model()->FindMemberOrNull(parts[i]->ToSlice()));
+            records.push(value);
+            value = EmitLoadField(value, handle, root_ss.Position());
+            assert(value->type().kind() == Type::kValue || value->type().kind() == Type::kReference);
+        } {
+            auto handle = DCHECK_NOTNULL(value->type().model()->FindMemberOrNull(parts.back()->ToSlice()));
+            value = EmitStoreField(value, rval, handle, root_ss.Position());
+        }
+        for (int64_t i = static_cast<int64_t>(parts.size()) - 2; i >= 0; i--) {
+            auto lval = records.top();
+            records.pop();
+            //printd("%s::%s", lval->type().model()->full_name()->data(), parts[i]->data());
+            auto handle = DCHECK_NOTNULL(lval->type().model()->FindMemberOrNull(parts[i]->ToSlice()));
+            value = EmitStoreField(lval, value, handle, root_ss.Position());
+        }
+        
+        if (auto id = node->AsIdentifier()) {
+            SourcePositionTable::Scope ss(id->source_position(), &root_ss);
+            auto symbol = location_->FindSymbol(id->name()->ToSlice());
+            if (symbol.owns->IsFileUnitScope()) { // is global?
+                location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), value);
+            } else {
+                location_->PutValue(id->name()->ToSlice(), value);
+            }
+        }
+        return 0;
+    }
+    
+    Value *EmitLoadField(Value *value, Handle *handle, SourcePosition source_position) {
+        Operator *op = nullptr;
+        if (value->type().IsReference()) {
+            op = ops()->LoadEffectField(handle);
+        } else if (value->type().IsPointer()) {
+            assert(value->type().kind() == Type::kValue);
+            op = ops()->LoadAccessField(handle);
+        } else {
+            assert(value->type().kind() == Type::kValue);
+            op = ops()->LoadInlineField(handle);
+        }
+        auto field = std::get<const Model::Field *>(handle->owns()->GetMember(handle));
+        return location_->current_block()->NewNode(source_position, field->type, op, value);
+    }
+    
+    Value *EmitStoreField(Value *value, Value *input, Handle *handle, SourcePosition source_position) {
+        Operator *op = nullptr;
+        if (value->type().IsReference()) {
+            op = ops()->StoreEffectField(handle);
+        } else if (value->type().IsPointer()) {
+            assert(value->type().kind() == Type::kValue);
+            op = ops()->StoreAccessField(handle);
+        } else {
+            assert(value->type().kind() == Type::kValue);
+            op = ops()->StoreInlineField(handle);
+        }
         auto type = handle->owns()->constraint() == Model::kRef
             ? Type::Ref(const_cast<Model *>(handle->owns()))
             : Type::Val(const_cast<Model *>(handle->owns()));
-        return location_->current_block()->NewNode(source_position, type, op, primary, input);
+        return location_->current_block()->NewNode(source_position, type, op, value, input);
     }
     
     Function *GenerateFun(const cpl::FunctionDeclaration *ast, Model *owns, Function *fun = nullptr) {

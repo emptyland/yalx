@@ -838,6 +838,8 @@ std::string Type::ToString() const {
             return "unit";
         case kType_any:
             return "any";
+        case kType_symbol:
+            return identifier()->ToString();
         default:
             break;
     }

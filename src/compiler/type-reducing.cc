@@ -925,9 +925,12 @@ private:
                 for (auto i = 0; i < def->parameters_size(); i++) {
                     Type *param = nullptr;
                     if (def->parameter(i).field_declaration) {
-                        param = def->field(def->parameter(i).as_field).declaration->Type();
+                        auto item = down_cast<VariableDeclaration::Item>(def->field(def->parameter(i).as_field).declaration->AtItem(0));
+                        param = LinkType(item->Type());
+                        item->set_type(param);
                     } else {
-                        param = def->parameter(i).as_parameter->Type();
+                        param = LinkType(def->parameter(i).as_parameter->Type());
+                        def->parameter(i).as_parameter->set_type(param);
                     }
                     bool unlinked = false;
                     if (!param->Acceptable(args[i], &unlinked)) {

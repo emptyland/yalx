@@ -4,7 +4,10 @@ import "foo"
 
 fun main() {
     foo.hello()
-    val bar = Bar(1, 2)
+    val bar = Bar(1, 2, Baz(0))
+    bar.baz.i = 1
+    bar.baz = Baz(100)
 }
 
-class Bar(val i: int, val j: int)
+class Bar(val i: int, val j: int, var baz: Baz)
+struct Baz(var i: int)
