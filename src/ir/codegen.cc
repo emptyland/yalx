@@ -43,6 +43,8 @@ public:
         scope->Enter(&location_);
         feedback()->set_package_name(name);
         
+        EmitCallingModuleDependentInitializers(node);
+        
         for (auto file_unit : node->source_files()) {
             feedback()->set_file_name(file_unit->file_name()->ToString());
             if (auto rs = file_unit->Accept(this); rs < 0 || fail()) {
@@ -374,28 +376,6 @@ public:
             
         }
         UNREACHABLE();
-    }
-    
-    Value *EmitCall(Operator *op, PrototypeModel *proto, std::vector<Value *> &&args,
-                    std::vector<Value *> *returning_vals, SourcePosition source_position) {
-        if (proto->vargs()) {
-            // TODO:
-            UNREACHABLE();
-        }
-        assert(args.size() == proto->params_size());
-        for (size_t i = 0; i < proto->params_size(); i++) {
-            args[i] = EmitCastingIfNeeded(proto->param(i), args[i], source_position);
-        }
-        
-        auto type = proto->return_type(0);
-        auto call = location_->current_block()->NewNodeWithValues(nullptr, source_position, type, op, args);
-        returning_vals->push_back(call);
-        for (int i = 1; i < proto->return_types_size(); i++) {
-            op = ops()->ReturningVal(i);
-            auto rv = location_->current_block()->NewNode(source_position, proto->return_type(i), op, call);
-            returning_vals->push_back(rv);
-        }
-        return call;
     }
 
     int VisitAssignment(cpl::Assignment *node) override {
@@ -752,7 +732,6 @@ private:
         for (int64_t i = static_cast<int64_t>(parts.size()) - 2; i >= 0; i--) {
             auto lval = records.top();
             records.pop();
-            //printd("%s::%s", lval->type().model()->full_name()->data(), parts[i]->data());
             auto handle = DCHECK_NOTNULL(lval->type().model()->FindMemberOrNull(parts[i]->ToSlice()));
             value = EmitStoreField(lval, value, handle, root_ss.Position());
         }
@@ -760,13 +739,55 @@ private:
         if (auto id = node->AsIdentifier()) {
             SourcePositionTable::Scope ss(id->source_position(), &root_ss);
             auto symbol = location_->FindSymbol(id->name()->ToSlice());
+            assert(symbol.IsFound());
             if (symbol.owns->IsFileUnitScope()) { // is global?
                 location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), value);
             } else {
-                location_->PutValue(id->name()->ToSlice(), value);
+                location_->PutSymbol(id->name()->ToSlice(), Symbol::Val(symbol.owns, value));
             }
         }
         return 0;
+    }
+    
+    void EmitCallingModuleDependentInitializers(cpl::Package *node) {
+        for (auto [name, import] : node->imports()) {
+            std::string full_name(name);
+            full_name.append(":").append(import.pkg->name()->ToString());
+            
+            auto deps = owns_->AssertedGetModule(full_name);
+            auto init = DCHECK_NOTNULL(deps->FindFunOrNull(cpl::kModuleInitFunName));
+            auto op = ops()->Closure(init);
+            auto type = Type::Ref(init->prototype());
+            auto fun = init_blk_->NewNode(SourcePosition::Unknown(), type, op);
+            
+            op = ops()->StringConstant(deps->full_name());
+            auto pkg_name = Value::New0(arena(), SourcePosition::Unknown(), Types::String, op);
+            
+            op = ops()->CallRuntime(0, 2, RuntimeLib::PkgInitOnce);
+            init_blk_->NewNode(SourcePosition::Unknown(), Types::Void, op, fun, pkg_name);
+        }
+    }
+    
+    Value *EmitCall(Operator *op, PrototypeModel *proto, std::vector<Value *> &&args,
+                    std::vector<Value *> *returning_vals, SourcePosition source_position) {
+        if (proto->vargs()) {
+            // TODO:
+            UNREACHABLE();
+        }
+        assert(args.size() == proto->params_size());
+        for (size_t i = 0; i < proto->params_size(); i++) {
+            args[i] = EmitCastingIfNeeded(proto->param(i), args[i], source_position);
+        }
+        
+        auto type = proto->return_type(0);
+        auto call = location_->current_block()->NewNodeWithValues(nullptr, source_position, type, op, args);
+        returning_vals->push_back(call);
+        for (int i = 1; i < proto->return_types_size(); i++) {
+            op = ops()->ReturningVal(i);
+            auto rv = location_->current_block()->NewNode(source_position, proto->return_type(i), op, call);
+            returning_vals->push_back(rv);
+        }
+        return call;
     }
     
     Value *EmitLoadField(Value *value, Handle *handle, SourcePosition source_position) {

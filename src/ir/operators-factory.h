@@ -3,6 +3,7 @@
 #define YALX_IR_OPERATORS_FACTORY_H_
 
 #include "ir/operator.h"
+#include "ir/runtime.h"
 #include "base/arena.h"
 #include "base/base.h"
 
@@ -32,6 +33,11 @@ public:
     Operator *Br(int value_in, int control_out) {
         return new (arena_) Operator(Operator::kBr, 0, value_in, 0/*control_in*/, 1/*value_out*/,
                                      control_out/*control_out*/);
+    }
+    
+    Operator *Closure(Function *fun) {
+        return new (arena_) OperatorWith<Function *>(Operator::kClosure, 0, 0/*value_in*/, 0/*control_in*/,
+                                                     1/*value_out*/, 0/*control_out*/, fun);
     }
     
     Operator *Ret(int value_in) {
@@ -136,6 +142,11 @@ public:
     Operator *CallIndirectly(int value_out, int value_in) {
         return new (arena_) Operator(Operator::kCallIndirectly, 0, value_in, 0/*control_in*/, value_out,
                                      0/*control_out*/);
+    }
+    
+    Operator *CallRuntime(int value_out, int value_in, RuntimeId id) {
+        return new (arena_) OperatorWith<RuntimeId>(Operator::kCallRuntime, 0, value_in, 0/*control_in*/, value_out,
+                                                    0/*control_out*/, id);
     }
     
     Operator *ReturningVal(int index) {

@@ -1,6 +1,7 @@
 #include "ir/node.h"
 #include "ir/metadata.h"
 #include "ir/utils.h"
+#include "ir/runtime.h"
 #include "ir/constants.h"
 #include "base/io.h"
 #include "base/format.h"
@@ -47,6 +48,14 @@ struct OperatorPrinting<const Model *> {
     void PrintTo(Operator *op, base::PrintingWriter *printer) {
         auto model = OperatorWith<const Model *>::Data(op);
         printer->Write(model->name()->ToSlice());
+    }
+};
+
+template <>
+struct OperatorPrinting<RuntimeId> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        auto id = OperatorWith<RuntimeId>::Data(op);
+        printer->Write(id.ToString());
     }
 };
 

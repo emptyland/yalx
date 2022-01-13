@@ -230,6 +230,9 @@ public:
     DEF_VAL_GETTER(Type, type);
     DEF_VAL_GETTER(SourcePosition, source_position);
     
+    bool IsNot(Operator::Value value) const { return !Is(value); }
+    bool Is(Operator::Value value) const { return op()->value() == value; }
+    
     Value *InputValue(int i) const {
         assert(i >= 0 && i < op()->value_in());
         return DCHECK_NOTNULL(io_[value_in_offset() + i]->AsValue());

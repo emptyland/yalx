@@ -28,6 +28,7 @@ namespace ir {
     V(Parameter) \
     V(HeapAlloc) \
     V(StackAlloc) \
+    V(Closure) \
     V(Ret)
 
 #define DECLARE_IR_GLOBALS(V) \
@@ -107,6 +108,7 @@ namespace ir {
 #define DECL_OPERATORS_WITH_DATA(V) \
     V(Argument,         int) \
     V(ReturningVal,     int) \
+    V(Closure,          Function *) \
     V(HeapAlloc,        Model const *) \
     V(StackAlloc,       Model const *) \
     V(GlobalValue,      String const *) \
@@ -121,6 +123,7 @@ namespace ir {
     V(CallVirtual,      Handle const *) \
     V(CallAbstract,     Handle const *) \
     V(CallDirectly,     Function *) \
+    V(CallRuntime,      RuntimeId) \
     DECL_CONSTANTS_WITH_DATA(V)
 
 #define DECL_CONSTANTS_WITH_DATA(V) \
