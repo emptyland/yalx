@@ -68,6 +68,25 @@ TEST_F(IntermediateRepresentationGeneratorTest, Sanity) {
 //    modules["foo:foo"]->PrintTo(&printer);
     modules["main:main"]->PrintTo(&printer);
     
+    //printf("%s\n", buf.data());
+}
+
+TEST_F(IntermediateRepresentationGeneratorTest, IfExpr) {
+    bool ok = false;
+    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    IRGen("tests/19-ir-gen-if-expr", &modules, &ok);
+    ASSERT_TRUE(ok);
+    
+    ASSERT_TRUE(modules.find("yalx/lang:lang") != modules.end());
+    ASSERT_TRUE(modules.find("foo:foo") != modules.end());
+    ASSERT_TRUE(modules.find("main:main") != modules.end());
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    //    modules["yalx/lang:lang"]->PrintTo(&printer);
+    //    modules["foo:foo"]->PrintTo(&printer);
+    modules["main:main"]->PrintTo(&printer);
+    
     printf("%s\n", buf.data());
 }
 

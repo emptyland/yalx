@@ -178,16 +178,16 @@ BranchScope::BranchScope(NamespaceScope **location, BasicBlock *current_block, c
     if (trunk) {
         trunk->branchs_.push_back(this);
     } else {
-        Enter();
+        //Enter();
     }
 }
 BranchScope::~BranchScope() {
     for (auto br : branchs_) {
         delete br;
     }
-    if (IsTrunk()) {
-        Exit();
-    }
+//    if (IsTrunk()) {
+//        Exit();
+//    }
 }
 
 BranchScope *BranchScope::NearlyBranchScope() { return this; }

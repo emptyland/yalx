@@ -179,6 +179,12 @@ public:
     inline Value *NewNodeWithValues(const String *name, SourcePosition source_position, Type type, Operator *op,
                                     Value **values, size_t values_size);
     
+    inline Value *NewNodeWithNodes(const String *name, SourcePosition source_position, Type type, Operator *op,
+                                   const std::vector<Node *> &nodes);
+    
+    inline Value *NewNodeWithNodes(const String *name, SourcePosition source_position, Type type, Operator *op,
+                                   Node **nodes, size_t nodes_size);
+    
     DEF_PTR_GETTER(const String, name);
     DEF_PTR_GETTER(base::Arena, arena);
     DEF_ARENA_VECTOR_GETTER(Value *, instruction);
@@ -347,6 +353,18 @@ inline Value *BasicBlock::NewNodeWithValues(const String *name, SourcePosition s
                                             Value **inputs, size_t inputs_size) {
     auto instr = Value::NewWithInputs(arena(), name, source_position, type, op, reinterpret_cast<Node **>(inputs),
                                       inputs_size);
+    instructions_.push_back(instr);
+    return instr;
+}
+
+inline Value *BasicBlock::NewNodeWithNodes(const String *name, SourcePosition source_position, Type type, Operator *op,
+                                           const std::vector<Node *> &nodes) {
+    return NewNodeWithNodes(name, source_position, type, op, const_cast<Node **>(&nodes[0]), nodes.size());
+}
+
+inline Value *BasicBlock::NewNodeWithNodes(const String *name, SourcePosition source_position, Type type, Operator *op,
+                                           Node **nodes, size_t nodes_size)  {
+    auto instr = Value::NewWithInputs(arena(), name, source_position, type, op, nodes, nodes_size);
     instructions_.push_back(instr);
     return instr;
 }

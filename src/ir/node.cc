@@ -336,7 +336,8 @@ void Function::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer, Mode
 BasicBlock::BasicBlock(base::Arena *arena, const String *name)
 : Node(Node::kBasicBlock)
 , arena_(DCHECK_NOTNULL(arena))
-, name_(DCHECK_NOTNULL(name))
+//, name_(DCHECK_NOTNULL(name))
+, name_(name)
 , instructions_(arena)
 , inputs_(arena)
 , outputs_(arena) {

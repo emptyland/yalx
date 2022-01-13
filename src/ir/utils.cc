@@ -24,7 +24,7 @@ base::PrintingWriter *PrintingContext::OfName(const BasicBlock *val, base::Print
     if (val->name()) {
         printer->Write(val->name()->data())->Write(":");
     } else {
-        printer->Print("L%%d:", Id(val));
+        printer->Print("L%d:", Id(val));
     }
     return printer;
 }

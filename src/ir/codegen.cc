@@ -77,11 +77,11 @@ public:
         if (!node->generic_params().empty()) {
             return Returning(Unit());
         }
-        if (node->IsClassDefinition()) {
-            printd("class %s", node->FullName().c_str());
-        } else {
-            printd("struct %s", node->FullName().c_str());
-        }
+//        if (node->IsClassDefinition()) {
+//            printd("class %s", node->FullName().c_str());
+//        } else {
+//            printd("struct %s", node->FullName().c_str());
+//        }
         
         auto clazz = AssertedGetUdt<StructureModel>(node->FullName());
         if (node->base_of()) {
@@ -125,7 +125,6 @@ public:
                 ast->body() == nullptr) {
                 continue;
             }
-            //printd("find method: %s", ast->name()->data());
             auto method = clazz->FindMethod(ast->name()->ToSlice());
             assert(method.has_value());
             if (!GenerateFun(ast, clazz, method->fun)) {
@@ -139,7 +138,6 @@ public:
                 return -1;
             }
             clazz->set_constructor(ctor);
-            //printd("constructor: %s(%s)", ctor->name()->data(), ctor->full_name()->data());
             Model::Method method {
                 .fun = ctor,
                 .access = kPublic,
@@ -244,17 +242,33 @@ public:
         auto symbol = location_->FindSymbol(node->name()->ToSlice());
         assert(symbol.IsFound());
         switch (symbol.kind) {
-            case Symbol::kValue:
-                return Returning(symbol.core.value);
+            case Symbol::kValue: {
+                auto value = symbol.core.value;
+                if (value->Is(Operator::kGlobalValue)) {
+                    auto op = ops()->LoadGlobal();
+                    auto load = location_->current_block()->NewNode(root_ss.Position(), value->type(), op, value);
+                    return Returning(load);
+                } else if (value->Is(Operator::kLazyValue)) {
+                    auto op = ops()->LazyValue(node->name());
+                    auto load = location_->current_block()->NewNode(root_ss.Position(), value->type(), op, value);
+                    return Returning(load);
+                } else {
+                    return Returning(symbol.core.value);
+                }
+            } break;
             case Symbol::kHandle: {
                 auto handle = symbol.core.handle;
                 auto this_val = location_->FindSymbol(cpl::kThisName);
                 assert(this_val.IsFound());
                 return Returning(EmitLoadField(this_val.core.value, handle, root_ss.Position()));
             } break;
-            case Symbol::kFun: // TODO:
-                UNREACHABLE();
-                break;
+            case Symbol::kFun: {
+                auto fun = symbol.core.fun;
+                auto op = ops()->Closure(fun);
+                auto type = Type::Ref(fun->prototype());
+                auto load = location_->current_block()->NewNode(root_ss.Position(), type, op);
+                return Returning(load);
+            } break;
             default:
                 UNREACHABLE();
                 break;
@@ -460,6 +474,7 @@ public:
     int VisitIfExpression(cpl::IfExpression *node) override {
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
         BranchScope trunk(&location_, location_->current_block(), node);
+        NamespaceScope::Keeper<BranchScope> root_holder(&trunk);
         if (node->initializer()) {
             REDUCE(node->initializer());
         }
@@ -468,13 +483,16 @@ public:
         if (ReduceReturningAtLeastOne(node->condition(), &condition) < 0) {
             return -1;
         }
-        std::vector<Value *> values;
+        //std::vector<Value *> values;
+        const int number_of_branchs = 1 + (!node->else_clause() ? 0 : 1);
+        std::vector<Value *> values[2];
+        BasicBlock *blocks[2] = {nullptr, trunk.current_block()/*origin block*/}; // At most two
         
         auto fun_scope = location_->NearlyFunctionScope();
-        auto fun = fun_scope->fun();
-        auto then_block = fun->NewBlock(String::New(arena(), "then"));
-        auto else_block = fun->NewBlock(String::New(arena(), node->else_clause() ? "else" : "out"));
-        auto out_block = node->else_clause() ? fun->NewBlock(String::New(arena(), "out")) : else_block;
+        auto fun = !fun_scope ? init_fun_ : fun_scope->fun();
+        auto then_block = fun->NewBlock(nullptr/*String::New(arena(), "then")*/);
+        auto else_block = fun->NewBlock(nullptr/*String::New(arena(), node->else_clause() ? "else" : "exit")*/);
+        auto exit_block = node->else_clause() ? fun->NewBlock(nullptr/*String::New(arena(), "exit")*/) : else_block;
         
         if (node->then_clause()) {
             SourcePositionTable::Scope ss(node->then_clause()->source_position(), &root_ss);
@@ -483,33 +501,140 @@ public:
 
             auto br = trunk.Branch(node->then_clause(), then_block);
             NamespaceScope::Keeper<BranchScope> holder(br);
-            if (Reduce(node->then_clause(), &values) < 0) {
+            if (Reduce(node->then_clause(), &values[0]) < 0) {
                 return -1;
             }
             
-            trunk.current_block()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/),
-                                           out_block);
+            blocks[0] = then_block;
+            then_block->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), exit_block);
         }
         
         if (node->else_clause()) {
             SourcePositionTable::Scope ss(node->then_clause()->source_position(), &root_ss);
             auto br = trunk.Branch(node->then_clause(), else_block);
             NamespaceScope::Keeper<BranchScope> holder(br);
-            if (Reduce(node->else_clause(), &values) < 0) {
+            if (Reduce(node->else_clause(), &values[1]) < 0) {
                 return -1;
             }
-            trunk.current_block()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/),
-                                           out_block);
+            
+            blocks[1] = else_block;
+            else_block->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), exit_block);
         }
+        
+        auto origin = trunk.current_block();
+        trunk.set_current_block(exit_block);
+        trunk.prev()->set_current_block(exit_block);
         
         std::vector<Type> types;
         for (auto ast : node->reduced_types()) { types.push_back(BuildType(ast)); }
+
+        std::vector<Value *> results;
+        if (ReduceValuesOfBranches(types,
+                                   trunk.current_block(),
+                                   blocks,
+                                   values,
+                                   number_of_branchs,
+                                   1/*number_of_branchs_without_else*/,
+                                   &results,
+                                   root_ss.Position()) < 0) {
+            return -1;
+        }
+        return Returning(results);
+    }
+    
+    int ReduceValuesOfBranches(const std::vector<Type> &types,
+                               BasicBlock *origin,
+                               BasicBlock *branchs_rows[],
+                               std::vector<Value *> values_rows[],
+                               int number_of_branchs,
+                               int number_of_branchs_without_else,
+                               std::vector<Value *> *results,
+                               SourcePosition source_position) {
         if (types.size() == 1 && types[0].kind() == Type::kVoid) {
             return Returning(Unit());
         }
         
-        // TODO:
-        return Returning(Unit());
+        const size_t max_cols = types.size();
+        std::vector<std::vector<Value *>> branchs_cols(max_cols);
+        for (size_t i = 0; i < max_cols; i++) {
+            auto col = &branchs_cols[i];
+            for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                if (j < number_of_branchs && i < values_rows[j].size()) {
+                    col->push_back(values_rows[j][i]);
+                } else {
+                    col->push_back(Unit());
+                }
+            }
+        }
+
+        std::vector<std::vector<Node *>> nodes(max_cols);
+        for (size_t i = 0; i < max_cols; i++) {
+            bool all_unit = true;
+            bool at_least_one_unit = false;
+
+            for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                if (branchs_cols[i][j]->type().kind() == Type::kVoid) {
+                    at_least_one_unit = true;
+                } else {
+                    all_unit = false;
+                }
+            }
+
+            if (all_unit) {
+                continue;
+            }
+
+            if (at_least_one_unit) {
+                assert(!all_unit);
+                for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                    Value *reduced = nullptr;
+                    if (branchs_cols[i][j]->type().kind() != Type::kVoid) {
+                        reduced = EmitCastingIfNeeded(types[i], branchs_cols[i][j], source_position);
+                    } else {
+                        reduced = Nil(types[i]);
+                    }
+                    
+                    nodes[i].push_back(reduced);
+                    nodes[i].push_back(branchs_rows[j]);
+                }
+            } else {
+                if (branchs_cols[i].size() == 1) {
+                    auto reduced = branchs_cols[i][0];
+                    
+                    nodes[i].push_back(Nil(types[i]));
+                    nodes[i].push_back(origin);
+                    nodes[i].push_back(reduced);
+                    nodes[i].push_back(branchs_rows[0]);
+                } else {
+                    for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                        auto reduced = EmitCastingIfNeeded(types[i], branchs_cols[i][j], source_position);
+                        nodes[i].push_back(reduced);
+                        nodes[i].push_back(branchs_rows[j]);
+                    }
+                }
+            }
+            
+            std::vector<Node *> dummy(std::move(nodes[i]));
+            for (size_t x = 0; x < dummy.size(); x += 2) {
+                nodes[i].push_back(dummy[x]);
+            }
+            for (size_t x = 1; x < dummy.size(); x += 2) {
+                nodes[i].push_back(dummy[x]);
+            }
+        }
+        
+        for (size_t i = 0; i < max_cols; i++) {
+            if (types[i].kind() == Type::kVoid) {
+                results->push_back(Unit());
+                continue;
+            }
+            
+            auto input = static_cast<int>(nodes[i].size() / 2);
+            auto op = ops()->Phi(input, input);
+            auto phi = location_->current_block()->NewNodeWithNodes(nullptr, source_position, types[i], op, nodes[i]);
+            results->push_back(phi);
+        }
+        return static_cast<int>(results->size());
     }
     
     int VisitCasting(cpl::Casting *node) override {

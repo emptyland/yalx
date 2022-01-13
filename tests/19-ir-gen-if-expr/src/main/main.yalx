@@ -1,0 +1,10 @@
+package main
+
+import "foo"
+
+val a = if (foo.foo()) 1 else 2
+val b = if (foo.foo()) foo.Foo(1)
+
+fun main() {
+
+}

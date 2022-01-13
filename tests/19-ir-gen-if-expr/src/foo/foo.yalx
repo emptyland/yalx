@@ -1,0 +1,5 @@
+package foo
+
+fun foo() -> true
+
+class Foo(val i: int)
