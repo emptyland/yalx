@@ -197,6 +197,10 @@ void BranchScope::PutSymbol(std::string_view name, const Symbol &symbol) {
         return;
     }
 
+    PutSymbolAndRecordConflict(name, symbol);
+}
+
+void BranchScope::PutSymbolAndRecordConflict(std::string_view name, const Symbol &symbol) {
     // Trunk v0
     //  +-- Branch-1 v1
     //  +-- Branch-2/Trunk v2
@@ -209,7 +213,18 @@ void BranchScope::PutSymbol(std::string_view name, const Symbol &symbol) {
     for (auto ns = Trunk(); ns != nullptr; ns = ns->prev()) {
         auto exists_one = ns->FindLocalSymbol(name);
         if (exists_one.IsFound()) {
-            conflicts_[name] = Conflict { symbol };
+            auto & items = conflicts_[name];
+            if (items.empty()) {
+                items.push_back({exists_one.core.value, exists_one.block}); // origin path
+            }
+            auto iter = std::find_if(items.begin(), items.end(), [&symbol](auto item){
+                return symbol.block == item.path;
+            });
+            if (iter == items.end()) {
+                items.push_back({symbol.core.value, symbol.block});
+            } else {
+                iter->value = symbol.core.value;
+            }
             break;
         }
         if (ns == limit) {

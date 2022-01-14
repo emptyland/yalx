@@ -220,7 +220,7 @@ public:
                 auto op = ops()->StoreGlobal();
                 b()->NewNode(ss.Position(), Types::Void, op, dest.core.value, init_vals[i]);
             } else {
-                location_->PutValue(ast->Identifier()->ToSlice(), init_vals[i], ast);
+                location_->PutValue(ast->Identifier()->ToSlice(), init_vals[i]);
             }
         }
         
@@ -451,7 +451,7 @@ public:
                         // TODO: Capture Val
                         UNREACHABLE();
                     } else {
-                        location_->PutSymbol(ast->name()->ToSlice(), Symbol::Val(symbol.owns, rval, symbol.node));
+                        location_->PutSymbol(ast->name()->ToSlice(), Symbol::Val(symbol.owns, rval, b()));
                     }
                 } else {
                     assert(symbol.kind == Symbol::kHandle);
@@ -909,7 +909,7 @@ private:
             if (symbol.owns->IsFileUnitScope()) { // is global?
                 b()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), value);
             } else {
-                location_->PutSymbol(id->name()->ToSlice(), Symbol::Val(symbol.owns, value));
+                location_->PutSymbol(id->name()->ToSlice(), Symbol::Val(symbol.owns, value, b()));
             }
         }
         return 0;
@@ -1392,7 +1392,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
                 auto name = String::New(arena_, full_name + "." + it->Identifier()->ToString());
                 auto val = Value::New0(arena_, name, scope.Position(), BuildType(it->Type()), ops_->GlobalValue(name));
                 module->InsertGlobalValue(it->Identifier()->Duplicate(arena_), val);
-                symbols_[name->ToSlice()] = Symbol::Val(nullptr, val, it);
+                symbols_[name->ToSlice()] = Symbol::Val(nullptr, val);
             }
         }
         
@@ -1404,7 +1404,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
             auto op = ops_->LazyValue(name);
             auto val = Value::New0(arena_, name, scope.Position(), BuildType(var->Type()), op);
             module->InsertGlobalValue(var->Identifier()->Duplicate(arena_), val);
-            symbols_[name->ToSlice()] = Symbol::Val(nullptr, val, var);
+            symbols_[name->ToSlice()] = Symbol::Val(nullptr, val);
         }
         
         for (auto def : file_unit->funs()) {

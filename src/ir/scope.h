@@ -26,6 +26,7 @@ class Handle;
 class Model;
 class Value;
 class Function;
+class BasicBlock;
 
 struct Symbol {
     enum Kind {
@@ -37,7 +38,10 @@ struct Symbol {
         kHandle
     };
     Kind kind;
-    cpl::Statement *node;
+    union {
+        cpl::Statement *node;
+        BasicBlock     *block;
+    };
     union {
         Model *model;
         Value *value;
@@ -51,14 +55,14 @@ struct Symbol {
     
     static Symbol NotFound() { return {.kind = kNotFound}; }
     
-    static Symbol Val(NamespaceScope *owns, Value *value, cpl::Statement *node = nullptr) {
+    static Symbol Val(NamespaceScope *owns, Value *value, BasicBlock *block = nullptr) {
         return {
-            .kind = kValue,
-            .node = node,
-            .core = {
+            .kind  = kValue,
+            .block = block,
+            .core  = {
                 .value = value
             },
-            .owns = owns,
+            .owns  = owns,
         };
     }
     
@@ -126,8 +130,8 @@ public:
     virtual Symbol FindLocalSymbol(std::string_view name) const;
     virtual Symbol FindSymbol(std::string_view name) const;
 
-    void PutValue(std::string_view name, Value *value, cpl::Statement *node = nullptr) {
-        PutSymbol(name, Symbol::Val(this, value, node));
+    void PutValue(std::string_view name, Value *value, BasicBlock *block = nullptr) {
+        PutSymbol(name, Symbol::Val(this, value, block));
     }
     virtual void PutSymbol(std::string_view name, const Symbol &symbol);
     
@@ -270,16 +274,18 @@ public:
         assert(InBranchs(br));
         return br;
     }
-private:
+    
     struct Conflict {
-        Symbol symbol;
-        //BasicBlock *routine;
+        Value      *value;
+        BasicBlock *path;
     };
+private:
+    void PutSymbolAndRecordConflict(std::string_view name, const Symbol &symbol);
     
     cpl::Statement *ast_;
     BranchScope *trunk_;
     std::vector<BranchScope *> branchs_;
-    std::unordered_map<std::string_view, Conflict> conflicts_;
+    std::unordered_map<std::string_view, std::vector<Conflict>> conflicts_;
 }; // class BranchScope
 
 inline bool NamespaceScope::IsFileUnitScope() { return NearlyFileUnitScope() == this; }
