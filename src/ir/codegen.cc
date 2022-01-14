@@ -26,6 +26,39 @@ namespace ir {
     (ast)->source_position(), \
     module_->mutable_source_position_table()
 
+class Emitting final {
+public:
+    Emitting(Emitting **location, Function *fun, BasicBlock *current_block)
+    : location_(DCHECK_NOTNULL(location))
+    , prev_(nullptr)
+    , fun_(fun)
+    , current_block_(current_block) {
+        Enter();
+    }
+    
+    ~Emitting() { Exit(); }
+    
+    DEF_PTR_GETTER(Function, fun);
+    DEF_PTR_PROP_RW(BasicBlock, current_block);
+    
+private:
+    void Enter() {
+        assert(location_ != nullptr);
+        prev_ = *location_;
+        assert(*location_ != this);
+        *location_ = this;
+    }
+    
+    void Exit() {
+        assert(*location_ == this);
+        *location_ = prev_;
+    }
+    
+    Emitting **location_;
+    Emitting *prev_;
+    Function *fun_;
+    BasicBlock *current_block_;
+}; // class Emitting
 
 class IRGeneratorAstVisitor : public cpl::AstVisitor {
 public:
@@ -38,6 +71,7 @@ public:
         module_ = DCHECK_NOTNULL(owns_->AssertedGetModule(name));
         init_fun_ = DCHECK_NOTNULL(module_->FindFunOrNull(cpl::kModuleInitFunName));
         init_blk_ = DCHECK_NOTNULL(init_fun_->entry());
+        Emitting emitter(&emitting_, init_fun_, init_blk_);
         
         auto scope = owns_->AssertedGetPackageScope(node);
         scope->Enter(&location_);
@@ -53,6 +87,10 @@ public:
             }
         }
         scope->Exit();
+
+        // Finalize ret instr
+        b()->NewNode(SourcePosition::Unknown(), Types::Void, ops()->Ret(0));
+        init_fun_->UpdateIdsOfBlocks();
         return 0;
     }
     
@@ -77,11 +115,6 @@ public:
         if (!node->generic_params().empty()) {
             return Returning(Unit());
         }
-//        if (node->IsClassDefinition()) {
-//            printd("class %s", node->FullName().c_str());
-//        } else {
-//            printd("struct %s", node->FullName().c_str());
-//        }
         
         auto clazz = AssertedGetUdt<StructureModel>(node->FullName());
         if (node->base_of()) {
@@ -159,7 +192,7 @@ public:
         auto full_name = MakeFullName(node->name());
         auto value = owns_->AssertedGetVal(full_name);
         auto op = ops()->StoreGlobal();
-        location_->current_block()->NewNode(ss_root.Position(), Types::Void, op, value, Nil(value->type()));
+        b()->NewNode(ss_root.Position(), Types::Void, op, value, Nil(value->type()));
         return Returning(Unit());
     }
     
@@ -185,7 +218,7 @@ public:
                 auto dest = location_->FindSymbol(ast->Identifier()->ToSlice());
                 assert(dest.IsFound());
                 auto op = ops()->StoreGlobal();
-                location_->current_block()->NewNode(ss.Position(), Types::Void, op, dest.core.value, init_vals[i]);
+                b()->NewNode(ss.Position(), Types::Void, op, dest.core.value, init_vals[i]);
             } else {
                 location_->PutValue(ast->Identifier()->ToSlice(), init_vals[i], ast);
             }
@@ -219,7 +252,7 @@ public:
     int VisitReturn(cpl::Return *node) override {
         SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(node));
         if (node->returnning_vals().empty()) {
-            auto ret = location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->Ret(0));
+            auto ret = b()->NewNode(ss.Position(), Types::Void, ops()->Ret(0));
             return Returning(ret);
         }
         
@@ -229,7 +262,7 @@ public:
                 return -1;
             }
         }
-        auto ret = location_->current_block()->NewNodeWithValues(nullptr/*name*/, ss.Position(), Types::Void,
+        auto ret = b()->NewNodeWithValues(nullptr/*name*/, ss.Position(), Types::Void,
                                                                  ops()->Ret(static_cast<int>(values.size())),
                                                                  values);
         return Returning(ret);
@@ -246,11 +279,11 @@ public:
                 auto value = symbol.core.value;
                 if (value->Is(Operator::kGlobalValue)) {
                     auto op = ops()->LoadGlobal();
-                    auto load = location_->current_block()->NewNode(root_ss.Position(), value->type(), op, value);
+                    auto load = b()->NewNode(root_ss.Position(), value->type(), op, value);
                     return Returning(load);
                 } else if (value->Is(Operator::kLazyValue)) {
                     auto op = ops()->LazyValue(node->name());
-                    auto load = location_->current_block()->NewNode(root_ss.Position(), value->type(), op, value);
+                    auto load = b()->NewNode(root_ss.Position(), value->type(), op, value);
                     return Returning(load);
                 } else {
                     return Returning(symbol.core.value);
@@ -266,7 +299,7 @@ public:
                 auto fun = symbol.core.fun;
                 auto op = ops()->Closure(fun);
                 auto type = Type::Ref(fun->prototype());
-                auto load = location_->current_block()->NewNode(root_ss.Position(), type, op);
+                auto load = b()->NewNode(root_ss.Position(), type, op);
                 return Returning(load);
             } break;
             default:
@@ -377,7 +410,7 @@ public:
                 op = ops()->HeapAlloc(clazz);
                 type = Type::Ref(clazz);
             }
-            auto ob = location_->current_block()->NewNode(ss.Position(), type, op);
+            auto ob = b()->NewNode(ss.Position(), type, op);
             
             auto proto = clazz->constructor()->prototype();
             auto value_in = static_cast<int>(proto->params_size());
@@ -412,7 +445,7 @@ public:
                 assert(symbol.IsFound());
                 if (symbol.kind == Symbol::kValue) {
                     if (symbol.owns->IsFileUnitScope()) { // Global var
-                        location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(),
+                        b()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(),
                                                             symbol.core.value, rval);
                     } else if (ShouldCaptureVal(symbol.owns, symbol.core.value)) {
                         // TODO: Capture Val
@@ -434,7 +467,7 @@ public:
                 }
                 if (symbol.IsFound()) {
                     assert(symbol.owns->IsFileUnitScope());
-                    location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), rval);
+                    b()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), rval);
                 } else {
                     if (ProcessDotChainAssignment(ast, rval) < 0) {
                         return -1;
@@ -473,7 +506,7 @@ public:
     
     int VisitIfExpression(cpl::IfExpression *node) override {
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
-        BranchScope trunk(&location_, location_->current_block(), node);
+        BranchScope trunk(&location_, node);
         NamespaceScope::Keeper<BranchScope> root_holder(&trunk);
         if (node->initializer()) {
             REDUCE(node->initializer());
@@ -486,51 +519,51 @@ public:
         //std::vector<Value *> values;
         const int number_of_branchs = 1 + (!node->else_clause() ? 0 : 1);
         std::vector<Value *> values[2];
-        BasicBlock *blocks[2] = {nullptr, trunk.current_block()/*origin block*/}; // At most two
+        BasicBlock *blocks[2] = {nullptr, b()/*origin block*/}; // At most two
         
         auto fun_scope = location_->NearlyFunctionScope();
-        auto fun = !fun_scope ? init_fun_ : fun_scope->fun();
-        auto then_block = fun->NewBlock(nullptr/*String::New(arena(), "then")*/);
-        auto else_block = fun->NewBlock(nullptr/*String::New(arena(), node->else_clause() ? "else" : "exit")*/);
-        auto exit_block = node->else_clause() ? fun->NewBlock(nullptr/*String::New(arena(), "exit")*/) : else_block;
+        auto fun = emitting_->fun();
+        auto then_block = fun->NewBlock(nullptr);
+        auto else_block = fun->NewBlock(nullptr);
+        auto exit_block = node->else_clause() ? fun->NewBlock(nullptr) : else_block;
         
+        auto origin = b();
         if (node->then_clause()) {
             SourcePositionTable::Scope ss(node->then_clause()->source_position(), &root_ss);
-            trunk.current_block()->NewNode(ss.Position(), Types::Void, ops()->Br(1/*value_in*/, 2/*control_out*/),
-                                           condition, then_block, else_block);
+            b()->NewNode(ss.Position(), Types::Void, ops()->Br(1/*value_in*/, 2/*control_out*/), condition, then_block,
+                         else_block);
 
-            auto br = trunk.Branch(node->then_clause(), then_block);
+            auto br = trunk.Branch(node->then_clause());
+            b(then_block);
             NamespaceScope::Keeper<BranchScope> holder(br);
             if (Reduce(node->then_clause(), &values[0]) < 0) {
                 return -1;
             }
             
-            blocks[0] = then_block;
-            then_block->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), exit_block);
+            blocks[0] = b();
+            b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), exit_block);
         }
         
         if (node->else_clause()) {
             SourcePositionTable::Scope ss(node->then_clause()->source_position(), &root_ss);
-            auto br = trunk.Branch(node->then_clause(), else_block);
+            auto br = trunk.Branch(node->then_clause());
+            b(else_block);
             NamespaceScope::Keeper<BranchScope> holder(br);
             if (Reduce(node->else_clause(), &values[1]) < 0) {
                 return -1;
             }
             
-            blocks[1] = else_block;
-            else_block->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), exit_block);
+            blocks[1] = b();
+            b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), exit_block);
         }
         
-        auto origin = trunk.current_block();
-        trunk.set_current_block(exit_block);
-        trunk.prev()->set_current_block(exit_block);
-        
+        SetAndMakeLast(exit_block);
         std::vector<Type> types;
         for (auto ast : node->reduced_types()) { types.push_back(BuildType(ast)); }
 
         std::vector<Value *> results;
         if (ReduceValuesOfBranches(types,
-                                   trunk.current_block(),
+                                   origin,
                                    blocks,
                                    values,
                                    number_of_branchs,
@@ -631,7 +664,7 @@ public:
             
             auto input = static_cast<int>(nodes[i].size() / 2);
             auto op = ops()->Phi(input, input);
-            auto phi = location_->current_block()->NewNodeWithNodes(nullptr, source_position, types[i], op, nodes[i]);
+            auto phi = b()->NewNodeWithNodes(nullptr, source_position, types[i], op, nodes[i]);
             results->push_back(phi);
         }
         return static_cast<int>(results->size());
@@ -653,9 +686,9 @@ public:
             return src;
         }
         if (dest.IsPointer() && src->type().IsNotPointer()) {
-            src = location_->current_block()->NewNode(source_position, dest, ops()->LoadAddress(), src);
+            src = b()->NewNode(source_position, dest, ops()->LoadAddress(), src);
         } else if (dest.IsNotPointer() && src->type().IsPointer()) {
-            src = location_->current_block()->NewNode(source_position, dest, ops()->Deref(), src);
+            src = b()->NewNode(source_position, dest, ops()->Deref(), src);
         }
 
         Operator *op = nullptr;
@@ -672,7 +705,7 @@ public:
                 UNREACHABLE();
                 break;
         }
-        return location_->current_block()->NewNode(source_position, dest, op, src);
+        return b()->NewNode(source_position, dest, op, src);
     }
     
     int VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
@@ -797,6 +830,14 @@ private:
     cpl::SyntaxFeedback *feedback() { return owns_->error_feedback_; }
     OperatorsFactory *ops() { return owns_->ops_; }
     
+    BasicBlock *b() const { return DCHECK_NOTNULL(DCHECK_NOTNULL(emitting_)->current_block()); }
+    void b(BasicBlock *blk) { DCHECK_NOTNULL(emitting_)->set_current_block(blk); }
+    
+    void SetAndMakeLast(BasicBlock *blk) {
+        DCHECK_NOTNULL(emitting_)->fun()->MoveLast(blk);
+        b(blk);
+    }
+    
     std::string MakeFullName(const String *name) const {
         return module_->full_name()->ToString().append(".").append(name->ToString());
     }
@@ -866,7 +907,7 @@ private:
             auto symbol = location_->FindSymbol(id->name()->ToSlice());
             assert(symbol.IsFound());
             if (symbol.owns->IsFileUnitScope()) { // is global?
-                location_->current_block()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), value);
+                b()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), value);
             } else {
                 location_->PutSymbol(id->name()->ToSlice(), Symbol::Val(symbol.owns, value));
             }
@@ -905,11 +946,11 @@ private:
         }
         
         auto type = proto->return_type(0);
-        auto call = location_->current_block()->NewNodeWithValues(nullptr, source_position, type, op, args);
+        auto call = b()->NewNodeWithValues(nullptr, source_position, type, op, args);
         returning_vals->push_back(call);
         for (int i = 1; i < proto->return_types_size(); i++) {
             op = ops()->ReturningVal(i);
-            auto rv = location_->current_block()->NewNode(source_position, proto->return_type(i), op, call);
+            auto rv = b()->NewNode(source_position, proto->return_type(i), op, call);
             returning_vals->push_back(rv);
         }
         return call;
@@ -927,7 +968,7 @@ private:
             op = ops()->LoadInlineField(handle);
         }
         auto field = std::get<const Model::Field *>(handle->owns()->GetMember(handle));
-        return location_->current_block()->NewNode(source_position, field->type, op, value);
+        return b()->NewNode(source_position, field->type, op, value);
     }
     
     Value *EmitStoreField(Value *value, Value *input, Handle *handle, SourcePosition source_position) {
@@ -944,7 +985,7 @@ private:
         auto type = handle->owns()->constraint() == Model::kRef
             ? Type::Ref(const_cast<Model *>(handle->owns()))
             : Type::Val(const_cast<Model *>(handle->owns()));
-        return location_->current_block()->NewNode(source_position, type, op, value, input);
+        return b()->NewNode(source_position, type, op, value, input);
     }
     
     Function *GenerateFun(const cpl::FunctionDeclaration *ast, Model *owns, Function *fun = nullptr) {
@@ -963,6 +1004,8 @@ private:
 
         auto entry = fun->NewBlock(String::New(arena(), "entry"));
         int hint = 0;
+        
+        Emitting emitter(&emitting_, fun, entry);
         FunctionScope scope(&location_, ast, fun);
         if (owns) {
             auto type = owns->declaration() == Model::kStruct ? Type::Val(owns, true/*is_pointer*/) : Type::Ref(owns);
@@ -1008,6 +1051,8 @@ private:
             auto op = ops()->Ret(static_cast<int>(values.size()));
             last_block->NewNodeWithValues(nullptr/*name*/, ss.Position(), Types::Void, op, values);
         }
+        
+        fun->UpdateIdsOfBlocks();
         return fun;
     }
     
@@ -1195,6 +1240,7 @@ private:
     
     IntermediateRepresentationGenerator *const owns_;
     NamespaceScope *location_ = nullptr;
+    Emitting *emitting_ = nullptr;
     Module *module_ = nullptr;
     Function *init_fun_ = nullptr;
     BasicBlock *init_blk_ = nullptr;
@@ -1371,7 +1417,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
         }
     }
     
-    pkg_scopes_[pkg] = new PackageScope(nullptr/*location*/, init->entry(), pkg, &symbols_);
+    pkg_scopes_[pkg] = new PackageScope(nullptr/*location*/, pkg, &symbols_);
 }
 
 Function *IntermediateRepresentationGenerator::InstallInitFun(Module *module) {

@@ -80,6 +80,15 @@ public:
     DEF_ARENA_VECTOR_GETTER(Value *, paramater);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
     
+    void MoveLast(BasicBlock *blk) {
+        if (auto iter = std::find(blocks_.begin(), blocks_.end(), blk); iter != blocks_.end()) {
+            blocks_.erase(iter);
+            blocks_.push_back(blk);
+        }
+    }
+    
+    inline void UpdateIdsOfBlocks();
+    
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer, Model *owns = nullptr) const;
     friend class Module;
 private:
@@ -187,6 +196,7 @@ public:
     
     DEF_PTR_GETTER(const String, name);
     DEF_PTR_GETTER(base::Arena, arena);
+    DEF_VAL_GETTER(int, id);
     DEF_ARENA_VECTOR_GETTER(Value *, instruction);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, input);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, output);
@@ -198,6 +208,7 @@ private:
     
     const String *const name_;
     base::Arena *const arena_;
+    int id_ = -1;
     base::ArenaVector<Value *> instructions_;
     base::ArenaVector<BasicBlock *> inputs_;
     base::ArenaVector<BasicBlock *> outputs_;
@@ -322,6 +333,13 @@ private:
     DECLARE_IR_KINDS(DEFINE_METHODS)
 #undef DEFINE_METHODS
 
+
+inline void Function::UpdateIdsOfBlocks() {
+    int id = 0;
+    for (auto blk : blocks()) {
+        blk->id_ = id++;
+    }
+}
 
 template<class T>
 inline T OperatorWith<T>::Data(const ir::Value *node) { return Cast(node->op())->data(); }

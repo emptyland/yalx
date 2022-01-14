@@ -1,5 +1,7 @@
 package foo
 
 fun foo() -> true
+fun bar() -> false
+fun baz() -> true
 
 class Foo(val i: int)

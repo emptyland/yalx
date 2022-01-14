@@ -26,7 +26,6 @@ class Handle;
 class Model;
 class Value;
 class Function;
-class BasicBlock;
 
 struct Symbol {
     enum Kind {
@@ -114,7 +113,6 @@ public:
     
     DEF_PTR_GETTER(NamespaceScope, prev);
     DEF_VAL_GETTER(int, level);
-    DEF_PTR_PROP_RW_NOTNULL2(BasicBlock, current_block);
     
     inline bool IsFileUnitScope();
     inline bool IsStructureScope();
@@ -149,21 +147,17 @@ public:
         level_ = -1;
     }
 protected:
-    NamespaceScope(NamespaceScope **location, BasicBlock *current_block)
-        : location_(location)
-        , current_block_(current_block) {}
+    NamespaceScope(NamespaceScope **location): location_(location) {}
     
     NamespaceScope **location_;
     NamespaceScope *prev_ = nullptr;
     int level_ = 0;
-    BasicBlock *current_block_;
     std::unordered_map<std::string_view, Symbol> symbols_;
 }; // class IRCodeEnvScope
 
 class PackageScope : public NamespaceScope {
 public:
-    PackageScope(NamespaceScope **location, BasicBlock *current_block, cpl::Package *pkg,
-                 base::ArenaMap<std::string_view, Symbol> *global);
+    PackageScope(NamespaceScope **location, cpl::Package *pkg, base::ArenaMap<std::string_view, Symbol> *global);
     ~PackageScope() override;
     
     DEF_PTR_GETTER(cpl::Package, pkg);
@@ -195,7 +189,7 @@ private:
 
 class FileUnitScope : public NamespaceScope {
 public:
-    FileUnitScope(NamespaceScope **location, BasicBlock *current_block, cpl::FileUnit *file_unit,
+    FileUnitScope(NamespaceScope **location, cpl::FileUnit *file_unit,
                   base::ArenaMap<std::string_view, Symbol> *symobls);
     ~FileUnitScope() override;
     
@@ -249,11 +243,10 @@ private:
     Function *fun_;
 }; // class FunctionScope
 
-// TODO add branch scope
+
 class BranchScope : public NamespaceScope {
 public:
-    BranchScope(NamespaceScope **location, BasicBlock *current_block, cpl::Statement *ast,
-                BranchScope *trunk = nullptr);
+    BranchScope(NamespaceScope **location, cpl::Statement *ast, BranchScope *trunk = nullptr);
     ~BranchScope() override;
     
     const std::vector<BranchScope *> &branchs() const { return branchs_; }
@@ -272,17 +265,15 @@ public:
     
     bool InBranchs(const BranchScope *branch) const;
     
-    BranchScope *Branch(cpl::Statement *ast, BasicBlock *block) {
-        auto br = new BranchScope(location_, block, ast, this);
+    BranchScope *Branch(cpl::Statement *ast) {
+        auto br = new BranchScope(location_, ast, this);
         assert(InBranchs(br));
         return br;
     }
-    
-    void Update(std::string_view name, NamespaceScope *owns, Value *value);
 private:
     struct Conflict {
         Symbol symbol;
-        BasicBlock *routine;
+        //BasicBlock *routine;
     };
     
     cpl::Statement *ast_;

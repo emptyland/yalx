@@ -31,13 +31,13 @@ void NamespaceScope::PutSymbol(std::string_view name, const Symbol &symbol) {
     }
 }
 
-PackageScope::PackageScope(NamespaceScope **location, BasicBlock *current_block, cpl::Package *pkg,
+PackageScope::PackageScope(NamespaceScope **location, cpl::Package *pkg,
                            base::ArenaMap<std::string_view, Symbol> *global)
-: NamespaceScope(location, nullptr/*current_block*/)
+: NamespaceScope(location)
 , pkg_(pkg) {
     //Enter();
     for (auto file_unit : pkg_->source_files()) {
-        auto scope = new FileUnitScope(location_, current_block, file_unit, global);
+        auto scope = new FileUnitScope(location_, file_unit, global);
         files_ptrs_[file_unit] = files_.size();
         files_.push_back(scope);
     }
@@ -58,9 +58,9 @@ void PackageScope::Enter(NamespaceScope **location) {
 
 PackageScope *PackageScope::NearlyPackageScope() { return this; }
 
-FileUnitScope::FileUnitScope(NamespaceScope **location, BasicBlock *current_block, cpl::FileUnit *file_unit,
+FileUnitScope::FileUnitScope(NamespaceScope **location, cpl::FileUnit *file_unit,
                              base::ArenaMap<std::string_view, Symbol> *symobls)
-: NamespaceScope(location, current_block)
+: NamespaceScope(location)
 , file_unit_(file_unit)
 , proxy_symbols_(symobls) {
     for (auto import : file_unit->imports()) {
@@ -130,7 +130,7 @@ Symbol FileUnitScope::Lookup(std::string_view name) const {
 
 
 FunctionScope::FunctionScope(NamespaceScope **location, const cpl::FunctionDeclaration *ast, Function *fun)
-: NamespaceScope(location, fun->entry())
+: NamespaceScope(location)
 , ast_(ast)
 , fun_(fun) { Enter(); }
 
@@ -141,7 +141,7 @@ FunctionScope *FunctionScope::NearlyFunctionScope() { return this; }
 
 StructureScope::StructureScope(NamespaceScope **location, const cpl::IncompletableDefinition *definition,
                                StructureModel *model)
-: NamespaceScope(location, nullptr)
+: NamespaceScope(location)
 , ast_(definition)
 , model_(model) {
     Enter();
@@ -171,23 +171,20 @@ FunctionScope *StructureScope::NearlyFunctionScope() { return nullptr; }
 
 BranchScope *FunctionScope::NearlyBranchScope() { return nullptr; }
 
-BranchScope::BranchScope(NamespaceScope **location, BasicBlock *current_block, cpl::Statement *ast, BranchScope *trunk)
-    : NamespaceScope(location, current_block)
+BranchScope::BranchScope(NamespaceScope **location, cpl::Statement *ast, BranchScope *trunk)
+    : NamespaceScope(location)
     , ast_(ast)
     , trunk_(trunk) {
     if (trunk) {
         trunk->branchs_.push_back(this);
     } else {
-        //Enter();
+        
     }
 }
 BranchScope::~BranchScope() {
     for (auto br : branchs_) {
         delete br;
     }
-//    if (IsTrunk()) {
-//        Exit();
-//    }
 }
 
 BranchScope *BranchScope::NearlyBranchScope() { return this; }
@@ -212,7 +209,7 @@ void BranchScope::PutSymbol(std::string_view name, const Symbol &symbol) {
     for (auto ns = Trunk(); ns != nullptr; ns = ns->prev()) {
         auto exists_one = ns->FindLocalSymbol(name);
         if (exists_one.IsFound()) {
-            conflicts_[name] = Conflict { symbol, current_block() };
+            conflicts_[name] = Conflict { symbol };
             break;
         }
         if (ns == limit) {
@@ -242,30 +239,6 @@ bool BranchScope::InBranchs(const BranchScope *branch) const {
         }
     }
     return false;
-}
-
-void BranchScope::Update(std::string_view name, NamespaceScope *owns, Value *value) {
-    if (owns == this) { // Itself
-        assert(symbols_.find(name) != symbols_.end());
-        assert(symbols_[name].kind == Symbol::kValue);
-        symbols_[name] = Symbol::Val(this, value);
-        return;
-    }
-    
-    for (auto node = this; node->prev() != nullptr && node != owns; node = node->prev()->NearlyBranchScope()) {
-        if (node->IsBranch()) {
-            node->symbols_[name] = Symbol::Val(node, value);
-            return;
-        }
-    }
-
-    if (auto br = owns->NearlyBranchScope(); br == owns) {
-        assert(br->symbols_.find(name) != br->symbols_.end());
-        assert(br->symbols_[name].kind == Symbol::kValue);
-        br->symbols_[name] = Symbol::Val(br, value);
-        return;
-    }
-    UNREACHABLE();
 }
 
 } // namespace ir
