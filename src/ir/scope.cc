@@ -45,7 +45,6 @@ PackageScope::PackageScope(NamespaceScope **location, cpl::Package *pkg,
 
 PackageScope::~PackageScope() {
     for (auto scope : files_) { delete scope; }
-    //Exit();
 }
 
 void PackageScope::Enter(NamespaceScope **location) {
@@ -196,8 +195,12 @@ void BranchScope::PutSymbol(std::string_view name, const Symbol &symbol) {
         NamespaceScope::PutSymbol(name, symbol);
         return;
     }
-
-    PutSymbolAndRecordConflict(name, symbol);
+    
+    BranchScope *br = nullptr;
+    for (br = this; br->prev() != br->Trunk(); br = br->prev()->NearlyBranchScope()) {
+        // Loop
+    }
+    br->PutSymbolAndRecordConflict(name, symbol);
 }
 
 void BranchScope::PutSymbolAndRecordConflict(std::string_view name, const Symbol &symbol) {

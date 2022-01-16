@@ -3,5 +3,8 @@ package foo
 fun foo() -> true
 fun bar() -> false
 fun baz() -> true
+fun gen() -> 100
+
+val a = 1
 
 class Foo(val i: int)

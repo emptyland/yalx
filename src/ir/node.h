@@ -80,13 +80,22 @@ public:
     DEF_ARENA_VECTOR_GETTER(Value *, paramater);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
     
-    void MoveLast(BasicBlock *blk) {
+    void MoveToLast(BasicBlock *blk) {
         if (auto iter = std::find(blocks_.begin(), blocks_.end(), blk); iter != blocks_.end()) {
             blocks_.erase(iter);
             blocks_.push_back(blk);
         }
     }
     
+    void MoveToAfterOf(BasicBlock *after, BasicBlock *before) {
+        if (auto iter = std::find(blocks_.begin(), blocks_.end(), before); iter != blocks_.end()) {
+            blocks_.erase(iter);
+        }
+        if (auto iter = std::find(blocks_.begin(), blocks_.end(), after); iter != blocks_.end()) {
+            blocks_.insert(iter + 1, before);
+        }
+    }
+
     inline void UpdateIdsOfBlocks();
     
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer, Model *owns = nullptr) const;
@@ -201,6 +210,21 @@ public:
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, input);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, output);
     
+    void LinkTo(BasicBlock *output) {
+        if (output->FindInput(this) < 0) { output->inputs_.push_back(this); }
+        if (FindOutput(output) < 0) { outputs_.push_back(output); }
+    }
+    
+    int FindInput(BasicBlock *node) {
+        auto iter = std::find(inputs_.begin(), inputs_.end(), node);
+        return iter == inputs_.end() ? -1 : iter - inputs_.begin();
+    }
+    
+    int FindOutput(BasicBlock *node) {
+        auto iter = std::find(outputs_.begin(), outputs_.end(), node);
+        return iter == outputs_.end() ? -1 : iter - outputs_.begin();
+    }
+    
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
     friend class Function;
 private:
@@ -273,6 +297,11 @@ public:
     BasicBlock *OutputControl(int i) const {
         assert(i >= 0 && i < op()->control_out());
         return DCHECK_NOTNULL(io_[control_out_offset() + i]->AsBasicBlock());
+    }
+    
+    void SetOutputControl(int i, BasicBlock *node) {
+        assert(i >= 0 && i < op()->control_out());
+        io_[control_out_offset() + i] = DCHECK_NOTNULL(node);
     }
     
     struct User {

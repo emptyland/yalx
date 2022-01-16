@@ -38,10 +38,8 @@ struct Symbol {
         kHandle
     };
     Kind kind;
-    union {
-        cpl::Statement *node;
-        BasicBlock     *block;
-    };
+    cpl::Statement *node;
+    BasicBlock     *block;
     union {
         Model *model;
         Value *value;
@@ -55,9 +53,10 @@ struct Symbol {
     
     static Symbol NotFound() { return {.kind = kNotFound}; }
     
-    static Symbol Val(NamespaceScope *owns, Value *value, BasicBlock *block = nullptr) {
+    static Symbol Val(NamespaceScope *owns, Value *value, BasicBlock *block, cpl::Statement *node = nullptr) {
         return {
             .kind  = kValue,
+            .node  = node,
             .block = block,
             .core  = {
                 .value = value
@@ -70,6 +69,7 @@ struct Symbol {
         return {
             .kind = kModel,
             .node = node,
+            .block = nullptr,
             .core = {
                 .model = model
             },
@@ -81,6 +81,7 @@ struct Symbol {
         return {
             .kind = kFun,
             .node = node,
+            .block = nullptr,
             .core = {
                 .fun = fun
             },
@@ -92,6 +93,7 @@ struct Symbol {
         return {
             .kind = kHandle,
             .node = node,
+            .block = nullptr,
             .core = {
                 .handle = handle
             },
@@ -109,6 +111,8 @@ public:
         ~Keeper() { ns_->Exit(); }
         
         T *ns() const { return ns_; }
+        
+        T *operator ->() const { return ns(); }
     private:
         T *ns_;
     };
@@ -184,6 +188,7 @@ public:
         auto iter = files_ptrs_.find(key);
         return iter == files_ptrs_.end() ? nullptr : files_[iter->second];
     }
+
 private:
     cpl::Package *pkg_;
     std::unordered_map<cpl::Node *, size_t> files_ptrs_;
@@ -202,7 +207,6 @@ public:
     FileUnitScope *NearlyFileUnitScope() override;
     
     Symbol FindLocalSymbol(std::string_view name) const override;
-
     Symbol FindExportSymbol(std::string_view prefix, std::string_view name) const;
     
 private:
@@ -279,6 +283,12 @@ public:
         Value      *value;
         BasicBlock *path;
     };
+    
+    const std::vector<Conflict> &conflict(std::string_view name) const {
+        auto iter = conflicts_.find(name);
+        assert(iter != conflicts_.end());
+        return iter->second;
+    }
 private:
     void PutSymbolAndRecordConflict(std::string_view name, const Symbol &symbol);
     

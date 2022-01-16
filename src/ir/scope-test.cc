@@ -41,6 +41,7 @@ TEST_F(ScopeTest, Sanity) {
     auto block = fun_->NewBlock(String::New(&arena_, "l1"));
     
     BranchScope lv1(&scope_, nullptr);
+    NamespaceScope::Keeper<BranchScope> lv1_holder(&lv1);
     ASSERT_EQ(scope_, &lv1);
     ASSERT_TRUE(lv1.IsTrunk());
     ASSERT_FALSE(lv1.IsBranch());
@@ -48,6 +49,7 @@ TEST_F(ScopeTest, Sanity) {
     
     block = fun_->NewBlock(String::New(&arena_, "l2"));
     BranchScope lv2(&scope_, nullptr);
+    NamespaceScope::Keeper<BranchScope> lv2_holder(&lv2);
     ASSERT_EQ(scope_, &lv2);
     EXPECT_EQ(&lv1, scope_->prev());
     ASSERT_TRUE(lv2.IsTrunk());
@@ -59,6 +61,7 @@ TEST_F(ScopeTest, Branchs) {
     auto block = fun_->NewBlock(String::New(&arena_, "l1"));
     
     BranchScope trunk(&scope_, nullptr);
+    NamespaceScope::Keeper<BranchScope> trunk_holder(&trunk);
     ASSERT_TRUE(trunk.IsTrunk());
     ASSERT_FALSE(trunk.IsBranch());
     ASSERT_EQ(1, trunk.level());
@@ -92,13 +95,14 @@ TEST_F(ScopeTest, BranchsValueVersions) {
     auto k2 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
     
     BranchScope trunk(&scope_, nullptr);
+    NamespaceScope::Keeper<BranchScope> trunk_holder(&trunk);
     trunk.PutValue("a", k100);
     trunk.PutValue("b", k200);
     
     block = fun_->NewBlock(String::New(&arena_, "br1"));
     auto br1 = trunk.Branch(nullptr);
     br1->Enter();
-    br1->PutSymbol("a", Symbol::Val(&trunk, k1));
+    br1->PutSymbol("a", Symbol::Val(&trunk, k1, block));
     ASSERT_EQ(k1, br1->FindLocalSymbol("a").core.value);
     ASSERT_EQ(k100, trunk.FindLocalSymbol("a").core.value);
     br1->Exit();
@@ -106,9 +110,32 @@ TEST_F(ScopeTest, BranchsValueVersions) {
     block = fun_->NewBlock(String::New(&arena_, "br2"));
     auto br2 = trunk.Branch(nullptr);
     br2->Enter();
-    br2->PutSymbol("b", Symbol::Val(&trunk, k2));
+    br2->PutSymbol("b", Symbol::Val(&trunk, k2, block));
     ASSERT_EQ(k2, br2->FindLocalSymbol("b").core.value);
     br2->Exit();
+}
+
+TEST_F(ScopeTest, BranchsConflicts) {
+    auto bk1 = fun_->NewBlock(String::New(&arena_, "l1"));
+    
+    BranchScope trunk(&scope_, nullptr);
+    NamespaceScope::Keeper<BranchScope> trunk_holder(&trunk);
+    auto k100 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(100));
+    trunk.PutSymbol("a", Symbol::Val(&trunk, k100, bk1));
+    
+    auto k200 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(200));
+    trunk.PutSymbol("b", Symbol::Val(&trunk, k200, bk1));
+    
+    auto bk2 = fun_->NewBlock(String::New(&arena_, "l2"));
+    {
+        NamespaceScope::Keeper<BranchScope> br1(trunk.Branch(nullptr));
+        //br1.ns()
+        auto k1 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
+        br1->PutSymbol("a", Symbol::Val(&trunk, k1, bk2));
+        
+        auto conflicts = br1->conflict("a");
+        printf("%zd\n", conflicts.size());
+    }
 }
 
 //TEST_F(ScopeTest, NestedBranchs) {

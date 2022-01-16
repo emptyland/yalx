@@ -41,6 +41,8 @@ public:
     DEF_PTR_GETTER(Function, fun);
     DEF_PTR_PROP_RW(BasicBlock, current_block);
     
+    BasicBlock **block_location() { return &current_block_; }
+    
 private:
     void Enter() {
         assert(location_ != nullptr);
@@ -198,7 +200,7 @@ public:
     
     int VisitVariableDeclaration(cpl::VariableDeclaration *node) override {
         SourcePositionTable::Scope ss_root(CURRENT_SOUCE_POSITION(node));
-        const bool in_global_space = location_->IsFileUnitScope();
+        const bool in_global_scope = (node->owns() && node->owns()->IsFileUnit());
         
         std::vector<Value *> init_vals;
         for (auto ast : node->initilaizers()) {
@@ -207,24 +209,44 @@ public:
             }
         }
 
-        assert(init_vals.size() == node->ItemSize());
+        assert(init_vals.size() >= node->ItemSize());
         for (auto i = 0; i < node->ItemSize(); i++) {
             auto ast = node->AtItem(i);
             SourcePositionTable::Scope ss(ast->source_position(), &ss_root);
             if (cpl::Identifier::IsPlaceholder(ast->Identifier())) {
                 continue;
             }
-            if (in_global_space) {
-                auto dest = location_->FindSymbol(ast->Identifier()->ToSlice());
-                assert(dest.IsFound());
-                auto op = ops()->StoreGlobal();
-                b()->NewNode(ss.Position(), Types::Void, op, dest.core.value, init_vals[i]);
-            } else {
+            if (!in_global_scope) {
                 location_->PutValue(ast->Identifier()->ToSlice(), init_vals[i]);
+                continue;
             }
+            
+            auto dest = location_->FindSymbol(ast->Identifier()->ToSlice());
+            assert(dest.IsFound());
+            auto op = ops()->StoreGlobal();
+            b()->NewNode(ss.Position(), Types::Void, op, dest.core.value, init_vals[i]);
         }
-        
+    
         return Returning(Unit());
+    }
+    
+    void LinkTo(Function *fun, BasicBlock *from, BasicBlock *to) {
+        auto term = from->instructions().empty() ? nullptr : from->instructions().back();
+        bool is_term = term && term->op()->value() == Operator::kBr && term->op()->control_out() == 1;
+        if (is_term) {
+            term->SetOutputControl(0, to);
+        } else {
+            auto op = ops()->Br(0/*value_in*/, 1/*control_out*/);
+            from->NewNode(SourcePosition::Unknown(), Types::Void, op, to);
+        }
+        // [x] -> d -> a -> c
+        // d -> a
+        printd("link %s -> %s",
+               !from->name() ? "[x]" : from->name()->data(),
+               !to->name() ? "[x]" : to->name()->data());
+
+        fun->MoveToAfterOf(from, to);
+        from->LinkTo(to);
     }
     
     int VisitBlock(cpl::Block *node) override {
@@ -237,7 +259,7 @@ public:
         }
         return Returning(values);
     }
-    
+
     int VisitList(cpl::List *node) override {
         std::vector<Value *> values;
         for (auto ast : node->expressions()) {
@@ -270,8 +292,7 @@ public:
     
     int VisitIdentifier(cpl::Identifier *node) override {
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
-        
-        //printd("find symbol: %s", node->name()->data());
+
         auto symbol = location_->FindSymbol(node->name()->ToSlice());
         assert(symbol.IsFound());
         switch (symbol.kind) {
@@ -532,6 +553,8 @@ public:
             SourcePositionTable::Scope ss(node->then_clause()->source_position(), &root_ss);
             b()->NewNode(ss.Position(), Types::Void, ops()->Br(1/*value_in*/, 2/*control_out*/), condition, then_block,
                          else_block);
+//            b()->LinkTo(then_block);
+//            b()->LinkTo(else_block);
 
             auto br = trunk.Branch(node->then_clause());
             b(then_block);
@@ -542,6 +565,7 @@ public:
             
             blocks[0] = b();
             b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), exit_block);
+//            b()->LinkTo(exit_block);
         }
         
         if (node->else_clause()) {
@@ -555,6 +579,7 @@ public:
             
             blocks[1] = b();
             b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), exit_block);
+//            b()->LinkTo(exit_block);
         }
         
         SetAndMakeLast(exit_block);
@@ -834,7 +859,7 @@ private:
     void b(BasicBlock *blk) { DCHECK_NOTNULL(emitting_)->set_current_block(blk); }
     
     void SetAndMakeLast(BasicBlock *blk) {
-        DCHECK_NOTNULL(emitting_)->fun()->MoveLast(blk);
+        DCHECK_NOTNULL(emitting_)->fun()->MoveToLast(blk);
         b(blk);
     }
     
@@ -906,6 +931,9 @@ private:
             SourcePositionTable::Scope ss(id->source_position(), &root_ss);
             auto symbol = location_->FindSymbol(id->name()->ToSlice());
             assert(symbol.IsFound());
+            if (symbol.owns->IsFileUnitScope() && ProcessDependencySymbolIfNeeded(DCHECK_NOTNULL(symbol.node)) < 0) {
+                return -1;
+            }
             if (symbol.owns->IsFileUnitScope()) { // is global?
                 b()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), value);
             } else {
@@ -1392,7 +1420,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
                 auto name = String::New(arena_, full_name + "." + it->Identifier()->ToString());
                 auto val = Value::New0(arena_, name, scope.Position(), BuildType(it->Type()), ops_->GlobalValue(name));
                 module->InsertGlobalValue(it->Identifier()->Duplicate(arena_), val);
-                symbols_[name->ToSlice()] = Symbol::Val(nullptr, val);
+                symbols_[name->ToSlice()] = Symbol::Val(nullptr/*owns*/, val, nullptr/*block*/, var);
             }
         }
         
@@ -1404,7 +1432,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
             auto op = ops_->LazyValue(name);
             auto val = Value::New0(arena_, name, scope.Position(), BuildType(var->Type()), op);
             module->InsertGlobalValue(var->Identifier()->Duplicate(arena_), val);
-            symbols_[name->ToSlice()] = Symbol::Val(nullptr, val);
+            symbols_[name->ToSlice()] = Symbol::Val(nullptr/*owns*/, val, nullptr/*block*/, var);
         }
         
         for (auto def : file_unit->funs()) {
