@@ -40,6 +40,28 @@ class Expression;
 //----------------------------------------------------------------------------------------------------------------------
 // Package
 //----------------------------------------------------------------------------------------------------------------------
+class SymbolDepsNode : public base::ArenaObject {
+public:
+    SymbolDepsNode(base::Arena *arena, std::string_view name, Statement *ast)
+    : name_(name)
+    , ast_(ast)
+    , backwards_(arena) {}
+    
+    DEF_VAL_GETTER(std::string_view, name);
+    DEF_PTR_GETTER(Statement, ast);
+    DEF_ARENA_VECTOR_GETTER(SymbolDepsNode *, backward);
+    
+    void AddBackward(SymbolDepsNode *node) {
+        if (auto iter = std::find(backwards_.begin(), backwards_.end(), node); iter == backwards_.end()) {
+            backwards_.push_back(node);
+        }
+    }
+private:
+    std::string_view name_;
+    Statement *ast_;
+    base::ArenaVector<SymbolDepsNode *> backwards_;
+}; // class SymbolDepsNode
+
 class Package : public AstNode {
 public:
     struct Import {
@@ -69,6 +91,24 @@ public:
         return iter == imports_.end() ? nullptr : &iter->second;
     }
     
+    SymbolDepsNode *FindOrInsertDeps(base::Arena *arena, std::string_view name, Statement *ast) {
+        if (auto iter = symbols_deps_.find(name); iter != symbols_deps_.end()) {
+            return iter->second;
+        }
+        auto node = new (arena) SymbolDepsNode(arena, name, ast);
+        symbols_deps_[name] = node;
+        return node;
+    }
+    
+    SymbolDepsNode *FindDepsOrNull(std::string_view name) {
+        if (auto iter = symbols_deps_.find(name); iter != symbols_deps_.end()) {
+            return iter->second;
+        }
+        return nullptr;
+    }
+    
+    const base::ArenaMap<std::string_view, SymbolDepsNode *> &deps_of_symbols() const { return symbols_deps_; }
+    
     DECLARE_AST_NODE(Package);
     friend class Compiler;
 private:
@@ -78,6 +118,8 @@ private:
     const String *path_;
     const String *full_path_;
     const String *name_;
+    //base::Arena *arena_;
+    base::ArenaMap<std::string_view, SymbolDepsNode *> symbols_deps_;
     base::ArenaVector<FileUnit *> source_files_;
     base::ArenaVector<Package *> references_;
     base::ArenaVector<Package *> dependences_;

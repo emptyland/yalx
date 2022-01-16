@@ -22,7 +22,8 @@ Package::Package(base::Arena *arena, const String *id, const String *path, const
     , source_files_(arena)
     , references_(arena)
     , dependences_(arena)
-    , imports_(arena) {
+    , imports_(arena)
+    , symbols_deps_(arena) {
 }
 
 void Package::Prepare() {

@@ -11,6 +11,7 @@
 #include "base/checking.h"
 #include "base/format.h"
 #include <stack>
+#include <set>
 
 namespace yalx {
 
@@ -81,9 +82,16 @@ public:
         
         EmitCallingModuleDependentInitializers(node);
         
-        for (auto file_unit : node->source_files()) {
-            feedback()->set_file_name(file_unit->file_name()->ToString());
-            if (auto rs = file_unit->Accept(this); rs < 0 || fail()) {
+//        for (auto file_unit : node->source_files()) {
+//            feedback()->set_file_name(file_unit->file_name()->ToString());
+//            if (auto rs = file_unit->Accept(this); rs < 0 || fail()) {
+//                scope->Exit();
+//                return -1;
+//            }
+//        }
+        for (auto [_, deps] : node->deps_of_symbols()) {
+            std::set<cpl::Statement *> recursion_tracing;
+            if (RecursiveReduceSymbols(scope, deps, &recursion_tracing) < 0) {
                 scope->Exit();
                 return -1;
             }
@@ -94,6 +102,29 @@ public:
         b()->NewNode(SourcePosition::Unknown(), Types::Void, ops()->Ret(0));
         init_fun_->UpdateIdsOfBlocks();
         return 0;
+    }
+    
+    int RecursiveReduceSymbols(PackageScope *pkg_scope, cpl::SymbolDepsNode *deps,
+                               std::set<cpl::Statement *> *recursion_tracing) {
+        recursion_tracing->insert(deps->ast());
+        
+        for (auto backward : deps->backwards()) {
+            if (recursion_tracing->find(backward->ast()) != recursion_tracing->end()) {
+                continue;
+            }
+            if (RecursiveReduceSymbols(pkg_scope, backward, recursion_tracing) < 0) {
+                return -1;
+            }
+        }
+        
+        if (pkg_scope->Track(deps->ast())) {
+            return 0;
+        }
+        auto [owns, _] = deps->ast()->Owns(true/*force*/);
+        //auto pkg = deps->ast()->Pack(true/*force*/);
+        assert(pkg_scope->pkg() == deps->ast()->Pack(true/*force*/));
+        NamespaceScope::Keeper<FileUnitScope> holder(pkg_scope->FindFileUnitScopeOrNull(owns));
+        return Reduce(deps->ast());
     }
     
     int VisitFileUnit(cpl::FileUnit *node) override {
@@ -180,6 +211,8 @@ public:
                 .in_itab = 0,
             };
             clazz->InsertMethod(method);
+            
+            //printd("ctor: %s", node->primary_constructor()->name()->data());
         }
         
         // TODO:
@@ -1154,44 +1187,45 @@ private:
         if (ast->IsTemplate()) {
             return 0; // Ignore template
         }
-        auto [owns, sym] = ast->Owns(true/*force*/);
-        auto pkg = ast->Pack(true/*force*/);
-        if (auto pkg_scope = owns_->AssertedGetPackageScope(pkg); pkg_scope->HasNotTracked(ast)) {
-            if (owns && owns->IsFileUnit()) {
-                auto current_pkg_scope = location_->NearlyPackageScope();
-                auto current_file_scope = location_->NearlyFileUnitScope();
-
-                if (owns != current_file_scope->file_unit()) {
-                    //printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
-                    PackageScope *external_scope = nullptr;
-                    FileUnitScope *scope = nullptr;
-                    if (pkg != current_pkg_scope->pkg()) {
-                        external_scope = owns_->AssertedGetPackageScope(pkg);
-                        external_scope->Enter(&location_);
-                        scope = DCHECK_NOTNULL(external_scope->FindFileUnitScopeOrNull(owns));
-                    } else {
-                        scope = DCHECK_NOTNULL(current_pkg_scope->FindFileUnitScopeOrNull(owns));
-                    }
-                    assert(scope != current_file_scope);
-                    scope->Enter();
-                    auto rs = Reduce(sym);
-                    pkg_scope->Track(sym);
-                    scope->Exit();
-                    if (external_scope) { external_scope->Exit(); }
-                    if (rs < 0) {
-                        return -1;
-                    }
-                } else {
-                    if (pkg_scope->Track(sym)) {
-                        return 0;
-                    }
-                    if (auto rs = Reduce(sym); rs < 0) {
-                        return -1;
-                    }
-                }
-            }
-        }
         return 0;
+//        auto [owns, sym] = ast->Owns(true/*force*/);
+//        auto pkg = ast->Pack(true/*force*/);
+//        if (auto pkg_scope = owns_->AssertedGetPackageScope(pkg); pkg_scope->HasNotTracked(ast)) {
+//            if (owns && owns->IsFileUnit()) {
+//                auto current_pkg_scope = location_->NearlyPackageScope();
+//                auto current_file_scope = location_->NearlyFileUnitScope();
+//
+//                if (owns != current_file_scope->file_unit()) {
+//                    //printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
+//                    PackageScope *external_scope = nullptr;
+//                    FileUnitScope *scope = nullptr;
+//                    if (pkg != current_pkg_scope->pkg()) {
+//                        external_scope = owns_->AssertedGetPackageScope(pkg);
+//                        external_scope->Enter(&location_);
+//                        scope = DCHECK_NOTNULL(external_scope->FindFileUnitScopeOrNull(owns));
+//                    } else {
+//                        scope = DCHECK_NOTNULL(current_pkg_scope->FindFileUnitScopeOrNull(owns));
+//                    }
+//                    assert(scope != current_file_scope);
+//                    scope->Enter();
+//                    auto rs = Reduce(sym);
+//                    pkg_scope->Track(sym);
+//                    scope->Exit();
+//                    if (external_scope) { external_scope->Exit(); }
+//                    if (rs < 0) {
+//                        return -1;
+//                    }
+//                } else {
+//                    if (pkg_scope->Track(sym)) {
+//                        return 0;
+//                    }
+//                    if (auto rs = Reduce(sym); rs < 0) {
+//                        return -1;
+//                    }
+//                }
+//            }
+//        }
+//        return 0;
     }
     
     int ReduceReturningAtLeastOne(cpl::AstNode *node, Value **receiver) {

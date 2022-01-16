@@ -102,7 +102,6 @@ TEST_F(TypeReducingTest, ClassVars) {
 
 
 TEST_F(TypeReducingTest, FileDeps) {
-    // 07-class-var-reducing
     base::ArenaMap<std::string_view, Package *> all(&arena_);
     base::ArenaVector<Package *> entries(&arena_);
     Package *main_pkg = nullptr;
@@ -112,6 +111,13 @@ TEST_F(TypeReducingTest, FileDeps) {
     std::unordered_map<std::string_view, GlobalSymbol> symbols;
     rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
+    auto deps = main_pkg->FindDepsOrNull("b");
+    ASSERT_NE(nullptr, deps);
+    ASSERT_TRUE(deps->ast()->IsVariableDeclaration());
+    ASSERT_EQ(1, deps->backwards_size());
+    ASSERT_EQ("a", deps->backward(0)->name());
+    deps = deps->backward(0);
+    ASSERT_EQ(0, deps->backwards_size());
 }
 
 TEST_F(TypeReducingTest, TmplDeps) {

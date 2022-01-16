@@ -10,6 +10,52 @@ namespace yalx {
 
 namespace cpl {
 
+class SymbolDepsScope {
+public:
+    SymbolDepsScope(SymbolDepsScope **location, PackageScope *pkg_scope)
+    : location_(location)
+    , prev_(nullptr)
+    , pkg_(DCHECK_NOTNULL(pkg_scope)->pkg()) {
+        Enter();
+    }
+    
+    ~SymbolDepsScope() { Exit(); }
+    
+    DEF_PTR_GETTER(SymbolDepsScope, prev);
+    DEF_PTR_GETTER(Package, pkg);
+    
+    void AddForward(base::Arena *arena, std::string_view name, Statement *ast) {
+        AddForward(pkg_->FindOrInsertDeps(arena, name, ast));
+    }
+    
+    void AddForward(SymbolDepsNode *node) { forwards_.push_back(node); }
+    
+    void AddBackward(base::Arena *arena, std::string_view name, Statement *ast) {
+        AddBackward(pkg_->FindOrInsertDeps(arena, name, ast));
+    }
+    
+    void AddBackward(SymbolDepsNode *node) {
+        for (auto fw : forwards_) { fw->AddBackward(node); }
+    }
+
+private:
+    void Enter() {
+        assert(*location_ != this);
+        prev_ = *location_;
+        *location_ = this;
+    }
+    void Exit() {
+        assert(*location_ == this);
+        assert(*location_ != prev_);
+        *location_ = prev_;
+    }
+    
+    SymbolDepsScope **location_;
+    SymbolDepsScope *prev_;
+    Package *pkg_;
+    std::vector<SymbolDepsNode *> forwards_;
+};
+
 class TypeReducingVisitor : public AstVisitor {
 public:
     TypeReducingVisitor(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback);
@@ -250,6 +296,7 @@ private:
     }
     
     int VisitVariableDeclaration(VariableDeclaration *node) override {
+        std::unique_ptr<SymbolDepsScope> deps_scope;
         if (!node->owns()) {
             for (auto var : node->variables()) {
                 if (Identifier::IsPlaceholder(var->identifier())) {
@@ -258,6 +305,22 @@ private:
                 if (auto dup = location_->FindOrInsertSymbol(var->identifier()->ToSlice(), var)) {
                     Feedback()->Printf(var->source_position(), "Duplicated symbol: %s", var->identifier()->data());
                     return -1;
+                }
+            }
+        } else if (node->owns()->IsFileUnit()) {
+            auto pkg = DCHECK_NOTNULL(location_->NearlyPackageScope())->pkg();
+            deps_scope.reset(new SymbolDepsScope(&deps_, location_->NearlyPackageScope()));
+            for (auto var : node->variables()) {
+                if (Identifier::IsPlaceholder(var->identifier())) {
+                    continue;
+                }
+                deps_scope->AddForward(arena_, var->identifier()->ToSlice(), node);
+                if (var->type()) {
+                    auto linked = LinkType(var->type());
+                    if (!linked) {
+                        return -1;
+                    }
+                    var->set_type(linked);
                 }
             }
         }
@@ -319,6 +382,9 @@ private:
         
         DCHECK_NOTNULL(shadow_class->owns()->AsFileUnit())->Add(shadow_class);
         FindOrInsertGlobal(shadow_class->package(), shadow_class->name()->ToSlice(), shadow_class);
+        
+        SymbolDepsScope deps_scope(&deps_, location_->NearlyPackageScope());
+        deps_scope.AddForward(arena_, shadow_class->name()->ToSlice(), shadow_class);
         if (Reduce(shadow_class) < 0) {
             return -1;
         }
@@ -327,10 +393,12 @@ private:
     }
     
     int VisitClassDefinition(ClassDefinition *node) override {
-        //printd("reduce class: %s", node->name()->data());
         if (!node->generic_params().empty()) {
             return Returning(Unit());
         }
+        SymbolDepsScope deps_scope(&deps_, location_->NearlyPackageScope());
+        deps_scope.AddForward(arena_, node->name()->ToSlice(), node);
+        
         if (node->super_calling()) {
             auto super_call = node->super_calling();
             Statement *symbol = nullptr;
@@ -355,6 +423,9 @@ private:
         }
         if (node->base_of() && ProcessDependencySymbolIfNeeded(node->base_of()) < 0) {
             return -1;
+        }
+        if (node->base_of() && node->base_of()->package() == node->package()) {
+            deps_scope.AddBackward(arena_, node->base_of()->name()->ToSlice(), node->base_of());
         }
         
         auto classes_count = 0;
@@ -453,6 +524,9 @@ private:
         if (!node->generic_params().empty()) {
             return Returning(Unit());
         }
+        SymbolDepsScope deps_scope(&deps_, location_->NearlyPackageScope());
+        deps_scope.AddForward(arena_, node->name()->ToSlice(), node);
+
         if (node->super_calling()) {
             auto super_call = node->super_calling();
             Statement *symbol = nullptr;
@@ -476,6 +550,9 @@ private:
         }
         if (node->base_of() && ProcessDependencySymbolIfNeeded(node->base_of()) < 0) {
             return -1;
+        }
+        if (node->base_of() && node->base_of()->package() == node->package()) {
+            deps_scope.AddBackward(arena_, node->base_of()->name()->ToSlice(), node->base_of());
         }
         
         DataDefinitionScope scope(&location_, node);
@@ -612,6 +689,12 @@ private:
 
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
         FunctionScope scope(&location_, node->prototype(), node->is_reduce());
+        std::unique_ptr<SymbolDepsScope> deps_scope;
+        if (node->owns() && node->owns()->IsFileUnit()) {
+            deps_scope.reset(new SymbolDepsScope(&deps_, location_->NearlyPackageScope()));
+            deps_scope->AddForward(arena_, node->name()->ToSlice(), node);
+        }
+        
         if (!LinkType(node->prototype())) {
             return -1;
         }
@@ -2386,6 +2469,7 @@ private:
             return -1;
         }
         
+        AddBackwardDepsIfNeeded(name, ast);
         switch (ast->kind()) {
             case Node::kFunctionDeclaration:
                 return Returning(ast->AsFunctionDeclaration()->prototype());
@@ -2406,6 +2490,7 @@ private:
                 }
             } break;
         }
+
         Feedback()->Printf(node->source_position(), "symbol: `%s' not found", name);
         return -1;
     }
@@ -2567,8 +2652,10 @@ private:
                 return nullptr;
             }
         }
-        
-        
+
+        if (!name->prefix_name()) {
+            AddBackwardDepsIfNeeded(name->name()->ToSlice(), symbol);
+        }
         switch (symbol->kind()) {
             case Node::kClassDefinition:
                 return new (arena_) ClassType(arena_, symbol->AsClassDefinition(), name->source_position());
@@ -2582,6 +2669,16 @@ private:
                 break;
         }
         return nullptr;
+    }
+    
+    void AddBackwardDepsIfNeeded(std::string_view name, Statement *ast) {
+        auto [owns, _] = ast->Owns(true/*force*/);
+        auto pkg = ast->Pack(true/*force*/);
+        if (owns && owns->IsFileUnit()) { // Is global symbol
+            if (DCHECK_NOTNULL(deps_)->pkg() == pkg) {
+                deps_->AddBackward(arena_, name, ast);
+            }
+        }
     }
     
     Statement *FindSymbol(std::string_view prefix, std::string_view name) {
@@ -2787,6 +2884,7 @@ private:
     base::Arena *const arena_;
     SyntaxFeedback *const error_feedback_;
     NamespaceScope *location_ = nullptr;
+    SymbolDepsScope *deps_ = nullptr;
     Package *entry_;
     std::set<Package *> track_;
     std::set<Statement *> recursion_tracing_; // For
