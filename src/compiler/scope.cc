@@ -38,7 +38,7 @@ BlockScope *NamespaceScope::NearlyBlockScope() {
 
 BlockScope *NamespaceScope::NearlyBlockScope(BlockScopeKind kind) {
     for (auto scope = NearlyBlockScope(); scope != nullptr && scope->prev_ != nullptr;
-         scope->prev_->NearlyBlockScope()) {
+         scope = scope->prev_->NearlyBlockScope()) {
         if (scope->kind() == kind) {
             return scope;
         }
