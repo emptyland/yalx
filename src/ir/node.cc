@@ -297,7 +297,7 @@ void Function::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer, Mode
     printer->Print("): ");
     i = 0;
     for (auto type : prototype()->return_types()) {
-        if (i > 0) {
+        if (i++ > 0) {
             printer->Write(", ");
         }
         type.PrintTo(printer);

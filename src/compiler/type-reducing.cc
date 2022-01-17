@@ -274,6 +274,7 @@ private:
     }
     
     int VisitBlock(Block *node) override {
+        BlockScope scope(&location_, kPlainBlock, node);
         std::vector<Type *> types = { Unit() };
         for (auto ast : node->statements()) {
             types.clear();

@@ -151,9 +151,6 @@ public:
         
         auto clazz = AssertedGetUdt<StructureModel>(node->FullName());
         if (node->base_of()) {
-            if (ProcessDependencySymbolIfNeeded(node->base_of()) < 0) {
-                return -1;
-            }
             auto base = AssertedGetUdt<StructureModel>(node->base_of()->FullName());
             clazz->set_base_of(base);
         }
@@ -250,7 +247,8 @@ public:
                 continue;
             }
             if (!in_global_scope) {
-                location_->PutValue(ast->Identifier()->ToSlice(), init_vals[i]);
+                auto val = Symbol::Val(location_, init_vals[i], b());
+                location_->PutSymbol(ast->Identifier()->ToSlice(), val);
                 continue;
             }
             
@@ -449,9 +447,6 @@ public:
         if (symbol.kind == Symbol::kModel) {
             assert(symbol.core.model->declaration() == Model::kClass ||
                    symbol.core.model->declaration() == Model::kStruct);
-            if (symbol.node && ProcessDependencySymbolIfNeeded(symbol.node) < 0) {
-                return -1;
-            }
             
             auto clazz = down_cast<StructureModel>(symbol.core.model);
             
@@ -505,6 +500,7 @@ public:
                         // TODO: Capture Val
                         UNREACHABLE();
                     } else {
+                        //printd("update: %s", ast->name()->data());
                         location_->PutSymbol(ast->name()->ToSlice(), Symbol::Val(symbol.owns, rval, b()));
                     }
                 } else {
@@ -559,6 +555,9 @@ public:
     }
     
     int VisitIfExpression(cpl::IfExpression *node) override {
+        using std::placeholders::_1;
+        using std::placeholders::_2;
+
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
         BranchScope trunk(&location_, node);
         NamespaceScope::Keeper<BranchScope> root_holder(&trunk);
@@ -586,8 +585,6 @@ public:
             SourcePositionTable::Scope ss(node->then_clause()->source_position(), &root_ss);
             b()->NewNode(ss.Position(), Types::Void, ops()->Br(1/*value_in*/, 2/*control_out*/), condition, then_block,
                          else_block);
-//            b()->LinkTo(then_block);
-//            b()->LinkTo(else_block);
 
             auto br = trunk.Branch(node->then_clause());
             b(then_block);
@@ -598,7 +595,6 @@ public:
             
             blocks[0] = b();
             b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), exit_block);
-//            b()->LinkTo(exit_block);
         }
         
         if (node->else_clause()) {
@@ -612,10 +608,11 @@ public:
             
             blocks[1] = b();
             b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), exit_block);
-//            b()->LinkTo(exit_block);
         }
         
         SetAndMakeLast(exit_block);
+        trunk.MergeConflicts(std::bind(&IRGeneratorAstVisitor::HandleMergeConflicts, this, _1, _2));
+
         std::vector<Type> types;
         for (auto ast : node->reduced_types()) { types.push_back(BuildType(ast)); }
 
@@ -631,6 +628,21 @@ public:
             return -1;
         }
         return Returning(results);
+    }
+    
+    void HandleMergeConflicts(std::string_view name, std::vector<Conflict> &&paths) {
+        auto origin = location_->FindSymbol(name);
+        assert(origin.IsFound());
+        std::vector<Node *> inputs;
+        for (auto path : paths) {
+            inputs.push_back(path.value);
+        }
+        for (auto path : paths) {
+            inputs.push_back(/*!path.path ? b() : path.path*/path.path);
+        }
+        auto op = ops()->Phi(static_cast<int>(paths.size()), static_cast<int>(paths.size()));
+        auto phi = b()->NewNodeWithNodes(nullptr, SourcePosition::Unknown(), origin.core.value->type(), op, inputs);
+        origin.owns->PutValue(name, phi, b());
     }
     
     int ReduceValuesOfBranches(const std::vector<Type> &types,
@@ -964,9 +976,6 @@ private:
             SourcePositionTable::Scope ss(id->source_position(), &root_ss);
             auto symbol = location_->FindSymbol(id->name()->ToSlice());
             assert(symbol.IsFound());
-            if (symbol.owns->IsFileUnitScope() && ProcessDependencySymbolIfNeeded(DCHECK_NOTNULL(symbol.node)) < 0) {
-                return -1;
-            }
             if (symbol.owns->IsFileUnitScope()) { // is global?
                 b()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), value);
             } else {
@@ -1136,97 +1145,7 @@ private:
         return false;
     }
     
-    Type BuildType(const cpl::Type *ast) {
-        auto rs = ProcessDependencyTypeIfNeeded(ast);
-        assert(rs >= 0);
-        return owns_->BuildType(ast);
-    }
-    
-    int ProcessDependencyTypeIfNeeded(const cpl::Type *ast) {
-        switch (ast->primary_type()) {
-            case cpl::Type::kType_class:
-                return ProcessDependencySymbolIfNeeded(ast->AsClassType()->definition());
-            case cpl::Type::kType_struct:
-                return ProcessDependencySymbolIfNeeded(ast->AsStructType()->definition());
-            case cpl::Type::kType_option:
-                return ProcessDependencyTypeIfNeeded(ast->AsOptionType()->element_type());
-            case cpl::Type::kType_array:
-                return ProcessDependencyTypeIfNeeded(ast->AsArrayType()->element_type());
-            case cpl::Type::kType_channel:
-                return ProcessDependencyTypeIfNeeded(ast->AsChannelType()->element_type());
-            case cpl::Type::kType_function: {
-                auto proto = ast->AsFunctionPrototype();
-                for (auto param : proto->params()) {
-                    if (cpl::Type::Is(param)) {
-                        if (auto rs = ProcessDependencyTypeIfNeeded(static_cast<cpl::Type *>(param)); rs < 0) {
-                            return -1;
-                        }
-                    } else {
-                        auto item = static_cast<cpl::VariableDeclaration::Item *>(param);
-                        if (auto rs = ProcessDependencyTypeIfNeeded(item->type()); rs < 0) {
-                            return -1;
-                        }
-                    }
-                }
-                for (auto ty : proto->return_types()) {
-                    if (auto rs = ProcessDependencyTypeIfNeeded(ty); rs < 0) {
-                        return -1;
-                    }
-                }
-            } break;
-            case cpl::Type::kType_symbol:
-                UNREACHABLE();
-                break;
-            default:
-                break;
-        }
-        return 0;
-    }
-    
-    int ProcessDependencySymbolIfNeeded(cpl::Statement *ast) {
-        if (ast->IsTemplate()) {
-            return 0; // Ignore template
-        }
-        return 0;
-//        auto [owns, sym] = ast->Owns(true/*force*/);
-//        auto pkg = ast->Pack(true/*force*/);
-//        if (auto pkg_scope = owns_->AssertedGetPackageScope(pkg); pkg_scope->HasNotTracked(ast)) {
-//            if (owns && owns->IsFileUnit()) {
-//                auto current_pkg_scope = location_->NearlyPackageScope();
-//                auto current_file_scope = location_->NearlyFileUnitScope();
-//
-//                if (owns != current_file_scope->file_unit()) {
-//                    //printd("nested reduce: %s", down_cast<FileUnit>(owns)->file_name()->data());
-//                    PackageScope *external_scope = nullptr;
-//                    FileUnitScope *scope = nullptr;
-//                    if (pkg != current_pkg_scope->pkg()) {
-//                        external_scope = owns_->AssertedGetPackageScope(pkg);
-//                        external_scope->Enter(&location_);
-//                        scope = DCHECK_NOTNULL(external_scope->FindFileUnitScopeOrNull(owns));
-//                    } else {
-//                        scope = DCHECK_NOTNULL(current_pkg_scope->FindFileUnitScopeOrNull(owns));
-//                    }
-//                    assert(scope != current_file_scope);
-//                    scope->Enter();
-//                    auto rs = Reduce(sym);
-//                    pkg_scope->Track(sym);
-//                    scope->Exit();
-//                    if (external_scope) { external_scope->Exit(); }
-//                    if (rs < 0) {
-//                        return -1;
-//                    }
-//                } else {
-//                    if (pkg_scope->Track(sym)) {
-//                        return 0;
-//                    }
-//                    if (auto rs = Reduce(sym); rs < 0) {
-//                        return -1;
-//                    }
-//                }
-//            }
-//        }
-//        return 0;
-    }
+    Type BuildType(const cpl::Type *ast) { return owns_->BuildType(ast); }
     
     int ReduceReturningAtLeastOne(cpl::AstNode *node, Value **receiver) {
         const int nrets = node->Accept(this);

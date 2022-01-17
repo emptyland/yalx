@@ -10,6 +10,27 @@ val d = 2
 fun issue1() -> if (foo.foo()) 1 else 2
 fun issue2() -> if (foo.foo()) foo.Foo(1)
 
+fun issue3(): int, int {
+    var i = 1
+    var j = 2
+    if (foo.foo()) {
+        i = 2
+        if (foo.bar()) {
+            i = 3
+        } else {
+            i = 4
+        }
+    } else {
+        {
+            var j = 100
+            i = 3
+            j = 200
+        }
+        j = 1
+    }
+    return i, j
+}
+
 fun main() {
 
 }

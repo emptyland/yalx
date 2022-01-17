@@ -1,6 +1,7 @@
 #include "ir/scope.h"
 #include "ir/node.h"
 #include <stack>
+#include <set>
 
 namespace yalx {
 
@@ -190,8 +191,52 @@ BranchScope *BranchScope::NearlyBranchScope() { return this; }
 
 NamespaceScope *BranchScope::Trunk() const { return trunk_; }
 
+int BranchScope::MergeConflicts(std::function<MergingHandler> &&callback) {
+    
+    std::set<std::string_view> keys;
+    for (auto [name, _] : conflicts_) {
+        keys.insert(name);
+    }
+    for (auto br : branchs()) {
+        for (auto [name, _] : br->conflicts_) {
+            keys.insert(name);
+        }
+    }
+    
+    std::vector<Conflict> paths;
+    for (auto name : keys) {
+        paths.clear();
+        for (auto br : branchs()) {
+            if (auto iter = br->conflicts_.find(name); iter != br->conflicts_.end()) {
+                for (auto it : iter->second) {
+                    //paths[it.path] = it.value;
+                    auto iter = std::find_if(paths.begin(), paths.end(), [it](auto c) {return c.path == it.path;});
+                    if (iter == paths.end()) {
+                        paths.push_back(it);
+                    } else {
+                        *iter = it;
+                    }
+                }
+            }
+        }
+        if (auto iter = conflicts_.find(name); iter != conflicts_.end()) {
+            for (auto it : iter->second) {
+                auto iter = std::find_if(paths.begin(), paths.end(), [it](auto c) {return c.path == it.path;});
+                if (iter == paths.end()) {
+                    paths.push_back(it);
+                } else {
+                    *iter = it;
+                }
+            }
+        }
+        
+        callback(name, std::move(paths));
+    }
+    return static_cast<int>(keys.size());
+}
+
 void BranchScope::PutSymbol(std::string_view name, const Symbol &symbol) {
-    if (symbol.owns == this || IsTrunk()) { // Itself or trunk
+    if (/*symbol.owns == this ||*/ IsTrunk()) { // Itself or trunk
         NamespaceScope::PutSymbol(name, symbol);
         return;
     }
@@ -219,6 +264,7 @@ void BranchScope::PutSymbolAndRecordConflict(std::string_view name, const Symbol
             auto & items = conflicts_[name];
             if (items.empty()) {
                 items.push_back({exists_one.core.value, exists_one.block}); // origin path
+                originals_[name] = ns;
             }
             auto iter = std::find_if(items.begin(), items.end(), [&symbol](auto item){
                 return symbol.block == item.path;
@@ -241,13 +287,23 @@ bool BranchScope::IsTrunk() const {
     if (trunk_) {
         return false;
     }
-    if (!prev_) {
+    if (!prev_ || !branchs().empty()) {
         return true;
     }
-    if (auto prev = prev_->NearlyBranchScope(); prev == prev_) {
-        return prev->NotInBranchs(this);
+    auto that = this;
+    auto it = that->prev()->NearlyBranchScope();
+    while (it) {
+        if (it->InBranchs(that)) {
+            return false;
+        }
+
+        that = it;
+        if (!that->prev()) {
+            break;
+        }
+        it = that->prev()->NearlyBranchScope();
     }
-    return false;
+    return true;
 }
 
 bool BranchScope::InBranchs(const BranchScope *branch) const {

@@ -251,6 +251,10 @@ private:
     Function *fun_;
 }; // class FunctionScope
 
+struct Conflict {
+    Value      *value;
+    BasicBlock *path;
+};
 
 class BranchScope : public NamespaceScope {
 public:
@@ -279,16 +283,18 @@ public:
         return br;
     }
     
-    struct Conflict {
-        Value      *value;
-        BasicBlock *path;
-    };
+    
+    using MergingHandler = void(std::string_view, // Name of value
+                                std::vector<Conflict> && // Paths of values
+                                );
     
     const std::vector<Conflict> &conflict(std::string_view name) const {
         auto iter = conflicts_.find(name);
         assert(iter != conflicts_.end());
         return iter->second;
     }
+    
+    int MergeConflicts(std::function<MergingHandler> &&callback);
 private:
     void PutSymbolAndRecordConflict(std::string_view name, const Symbol &symbol);
     
@@ -296,6 +302,7 @@ private:
     BranchScope *trunk_;
     std::vector<BranchScope *> branchs_;
     std::unordered_map<std::string_view, std::vector<Conflict>> conflicts_;
+    std::unordered_map<std::string_view, NamespaceScope *> originals_;
 }; // class BranchScope
 
 inline bool NamespaceScope::IsFileUnitScope() { return NearlyFileUnitScope() == this; }

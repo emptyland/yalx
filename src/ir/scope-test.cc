@@ -127,15 +127,41 @@ TEST_F(ScopeTest, BranchsConflicts) {
     trunk.PutSymbol("b", Symbol::Val(&trunk, k200, bk1));
     
     auto bk2 = fun_->NewBlock(String::New(&arena_, "l2"));
+    auto k1v1 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
     {
         NamespaceScope::Keeper<BranchScope> br1(trunk.Branch(nullptr));
+        BranchScope br11_scope(&scope_, nullptr);
+        NamespaceScope::Keeper<BranchScope> br11(&br11_scope);
         //br1.ns()
-        auto k1 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
-        br1->PutSymbol("a", Symbol::Val(&trunk, k1, bk2));
+        
+        br11->PutSymbol("a", Symbol::Val(&trunk, k1v1, bk2));
         
         auto conflicts = br1->conflict("a");
-        printf("%zd\n", conflicts.size());
+        ASSERT_EQ(2, conflicts.size());
     }
+    
+    auto bk3 = fun_->NewBlock(String::New(&arena_, "l3"));
+    auto k1v2 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
+    {
+        NamespaceScope::Keeper<BranchScope> br2(trunk.Branch(nullptr));
+
+        br2->PutSymbol("a", Symbol::Val(&trunk, k1v2, bk3));
+        
+        auto conflicts = br2->conflict("a");
+        ASSERT_EQ(2, conflicts.size());
+    }
+    
+    std::map<std::string_view, std::map<BasicBlock *, Value *>> paths;
+    auto n = trunk.MergeConflicts([&paths](std::string_view name, std::vector<Conflict> &&input) {
+        for (auto c : input) {
+            paths[name][c.path] = c.value;
+        }
+    });
+    ASSERT_TRUE(paths.find("a") != paths.end());
+    ASSERT_EQ(k100, paths["a"][bk1]);
+    ASSERT_EQ(k1v1, paths["a"][bk2]);
+    ASSERT_EQ(k1v2, paths["a"][bk3]);
+    ASSERT_EQ(1, n);
 }
 
 //TEST_F(ScopeTest, NestedBranchs) {
