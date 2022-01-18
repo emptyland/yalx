@@ -2,14 +2,17 @@ package main
 
 import "foo"
 
+fun main() {
+    val bar = Bar()
+    bar.doIt()
+    bar.getName()
+    bar.hashCode()
+}
+
 class Bar : foo.Foo(), foo.If0, foo.If1 {
     override fun toString() -> "main"
     override fun getName() -> "name.main"
     override fun doIt() -> 222
     override fun doThis() -> 111
     override fun doThat() -> 000
-}
-
-fun main() {
-
 }

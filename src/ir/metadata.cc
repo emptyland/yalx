@@ -217,11 +217,12 @@ std::optional<Model::Method> StructureModel::FindMethod(std::string_view name) c
 }
 
 Handle *StructureModel::FindMemberOrNull(std::string_view name) const {
-    if (auto iter = members_.find(name); iter != members_.end()) {
-        return iter->second;
-    } else {
-        return nullptr;
+    for (auto model = this; model != nullptr; model = model->base_of()) {
+        if (auto iter = model->members_.find(name); iter != model->members_.end()) {
+            return iter->second;
+        }
     }
+    return nullptr;
 }
 
 size_t StructureModel::ReferenceSizeInBytes() const {

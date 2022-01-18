@@ -18,14 +18,14 @@ namespace yalx {
 namespace ir {
 
 #define REDUCE(stmt) \
-    if (auto rs = Reduce(stmt); rs < 0) { \
-        return -1; \
-    } (void)0
+if (auto rs = Reduce(stmt); rs < 0) { \
+return -1; \
+} (void)0
 
 #define CURRENT_SOUCE_POSITION(ast) \
-    CurrentFileName()->ToSlice(), \
-    (ast)->source_position(), \
-    module_->mutable_source_position_table()
+CurrentFileName()->ToSlice(), \
+(ast)->source_position(), \
+module_->mutable_source_position_table()
 
 class Emitting final {
 public:
@@ -82,13 +82,13 @@ public:
         
         EmitCallingModuleDependentInitializers(node);
         
-//        for (auto file_unit : node->source_files()) {
-//            feedback()->set_file_name(file_unit->file_name()->ToString());
-//            if (auto rs = file_unit->Accept(this); rs < 0 || fail()) {
-//                scope->Exit();
-//                return -1;
-//            }
-//        }
+        //        for (auto file_unit : node->source_files()) {
+        //            feedback()->set_file_name(file_unit->file_name()->ToString());
+        //            if (auto rs = file_unit->Accept(this); rs < 0 || fail()) {
+        //                scope->Exit();
+        //                return -1;
+        //            }
+        //        }
         for (auto [_, deps] : node->deps_of_symbols()) {
             std::set<cpl::Statement *> recursion_tracing;
             if (RecursiveReduceSymbols(scope, deps, &recursion_tracing) < 0) {
@@ -97,7 +97,7 @@ public:
             }
         }
         scope->Exit();
-
+        
         // Finalize ret instr
         b()->NewNode(SourcePosition::Unknown(), Types::Void, ops()->Ret(0));
         init_fun_->UpdateIdsOfBlocks();
@@ -150,7 +150,7 @@ public:
             }
         });
     }
-
+    
     int VisitStructDefinition(cpl::StructDefinition *node) override {
         return GenerateStructureModel(node, [](StructureModel *){});
     }
@@ -249,7 +249,7 @@ public:
                 return -1;
             }
         }
-
+        
         assert(init_vals.size() >= node->ItemSize());
         for (auto i = 0; i < node->ItemSize(); i++) {
             auto ast = node->AtItem(i);
@@ -268,7 +268,7 @@ public:
             auto op = ops()->StoreGlobal();
             b()->NewNode(ss.Position(), Types::Void, op, dest.core.value, init_vals[i]);
         }
-    
+        
         return Returning(Unit());
     }
     
@@ -286,7 +286,7 @@ public:
         printd("link %s -> %s",
                !from->name() ? "[x]" : from->name()->data(),
                !to->name() ? "[x]" : to->name()->data());
-
+        
         fun->MoveToAfterOf(from, to);
         from->LinkTo(to);
     }
@@ -301,7 +301,7 @@ public:
         }
         return Returning(values);
     }
-
+    
     int VisitList(cpl::List *node) override {
         std::vector<Value *> values;
         for (auto ast : node->expressions()) {
@@ -327,14 +327,14 @@ public:
             }
         }
         auto ret = b()->NewNodeWithValues(nullptr/*name*/, ss.Position(), Types::Void,
-                                                                 ops()->Ret(static_cast<int>(values.size())),
-                                                                 values);
+                                          ops()->Ret(static_cast<int>(values.size())),
+                                          values);
         return Returning(ret);
     }
     
     int VisitIdentifier(cpl::Identifier *node) override {
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
-
+        
         auto symbol = location_->FindSymbol(node->name()->ToSlice());
         assert(symbol.IsFound());
         switch (symbol.kind) {
@@ -375,7 +375,7 @@ public:
         SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(node));
         std::vector<Value *> args;
         Handle *handle = nullptr;
-
+        
         Symbol symbol = Symbol::NotFound();
         if (auto ast = node->callee()->AsIdentifier()) {
             symbol = location_->FindSymbol(ast->name()->ToSlice());
@@ -397,7 +397,7 @@ public:
                 }
             }
         }
-
+        
         for (auto ast : node->args()) {
             if (Reduce(ast, &args) < 0) {
                 return -1;
@@ -415,17 +415,21 @@ public:
             auto type = proto->return_type(0);
             auto value_in = static_cast<int>(proto->params_size());
             Operator *op = nullptr;
-            switch (method->fun->decoration()) {
-                case Function::kAbstract:
-                    op = ops()->CallAbstract(handle, 1, value_in);
-                    break;
-                case Function::kOverride:
-                    op = ops()->CallVirtual(handle, 1, value_in);
-                    break;
-                default:
-                    op = ops()->CallHandle(handle, 1, value_in);
-                    break;
+            assert(args[0]->type().kind() == Type::kValue || args[0]->type().kind() == Type::kReference);
+            auto self = DCHECK_NOTNULL(args[0]->type().model());
+            if (self->declaration() == Model::kInterface) {
+                op = ops()->CallAbstract(handle, 1/*value_out*/, value_in);
+            } else if (self->declaration() == Model::kClass) {
+                if (down_cast<StructureModel>(self)->In_vtab(handle)) {
+                    op = ops()->CallVirtual(handle, 1/*value_out*/, value_in);
+                } else {
+                    op = ops()->CallHandle(handle, 1/*value_out*/, value_in);
+                }
+            } else {
+                assert(self->declaration() == Model::kStruct);
+                op = ops()->CallHandle(handle, 1/*value_out*/, value_in);
             }
+            
             std::vector<Value *> results;
             EmitCall(op, proto, std::move(args), &results, ss.Position());
             return Returning(results);
@@ -484,7 +488,7 @@ public:
         }
         UNREACHABLE();
     }
-
+    
     int VisitAssignment(cpl::Assignment *node) override {
         std::vector<Value *> rvals;
         for (auto ast : node->rvals()) {
@@ -506,7 +510,7 @@ public:
                 if (symbol.kind == Symbol::kValue) {
                     if (symbol.owns->IsFileUnitScope()) { // Global var
                         b()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(),
-                                                            symbol.core.value, rval);
+                                     symbol.core.value, rval);
                     } else if (ShouldCaptureVal(symbol.owns, symbol.core.value)) {
                         // TODO: Capture Val
                         UNREACHABLE();
@@ -567,14 +571,14 @@ public:
             auto fun = module_->NewStandaloneFunction(ToDecoration(ast), ast->name()->Duplicate(arena()), full_name, proto);
             model->InsertMethod(fun);
         }
-
+        
         return Returning(Unit());
     }
     
     int VisitIfExpression(cpl::IfExpression *node) override {
         using std::placeholders::_1;
         using std::placeholders::_2;
-
+        
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
         BranchScope trunk(&location_, node);
         NamespaceScope::Keeper<BranchScope> root_holder(&trunk);
@@ -602,7 +606,7 @@ public:
             SourcePositionTable::Scope ss(node->then_clause()->source_position(), &root_ss);
             b()->NewNode(ss.Position(), Types::Void, ops()->Br(1/*value_in*/, 2/*control_out*/), condition, then_block,
                          else_block);
-
+            
             auto br = trunk.Branch(node->then_clause());
             b(then_block);
             NamespaceScope::Keeper<BranchScope> holder(br);
@@ -629,10 +633,10 @@ public:
         
         SetAndMakeLast(exit_block);
         trunk.MergeConflicts(std::bind(&IRGeneratorAstVisitor::HandleMergeConflicts, this, _1, _2));
-
+        
         std::vector<Type> types;
         for (auto ast : node->reduced_types()) { types.push_back(BuildType(ast)); }
-
+        
         std::vector<Value *> results;
         if (ReduceValuesOfBranches(types,
                                    origin,
@@ -686,12 +690,12 @@ public:
                 }
             }
         }
-
+        
         std::vector<std::vector<Node *>> nodes(max_cols);
         for (size_t i = 0; i < max_cols; i++) {
             bool all_unit = true;
             bool at_least_one_unit = false;
-
+            
             for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
                 if (branchs_cols[i][j]->type().kind() == Type::kVoid) {
                     at_least_one_unit = true;
@@ -699,11 +703,11 @@ public:
                     all_unit = false;
                 }
             }
-
+            
             if (all_unit) {
                 continue;
             }
-
+            
             if (at_least_one_unit) {
                 assert(!all_unit);
                 for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
@@ -733,7 +737,7 @@ public:
                     }
                 }
             }
-
+            
             std::vector<Node *> dummy(std::move(nodes[i]));
             for (size_t x = 0; x < dummy.size(); x += 2) {
                 nodes[i].push_back(dummy[x]);
@@ -777,16 +781,16 @@ public:
         } else if (dest.IsNotPointer() && src->type().IsPointer()) {
             src = b()->NewNode(source_position, dest, ops()->Deref(), src);
         }
-
+        
         Operator *op = nullptr;
         auto const hint = GetConversionHint(dest, src->type());
         switch (hint) {
-        #define DEFINE_CASE(name) case k##name: op = ops()->name(); break;
-            DECLARE_IR_CONVERSION(DEFINE_CASE)
-        #undef DEFINE_CASE
+#define DEFINE_CASE(name) case k##name: op = ops()->name(); break;
+                DECLARE_IR_CONVERSION(DEFINE_CASE)
+#undef DEFINE_CASE
             case kKeep:
                 return src;
-
+                
             case kDeny:
             default:
                 UNREACHABLE();
@@ -800,7 +804,7 @@ public:
     int VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
     int VisitBreak(cpl::Break *node) override { UNREACHABLE(); }
     int VisitContinue(cpl::Continue *node) override { UNREACHABLE(); }
-
+    
     int VisitThrow(cpl::Throw *node) override { UNREACHABLE(); }
     int VisitRunCoroutine(cpl::RunCoroutine *node) override { UNREACHABLE(); }
     int VisitWhileLoop(cpl::WhileLoop *node) override { UNREACHABLE(); }
@@ -891,7 +895,7 @@ public:
         auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::String, ops()->StringConstant(kstr));
         return Returning(val);
     }
-
+    
     static Function::Decoration ToDecoration(const cpl::FunctionDeclaration *ast) {
         if (!ast->body()) {
             return Function::kAbstract;
@@ -1070,8 +1074,8 @@ private:
             op = ops()->StoreInlineField(handle);
         }
         auto type = handle->owns()->constraint() == Model::kRef
-            ? Type::Ref(const_cast<Model *>(handle->owns()))
-            : Type::Val(const_cast<Model *>(handle->owns()));
+        ? Type::Ref(const_cast<Model *>(handle->owns()))
+        : Type::Val(const_cast<Model *>(handle->owns()));
         return b()->NewNode(source_position, type, op, value, input);
     }
     
@@ -1088,7 +1092,7 @@ private:
         } else {
             BuildType(ast->prototype()); // Build prototype always
         }
-
+        
         auto entry = fun->NewBlock(String::New(arena(), "entry"));
         int hint = 0;
         
@@ -1126,7 +1130,7 @@ private:
         if (!ast->body()) {
             return fun;
         }
-
+        
         std::vector<Value *> values;
         if (auto rs = Reduce(ast->body(), &values); rs < 0) {
             return nullptr;
@@ -1288,7 +1292,7 @@ base::Status IntermediateRepresentationGenerator::Prepare0() {
         return rs;
     }
     PreparePackage0(entry_);
-
+    
     nil_val_ = Value::New0(arena_,
                            SourcePosition::Unknown(),
                            Type::Ref(AssertedGetUdt(cpl::kAnyClassFullName)),
@@ -1338,7 +1342,7 @@ void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
                                                nullptr/*base_of*/);
             symbols_[model->full_name()->ToSlice()] = Symbol::Udt(nullptr, model, def);
         }
-
+        
         for (auto def : file_unit->struct_defs()) {
             if (!def->generic_params().empty()) {
                 continue;
@@ -1379,7 +1383,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
         auto any_array = new (arena_) ArrayModel(arena_, name, full_name, 1, Type::Ref(any));
         symbols_[any_array->full_name()->ToSlice()] = Symbol::Udt(nullptr, any_array);
     }
-
+    
     for (auto file_unit : pkg->source_files()) {
         for (auto var : file_unit->vars()) {
             for (auto i = 0; i < var->ItemSize(); i++) {

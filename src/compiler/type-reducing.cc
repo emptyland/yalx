@@ -894,6 +894,9 @@ private:
         if (!def) {
             return -1;
         }
+        if (ProcessDependencySymbolIfNeeded(def) < 0) {
+            return -1;
+        }
         
         Statement *field = nullptr;
         const IncompletableDefinition *level = nullptr;
@@ -975,6 +978,7 @@ private:
             } break;
             case Node::kDot: {
                 auto dot = node->callee()->AsDot();
+                //printd("%s", dot->field()->data());
                 if (auto id = dot->primary()->AsIdentifier()) {
                     auto [primary, _] = location_->FindSymbol(id->name()->ToSlice());
                     if (primary) {
