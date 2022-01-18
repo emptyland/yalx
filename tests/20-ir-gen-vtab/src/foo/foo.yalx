@@ -1,0 +1,18 @@
+package foo
+
+class Foo : If0 {
+    override fun toString() -> "foo"
+    override fun doThis() -> 111
+    override fun doIt() -> 222
+    fun getName() -> "name.foo"
+}
+
+interface If0 {
+    fun doIt(): int
+    fun doThis(): int
+}
+
+interface If1 {
+    fun doIt(): int
+    fun doThat(): int
+}

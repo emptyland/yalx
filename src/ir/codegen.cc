@@ -140,11 +140,22 @@ public:
         return 0;
     }
     
-    int VisitClassDefinition(cpl::ClassDefinition *node) override { return GenerateStructureModel(node); }
+    int VisitClassDefinition(cpl::ClassDefinition *node) override {
+        return GenerateStructureModel(node, [this, node](StructureModel *clazz) {
+            for (auto concept: node->concepts()) {
+                auto ty = BuildType(concept);
+                assert(ty.kind() == Type::kValue);
+                assert(ty.model()->declaration() == Model::kInterface);
+                clazz->mutable_interfaces()->push_back(down_cast<InterfaceModel>(ty.model()));
+            }
+        });
+    }
+
+    int VisitStructDefinition(cpl::StructDefinition *node) override {
+        return GenerateStructureModel(node, [](StructureModel *){});
+    }
     
-    int VisitStructDefinition(cpl::StructDefinition *node) override { return GenerateStructureModel(node); }
-    
-    template<class T> int GenerateStructureModel(T *node) {
+    template<class T> int GenerateStructureModel(T *node, std::function<void(StructureModel *)> &&fixup) {
         if (!node->generic_params().empty()) {
             return Returning(Unit());
         }
@@ -212,8 +223,8 @@ public:
             //printd("ctor: %s", node->primary_constructor()->name()->data());
         }
         
-        // TODO:
-        // UNREACHABLE();
+        fixup(clazz);
+        clazz->InstallVirtualTables(false/*force*/);
         return Returning(Unit());
     }
     
@@ -549,8 +560,14 @@ public:
         assert(location_->IsFileUnitScope());
         auto full_name = MakeFullName(node->name());
         auto model = AssertedGetUdt<InterfaceModel>(full_name);
-        
-        
+        for (auto ast : node->methods()) {
+            auto full_name = String::New(arena(), ast->FullName());
+            auto stub = AssertedGetUdt<StructureModel>(cpl::kAnyClassFullName);
+            auto proto = owns_->BuildPrototype(ast->prototype(), stub);
+            auto fun = module_->NewStandaloneFunction(ToDecoration(ast), ast->name()->Duplicate(arena()), full_name, proto);
+            model->InsertMethod(fun);
+        }
+
         return Returning(Unit());
     }
     
@@ -716,7 +733,7 @@ public:
                     }
                 }
             }
-            
+
             std::vector<Node *> dummy(std::move(nodes[i]));
             for (size_t x = 0; x < dummy.size(); x += 2) {
                 nodes[i].push_back(dummy[x]);
@@ -1078,7 +1095,7 @@ private:
         Emitting emitter(&emitting_, fun, entry);
         FunctionScope scope(&location_, ast, fun);
         if (owns) {
-            auto type = owns->declaration() == Model::kStruct ? Type::Val(owns, true/*is_pointer*/) : Type::Ref(owns);
+            auto type = owns->constraint() == Model::kVal ? Type::Val(owns, true/*is_pointer*/) : Type::Ref(owns);
             auto op = ops()->Argument(hint++);
             auto arg = Value::New0(arena(), String::New(arena(), cpl::kThisName), SourcePosition::Unknown(), type, op);
             location_->PutValue(arg->name()->ToSlice(), arg);

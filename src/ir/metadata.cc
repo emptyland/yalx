@@ -151,7 +151,7 @@ StructureModel::StructureModel(base::Arena *arena, const String *name, const Str
 , owns_(owns)
 , arena_(arena)
 , base_of_(base_of)
-, implements_(arena)
+, interfaces_(arena)
 , fields_(arena)
 , members_(arena)
 , methods_(arena)
@@ -239,18 +239,37 @@ void StructureModel::InstallVirtualTables(bool force) {
                 continue;
             }
             auto method = &methods_[handle->offset()];
+            if (constructor_ == method->fun) {
+                continue;
+            }
             method->in_vtab = true;
             method->id_vtab = static_cast<int>(vtab_.size());
             vtab_.push_back(handle);
         }
         return;
     }
+    //size_t offset = 0;
+    for (auto iface : interfaces()) {
+        for (auto method : iface->methods()) {
+            auto had = DCHECK_NOTNULL(FindMemberOrNull(method.fun->name()->ToSlice()));
+            assert(had->IsMethod());
+            itab_.push_back(had);
+        }
+        
+        //offset += iface->methods_size();
+    }
+    
+    std::vector<Handle *> incoming_vtab;
     size_t max_vtab_len = 0;
     for (auto base = base_of(); base != nullptr; base = base->base_of()) {
         max_vtab_len = std::max(max_vtab_len, base->vtab_.size());
+        incoming_vtab.resize(max_vtab_len);
+        for (size_t i = 0; i < max_vtab_len; i++) {
+            incoming_vtab[i] = base->vtab_[i];
+        }
     }
-    vtab_.resize(max_vtab_len, nullptr);
 
+    bool should_override_vtab = false;
     for (auto [name, handle] : members_) {
         if (!handle->IsMethod()) {
             continue;
@@ -263,21 +282,28 @@ void StructureModel::InstallVirtualTables(bool force) {
                     if (vm->in_vtab) {
                         method->in_vtab = true;
                         method->id_vtab = vm->id_vtab;
-                        assert(method->id_vtab < vtab_.size());
-                        vtab_[vm->id_vtab] = handle;
+                        assert(method->id_vtab < incoming_vtab.size());
+                        incoming_vtab[vm->id_vtab] = handle;
                     } else {
                         vm->in_vtab = true;
                         vm->id_vtab = static_cast<int>(base->vtab_.size());
                         base->vtab_.push_back(vf);
                         
-                        assert(vtab_.size() == vm->id_vtab);
+                        assert(incoming_vtab.size() == vm->id_vtab);
                         method->in_vtab = true;
                         method->id_vtab = vm->id_vtab;
-                        vtab_.push_back(handle);
+                        incoming_vtab.push_back(handle);
                     }
+                    should_override_vtab = true;
                     break;
                 }
             }
+        }
+    }
+    
+    if (should_override_vtab) {
+        for (auto had : incoming_vtab) {
+            vtab_.push_back(had);
         }
     }
 }
@@ -290,6 +316,36 @@ void StructureModel::PrintTo(int indent, base::PrintingWriter *printer) const {
     
     if (base_of()) {
         printer->Indent(indent + 1)->Println("[base_of: @%s]", base_of()->full_name()->data());
+    }
+    if (!vtab_.empty()) {
+        printer->Indent(indent + 1)->Println("vtab[%zd] = {", vtab_.size());
+        //int i = 0;
+        for (auto item : vtab_) {
+            if (item) {
+                printer->Indent(indent + 2)->Println("%s::%s", item->owns()->name()->data(), item->name()->data());
+            } else {
+                printer->Indent(indent + 2)->Writeln("nil");
+            }
+            
+        }
+        printer->Indent(indent + 1)->Writeln("}");
+    }
+    
+    if (!itab_.empty()) {
+        printer->Indent(indent + 1)->Println("itab[%zd] = {", itab_.size());
+        size_t offset = 0;
+        for (auto iface : interfaces()) {
+            printer
+            ->Indent(indent + 1)
+            ->Write(iface->full_name()->ToSlice())
+            ->Writeln(":");
+            for (size_t i = offset; i < offset + iface->methods_size(); i++) {
+                auto const had = itab_[i];
+                printer->Indent(indent + 2)->Println("%s::%s", had->owns()->name()->data(), had->name()->data());
+            }
+            offset += iface->methods_size();
+        }
+        printer->Indent(indent + 1)->Writeln("}");
     }
     
     for (const auto &field : fields()) {

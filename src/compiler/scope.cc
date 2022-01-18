@@ -279,7 +279,7 @@ void DataDefinitionScope::InstallConcepts() {
         auto ift = DCHECK_NOTNULL(concept->AsInterfaceType())->definition();
         for (auto method : ift->methods()) {
             Concept concept {
-                method->prototype()->signature()->ToSlice(),
+                DCHECK_NOTNULL(method->prototype()->signature())->ToSlice(),
                 ift,
                 method,
                 0

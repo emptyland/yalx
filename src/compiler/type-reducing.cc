@@ -435,9 +435,12 @@ private:
             if (!concept) {
                 return -1;
             }
-            
+
             if (!concept->IsInterfaceType()) {
                 Feedback()->Printf(concept->source_position(), "Concept must be a interface");
+                return -1;
+            }
+            if (ProcessDependencySymbolIfNeeded(concept->AsInterfaceType()->definition()) < 0) {
                 return -1;
             }
             *node->mutable_concept(i) = concept;
@@ -935,12 +938,16 @@ private:
             return Returning(Unit());
         }
         
+        SymbolDepsScope deps_scope(&deps_, location_->NearlyPackageScope());
+        deps_scope.AddForward(arena_, node->name()->ToSlice(), node);
+
         std::map<std::string_view, std::string_view> method_names;
         for (auto method : node->methods()) {
             if (LinkType(method->prototype()) == nullptr) {
                 return -1;
             }
             method->prototype()->set_signature(MakePrototypeSignature(method->prototype()));
+            method->set_owns(node);
             
             auto iter = method_names.find(method->name()->ToSlice());
             if (iter != method_names.end()) {

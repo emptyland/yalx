@@ -185,7 +185,7 @@ public:
     DEF_PTR_GETTER(Module, owns);
     DEF_PTR_PROP_RW(StructureModel, base_of);
     DEF_PTR_PROP_RW(Function, constructor);
-    DEF_ARENA_VECTOR_GETTER(InterfaceModel *, implement);
+    DEF_ARENA_VECTOR_GETTER(InterfaceModel *, interface);
     DEF_ARENA_VECTOR_GETTER(Field, field);
     DEF_ARENA_VECTOR_GETTER(Method, method);
     
@@ -210,7 +210,7 @@ private:
     base::Arena * const arena_;
     StructureModel *base_of_;
     Function *constructor_ = nullptr;
-    base::ArenaVector<InterfaceModel *> implements_;
+    base::ArenaVector<InterfaceModel *> interfaces_;
     base::ArenaMap<std::string_view, Handle *> members_;
     base::ArenaVector<Field> fields_;
     base::ArenaVector<Method> methods_;

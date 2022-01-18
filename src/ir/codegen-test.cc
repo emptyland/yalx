@@ -90,6 +90,26 @@ TEST_F(IntermediateRepresentationGeneratorTest, IfExpr) {
     printf("%s\n", buf.data());
 }
 
+// 20-ir-gen-vtab
+TEST_F(IntermediateRepresentationGeneratorTest, Vtab) {
+    bool ok = false;
+    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    IRGen("tests/20-ir-gen-vtab", &modules, &ok);
+    ASSERT_TRUE(ok);
+    
+    ASSERT_TRUE(modules.find("yalx/lang:lang") != modules.end());
+    ASSERT_TRUE(modules.find("foo:foo") != modules.end());
+    ASSERT_TRUE(modules.find("main:main") != modules.end());
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    modules["yalx/lang:lang"]->PrintTo(&printer);
+    modules["foo:foo"]->PrintTo(&printer);
+    modules["main:main"]->PrintTo(&printer);
+    
+    printf("%s\n", buf.data());
+}
+
 } // namespace ir
 
 } // namespace yalx
