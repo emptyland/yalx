@@ -16,6 +16,7 @@ namespace ir {
     DECLARE_IR_CONSTANT(V) \
     DECLARE_IR_CALLING(V) \
     DECLARE_IR_BINARY(V) \
+    DECLARE_IR_COMPARISON(V) \
     DECLARE_IR_GLOBALS(V) \
     DECLARE_IR_CONVERSION(V)
 
@@ -84,6 +85,9 @@ namespace ir {
     V(BitwiseShl) \
     V(BitwiseShr) \
 
+#define DECLARE_IR_COMPARISON(V) \
+    V(ICmp) \
+    V(FCmp)
 
 #define DECLARE_IR_CONVERSION(V) \
     V(TruncTo) \
@@ -124,6 +128,8 @@ namespace ir {
     V(CallAbstract,     Handle const *) \
     V(CallDirectly,     Function *) \
     V(CallRuntime,      RuntimeId) \
+    V(ICmp,             IConditionId) \
+    V(FCmp,             FConditionId) \
     DECL_CONSTANTS_WITH_DATA(V)
 
 #define DECL_CONSTANTS_WITH_DATA(V) \

@@ -651,6 +651,43 @@ public:
         return Returning(results);
     }
     
+    int VisitWhileLoop(cpl::WhileLoop *node) override {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        BranchScope scope(&location_, node);
+        NamespaceScope::Keeper<BranchScope> trunk(&scope);
+        if (node->initializer()) {
+            REDUCE(node->initializer());
+        }
+        
+        auto fun = emitting_->fun();
+        auto cond_block = fun->NewBlock(nullptr/*cond*/);
+        b(cond_block);
+        Value *cond = nullptr;
+        if (ReduceReturningOnlyOne(node->condition(), &cond) < 0) {
+            return -1;
+        }
+        
+        auto loop_block = fun->NewBlock(nullptr/*loop*/);
+        auto exit_block = fun->NewBlock(nullptr/*exit*/);
+        {
+            SourcePositionTable::Scope ss(node->condition()->source_position(), &root_ss);
+            auto op = ops()->Br(1, 2);
+            if (node->initializer())
+                b()->NewNode(ss.Position(), Types::Void, op, cond, loop_block, exit_block);
+        }
+        
+        if (node->body()) {
+            SourcePositionTable::Scope ss(node->body()->source_position(), &root_ss);
+            b(loop_block);
+            NamespaceScope::Keeper<BranchScope> br(trunk->Branch(node->body()));
+            REDUCE(node->body());
+            b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), loop_block);
+        }
+        
+        SetAndMakeLast(exit_block);
+        return Returning(Unit());
+    }
+    
     void HandleMergeConflicts(std::string_view name, std::vector<Conflict> &&paths) {
         auto origin = location_->FindSymbol(name);
         assert(origin.IsFound());
@@ -799,6 +836,8 @@ public:
         return b()->NewNode(source_position, dest, op, src);
     }
     
+    
+    
     int VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(cpl::AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
@@ -807,7 +846,6 @@ public:
     
     int VisitThrow(cpl::Throw *node) override { UNREACHABLE(); }
     int VisitRunCoroutine(cpl::RunCoroutine *node) override { UNREACHABLE(); }
-    int VisitWhileLoop(cpl::WhileLoop *node) override { UNREACHABLE(); }
     int VisitUnlessLoop(cpl::UnlessLoop *node) override { UNREACHABLE(); }
     int VisitForeachLoop(cpl::ForeachLoop *node) override { UNREACHABLE(); }
     int VisitStringTemplate(cpl::StringTemplate *node) override { UNREACHABLE(); }
@@ -821,22 +859,22 @@ public:
     int VisitMul(cpl::Mul *node) override { UNREACHABLE(); }
     int VisitNot(cpl::Not *node) override { UNREACHABLE(); }
     int VisitSub(cpl::Sub *node) override { UNREACHABLE(); }
-    int VisitLess(cpl::Less *node) override { UNREACHABLE(); }
+    
     int VisitRecv(cpl::Recv *node) override { UNREACHABLE(); }
     int VisitSend(cpl::Send *node) override { UNREACHABLE(); }
-    int VisitEqual(cpl::Equal *node) override { UNREACHABLE(); }
-    int VisitGreater(cpl::Greater *node) override { UNREACHABLE(); }
+    
+    
     int VisitTesting(cpl::Testing *node) override { UNREACHABLE(); }
     int VisitNegative(cpl::Negative *node) override { UNREACHABLE(); }
-    int VisitNotEqual(cpl::NotEqual *node) override { UNREACHABLE(); }
+    
     int VisitBitwiseOr(cpl::BitwiseOr *node) override { UNREACHABLE(); }
-    int VisitLessEqual(cpl::LessEqual *node) override { UNREACHABLE(); }
+    
     int VisitBitwiseAnd(cpl::BitwiseAnd *node) override { UNREACHABLE(); }
     int VisitBitwiseShl(cpl::BitwiseShl *node) override { UNREACHABLE(); }
     int VisitBitwiseShr(cpl::BitwiseShr *node) override { UNREACHABLE(); }
     int VisitBitwiseXor(cpl::BitwiseXor *node) override { UNREACHABLE(); }
     int VisitIndexedGet(cpl::IndexedGet *node) override { UNREACHABLE(); }
-    int VisitGreaterEqual(cpl::GreaterEqual *node) override { UNREACHABLE(); }
+    
     int VisitLambdaLiteral(cpl::LambdaLiteral *node) override { UNREACHABLE(); }
     int VisitWhenExpression(cpl::WhenExpression *node) override { UNREACHABLE(); }
     int VisitBitwiseNegative(cpl::BitwiseNegative *node) override { UNREACHABLE(); }
@@ -845,6 +883,58 @@ public:
     int VisitOptionLiteral(cpl::OptionLiteral *node) override { UNREACHABLE(); }
     int VisitAssertedGet(cpl::AssertedGet *node) override { UNREACHABLE(); }
     int VisitChannelInitializer(cpl::ChannelInitializer *node) override { UNREACHABLE(); }
+    
+    int VisitEqual(cpl::Equal *node) override {
+        Operator *candidate[] = {
+            ops()->FCmp(FCondition::ueq),
+            ops()->ICmp(ICondition::eq),
+        };
+        return EmitComparsion(node, RuntimeLib::StringEQ, candidate, arraysize(candidate));
+    }
+    
+    int VisitNotEqual(cpl::NotEqual *node) override {
+        Operator *candidate[] = {
+            ops()->FCmp(FCondition::une),
+            ops()->ICmp(ICondition::ne),
+        };
+        return EmitComparsion(node, RuntimeLib::StringNE, candidate, arraysize(candidate));
+    }
+    
+    int VisitLess(cpl::Less *node) override {
+        Operator *candidate[3] = {
+            ops()->FCmp(FCondition::ult),
+            ops()->ICmp(ICondition::slt),
+            ops()->ICmp(ICondition::ult),
+        };
+        return EmitComparsion(node, RuntimeLib::StringLT, candidate, arraysize(candidate));
+    }
+    
+    int VisitLessEqual(cpl::LessEqual *node) override {
+        Operator *candidate[3] = {
+            ops()->FCmp(FCondition::ule),
+            ops()->ICmp(ICondition::sle),
+            ops()->ICmp(ICondition::ule),
+        };
+        return EmitComparsion(node, RuntimeLib::StringLE, candidate, arraysize(candidate));
+    }
+    
+    int VisitGreater(cpl::Greater *node) override {
+        Operator *candidate[3] = {
+            ops()->FCmp(FCondition::ugt),
+            ops()->ICmp(ICondition::sgt),
+            ops()->ICmp(ICondition::ugt),
+        };
+        return EmitComparsion(node, RuntimeLib::StringGT, candidate, arraysize(candidate));
+    }
+    
+    int VisitGreaterEqual(cpl::GreaterEqual *node) override {
+        Operator *candidate[3] = {
+            ops()->FCmp(FCondition::uge),
+            ops()->ICmp(ICondition::sge),
+            ops()->ICmp(ICondition::uge),
+        };
+        return EmitComparsion(node, RuntimeLib::StringGE, candidate, arraysize(candidate));
+    }
     
     int VisitIntLiteral(cpl::IntLiteral *node) override {
         auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::Int32, ops()->I32Constant(node->value()));
@@ -1145,6 +1235,31 @@ private:
         
         fun->UpdateIdsOfBlocks();
         return fun;
+    }
+    
+    int EmitComparsion(cpl::BinaryExpression *ast, RuntimeId rid, Operator *candidate[3], size_t n) {
+        Value *lhs = nullptr, *rhs = nullptr;
+        if (ReduceReturningOnlyOne(ast->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(ast->rhs(), &rhs) < 0) {
+            return -1;
+        }
+        assert(lhs->type().kind() == rhs->type().kind());
+        
+        SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(ast));
+        if (lhs->type().kind() == Type::kString) {
+            auto op = ops()->CallRuntime(1/*value_out*/, 2/*value_in*/, rid);
+            auto call = b()->NewNode(ss.Position(), Types::UInt8, op, lhs, rhs);
+            return Returning(call);
+        }
+        Operator *op = nullptr;
+        if (lhs->type().IsFloating()) {
+            op = candidate[0];
+        } else if (lhs->type().IsSigned()) {
+            op = candidate[1];
+        } else {
+            op = n == 3 ? candidate[2] : candidate[1];
+        }
+        
+        return Returning(b()->NewNode(ss.Position(), Types::UInt8, op, lhs, rhs));
     }
     
     bool ShouldCaptureVal(NamespaceScope *scope, Value *val) {

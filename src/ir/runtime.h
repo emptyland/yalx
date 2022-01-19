@@ -9,7 +9,13 @@ namespace yalx {
 namespace ir {
 
 #define DECL_RUNTIME_IDS(V) \
-    V(PkgInitOnce)
+    V(PkgInitOnce) \
+    V(StringEQ) \
+    V(StringNE) \
+    V(StringLT) \
+    V(StringLE) \
+    V(StringGT) \
+    V(StringGE)
 
 
 struct RuntimeId {

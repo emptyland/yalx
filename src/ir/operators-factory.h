@@ -4,6 +4,7 @@
 
 #include "ir/operator.h"
 #include "ir/runtime.h"
+#include "ir/condition.h"
 #include "base/arena.h"
 #include "base/base.h"
 
@@ -186,6 +187,16 @@ return new (arena_) Operator(Operator::k##name, 0, 2, 0, 1, 0); \
     DECLARE_IR_CONVERSION(DEFINE_CONVERSION)
     
 #undef DEFINE_CONVERSION
+    
+    Operator *ICmp(IConditionId cond) {
+        return new (arena_) OperatorWith<IConditionId>(Operator::kICmp, 0, 2/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                                       0/*control_out*/, cond);
+    }
+    
+    Operator *FCmp(FConditionId cond) {
+        return new (arena_) OperatorWith<FConditionId>(Operator::kFCmp, 0, 2/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                                       0/*control_out*/, cond);
+    }
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(OperatorsFactory);
 private:

@@ -2,6 +2,7 @@
 #include "ir/metadata.h"
 #include "ir/utils.h"
 #include "ir/runtime.h"
+#include "ir/condition.h"
 #include "ir/constants.h"
 #include "base/io.h"
 #include "base/format.h"
@@ -55,6 +56,22 @@ template <>
 struct OperatorPrinting<RuntimeId> {
     void PrintTo(Operator *op, base::PrintingWriter *printer) {
         auto id = OperatorWith<RuntimeId>::Data(op);
+        printer->Write(id.ToString());
+    }
+};
+
+template <>
+struct OperatorPrinting<IConditionId> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        auto id = OperatorWith<IConditionId>::Data(op);
+        printer->Write(id.ToString());
+    }
+};
+
+template <>
+struct OperatorPrinting<FConditionId> {
+    void PrintTo(Operator *op, base::PrintingWriter *printer) {
+        auto id = OperatorWith<FConditionId>::Data(op);
         printer->Write(id.ToString());
     }
 };

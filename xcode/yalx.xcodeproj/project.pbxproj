@@ -15,6 +15,8 @@
 		231C4B8D268DA7AD00D4AC62 /* test-stub-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8B268DA7AD00D4AC62 /* test-stub-posix-arm64.s */; };
 		231C4B90268DA7D200D4AC62 /* yalx-string-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8E268DA7D200D4AC62 /* yalx-string-posix-arm64.s */; };
 		231C4B91268DA7D200D4AC62 /* any-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8F268DA7D200D4AC62 /* any-posix-arm64.s */; };
+		23235B862797C07600134DEB /* condition.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23235B852797C07600134DEB /* condition.cc */; };
+		23235B872797C07600134DEB /* condition.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23235B852797C07600134DEB /* condition.cc */; };
 		232AA00026861A060098E6A3 /* ast-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A9FFF26861A060098E6A3 /* ast-test.cc */; };
 		232AA00126861A060098E6A3 /* ast-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A9FFF26861A060098E6A3 /* ast-test.cc */; };
 		232AA00426861D4C0098E6A3 /* parser.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232AA00326861D4C0098E6A3 /* parser.cc */; };
@@ -241,6 +243,8 @@
 		231C4B8B268DA7AD00D4AC62 /* test-stub-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "test-stub-posix-arm64.s"; path = "../src/runtime/test-stub-posix-arm64.s"; sourceTree = "<group>"; };
 		231C4B8E268DA7D200D4AC62 /* yalx-string-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "yalx-string-posix-arm64.s"; path = "../src/runtime/object/yalx-string-posix-arm64.s"; sourceTree = "<group>"; };
 		231C4B8F268DA7D200D4AC62 /* any-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "any-posix-arm64.s"; path = "../src/runtime/object/any-posix-arm64.s"; sourceTree = "<group>"; };
+		23235B842797BA2000134DEB /* condition.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = condition.h; path = ../src/ir/condition.h; sourceTree = "<group>"; };
+		23235B852797C07600134DEB /* condition.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = condition.cc; path = ../src/ir/condition.cc; sourceTree = "<group>"; };
 		232A47BA264A83D4003DCA4F /* env-posix.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-posix.cc"; path = "../src/base/env-posix.cc"; sourceTree = "<group>"; };
 		232A47BE264A8BF1003DCA4F /* asm-x64-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-x64-test.cc"; path = "../src/x64/asm-x64-test.cc"; sourceTree = "<group>"; };
 		232A47C1264B6DFD003DCA4F /* label.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = label.h; path = ../src/arch/label.h; sourceTree = "<group>"; };
@@ -615,6 +619,8 @@
 				2355560C2789311C003ADACE /* utils.h */,
 				23F6C24A278FC85B00899C4F /* runtime.cc */,
 				23F6C249278FC03D00899C4F /* runtime.h */,
+				23235B852797C07600134DEB /* condition.cc */,
+				23235B842797BA2000134DEB /* condition.h */,
 			);
 			name = Ir;
 			sourceTree = "<group>";
@@ -757,6 +763,7 @@
 				23D4A4632680D17D0090C631 /* instr-arm64.cc in Sources */,
 				23D4A4642680D17D0090C631 /* gtest-all.cc in Sources */,
 				23D4A4652680D17D0090C631 /* all-tests.cc in Sources */,
+				23235B872797C07600134DEB /* condition.cc in Sources */,
 				23D4A4662680D17D0090C631 /* arena-utils.cc in Sources */,
 				2387EFA52684627B002E6DCF /* lexer.cc in Sources */,
 				231C4B8C268DA7AD00D4AC62 /* boot-posix-arm64.s in Sources */,
@@ -889,6 +896,7 @@
 				233236DA269E7F110078406C /* operator.cc in Sources */,
 				232AA00726861D5D0098E6A3 /* parser-test.cc in Sources */,
 				23D5A64C266718ED00635ADB /* runtime-test.cc in Sources */,
+				23235B862797C07600134DEB /* condition.cc in Sources */,
 				23D5A64D266718ED00635ADB /* runtime.h in Sources */,
 				23D5A64E266718ED00635ADB /* runtime.c in Sources */,
 				23D5A64F266718ED00635ADB /* macros.h in Sources */,
