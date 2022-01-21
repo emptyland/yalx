@@ -652,40 +652,103 @@ public:
     }
     
     int VisitWhileLoop(cpl::WhileLoop *node) override {
-        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
-        BranchScope scope(&location_, node);
+        return GenerateConditionLoop(node, true/*while_or_unless*/);
+    }
+    
+    int VisitUnlessLoop(cpl::UnlessLoop *node) override {
+        return GenerateConditionLoop(node, false/*while_or_unless*/);
+    }
+    
+    int GenerateConditionLoop(cpl::ConditionLoop *ast, bool while_or_unless) {
+        using std::placeholders::_1;
+        using std::placeholders::_2;
+
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
+        BranchScope scope(&location_, ast);
         NamespaceScope::Keeper<BranchScope> trunk(&scope);
-        if (node->initializer()) {
-            REDUCE(node->initializer());
+        if (ast->initializer()) {
+            REDUCE(ast->initializer());
         }
         
         auto fun = emitting_->fun();
         auto cond_block = fun->NewBlock(nullptr/*cond*/);
+        b()->NewNode(root_ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), cond_block);
         b(cond_block);
         Value *cond = nullptr;
-        if (ReduceReturningOnlyOne(node->condition(), &cond) < 0) {
+        if (ReduceReturningOnlyOne(ast->condition(), &cond) < 0) {
             return -1;
         }
-        
+
         auto loop_block = fun->NewBlock(nullptr/*loop*/);
         auto exit_block = fun->NewBlock(nullptr/*exit*/);
-        {
-            SourcePositionTable::Scope ss(node->condition()->source_position(), &root_ss);
-            auto op = ops()->Br(1, 2);
-            if (node->initializer())
-                b()->NewNode(ss.Position(), Types::Void, op, cond, loop_block, exit_block);
+        if (ast->test_first()) {
+            {
+                SourcePositionTable::Scope ss(ast->condition()->source_position(), &root_ss);
+                auto op = ops()->Br(1/*value_in*/, 2/*control_out*/);
+                if (while_or_unless) {
+                    b()->NewNode(ss.Position(), Types::Void, op, cond, loop_block, exit_block);
+                } else {
+                    b()->NewNode(ss.Position(), Types::Void, op, cond, exit_block, loop_block);
+                }
+            }
+
+            if (ast->body()) {
+                SourcePositionTable::Scope ss(ast->body()->source_position(), &root_ss);
+                b(loop_block);
+                NamespaceScope::Keeper<BranchScope> br(trunk->Branch(ast->body()));
+                REDUCE(ast->body());
+                b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), cond_block);
+            }
+            std::map<Value *, Value *> phi_nodes;
+            trunk->MergeConflicts(std::bind(&IRGeneratorAstVisitor::HandleMergeConflictsV2,
+                                            this, _1, _2, cond_block, &phi_nodes));
+            fun->ReplaceUsers(phi_nodes, cond_block, b());
+            SetAndMakeLast(exit_block);
+        } else {
+            if (ast->body()) {
+                SourcePositionTable::Scope ss(ast->body()->source_position(), &root_ss);
+                b(loop_block);
+                NamespaceScope::Keeper<BranchScope> br(trunk->Branch(ast->body()));
+                REDUCE(ast->body());
+                b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), cond_block);
+            }
+            
+            {
+                SourcePositionTable::Scope ss(ast->condition()->source_position(), &root_ss);
+                SetAndMakeLast(cond_block);
+                auto op = ops()->Br(1/*value_in*/, 2/*control_out*/);
+                if (while_or_unless) {
+                    b()->NewNode(ss.Position(), Types::Void, op, cond, loop_block, exit_block);
+                } else {
+                    b()->NewNode(ss.Position(), Types::Void, op, cond, exit_block, loop_block);
+                }
+            }
+            std::map<Value *, Value *> phi_nodes;
+            trunk->MergeConflicts(std::bind(&IRGeneratorAstVisitor::HandleMergeConflictsV2,
+                                            this, _1, _2, cond_block, &phi_nodes));
+            fun->ReplaceUsers(phi_nodes, loop_block, b());
+            SetAndMakeLast(exit_block);
         }
         
-        if (node->body()) {
-            SourcePositionTable::Scope ss(node->body()->source_position(), &root_ss);
-            b(loop_block);
-            NamespaceScope::Keeper<BranchScope> br(trunk->Branch(node->body()));
-            REDUCE(node->body());
-            b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), loop_block);
-        }
-        
-        SetAndMakeLast(exit_block);
         return Returning(Unit());
+    }
+    
+    void HandleMergeConflictsV2(std::string_view name, std::vector<Conflict> &&paths, BasicBlock *blk,
+                                std::map<Value *, Value *> *updates) {
+        auto origin = location_->FindSymbol(name);
+        assert(origin.IsFound());
+        std::vector<Node *> inputs;
+        for (auto path : paths) {
+            inputs.push_back(path.value);
+        }
+        for (auto path : paths) {
+            inputs.push_back(/*!path.path ? b() : path.path*/path.path);
+        }
+        auto op = ops()->Phi(static_cast<int>(paths.size()), static_cast<int>(paths.size()));
+        auto phi = blk->NewNodeWithNodes(nullptr, SourcePosition::Unknown(), origin.core.value->type(), op, inputs);
+        blk->MoveToFront(phi);
+        location_->PutSymbol(name, Symbol::Val(origin.owns, phi, b()));
+        (*updates)[origin.core.value] = phi;
     }
     
     void HandleMergeConflicts(std::string_view name, std::vector<Conflict> &&paths) {
@@ -700,7 +763,7 @@ public:
         }
         auto op = ops()->Phi(static_cast<int>(paths.size()), static_cast<int>(paths.size()));
         auto phi = b()->NewNodeWithNodes(nullptr, SourcePosition::Unknown(), origin.core.value->type(), op, inputs);
-        origin.owns->PutValue(name, phi, b());
+        location_->PutSymbol(name, Symbol::Val(origin.owns, phi, b()));
     }
     
     int ReduceValuesOfBranches(const std::vector<Type> &types,
@@ -846,12 +909,10 @@ public:
     
     int VisitThrow(cpl::Throw *node) override { UNREACHABLE(); }
     int VisitRunCoroutine(cpl::RunCoroutine *node) override { UNREACHABLE(); }
-    int VisitUnlessLoop(cpl::UnlessLoop *node) override { UNREACHABLE(); }
     int VisitForeachLoop(cpl::ForeachLoop *node) override { UNREACHABLE(); }
     int VisitStringTemplate(cpl::StringTemplate *node) override { UNREACHABLE(); }
     int VisitInstantiation(cpl::Instantiation *node) override { UNREACHABLE(); }
     int VisitOr(cpl::Or *node) override { UNREACHABLE(); }
-    int VisitAdd(cpl::Add *node) override { UNREACHABLE(); }
     int VisitAnd(cpl::And *node) override { UNREACHABLE(); }
     int VisitDiv(cpl::Div *node) override { UNREACHABLE(); }
     int VisitDot(cpl::Dot *node) override { UNREACHABLE(); }
@@ -883,6 +944,19 @@ public:
     int VisitOptionLiteral(cpl::OptionLiteral *node) override { UNREACHABLE(); }
     int VisitAssertedGet(cpl::AssertedGet *node) override { UNREACHABLE(); }
     int VisitChannelInitializer(cpl::ChannelInitializer *node) override { UNREACHABLE(); }
+    
+    int VisitAdd(cpl::Add *node) override {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        Value *lhs = nullptr, *rhs = nullptr;
+        if (ReduceReturningOnlyOne(node->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(node->rhs(), &rhs) < 0) {
+            return -1;
+        }
+        assert(lhs->type().IsNumber());
+        assert(rhs->type().IsNumber());
+        auto op = ops()->Add();
+        auto rv = b()->NewNode(root_ss.Position(), lhs->type(), op, lhs, rhs);
+        return Returning(rv);
+    }
     
     int VisitEqual(cpl::Equal *node) override {
         Operator *candidate[] = {
@@ -1233,6 +1307,11 @@ private:
             last_block->NewNodeWithValues(nullptr/*name*/, ss.Position(), Types::Void, op, values);
         }
         
+        if (fun->prototype()->return_types_size() == 1 &&
+            fun->prototype()->return_type(0).kind() == Type::kVoid) {
+            SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(ast->body()));
+            b()->NewNode(ss.Position(), Types::Void, ops()->Ret(0));
+        }
         fun->UpdateIdsOfBlocks();
         return fun;
     }

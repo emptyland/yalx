@@ -25,5 +25,8 @@ Online Document: [Link](https://github.com/aidansteele/osx-abi-macho-file-format
 
 * [CSDN](https://blog.csdn.net/Rong_Toa/article/details/110846509)
 
+## Go ASM
+
+* [CSDN](https://blog.csdn.net/whatday/article/details/98179843)
 
 

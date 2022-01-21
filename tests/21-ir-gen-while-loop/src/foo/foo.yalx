@@ -1,0 +1,4 @@
+package foo
+
+fun foo() -> true
+fun bar() -> false

@@ -110,6 +110,24 @@ TEST_F(IntermediateRepresentationGeneratorTest, Vtab) {
     printf("%s\n", buf.data());
 }
 
+// 21-ir-gen-while-loop
+TEST_F(IntermediateRepresentationGeneratorTest, WhileLoop) {
+    bool ok = false;
+    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    IRGen("tests/21-ir-gen-while-loop", &modules, &ok);
+    ASSERT_TRUE(ok);
+    
+    ASSERT_TRUE(modules.find("yalx/lang:lang") != modules.end());
+    ASSERT_TRUE(modules.find("foo:foo") != modules.end());
+    ASSERT_TRUE(modules.find("main:main") != modules.end());
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    modules["main:main"]->PrintTo(&printer);
+    
+    printf("%s\n", buf.data());
+}
+
 } // namespace ir
 
 } // namespace yalx

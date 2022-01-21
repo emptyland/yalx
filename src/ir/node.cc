@@ -8,6 +8,7 @@
 #include "base/format.h"
 #include <inttypes.h>
 #include <string.h>
+#include <set>
 
 namespace yalx {
 
@@ -350,6 +351,40 @@ void Function::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer, Mode
     printer->Indent(ctx->indent())->Println("} // %s", full_name()->data());
 }
 
+void Function::ReplaceUsers(const std::map<Value *, Value *> &values, BasicBlock *begin, BasicBlock *end) {
+    std::set<Value *> incoming;
+    auto iter = std::find(blocks_.begin(), blocks_.end(), begin);
+    if (iter == blocks_.end()) {
+        return;
+    }
+
+    for (auto [_, to] : values) { incoming.insert(to); }
+    
+    std::set<Value *> maybe_users;
+    for (;iter != blocks_.end(); iter++) {
+        for (auto instr : (*iter)->instructions()) {
+            if (incoming.find(instr) == incoming.end()) {
+                maybe_users.insert(instr);
+            }
+        }
+        if (*iter == end) {
+            break;
+        }
+    }
+    
+    for (auto [from, to] : values) {
+        std::vector<std::tuple<int, Value *>> target;
+        for (auto used : from->users()) {
+            if (maybe_users.find(used.user) != maybe_users.end()) {
+                target.push_back(std::make_tuple(used.position, used.user));
+            }
+        }
+        for (auto [position, user] : target) {
+            user->Replace(arena(), position, from, to);
+        }
+    }
+}
+
 BasicBlock::BasicBlock(base::Arena *arena, const String *name)
 : Node(Node::kBasicBlock)
 , arena_(DCHECK_NOTNULL(arena))
@@ -415,7 +450,7 @@ Value::User *Value::AddUser(base::Arena *arena, Value *user, int position) {
     
     if (!has_users_overflow_) {
         if (users_size_ + 1 >= inline_users_capacity_) {
-            has_users_overflow_ = 0;
+            has_users_overflow_ = 1;
         }
     }
     
@@ -449,6 +484,46 @@ Value::User *Value::FindUser(Value *user, int position) {
         }
     }
     return nullptr;
+}
+
+void Value::RemoveUser(User *user) {
+    if (user >= inline_users_ && user < inline_users_ + inline_users_capacity_) {
+        auto pos = user - inline_users_;
+        if (has_users_overflow_) {
+            auto node = overflow_users_.next;
+            QUEUE_REMOVE(node);
+            inline_users_[pos] = *node;
+        } else {
+            auto real_size = std::min(inline_users_capacity_, users_size_);
+            // [0 1 2 3 4 5 6 7]
+            // [x 1 2 3 4 5 6 7]
+            // [1 2 3 4 5 6 7 #]
+            //
+            // [0 1 2 3 4 5 6 7]
+            // [0 x 2 3 4 5 6 7]
+            // [0 2 3 4 5 6 7 #]
+            if (pos < real_size - 1) {
+                ::memcpy(&inline_users_[pos], &inline_users_[pos + 1], real_size - pos - 1);
+            }
+        }
+    } else {
+        QUEUE_REMOVE(user);
+    }
+    if (QUEUE_EMPTY(&overflow_users_)) {
+        has_users_overflow_ = 0;
+    }
+    users_size_ --;
+}
+
+void Value::Replace(base::Arena *arena, int position, Value *from, Value *to) {
+    assert(position >= 0 && position < TotalInOutputs(op()));
+    assert(io_[position] == from);
+    
+    auto used = DCHECK_NOTNULL(from->FindUser(this, position));
+    from->RemoveUser(used);
+    
+    io_[position] = to;
+    to->AddUser(arena, this, position);
 }
 
 void Value::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const {
@@ -550,6 +625,15 @@ void Value::IfConstantPrintTo(PrintingContext *ctx, base::PrintingWriter *printe
             ctx->OfName(this, printer);
             break;
     }
+}
+
+Value::Users::Users(Value *owns)
+: has_users_overflow_(owns->has_users_overflow_)
+, users_size_(owns->users_size_)
+, inline_users_capacity_(owns->inline_users_capacity_)
+, inline_users_(owns->inline_users_)
+, overflow_users_(&owns->overflow_users_) {
+
 }
 
 } // namespace ir

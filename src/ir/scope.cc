@@ -236,16 +236,20 @@ int BranchScope::MergeConflicts(std::function<MergingHandler> &&callback) {
 }
 
 void BranchScope::PutSymbol(std::string_view name, const Symbol &symbol) {
-    if (/*symbol.owns == this ||*/ IsTrunk()) { // Itself or trunk
-        NamespaceScope::PutSymbol(name, symbol);
-        return;
-    }
+//    if (/*symbol.owns == this ||*/ IsTrunk()) { // Itself or trunk
+//        NamespaceScope::PutSymbol(name, symbol);
+//        return;
+//    }
     
     BranchScope *br = nullptr;
-    for (br = this; br->prev() != br->Trunk(); br = br->prev()->NearlyBranchScope()) {
+    for (br = this; br && br->prev() != br->Trunk(); br = br->prev()->NearlyBranchScope()) {
         // Loop
     }
-    br->PutSymbolAndRecordConflict(name, symbol);
+    if (!br) {
+        NamespaceScope::PutSymbol(name, symbol);
+    } else {
+        br->PutSymbolAndRecordConflict(name, symbol);
+    }
 }
 
 void BranchScope::PutSymbolAndRecordConflict(std::string_view name, const Symbol &symbol) {

@@ -1,0 +1,49 @@
+package main
+
+import "foo"
+
+fun issue1() {
+    while (foo.foo()) {
+        println("loop")
+    }
+}
+
+fun issue2() {
+    do {
+        println("loop")
+    } while (foo.bar())
+}
+
+fun issue3() {
+    unless (foo.foo()) {
+        println("loop")
+    }
+}
+
+fun issue4() {
+    do {
+        println("do {} unless")
+    } unless (foo.bar())
+}
+
+fun issue5() {
+    var i = 0
+    while (i < 10) {
+        if (i < 5) {
+            i = i + 1
+        } else {
+            i = i + 2
+        }
+    }
+}
+
+fun issue6() {
+    var i = 0
+    do {
+        i = i + 1
+    } while (i < 20)
+}
+
+fun main() {
+
+}

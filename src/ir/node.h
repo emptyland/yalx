@@ -95,6 +95,8 @@ public:
             blocks_.insert(iter + 1, before);
         }
     }
+    
+    void ReplaceUsers(const std::map<Value *, Value *> &values, BasicBlock *begin, BasicBlock *end);
 
     inline void UpdateIdsOfBlocks();
     
@@ -225,6 +227,13 @@ public:
         return iter == outputs_.end() ? -1 : iter - outputs_.begin();
     }
     
+    void MoveToFront(Value *instr) {
+        if (auto iter = std::find(instructions_.begin(), instructions_.end(), instr); iter != instructions_.end()) {
+            instructions_.erase(iter);
+            instructions_.insert(instructions_.begin(), instr);
+        }
+    }
+    
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
     friend class Function;
 private:
@@ -304,6 +313,8 @@ public:
         io_[control_out_offset() + i] = DCHECK_NOTNULL(node);
     }
     
+    void Replace(base::Arena *arena, int position, Value *from, Value *to);
+    
     struct User {
         User  *prev;
         User  *next;
@@ -314,6 +325,68 @@ public:
     User *AddUser(base::Arena *arena, Value *user, int position);
     User *FindUser(Value *user);
     User *FindUser(Value *user, int position);
+    void RemoveUser(User *user);
+    
+    class Users {
+    public:
+        class iterator {
+        public:
+            iterator(Users *owns, int inline_index, User *overflow_node)
+            : owns_(owns)
+            , inline_index_(inline_index)
+            , overflow_node_(overflow_node) {}
+            
+            User *operator -> () { return get(); }
+            User &operator * () { return *get(); }
+            void operator ++ (int) { next(); }
+            void operator ++ () { next(); }
+            
+            bool operator != (const iterator &other) const { return !operator == (other); }
+            
+            bool operator == (const iterator &other) const {
+                return owns_ == other.owns_
+                    && inline_index_ == other.inline_index_
+                    && overflow_node_ == other.overflow_node_;
+            }
+            
+            iterator &operator = (const iterator &) = default;
+            
+        private:
+            User *get() {
+                if (overflow_node_) { return overflow_node_; }
+                else { return &owns_->inline_users_[inline_index_]; }
+            }
+            
+            void next() {
+                if (inline_index_ < owns_->inline_users_capacity_ - 1) {
+                    inline_index_++;
+                } else if (!overflow_node_) {
+                    overflow_node_ = owns_->overflow_users_->next;
+                } else {
+                    overflow_node_ = overflow_node_->next;
+                }
+            }
+            
+            Users *owns_;
+            int inline_index_ = 0;
+            User *overflow_node_ = nullptr;
+        };
+        
+        Users(Value *owns);
+        
+        iterator begin() { return iterator{this, 0, nullptr}; }
+        iterator end() { return iterator{this, last_index(), overflow_users_}; }
+    private:
+        int last_index() const { return static_cast<int>(inline_users_capacity_) - 1; }
+        
+        bool has_users_overflow_;
+        uint32_t users_size_;
+        uint32_t inline_users_capacity_;
+        User *inline_users_; // users array or linked-list header
+        User *overflow_users_;
+    }; // class Value::Users
+    
+    Users users() { return Users(this); }
     
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
     void IfConstantPrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
@@ -345,8 +418,8 @@ private:
     uint32_t padding0_: 3;
     uint32_t users_size_: 14;
     uint32_t inline_users_capacity_: 14;
-    User *inline_users_; // users array or linked-list header
-    User  overflow_users_;
+    User *inline_users_; // users array
+    User  overflow_users_; // users linked-list header
     
     //uint32_t is_inline_io_;
     // input[0] input[1] ...| output[1] output[2] ...
