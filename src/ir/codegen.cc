@@ -27,9 +27,32 @@ CurrentFileName()->ToSlice(), \
 (ast)->source_position(), \
 module_->mutable_source_position_table()
 
-class Emitting final {
+class LoopContext final {
 public:
-    Emitting(Emitting **location, Function *fun, BasicBlock *current_block)
+    
+    DISALLOW_IMPLICIT_CONSTRUCTORS(LoopContext);
+private:
+    void Enter() {
+        assert(location_ != nullptr);
+        prev_ = *location_;
+        assert(*location_ != this);
+        *location_ = this;
+    }
+    
+    void Exit() {
+        assert(*location_ == this);
+        *location_ = prev_;
+    }
+    
+    LoopContext **location_;
+    LoopContext *prev_;
+    BasicBlock *loop_entry_;
+    BasicBlock *loop_exit_;
+}; // class LoopContext
+
+class FunContext final {
+public:
+    FunContext(FunContext **location, Function *fun, BasicBlock *current_block)
     : location_(DCHECK_NOTNULL(location))
     , prev_(nullptr)
     , fun_(fun)
@@ -37,7 +60,7 @@ public:
         Enter();
     }
     
-    ~Emitting() { Exit(); }
+    ~FunContext() { Exit(); }
     
     DEF_PTR_GETTER(Function, fun);
     DEF_PTR_PROP_RW(BasicBlock, current_block);
@@ -57,8 +80,8 @@ private:
         *location_ = prev_;
     }
     
-    Emitting **location_;
-    Emitting *prev_;
+    FunContext **location_;
+    FunContext *prev_;
     Function *fun_;
     BasicBlock *current_block_;
 }; // class Emitting
@@ -74,7 +97,7 @@ public:
         module_ = DCHECK_NOTNULL(owns_->AssertedGetModule(name));
         init_fun_ = DCHECK_NOTNULL(module_->FindFunOrNull(cpl::kModuleInitFunName));
         init_blk_ = DCHECK_NOTNULL(init_fun_->entry());
-        Emitting emitter(&emitting_, init_fun_, init_blk_);
+        FunContext emitter(&emitting_, init_fun_, init_blk_);
         
         auto scope = owns_->AssertedGetPackageScope(node);
         scope->Enter(&location_);
@@ -1260,7 +1283,7 @@ private:
         auto entry = fun->NewBlock(String::New(arena(), "entry"));
         int hint = 0;
         
-        Emitting emitter(&emitting_, fun, entry);
+        FunContext emitter(&emitting_, fun, entry);
         FunctionScope scope(&location_, ast, fun);
         if (owns) {
             auto type = owns->constraint() == Model::kVal ? Type::Val(owns, true/*is_pointer*/) : Type::Ref(owns);
@@ -1436,7 +1459,7 @@ private:
     
     IntermediateRepresentationGenerator *const owns_;
     NamespaceScope *location_ = nullptr;
-    Emitting *emitting_ = nullptr;
+    FunContext *emitting_ = nullptr;
     Module *module_ = nullptr;
     Function *init_fun_ = nullptr;
     BasicBlock *init_blk_ = nullptr;
