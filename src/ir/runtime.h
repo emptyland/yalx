@@ -15,7 +15,8 @@ namespace ir {
     V(StringLT) \
     V(StringLE) \
     V(StringGT) \
-    V(StringGE)
+    V(StringGE) \
+    V(Raise)
 
 
 struct RuntimeId {

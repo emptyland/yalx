@@ -103,11 +103,167 @@ TEST_F(IntermediateRepresentationGeneratorTest, Vtab) {
     
     std::string buf;
     base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
-    modules["yalx/lang:lang"]->PrintTo(&printer);
+    //modules["yalx/lang:lang"]->PrintTo(&printer);
     modules["foo:foo"]->PrintTo(&printer);
+    printer.Write("\n");
     modules["main:main"]->PrintTo(&printer);
     
-    printf("%s\n", buf.data());
+    static const char z[] = R"(module foo @foo:foo {
+source-files:
+    [0] tests/20-ir-gen-vtab/src/foo/foo.yalx
+
+interfaces:
+    interface If0 @foo:foo.If0 {
+        fun doIt(): i32 ABSTRACT
+        fun doThis(): i32 ABSTRACT
+    } // foo:foo.If0
+
+    interface If1 @foo:foo.If1 {
+        fun doIt(): i32 ABSTRACT
+        fun doThat(): i32 ABSTRACT
+    } // foo:foo.If1
+
+structures:
+    class Foo @foo:foo.Foo {
+        [base_of: @yalx/lang:lang.Any]
+        vtab[8] = {
+            Any::finalize
+            Any::hashCode
+            Any::id
+            Any::isEmpty
+            Foo::toString
+            Foo::doIt
+            Foo::doThis
+            Foo::getName
+        }
+        itab[2] = {
+        foo:foo.If0:
+            Foo::doIt
+            Foo::doThis
+        }
+    } // foo:foo.Foo
+
+functions:
+    fun $init(): void {
+    boot:
+        %0 = Closure ref[fun ()->void] <fun yalx/lang:lang.$init>
+        CallRuntime void ref[fun ()->void] %0, string "yalx/lang:lang" <PkgInitOnce>
+        Ret void
+    } // foo:foo.$init
+
+    fun Foo::toString(%this: ref[foo:foo.Foo]): string OVERRIDE {
+    entry:
+        Ret void string "foo"
+    } // foo:foo.Foo.toString
+
+    fun Foo::doThis(%this: ref[foo:foo.Foo]): i32 OVERRIDE {
+    entry:
+        Ret void i32 111
+    } // foo:foo.Foo.doThis
+
+    fun Foo::doIt(%this: ref[foo:foo.Foo]): i32 OVERRIDE {
+    entry:
+        Ret void i32 222
+    } // foo:foo.Foo.doIt
+
+    fun Foo::getName(%this: ref[foo:foo.Foo]): string {
+    entry:
+        Ret void string "name.foo"
+    } // foo:foo.Foo.getName
+
+    fun Foo::Foo$constructor(%this: ref[foo:foo.Foo]): ref[foo:foo.Foo] {
+    entry:
+        %0 = RefAssertedTo ref[yalx/lang:lang.Any] ref[foo:foo.Foo] %this
+        %1 = CallHandle ref[yalx/lang:lang.Any] ref[yalx/lang:lang.Any] %0 <yalx/lang:lang.Any::Any$constructor>
+        Ret void ref[foo:foo.Foo] %this
+    } // foo:foo.Foo.Foo$constructor
+
+} // @foo:foo
+
+module main @main:main {
+source-files:
+    [0] tests/20-ir-gen-vtab/src/main/main.yalx
+
+structures:
+    class Bar @main:main.Bar {
+        [base_of: @foo:foo.Foo]
+        vtab[8] = {
+            Any::finalize
+            Any::hashCode
+            Any::id
+            Any::isEmpty
+            Bar::toString
+            Bar::doIt
+            Bar::doThis
+            Bar::getName
+        }
+        itab[4] = {
+        foo:foo.If0:
+            Bar::doIt
+            Bar::doThis
+        foo:foo.If1:
+            Bar::doIt
+            Bar::doThat
+        }
+    } // main:main.Bar
+
+functions:
+    fun $init(): void {
+    boot:
+        %0 = Closure ref[fun ()->void] <fun foo:foo.$init>
+        CallRuntime void ref[fun ()->void] %0, string "foo:foo" <PkgInitOnce>
+        %1 = Closure ref[fun ()->void] <fun yalx/lang:lang.$init>
+        CallRuntime void ref[fun ()->void] %1, string "yalx/lang:lang" <PkgInitOnce>
+        Ret void
+    } // main:main.$init
+
+    fun main(): void {
+    entry:
+        %0 = HeapAlloc ref[main:main.Bar] <Bar>
+        %1 = CallHandle ref[main:main.Bar] ref[main:main.Bar] %0 <main:main.Bar::Bar$constructor>
+        %2 = CallVirtual i32 ref[main:main.Bar] %1 <main:main.Bar::doIt>
+        %3 = CallVirtual string ref[main:main.Bar] %1 <main:main.Bar::getName>
+        %4 = RefAssertedTo ref[yalx/lang:lang.Any] ref[main:main.Bar] %1
+        %5 = CallVirtual u32 ref[yalx/lang:lang.Any] %4 <yalx/lang:lang.Any::hashCode>
+        Ret void
+    } // main:main.main
+
+    fun Bar::toString(%this: ref[main:main.Bar]): string OVERRIDE {
+    entry:
+        Ret void string "main"
+    } // main:main.Bar.toString
+
+    fun Bar::getName(%this: ref[main:main.Bar]): string OVERRIDE {
+    entry:
+        Ret void string "name.main"
+    } // main:main.Bar.getName
+
+    fun Bar::doIt(%this: ref[main:main.Bar]): i32 OVERRIDE {
+    entry:
+        Ret void i32 222
+    } // main:main.Bar.doIt
+
+    fun Bar::doThis(%this: ref[main:main.Bar]): i32 OVERRIDE {
+    entry:
+        Ret void i32 111
+    } // main:main.Bar.doThis
+
+    fun Bar::doThat(%this: ref[main:main.Bar]): i32 OVERRIDE {
+    entry:
+        Ret void i32 0
+    } // main:main.Bar.doThat
+
+    fun Bar::Bar$constructor(%this: ref[main:main.Bar]): ref[main:main.Bar] {
+    entry:
+        %0 = RefAssertedTo ref[foo:foo.Foo] ref[main:main.Bar] %this
+        %1 = CallHandle ref[foo:foo.Foo] ref[foo:foo.Foo] %0 <foo:foo.Foo::Foo$constructor>
+        Ret void ref[main:main.Bar] %this
+    } // main:main.Bar.Bar$constructor
+
+} // @main:main
+)";
+    
+    ASSERT_EQ(z, buf);
 }
 
 // 21-ir-gen-while-loop
@@ -126,9 +282,9 @@ TEST_F(IntermediateRepresentationGeneratorTest, WhileLoop) {
     modules["main:main"]->PrintTo(&printer);
     
     const char *z = R"(module main @main:main {
-globals:
-interfaces:
-structures:
+source-files:
+    [0] tests/21-ir-gen-while-loop/src/main/main.yalx
+
 functions:
     fun $init(): void {
     boot:
@@ -228,6 +384,58 @@ functions:
         Ret void
     } // main:main.issue6
 
+    fun issue7(): void {
+    entry:
+        Br void out [L1:]
+    L1:
+        %0 = Phi i32 i32 0, i32 %1 in [entry:, L2:]
+        %2 = ICmp u8 i32 %0, i32 20 <slt>
+        Br void u8 %2 out [L2:, L7:]
+    L2:
+        %1 = Add i32 i32 %0, i32 1
+        %3 = ICmp u8 i32 %1, i32 5 <slt>
+        Br void u8 %3 out [L3:, L4:]
+    L3:
+        Br void out [L1:]
+        Br void out [L4:]
+    L4:
+        %4 = ICmp u8 i32 %1, i32 5 <sgt>
+        Br void u8 %4 out [L5:, L6:]
+    L5:
+        Br void out [L7:]
+        Br void out [L6:]
+    L6:
+        Br void out [L1:]
+    L7:
+        Ret void
+    } // main:main.issue7
+
+    fun issue8(): void {
+    entry:
+        Br void out [L6:]
+    L1:
+        %0 = Add i32 i32 %1, i32 1
+        %2 = ICmp u8 i32 %0, i32 5 <slt>
+        Br void u8 %2 out [L2:, L3:]
+    L2:
+        Br void out [L1:]
+        Br void out [L3:]
+    L3:
+        %3 = ICmp u8 i32 %0, i32 5 <sgt>
+        Br void u8 %3 out [L4:, L5:]
+    L4:
+        Br void out [L7:]
+        Br void out [L5:]
+    L5:
+        Br void out [L6:]
+    L6:
+        %1 = Phi i32 i32 1, i32 %0 in [entry:, L1:]
+        %4 = ICmp u8 i32 %1, i32 20 <slt>
+        Br void u8 %4 out [L1:, L7:]
+    L7:
+        Ret void
+    } // main:main.issue8
+
     fun main(): void {
     entry:
         Ret void
@@ -237,7 +445,7 @@ functions:
 )";
     
     ASSERT_EQ(buf, z);
-    //printf("%s\n", z);
+    //printf("%s\n", buf.c_str());
 }
 
 } // namespace ir

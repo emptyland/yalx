@@ -29,6 +29,18 @@ module_->mutable_source_position_table()
 
 class LoopContext final {
 public:
+    LoopContext(LoopContext **location, BasicBlock *loop_entry, BasicBlock *loop_exit)
+    : location_(location)
+    , prev_(nullptr)
+    , loop_entry_(loop_entry)
+    , loop_exit_(loop_exit) {
+        Enter();
+    }
+    
+    ~LoopContext() { Exit(); }
+    
+    DEF_PTR_GETTER(BasicBlock, loop_entry);
+    DEF_PTR_GETTER(BasicBlock, loop_exit);
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(LoopContext);
 private:
@@ -64,8 +76,9 @@ public:
     
     DEF_PTR_GETTER(Function, fun);
     DEF_PTR_PROP_RW(BasicBlock, current_block);
+    DEF_PTR_GETTER(LoopContext, current_loop);
     
-    BasicBlock **block_location() { return &current_block_; }
+    LoopContext **loop_location() { return &current_loop_; }
     
 private:
     void Enter() {
@@ -84,6 +97,7 @@ private:
     FunContext *prev_;
     Function *fun_;
     BasicBlock *current_block_;
+    LoopContext *current_loop_ = nullptr;
 }; // class Emitting
 
 class IRGeneratorAstVisitor : public cpl::AstVisitor {
@@ -661,14 +675,8 @@ public:
         for (auto ast : node->reduced_types()) { types.push_back(BuildType(ast)); }
         
         std::vector<Value *> results;
-        if (ReduceValuesOfBranches(types,
-                                   origin,
-                                   blocks,
-                                   values,
-                                   number_of_branchs,
-                                   1/*number_of_branchs_without_else*/,
-                                   &results,
-                                   root_ss.Position()) < 0) {
+        if (ReduceValuesOfBranches(types, origin, blocks, values, number_of_branchs, 1/*number_of_branchs_without_else*/,
+                                   &results, root_ss.Position()) < 0) {
             return -1;
         }
         return Returning(results);
@@ -705,6 +713,7 @@ public:
         auto loop_block = fun->NewBlock(nullptr/*loop*/);
         auto exit_block = fun->NewBlock(nullptr/*exit*/);
         if (ast->test_first()) {
+            LoopContext loop_scope(emitting_->loop_location(), cond_block, exit_block);
             {
                 SourcePositionTable::Scope ss(ast->condition()->source_position(), &root_ss);
                 auto op = ops()->Br(1/*value_in*/, 2/*control_out*/);
@@ -728,6 +737,8 @@ public:
             fun->ReplaceUsers(phi_nodes, cond_block, b());
             SetAndMakeLast(exit_block);
         } else {
+            LoopContext loop_scope(emitting_->loop_location(), loop_block, exit_block);
+            
             if (ast->body()) {
                 SourcePositionTable::Scope ss(ast->body()->source_position(), &root_ss);
                 b(loop_block);
@@ -756,132 +767,31 @@ public:
         return Returning(Unit());
     }
     
-    void HandleMergeConflictsV2(std::string_view name, std::vector<Conflict> &&paths, BasicBlock *blk,
-                                std::map<Value *, Value *> *updates) {
-        auto origin = location_->FindSymbol(name);
-        assert(origin.IsFound());
-        std::vector<Node *> inputs;
-        for (auto path : paths) {
-            inputs.push_back(path.value);
-        }
-        for (auto path : paths) {
-            inputs.push_back(/*!path.path ? b() : path.path*/path.path);
-        }
-        auto op = ops()->Phi(static_cast<int>(paths.size()), static_cast<int>(paths.size()));
-        auto phi = blk->NewNodeWithNodes(nullptr, SourcePosition::Unknown(), origin.core.value->type(), op, inputs);
-        blk->MoveToFront(phi);
-        location_->PutSymbol(name, Symbol::Val(origin.owns, phi, b()));
-        (*updates)[origin.core.value] = phi;
+    int VisitBreak(cpl::Break *node) override {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        auto op = ops()->Br(0/*value_in*/, 1/*control_out*/);
+        b()->NewNode(root_ss.Position(), Types::Void, op, loop()->loop_exit());
+        return Returning(Unit());
+    }
+
+    int VisitContinue(cpl::Continue *node) override {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        auto op = ops()->Br(0/*value_in*/, 1/*control_out*/);
+        b()->NewNode(root_ss.Position(), Types::Void, op, loop()->loop_entry());
+        return Returning(Unit());
     }
     
-    void HandleMergeConflicts(std::string_view name, std::vector<Conflict> &&paths) {
-        auto origin = location_->FindSymbol(name);
-        assert(origin.IsFound());
-        std::vector<Node *> inputs;
-        for (auto path : paths) {
-            inputs.push_back(path.value);
+    int VisitThrow(cpl::Throw *node) override {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        Value *value = nullptr;
+        if (ReduceReturningOnlyOne(node->throwing_val(), &value) < 0) {
+            return -1;
         }
-        for (auto path : paths) {
-            inputs.push_back(/*!path.path ? b() : path.path*/path.path);
-        }
-        auto op = ops()->Phi(static_cast<int>(paths.size()), static_cast<int>(paths.size()));
-        auto phi = b()->NewNodeWithNodes(nullptr, SourcePosition::Unknown(), origin.core.value->type(), op, inputs);
-        location_->PutSymbol(name, Symbol::Val(origin.owns, phi, b()));
-    }
-    
-    int ReduceValuesOfBranches(const std::vector<Type> &types,
-                               BasicBlock *origin,
-                               BasicBlock *branchs_rows[],
-                               std::vector<Value *> values_rows[],
-                               int number_of_branchs,
-                               int number_of_branchs_without_else,
-                               std::vector<Value *> *results,
-                               SourcePosition source_position) {
-        if (types.size() == 1 && types[0].kind() == Type::kVoid) {
-            return Returning(Unit());
-        }
-        
-        const size_t max_cols = types.size();
-        std::vector<std::vector<Value *>> branchs_cols(max_cols);
-        for (size_t i = 0; i < max_cols; i++) {
-            auto col = &branchs_cols[i];
-            for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
-                if (j < number_of_branchs && i < values_rows[j].size()) {
-                    col->push_back(values_rows[j][i]);
-                } else {
-                    col->push_back(Unit());
-                }
-            }
-        }
-        
-        std::vector<std::vector<Node *>> nodes(max_cols);
-        for (size_t i = 0; i < max_cols; i++) {
-            bool all_unit = true;
-            bool at_least_one_unit = false;
-            
-            for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
-                if (branchs_cols[i][j]->type().kind() == Type::kVoid) {
-                    at_least_one_unit = true;
-                } else {
-                    all_unit = false;
-                }
-            }
-            
-            if (all_unit) {
-                continue;
-            }
-            
-            if (at_least_one_unit) {
-                assert(!all_unit);
-                for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
-                    Value *reduced = nullptr;
-                    if (branchs_cols[i][j]->type().kind() != Type::kVoid) {
-                        reduced = EmitCastingIfNeeded(types[i], branchs_cols[i][j], source_position);
-                    } else {
-                        reduced = Nil(types[i]);
-                    }
-                    
-                    nodes[i].push_back(reduced);
-                    nodes[i].push_back(branchs_rows[j]);
-                }
-            } else {
-                if (branchs_cols[i].size() == 1) {
-                    auto reduced = branchs_cols[i][0];
-                    
-                    nodes[i].push_back(Nil(types[i]));
-                    nodes[i].push_back(origin);
-                    nodes[i].push_back(reduced);
-                    nodes[i].push_back(branchs_rows[0]);
-                } else {
-                    for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
-                        auto reduced = EmitCastingIfNeeded(types[i], branchs_cols[i][j], source_position);
-                        nodes[i].push_back(reduced);
-                        nodes[i].push_back(branchs_rows[j]);
-                    }
-                }
-            }
-            
-            std::vector<Node *> dummy(std::move(nodes[i]));
-            for (size_t x = 0; x < dummy.size(); x += 2) {
-                nodes[i].push_back(dummy[x]);
-            }
-            for (size_t x = 1; x < dummy.size(); x += 2) {
-                nodes[i].push_back(dummy[x]);
-            }
-        }
-        
-        for (size_t i = 0; i < max_cols; i++) {
-            if (types[i].kind() == Type::kVoid) {
-                results->push_back(Unit());
-                continue;
-            }
-            
-            auto input = static_cast<int>(nodes[i].size() / 2);
-            auto op = ops()->Phi(input, input);
-            auto phi = b()->NewNodeWithNodes(nullptr, source_position, types[i], op, nodes[i]);
-            results->push_back(phi);
-        }
-        return static_cast<int>(results->size());
+        assert(value->type().kind() == Type::kReference);
+        auto op = ops()->CallRuntime(0, 1/*value_in*/, RuntimeLib::Raise); // Never return
+        b()->NewNode(root_ss.Position(), Types::Void, op, value);
+        EmitUnreachable();
+        return Returning(Unit());
     }
     
     int VisitCasting(cpl::Casting *node) override {
@@ -927,10 +837,7 @@ public:
     int VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(cpl::AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
-    int VisitBreak(cpl::Break *node) override { UNREACHABLE(); }
-    int VisitContinue(cpl::Continue *node) override { UNREACHABLE(); }
     
-    int VisitThrow(cpl::Throw *node) override { UNREACHABLE(); }
     int VisitRunCoroutine(cpl::RunCoroutine *node) override { UNREACHABLE(); }
     int VisitForeachLoop(cpl::ForeachLoop *node) override { UNREACHABLE(); }
     int VisitStringTemplate(cpl::StringTemplate *node) override { UNREACHABLE(); }
@@ -1108,6 +1015,9 @@ private:
     cpl::SyntaxFeedback *feedback() { return owns_->error_feedback_; }
     OperatorsFactory *ops() { return owns_->ops_; }
     
+    LoopContext *loop() { return DCHECK_NOTNULL(loop_or_null()); }
+    LoopContext *loop_or_null() { return emitting_->current_loop(); }
+
     BasicBlock *b() const { return DCHECK_NOTNULL(DCHECK_NOTNULL(emitting_)->current_block()); }
     void b(BasicBlock *blk) { DCHECK_NOTNULL(emitting_)->set_current_block(blk); }
     
@@ -1118,6 +1028,134 @@ private:
     
     std::string MakeFullName(const String *name) const {
         return module_->full_name()->ToString().append(".").append(name->ToString());
+    }
+    
+    void HandleMergeConflictsV2(std::string_view name, std::vector<Conflict> &&paths, BasicBlock *blk,
+                                std::map<Value *, Value *> *updates) {
+        auto origin = location_->FindSymbol(name);
+        assert(origin.IsFound());
+        std::vector<Node *> inputs;
+        for (auto path : paths) {
+            inputs.push_back(path.value);
+        }
+        for (auto path : paths) {
+            inputs.push_back(/*!path.path ? b() : path.path*/path.path);
+        }
+        auto op = ops()->Phi(static_cast<int>(paths.size()), static_cast<int>(paths.size()));
+        auto phi = blk->NewNodeWithNodes(nullptr, SourcePosition::Unknown(), origin.core.value->type(), op, inputs);
+        blk->MoveToFront(phi);
+        location_->PutSymbol(name, Symbol::Val(origin.owns, phi, b()));
+        (*updates)[origin.core.value] = phi;
+    }
+    
+    void HandleMergeConflicts(std::string_view name, std::vector<Conflict> &&paths) {
+        auto origin = location_->FindSymbol(name);
+        assert(origin.IsFound());
+        std::vector<Node *> inputs;
+        for (auto path : paths) {
+            inputs.push_back(path.value);
+        }
+        for (auto path : paths) {
+            inputs.push_back(/*!path.path ? b() : path.path*/path.path);
+        }
+        auto op = ops()->Phi(static_cast<int>(paths.size()), static_cast<int>(paths.size()));
+        auto phi = b()->NewNodeWithNodes(nullptr, SourcePosition::Unknown(), origin.core.value->type(), op, inputs);
+        location_->PutSymbol(name, Symbol::Val(origin.owns, phi, b()));
+    }
+    
+    int ReduceValuesOfBranches(const std::vector<Type> &types,
+                               BasicBlock *origin,
+                               BasicBlock *branchs_rows[],
+                               std::vector<Value *> values_rows[],
+                               int number_of_branchs,
+                               int number_of_branchs_without_else,
+                               std::vector<Value *> *results,
+                               SourcePosition source_position) {
+        if (types.size() == 1 && types[0].kind() == Type::kVoid) {
+            return Returning(Unit());
+        }
+        
+        const size_t max_cols = types.size();
+        std::vector<std::vector<Value *>> branchs_cols(max_cols);
+        for (size_t i = 0; i < max_cols; i++) {
+            auto col = &branchs_cols[i];
+            for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                if (j < number_of_branchs && i < values_rows[j].size()) {
+                    col->push_back(values_rows[j][i]);
+                } else {
+                    col->push_back(Unit());
+                }
+            }
+        }
+        
+        std::vector<std::vector<Node *>> nodes(max_cols);
+        for (size_t i = 0; i < max_cols; i++) {
+            bool all_unit = true;
+            bool at_least_one_unit = false;
+            
+            for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                if (branchs_cols[i][j]->type().kind() == Type::kVoid) {
+                    at_least_one_unit = true;
+                } else {
+                    all_unit = false;
+                }
+            }
+            
+            if (all_unit) {
+                continue;
+            }
+            
+            if (at_least_one_unit) {
+                assert(!all_unit);
+                for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                    Value *reduced = nullptr;
+                    if (branchs_cols[i][j]->type().kind() != Type::kVoid) {
+                        reduced = EmitCastingIfNeeded(types[i], branchs_cols[i][j], source_position);
+                    } else {
+                        reduced = Nil(types[i]);
+                    }
+                    
+                    nodes[i].push_back(reduced);
+                    nodes[i].push_back(branchs_rows[j]);
+                }
+            } else {
+                if (branchs_cols[i].size() == 1) {
+                    auto reduced = branchs_cols[i][0];
+                    
+                    nodes[i].push_back(Nil(types[i]));
+                    nodes[i].push_back(origin);
+                    nodes[i].push_back(reduced);
+                    nodes[i].push_back(branchs_rows[0]);
+                } else {
+                    for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
+                        auto reduced = EmitCastingIfNeeded(types[i], branchs_cols[i][j], source_position);
+                        nodes[i].push_back(reduced);
+                        nodes[i].push_back(branchs_rows[j]);
+                    }
+                }
+            }
+            
+            std::vector<Node *> dummy(std::move(nodes[i]));
+            for (size_t x = 0; x < dummy.size(); x += 2) {
+                nodes[i].push_back(dummy[x]);
+            }
+            for (size_t x = 1; x < dummy.size(); x += 2) {
+                nodes[i].push_back(dummy[x]);
+            }
+        }
+        
+        for (size_t i = 0; i < max_cols; i++) {
+            if (types[i].kind() == Type::kVoid) {
+                results->push_back(Unit());
+                continue;
+            }
+            
+            auto input = static_cast<int>(nodes[i].size() / 2);
+            auto op = ops()->Phi(input, input);
+            auto phi = b()->NewNodeWithNodes(nullptr, source_position, types[i], op, nodes[i]);
+            results->push_back(phi);
+        }
+        return static_cast<int>(results->size());
     }
     
     int ProcessDotChainAssignment(cpl::Dot *ast, Value *rval) {
@@ -1191,6 +1229,11 @@ private:
             }
         }
         return 0;
+    }
+    
+    void EmitUnreachable(SourcePosition souce_position = SourcePosition::Unknown()) {
+        auto op = ops()->Unreachable();
+        b()->NewNode(souce_position, Types::Void, op);
     }
     
     void EmitCallingModuleDependentInitializers(cpl::Package *node) {

@@ -30,6 +30,7 @@ namespace ir {
     V(HeapAlloc) \
     V(StackAlloc) \
     V(Closure) \
+    V(Unreachable) \
     V(Ret)
 
 #define DECLARE_IR_GLOBALS(V) \

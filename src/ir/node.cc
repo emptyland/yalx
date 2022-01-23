@@ -235,23 +235,36 @@ Value *Module::FindValOrNull(std::string_view name) const {
 void Module::PrintTo(base::PrintingWriter *printer) const {
     printer
     ->Println("module %s @%s {", name()->data(), full_name()->data())
-    ->Println("globals:");
-    
-    PrintingContext global_ctx(1);
-    for (auto value : values_) {
-        value->PrintTo(&global_ctx, printer);
+    ->Println("source-files:");
+    //source_position_table_.file_name(0);
+    for (size_t i = 0; i < source_position_table().file_names_size(); i++) {
+        printer->Indent(1)->Println("[%zd] %s", i, source_position_table().file_name(i)->data());
     }
+    printer->Write("\n");
     
-    printer->Println("interfaces:");
-    for (auto iface : interfaces()) {
-        iface->PrintTo(1, printer);
+    if (!values_.empty()) {
+        printer->Println("globals:");
+        PrintingContext global_ctx(1);
+        for (auto value : values_) {
+            value->PrintTo(&global_ctx, printer);
+        }
         printer->Write("\n");
     }
     
-    printer->Println("structures:");
-    for (auto clazz : structures()) {
-        clazz->PrintTo(1, printer);
-        printer->Write("\n");
+    if (!interfaces_.empty()) {
+        printer->Println("interfaces:");
+        for (auto iface : interfaces()) {
+            iface->PrintTo(1, printer);
+            printer->Write("\n");
+        }
+    }
+    
+    if (!structures_.empty()) {
+        printer->Println("structures:");
+        for (auto clazz : structures()) {
+            clazz->PrintTo(1, printer);
+            printer->Write("\n");
+        }
     }
     
     printer->Println("functions:");

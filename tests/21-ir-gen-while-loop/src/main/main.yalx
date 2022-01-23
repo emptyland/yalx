@@ -44,6 +44,33 @@ fun issue6() {
     } while (i < 20)
 }
 
+fun issue7() {
+    while(var i = 0; i < 20) {
+        i = i + 1
+
+        if (i < 5) {
+            continue
+        }
+        if (i > 5) {
+            break
+        }
+    }
+}
+
+fun issue8() {
+    var i = 1
+    do {
+        i = i + 1
+
+        if (i < 5) {
+            continue
+        }
+        if (i > 5) {
+            break
+        }
+    } while (i < 20)
+}
+
 fun main() {
 
 }
