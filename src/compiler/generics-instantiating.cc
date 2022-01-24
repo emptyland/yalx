@@ -51,7 +51,7 @@ public:
 
     int VisitInterfaceDefinition(InterfaceDefinition *node) override {
         assert(results_.empty());
-        if (PrepareDefinition(node) < 0){
+        if (PrepareTemplate(node) < 0){
             return -1;
         }
 
@@ -76,7 +76,7 @@ public:
     
     int VisitStructDefinition(StructDefinition *node) override {
         assert(results_.empty());
-        if (PrepareDefinition(node) < 0){
+        if (PrepareTemplate(node) < 0){
             return -1;
         }
         
@@ -106,7 +106,7 @@ public:
     
     int VisitClassDefinition(ClassDefinition *node) override {
         assert(results_.empty());
-        if (PrepareDefinition(node) < 0){
+        if (PrepareTemplate(node) < 0){
             return -1;
         }
         
@@ -149,6 +149,10 @@ public:
 
     
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
+        if (node == original() && PrepareTemplate(node) < 0){
+            return -1;
+        }
+
         // FunctionPrototype(base::Arena *arena, bool vargs, const SourcePosition &source_position)
         DECL_AND_INSTANTIATE(FunctionPrototype, prototype, node->prototype());
         
@@ -169,6 +173,10 @@ public:
         fun->set_annotations(node->annotations());
         if (node == original()) {
             fun->set_original(node);
+        }
+        
+        if (node == original()) {
+            resolver_->FindOrInsert(fun->PackageName()->ToSlice(), fun->name()->ToSlice(), fun);
         }
         return Return(fun);
     }
@@ -676,9 +684,11 @@ private:
         return 0;
     }
     
-    int PrepareDefinition(Definition *node) {
+    template<class T>
+    int PrepareTemplate(T *node) {
         if (node->generic_params().empty()) {
-            Feedback()->Printf(node->source_position(), "%s is not a generics type", node->FullName().c_str());
+            Feedback()->Printf(node->source_position(), "%s is not a generics type",
+                               node->owns() ? node->FullName().c_str() : node->name()->data());
             return -1;
         }
         if (argc_ != node->generic_params_size()) {
@@ -701,7 +711,7 @@ private:
                 default:
                     break;
             }
-            if (def != nullptr && def->original() == node) {
+            if (def != nullptr && static_cast<Statement *>(def->original()) == node) {
                 Feedback()->Printf(argv_[i]->source_position(), "Recursive generics type: %s<%s>",
                                    node->FullName().c_str(),
                                    def->FullName().c_str());
@@ -713,6 +723,43 @@ private:
         return 0;
     }
     
+//    int PrepareDefinition(Definition *node) {
+//        if (node->generic_params().empty()) {
+//            Feedback()->Printf(node->source_position(), "%s is not a generics type", node->FullName().c_str());
+//            return -1;
+//        }
+//        if (argc_ != node->generic_params_size()) {
+//            Feedback()->Printf(node->source_position(), "Different generics parameters, %zd vs %zd ",
+//                               node->FullName().c_str(), node->generic_params_size(), argc_);
+//            return -1;
+//        }
+//        for (size_t i = 0; i < argc_; i++) {
+//            Definition *def = nullptr;
+//            switch (argv_[i]->category()) {
+//                case Type::kStruct:
+//                    def = argv_[i]->AsStructType()->definition();
+//                    break;
+//                case Type::kClass:
+//                    def = argv_[i]->AsClassType()->definition();
+//                    break;
+//                case Type::kInterface:
+//                    def = argv_[i]->AsInterfaceType()->definition();
+//                    break;
+//                default:
+//                    break;
+//            }
+//            if (def != nullptr && def->original() == node) {
+//                Feedback()->Printf(argv_[i]->source_position(), "Recursive generics type: %s<%s>",
+//                                   node->FullName().c_str(),
+//                                   def->FullName().c_str());
+//                return -1;
+//            }
+//            args_[node->generic_param(i)->name()->ToSlice()] = argv_[i];
+//            //node->generic_param(i)->set_instantiation(argv_[i]);
+//        }
+//        return 0;
+//    }
+    
     Statement *Instantiate(const SourcePosition &location,
                            std::string_view prefix,
                            std::string_view name,
@@ -722,7 +769,7 @@ private:
         Statement *ast = resolver_->Find(prefix, name);
         if (!ast) {
             if (!not_found) {
-                Feedback()->Printf(location, "Symbol %s not found", name.data());
+                Feedback()->Printf(location, "Symbol `%s' not found", name.data());
             } else {
                 *not_found = true;
             }
@@ -730,7 +777,7 @@ private:
         }
 
         if (!Definition::Is(ast)) {
-            Feedback()->Printf(location, "Symbol %s.%s is not class/struct/interface", prefix.data(), name.data());
+            Feedback()->Printf(location, "Symbol `%s.%s' is not class/struct/interface", prefix.data(), name.data());
             return nullptr;
         }
         auto def = down_cast<Definition>(ast);
@@ -850,9 +897,8 @@ private:
 
         Statement *ast = Instantiate(name->source_position(),
                                      !name->prefix_name()
-                                     ? ""
-                                     : name->prefix_name()->ToSlice(), name->name()->ToSlice(),
-                                     &host->mutable_generic_args()->at(0),
+                                     ? "" : name->prefix_name()->ToSlice(), name->name()->ToSlice(),
+                                     &(*host->mutable_generic_args())[0],
                                      host->generic_args_size());
         if (!ast) {
             return nullptr;

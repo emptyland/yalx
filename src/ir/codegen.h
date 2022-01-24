@@ -78,6 +78,12 @@ private:
         return (iter == symbols_.end() || iter->second.kind != Symbol::kFun) ? nullptr : iter->second.core.fun;
     }
     
+    Symbol AssertedGetSymbol(std::string_view name) const {
+        auto iter = symbols_.find(name);
+        assert(iter != symbols_.end());
+        return iter->second;
+    }
+    
     PackageScope *AssertedGetPackageScope(cpl::Package *key) const {
         auto iter = pkg_scopes_.find(key);
         assert(iter != pkg_scopes_.end());

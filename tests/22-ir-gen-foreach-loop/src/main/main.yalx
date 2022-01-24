@@ -1,0 +1,17 @@
+package main
+
+fun main() {
+
+}
+
+fun issue1() {
+    for (i in 0 .. 10) {
+        use<int>(i)
+    }
+}
+
+fun issue2() {
+    for (i in 0 until 10) {
+        use<int>(i + 1)
+    }
+}

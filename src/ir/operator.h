@@ -78,13 +78,22 @@ namespace ir {
     V(Add) \
     V(Sub) \
     V(Mul) \
-    V(Div) \
+    V(SDiv) \
+    V(SRem) \
     V(UMul) \
     V(UDiv) \
-    V(BitwiseAnd) \
-    V(BitwiseOr) \
-    V(BitwiseShl) \
-    V(BitwiseShr) \
+    V(URem) \
+    V(FAdd) \
+    V(FSub) \
+    V(FMul) \
+    V(FDiv) \
+    V(FRem) \
+    V(And) \
+    V(Or) \
+    V(Xor) \
+    V(Shl) \
+    V(LShr) \
+    V(AShr)
 
 #define DECLARE_IR_COMPARISON(V) \
     V(ICmp) \

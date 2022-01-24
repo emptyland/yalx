@@ -852,10 +852,13 @@ public:
         return &generic_args_[i];
     }
     
+    DEF_PTR_PROP_RW(Statement, instantiated);
+    
     DECLARE_AST_NODE(Instantiation);
 private:
     Expression *primary_; // <Identifer | Dot>
     base::ArenaVector<Type *> generic_args_;
+    Statement *instantiated_ = nullptr;
 }; // class Instantiation
 
 class Literal : public Expression {

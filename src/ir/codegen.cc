@@ -409,7 +409,7 @@ public:
     }
     
     int VisitCalling(cpl::Calling *node) override {
-        SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(node));
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
         std::vector<Value *> args;
         Handle *handle = nullptr;
         
@@ -433,6 +433,20 @@ public:
                     handle = nullptr;
                 }
             }
+        } else if (auto ast = node->callee()->AsInstantiation()) {
+            // a.b<...>
+            // b<...>
+            auto inst = DCHECK_NOTNULL(ast->instantiated());
+            std::string full_name;
+            if (cpl::Definition::Is(inst)) {
+                auto def = static_cast<cpl::Definition *>(inst);
+                full_name = def->package()->path()->ToString().append(":").append(def->FullName());
+            } else {
+                assert(inst->IsFunctionDeclaration());
+                auto decl = static_cast<cpl::Declaration *>(inst);
+                full_name = decl->package()->path()->ToString().append(":").append(decl->FullName());
+            }
+            symbol = owns_->AssertedGetSymbol(full_name);
         }
         
         for (auto ast : node->args()) {
@@ -468,7 +482,7 @@ public:
             }
             
             std::vector<Value *> results;
-            EmitCall(op, proto, std::move(args), &results, ss.Position());
+            EmitCall(op, proto, std::move(args), &results, root_ss.Position());
             return Returning(results);
         }
         
@@ -483,7 +497,7 @@ public:
             auto op = ops()->CallIndirectly(1/*value_out*/, value_in);
             args.insert(args.begin(), callee);
             std::vector<Value *> results;
-            EmitCall(op, proto, std::move(args), &results, ss.Position());
+            EmitCall(op, proto, std::move(args), &results, root_ss.Position());
             return Returning(results);
         }
         
@@ -492,7 +506,7 @@ public:
             auto value_in = static_cast<int>(proto->params_size());
             auto op = ops()->CallDirectly(symbol.core.fun, 1/*value_out*/, value_in);
             std::vector<Value *> results;
-            EmitCall(op, proto, std::move(args), &results, ss.Position());
+            EmitCall(op, proto, std::move(args), &results, root_ss.Position());
             return Returning(results);
         }
         
@@ -511,7 +525,7 @@ public:
                 op = ops()->HeapAlloc(clazz);
                 type = Type::Ref(clazz);
             }
-            auto ob = b()->NewNode(ss.Position(), type, op);
+            auto ob = b()->NewNode(root_ss.Position(), type, op);
             
             auto proto = clazz->constructor()->prototype();
             auto value_in = static_cast<int>(proto->params_size());
@@ -519,7 +533,7 @@ public:
             op = ops()->CallHandle(handle, 1, value_in);
             std::vector<Value *> results;
             args.insert(args.begin(), ob);
-            EmitCall(op, proto, std::move(args), &results, ss.Position());
+            EmitCall(op, proto, std::move(args), &results, root_ss.Position());
             return Returning(results);
             
         }
@@ -767,6 +781,83 @@ public:
         return Returning(Unit());
     }
     
+    int VisitForeachLoop(cpl::ForeachLoop *node) override {
+        
+        switch (node->iteration()) {
+            case cpl::ForeachLoop::kIterator:
+                UNREACHABLE();
+                break;
+                
+            case cpl::ForeachLoop::kOpenBound:
+            case cpl::ForeachLoop::kCloseBound:
+                if (GenerateForeachRange(node) < 0) {
+                    return -1;
+                }
+                break;
+                
+            default:
+                break;
+        }
+        return Returning(Unit());
+    }
+    
+    int GenerateForeachRange(cpl::ForeachLoop *ast) {
+        using std::placeholders::_1;
+        using std::placeholders::_2;
+
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
+        BranchScope scope(&location_, ast);
+        NamespaceScope::Keeper<BranchScope> trunk(&scope);
+    
+        Value *upper = nullptr, *lower = nullptr;
+        if (ReduceReturningOnlyOne(ast->range().lower, &lower) < 0 ||
+            ReduceReturningOnlyOne(ast->range().upper, &upper) < 0) {
+            return -1;
+        }
+        // Record iterative destination var first
+        trunk->PutValue(ast->iterative_destination()->name()->ToSlice(), lower, b());
+        auto iter = lower;
+        
+        auto fun = emitting_->fun();
+        auto cond_block = fun->NewBlock(nullptr);
+        auto loop_block = fun->NewBlock(nullptr);
+        auto exit_block = fun->NewBlock(nullptr);
+        LoopContext loop_scope(emitting_->loop_location(), cond_block, exit_block);
+        b()->NewNode(root_ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), cond_block);
+        b(cond_block);
+        
+        assert(upper->type().IsIntegral() && lower->type().IsIntegral());
+        Operator *op = nullptr;
+        if (upper->type().IsSigned()) {
+            op = ops()->ICmp(ast->range().close ? ICondition::slt : ICondition::sle);
+        } else {
+            op = ops()->ICmp(ast->range().close ? ICondition::ult : ICondition::ule);
+        }
+        auto cond = b()->NewNode(root_ss.Position(), Types::UInt8, op, iter, upper);
+        op = ops()->Br(1/*value_in*/, 2/*control_out*/);
+        b()->NewNode(root_ss.Position(), Types::Void, op, cond, loop_block, exit_block);
+        
+        if (ast->body()) {
+            SourcePositionTable::Scope ss(ast->body()->source_position(), &root_ss);
+            b(loop_block);
+            NamespaceScope::Keeper<BranchScope> br(trunk->Branch(ast->body()));
+            REDUCE(ast->body());
+            
+            // i = i + 1
+            auto one = Value::New0(arena(), ss.Position(), iter->type(), ops()->I32Constant(1));
+            iter = b()->NewNode(ss.Position(), iter->type(), ops()->Add(), iter, one);
+            location_->PutSymbol(ast->iterative_destination()->name()->ToSlice(), Symbol::Val(trunk.ns(), iter, b()));
+            b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), cond_block);
+        }
+        
+        std::map<Value *, Value *> phi_nodes;
+        trunk->MergeConflicts(std::bind(&IRGeneratorAstVisitor::HandleMergeConflictsV2,
+                                        this, _1, _2, cond_block, &phi_nodes));
+        fun->ReplaceUsers(phi_nodes, cond_block, b());
+        SetAndMakeLast(exit_block);
+        return 0;
+    }
+    
     int VisitBreak(cpl::Break *node) override {
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
         auto op = ops()->Br(0/*value_in*/, 1/*control_out*/);
@@ -805,51 +896,18 @@ public:
         return Returning(dest);
     }
     
-    Value *EmitCastingIfNeeded(Type dest, Value *src, SourcePosition source_position) {
-        if (dest.kind() == src->type().kind() && dest.model() == src->type().model()) {
-            return src;
-        }
-        if (dest.IsPointer() && src->type().IsNotPointer()) {
-            src = b()->NewNode(source_position, dest, ops()->LoadAddress(), src);
-        } else if (dest.IsNotPointer() && src->type().IsPointer()) {
-            src = b()->NewNode(source_position, dest, ops()->Deref(), src);
-        }
-        
-        Operator *op = nullptr;
-        auto const hint = GetConversionHint(dest, src->type());
-        switch (hint) {
-#define DEFINE_CASE(name) case k##name: op = ops()->name(); break;
-                DECLARE_IR_CONVERSION(DEFINE_CASE)
-#undef DEFINE_CASE
-            case kKeep:
-                return src;
-                
-            case kDeny:
-            default:
-                UNREACHABLE();
-                break;
-        }
-        return b()->NewNode(source_position, dest, op, src);
-    }
-    
-    
-    
     int VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(cpl::AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
     
     int VisitRunCoroutine(cpl::RunCoroutine *node) override { UNREACHABLE(); }
-    int VisitForeachLoop(cpl::ForeachLoop *node) override { UNREACHABLE(); }
     int VisitStringTemplate(cpl::StringTemplate *node) override { UNREACHABLE(); }
     int VisitInstantiation(cpl::Instantiation *node) override { UNREACHABLE(); }
     int VisitOr(cpl::Or *node) override { UNREACHABLE(); }
     int VisitAnd(cpl::And *node) override { UNREACHABLE(); }
-    int VisitDiv(cpl::Div *node) override { UNREACHABLE(); }
+    
     int VisitDot(cpl::Dot *node) override { UNREACHABLE(); }
-    int VisitMod(cpl::Mod *node) override { UNREACHABLE(); }
-    int VisitMul(cpl::Mul *node) override { UNREACHABLE(); }
     int VisitNot(cpl::Not *node) override { UNREACHABLE(); }
-    int VisitSub(cpl::Sub *node) override { UNREACHABLE(); }
     
     int VisitRecv(cpl::Recv *node) override { UNREACHABLE(); }
     int VisitSend(cpl::Send *node) override { UNREACHABLE(); }
@@ -858,34 +916,145 @@ public:
     int VisitTesting(cpl::Testing *node) override { UNREACHABLE(); }
     int VisitNegative(cpl::Negative *node) override { UNREACHABLE(); }
     
-    int VisitBitwiseOr(cpl::BitwiseOr *node) override { UNREACHABLE(); }
-    
-    int VisitBitwiseAnd(cpl::BitwiseAnd *node) override { UNREACHABLE(); }
-    int VisitBitwiseShl(cpl::BitwiseShl *node) override { UNREACHABLE(); }
-    int VisitBitwiseShr(cpl::BitwiseShr *node) override { UNREACHABLE(); }
-    int VisitBitwiseXor(cpl::BitwiseXor *node) override { UNREACHABLE(); }
     int VisitIndexedGet(cpl::IndexedGet *node) override { UNREACHABLE(); }
     
     int VisitLambdaLiteral(cpl::LambdaLiteral *node) override { UNREACHABLE(); }
     int VisitWhenExpression(cpl::WhenExpression *node) override { UNREACHABLE(); }
-    int VisitBitwiseNegative(cpl::BitwiseNegative *node) override { UNREACHABLE(); }
+    
     int VisitArrayInitializer(cpl::ArrayInitializer *node) override { UNREACHABLE(); }
     int VisitTryCatchExpression(cpl::TryCatchExpression *node) override { UNREACHABLE(); }
-    int VisitOptionLiteral(cpl::OptionLiteral *node) override { UNREACHABLE(); }
     int VisitAssertedGet(cpl::AssertedGet *node) override { UNREACHABLE(); }
     int VisitChannelInitializer(cpl::ChannelInitializer *node) override { UNREACHABLE(); }
     
     int VisitAdd(cpl::Add *node) override {
-        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        Operator *candidate[3] = {
+            ops()->Add(),
+            ops()->Add(),
+            ops()->FAdd(),
+        };
+        return EmitArithBinaryExpression(node, candidate);
+    }
+    
+    int VisitMod(cpl::Mod *node) override {
+        Operator *candidate[3] = {
+            ops()->SRem(),
+            ops()->URem(),
+            ops()->FRem(),
+        };
+        return EmitArithBinaryExpression(node, candidate);
+    }
+    
+    int VisitDiv(cpl::Div *node) override {
+        Operator *candidate[3] = {
+            ops()->SDiv(),
+            ops()->UDiv(),
+            ops()->FDiv(),
+        };
+        return EmitArithBinaryExpression(node, candidate);
+    }
+    
+    int VisitMul(cpl::Mul *node) override {
+        Operator *candidate[3] = {
+            ops()->Mul(),
+            ops()->UMul(),
+            ops()->FMul(),
+        };
+        return EmitArithBinaryExpression(node, candidate);
+    }
+
+    int VisitSub(cpl::Sub *node) override {
+        Operator *candidate[3] = {
+            ops()->Sub(),
+            ops()->Sub(),
+            ops()->FSub(),
+        };
+        return EmitArithBinaryExpression(node, candidate);
+    }
+    
+    // candidate[0] = Signed
+    // candidate[1] = Unsigned
+    // candidate[2] = Float
+    int EmitArithBinaryExpression(cpl::BinaryExpression *ast, Operator *candidate[3]) {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
         Value *lhs = nullptr, *rhs = nullptr;
-        if (ReduceReturningOnlyOne(node->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(node->rhs(), &rhs) < 0) {
+        if (ReduceReturningOnlyOne(ast->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(ast->rhs(), &rhs) < 0) {
             return -1;
         }
         assert(lhs->type().IsNumber());
         assert(rhs->type().IsNumber());
-        auto op = ops()->Add();
-        auto rv = b()->NewNode(root_ss.Position(), lhs->type(), op, lhs, rhs);
-        return Returning(rv);
+        
+        Operator *op = nullptr;
+        if (lhs->type().IsIntegral() && lhs->type().IsUnsigned() &&
+            rhs->type().IsIntegral() && rhs->type().IsUnsigned()) {
+            op = candidate[1];
+        } else if (lhs->type().IsFloating() && rhs->type().IsFloating()) {
+            op = candidate[2];
+        } else {
+            assert(lhs->type().IsIntegral() && lhs->type().IsSigned());
+            assert(rhs->type().IsIntegral() && rhs->type().IsSigned());
+            op = candidate[0];
+        }
+        return Returning(b()->NewNode(root_ss.Position(), lhs->type(), op, lhs, rhs));
+    }
+    
+    int VisitBitwiseNegative(cpl::BitwiseNegative *node) override { UNREACHABLE(); }
+    
+    int VisitBitwiseOr(cpl::BitwiseOr *node) override {
+        Operator *candidate[2] = {
+            ops()->Or(),
+            ops()->Or()
+        };
+        return EmitBitwiseBinaryExpression(node, candidate);
+    }
+    
+    int VisitBitwiseAnd(cpl::BitwiseAnd *node) override {
+        Operator *candidate[2] = {
+            ops()->And(),
+            ops()->And()
+        };
+        return EmitBitwiseBinaryExpression(node, candidate);
+    }
+    
+    int VisitBitwiseXor(cpl::BitwiseXor *node) override {
+        Operator *candidate[2] = {
+            ops()->Xor(),
+            ops()->Xor()
+        };
+        return EmitBitwiseBinaryExpression(node, candidate);
+    }
+    
+    int VisitBitwiseShl(cpl::BitwiseShl *node) override {
+        Operator *candidate[2] = {
+            ops()->Shl(), // Singed
+            ops()->Shl()  // Unsigned
+        };
+        return EmitBitwiseBinaryExpression(node, candidate);
+    }
+    
+    int VisitBitwiseShr(cpl::BitwiseShr *node) override {
+        Operator *candidate[2] = {
+            ops()->AShr(), // Singed
+            ops()->LShr()  // Unsigned
+        };
+        return EmitBitwiseBinaryExpression(node, candidate);
+    }
+    
+    int EmitBitwiseBinaryExpression(cpl::BinaryExpression *ast, Operator *candidate[2]) {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
+        Value *lhs = nullptr, *rhs = nullptr;
+        if (ReduceReturningOnlyOne(ast->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(ast->rhs(), &rhs) < 0) {
+            return -1;
+        }
+        assert(lhs->type().IsIntegral());
+        assert(rhs->type().IsIntegral());
+        
+        Operator *op = nullptr;
+        if (lhs->type().IsSigned()) {
+            op = candidate[0];
+        } else {
+            op = candidate[1];
+        }
+        return Returning(b()->NewNode(root_ss.Position(), lhs->type(), op, lhs, rhs));
     }
     
     int VisitEqual(cpl::Equal *node) override {
@@ -988,6 +1157,20 @@ public:
         auto kstr = node->value()->Duplicate(arena());
         auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::String, ops()->StringConstant(kstr));
         return Returning(val);
+    }
+    
+    int VisitOptionLiteral(cpl::OptionLiteral *node) override {
+        //node->type()
+        auto type = BuildType(node->type());
+        if (node->is_some()) {
+            Value *value = nullptr;
+            if (ReduceReturningOnlyOne(node->value(), &value) < 0) {
+                return -1;
+            }
+            return Returning(value);
+        } else {
+            return Returning(Nil(type));
+        }
     }
     
     static Function::Decoration ToDecoration(const cpl::FunctionDeclaration *ast) {
@@ -1229,6 +1412,33 @@ private:
             }
         }
         return 0;
+    }
+    
+    Value *EmitCastingIfNeeded(Type dest, Value *src, SourcePosition source_position) {
+        if (dest.kind() == src->type().kind() && dest.model() == src->type().model()) {
+            return src;
+        }
+        if (dest.IsPointer() && src->type().IsNotPointer()) {
+            src = b()->NewNode(source_position, dest, ops()->LoadAddress(), src);
+        } else if (dest.IsNotPointer() && src->type().IsPointer()) {
+            src = b()->NewNode(source_position, dest, ops()->Deref(), src);
+        }
+        
+        Operator *op = nullptr;
+        auto const hint = GetConversionHint(dest, src->type());
+        switch (hint) {
+#define DEFINE_CASE(name) case k##name: op = ops()->name(); break;
+                DECLARE_IR_CONVERSION(DEFINE_CASE)
+#undef DEFINE_CASE
+            case kKeep:
+                return src;
+                
+            case kDeny:
+            default:
+                UNREACHABLE();
+                break;
+        }
+        return b()->NewNode(source_position, dest, op, src);
     }
     
     void EmitUnreachable(SourcePosition souce_position = SourcePosition::Unknown()) {
@@ -1670,6 +1880,9 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
         }
         
         for (auto def : file_unit->funs()) {
+            if (!def->generic_params().empty()) {
+                continue;
+            }
             auto ty = BuildType(def->prototype());
             auto fun = module->NewFunction(IRGeneratorAstVisitor::ToDecoration(def),
                                            def->name()->Duplicate(arena_),

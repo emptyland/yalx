@@ -260,7 +260,8 @@ void BranchScope::PutSymbolAndRecordConflict(std::string_view name, const Symbol
     //            +-- Branch-2/1/1 v5
     //            +-- Branch-2/1/2 v6
     //       +-- Branch-2/2 v7
-    auto const limit = DCHECK_NOTNULL(Trunk())->NearlyFunctionScope(); // Function is limit side
+    auto const limit = (!Trunk() && !prev()) ? nullptr :
+        DCHECK_NOTNULL(!Trunk() ? prev() : Trunk())->NearlyFunctionScope(); // Function is limit side
     assert(prev() == Trunk());
     for (auto ns = Trunk(); ns != nullptr; ns = ns->prev()) {
         auto exists_one = ns->FindLocalSymbol(name);

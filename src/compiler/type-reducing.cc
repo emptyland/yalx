@@ -692,6 +692,10 @@ private:
     }
 
     int VisitFunctionDeclaration(FunctionDeclaration *node) override {
+        if (!node->generic_params().empty()) {
+            return Returning(Unit());
+        }
+
         FunctionScope scope(&location_, node->prototype(), node->is_reduce());
         std::unique_ptr<SymbolDepsScope> deps_scope;
         if (node->owns() && node->owns()->IsFileUnit()) {
@@ -975,6 +979,9 @@ private:
                     return -1;
                 }
                 ast = sym;
+                if (ProcessDependencySymbolIfNeeded(ast) < 0) {
+                    return -1;
+                }
             } break;
             case Node::kDot: {
                 auto dot = node->callee()->AsDot();
@@ -998,6 +1005,7 @@ private:
                 break;
         }
         
+        Type *type = nullptr;
         if (!is_others_expr) {
             if (!ast) {
                 return -1;
@@ -1042,15 +1050,21 @@ private:
                     return Returning(new (arena_) StructType(arena_, def->AsStructDefinition(), def->source_position()));
                 }
             }
+            
+            //assert(ast->IsFunctionDeclaration());
+            if (auto fun = ast->AsFunctionDeclaration()) {
+                type = fun->prototype();
+            }
         }
         
-        Type *type = nullptr;
-        if (ReduceReturningOnlyOne(node->callee(), &type, "Too many values for calling") < 0) {
-            return -1;
-        }
-        if (!type->IsFunctionPrototype()) {
-            Feedback()->Printf(node->source_position(), "Bad type: `%s' for calling", type->ToString().c_str());
-            return -1;
+        if (!type) {
+            if (ReduceReturningOnlyOne(node->callee(), &type, "Too many values for calling") < 0) {
+                return -1;
+            }
+            if (!type->IsFunctionPrototype()) {
+                Feedback()->Printf(node->source_position(), "Bad type: `%s' for calling", type->ToString().c_str());
+                return -1;
+            }
         }
         
         std::vector<Type *> args;
@@ -1066,6 +1080,9 @@ private:
             return -1;
         }
         
+        if (!LinkType(prototype)) {
+            return -1;
+        }
         for (auto i = 0; i < prototype->params_size(); i++) {
             Type *param = nullptr;
             if (Type::Is(prototype->param(i))) {
@@ -2410,19 +2427,29 @@ private:
             return nullptr;
         }
         //hook(symbol);
-        if (symbol->IsNotTemplate()) {
-            Feedback()->Printf(ast->source_position(), "%s is template, need instantiation", info);
-            return nullptr;
+        if (symbol->IsTemplate()) {
+            InstantiatingResolver resover(this);
+            auto rs = GenericsInstantiating::Instantiate(nullptr, symbol, arena_, error_feedback_, &resover,
+                                                         types.size(), &types[0], &symbol);
+            if (rs.fail()) {
+                return nullptr;
+            }
+            if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
+                return nullptr;
+            }
         }
-        
-        InstantiatingResolver resover(this);
-        auto rs = GenericsInstantiating::Instantiate(nullptr, symbol, arena_, error_feedback_, &resover,
-                                                     types.size(), &types[0], &symbol);
-        if (rs.fail()) {
-            return nullptr;
-        }
-        if (ProcessDependencySymbolIfNeeded(symbol) < 0) {
-            return nullptr;
+
+        ast->set_instantiated(symbol);
+        if (Definition::Is(symbol)) {
+            auto def = down_cast<Definition>(symbol);
+            if (def->package() == location_->NearlyPackageScope()->pkg()) {
+                deps_->AddBackward(arena_, def->name()->ToSlice(), symbol);
+            }
+        } else {
+            auto decl = down_cast<Declaration>(symbol);
+            if (decl->package() == location_->NearlyPackageScope()->pkg()) {
+                deps_->AddBackward(arena_, decl->Identifier()->ToSlice(), symbol);
+            }
         }
         return symbol;
     }
@@ -2648,7 +2675,7 @@ private:
             }
         }
         if (!symbol) {
-            Feedback()->Printf(name->source_position(), "symbol: %s not found!", name->ToString().c_str());
+            Feedback()->Printf(name->source_position(), "Symbol: `%s' not found!", name->ToString().c_str());
             return nullptr;
         }
         if (should_inst) {

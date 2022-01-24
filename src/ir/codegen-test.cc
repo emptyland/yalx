@@ -448,6 +448,23 @@ functions:
     //printf("%s\n", buf.c_str());
 }
 
+// 22-ir-gen-foreach-loop
+TEST_F(IntermediateRepresentationGeneratorTest, ForeachLoop) {
+    bool ok = false;
+    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    IRGen("tests/22-ir-gen-foreach-loop", &modules, &ok);
+    ASSERT_TRUE(ok);
+    
+    ASSERT_TRUE(modules.find("yalx/lang:lang") != modules.end());
+    ASSERT_TRUE(modules.find("main:main") != modules.end());
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    modules["main:main"]->PrintTo(&printer);
+    
+    printf("%s\n", buf.c_str());
+}
+
 } // namespace ir
 
 } // namespace yalx
