@@ -101,6 +101,8 @@ public:
     virtual Member GetMember(const Handle *handle) const;
     virtual Handle *FindMemberOrNull(std::string_view name) const;
     virtual size_t ReferenceSizeInBytes() const = 0;
+    bool IsNotBaseOf(const Model *base) const { return !IsBaseOf(base); }
+    virtual bool IsBaseOf(const Model *base) const;
     virtual void PrintTo(int indent, base::PrintingWriter *printer) const;
 protected:
     Model(const String *name, const String *full_name, Constraint constraint, Declaration declaration);
@@ -119,9 +121,8 @@ public:
                                 const Type *return_types, const size_t return_types_size);
     
     size_t ReferenceSizeInBytes() const override;
-    
     void PrintTo(int indent, base::PrintingWriter *printer) const override;
-    
+
     DEF_ARENA_VECTOR_GETTER(Type, param);
     DEF_ARENA_VECTOR_GETTER(Type, return_type);
     DEF_VAL_GETTER(bool, vargs);
@@ -153,7 +154,7 @@ class ArrayModel : public Model {
 public:
     ArrayModel(base::Arena *arena, const String *name, const String *full_name,
                int dimension_count, const Type element_type);
-    
+
     static std::string ToString(int dimension_count, const Type element_type);
     
     size_t ReferenceSizeInBytes() const override;
@@ -171,7 +172,7 @@ public:
     bool CanWrite() const { return ability_ & kOutbility; }
     bool CanIO() const { return ability_ & (kInbility | kOutbility); }
     bool Readonly() const { return ability_ == kInbility; }
-    
+
 private:
     const Type element_type_;
     const int ability_;
@@ -199,13 +200,13 @@ public:
     Member GetMember(const Handle *handle) const override;
     Handle *FindMemberOrNull(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
+    bool IsBaseOf(const Model *base) const override;
     void PrintTo(int indent, base::PrintingWriter *printer) const override;
     
     void InstallVirtualTables(bool force);
     bool In_itab(Handle *) const;
     bool In_vtab(Handle *) const;
 private:
-    
     Module *const owns_;
     base::Arena * const arena_;
     StructureModel *base_of_;

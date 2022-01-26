@@ -1,0 +1,45 @@
+package main
+
+import "foo"
+
+fun main() {
+
+}
+
+fun issue1() {
+    when (foo.gen()) {
+        1,2,3 -> println("br1")
+        in 3 .. 4 -> println("br2")
+        in 5 until 6 -> println("br3")
+    }
+}
+
+fun issue2() {
+    when (foo.gen()) {
+        foo.foo() -> println("br1")
+        else -> println("else")
+    }
+}
+
+fun issue3() {
+    when (foo.gen()) {
+        (if (foo.bar()) 1 else 2) -> println("br1")
+    }
+}
+
+fun issue4() {
+    when (foo.baz()) {
+        o: foo.Foo -> println("br1")
+        foo.Foo { i } -> println("br2")
+    }
+}
+
+fun issue5(): int {
+    var i = 0
+    when (foo.gen()) {
+        1,2,3 -> i = 1
+        in 3 .. 4 -> i = 2
+        in 5 until 6 -> i = 3
+    }
+    return i
+}

@@ -1557,20 +1557,22 @@ private:
 
         for (size_t i = 0; i < node->case_clauses_size(); i++) {
             if (auto clause = WhenExpression::ExpectValuesCase::Cast(node->case_clause(i))) {
-                Type *value_type = nullptr;
                 for (auto value : clause->match_values()) {
-                    if (ReduceReturningOnlyOne(value, &value_type) < 0) {
+                    std::vector<Type *> types;
+                    if (Reduce(value, &types) < 0) {
                         return -1;
                     }
                     
-                    bool unlinked = false;
-                    if (!dest_type->Acceptable(value_type, &unlinked)) {
-                        Feedback()->Printf(value->source_position(), "Unacceptable matching value type: `%s'"
-                                           "destination is `%s'", value_type->ToString().c_str(),
-                                           dest_type->ToString().c_str());
-                        return -1;
+                    for (auto value_type : types) {
+                        bool unlinked = false;
+                        if (!dest_type->Acceptable(value_type, &unlinked)) {
+                            Feedback()->Printf(value->source_position(), "Unacceptable matching value type: `%s'"
+                                               "destination is `%s'", value_type->ToString().c_str(),
+                                               dest_type->ToString().c_str());
+                            return -1;
+                        }
+                        assert(!unlinked);
                     }
-                    assert(!unlinked);
                 }
                 
                 if (Reduce(clause->then_clause(), &branchs_types[i]) < 0) {
@@ -1626,35 +1628,20 @@ private:
                     return -1;
                 }
             } else if (auto clause = WhenExpression::StructMatchingCase::Cast(node->case_clause(i))) {
-                auto file_scope = location_->NearlyFileUnitScope();
-                Statement *ast = nullptr;
-                if (clause->symbol()->prefix_name()) {
-                    ast = file_scope->FindExportSymbol(clause->symbol()->prefix_name()->ToSlice(),
-                                                       clause->symbol()->name()->ToSlice());
-                } else {
-                    ast = file_scope->FindLocalSymbol(clause->symbol()->name()->ToSlice());
-                }
-                if (!ast) {
-                    Feedback()->Printf(clause->source_position(), "Symbol: %s not found",
-                                       clause->symbol()->ToString().c_str());
-                    return -1;
-                }
-                if (ProcessDependencySymbolIfNeeded(ast) < 0) {
-                    return -1;
-                }
+                auto type = LinkType(clause->match_type());
+                clause->set_match_type(type);
+                
                 IncompletableDefinition *def = nullptr;
-                switch (ast->kind()) {
-                    case Node::kClassDefinition:
-                    case Node::kStructDefinition:
-                        def = static_cast<IncompletableDefinition *>(ast);
+                switch (type->kind()) {
+                    case Node::kStructType:
+                        def = type->AsStructType()->definition();
                         break;
-                    case Node::kObjectDeclaration: {
-                        auto decl = ast->AsObjectDeclaration();
-                        def = DCHECK_NOTNULL(decl->Type()->AsClassType())->definition();
-                    } break;
+                    case Node::kClassType:
+                        def = type->AsClassType()->definition();
+                        break;
                     default:
                         Feedback()->Printf(clause->source_position(), "Struct/Class: %s not found",
-                                           clause->symbol()->ToString().c_str());
+                                           type->ToString().c_str());
                         return -1;
                 }
                 

@@ -18,7 +18,8 @@ namespace ir {
     DECLARE_IR_BINARY(V) \
     DECLARE_IR_COMPARISON(V) \
     DECLARE_IR_GLOBALS(V) \
-    DECLARE_IR_CONVERSION(V)
+    DECLARE_IR_CONVERSION(V) \
+    DECLARE_IR_TESTING(V)
 
 
 #define DECLARE_IR_INNER(V) \
@@ -118,6 +119,8 @@ namespace ir {
     V(BoxingTo) \
     V(UnboxingTo) 
 
+#define DECLARE_IR_TESTING(V) \
+    V(IsInstanceOf)
 
 #define DECL_OPERATORS_WITH_DATA(V) \
     V(Argument,         int) \
@@ -125,6 +128,7 @@ namespace ir {
     V(Closure,          Function *) \
     V(HeapAlloc,        Model const *) \
     V(StackAlloc,       Model const *) \
+    V(IsInstanceOf,     Model const *) \
     V(GlobalValue,      String const *) \
     V(LazyValue,        String const *) \
     V(LoadInlineField,  Handle const *) \

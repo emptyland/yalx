@@ -16,6 +16,7 @@ class Handle;
 class Function;
 class StructureModel;
 class InterfaceModel;
+class Model;
 
 
 class OperatorsFactory final {
@@ -201,6 +202,11 @@ return new (arena_) Operator(Operator::k##name, 0, 2, 0, 1, 0); \
     Operator *FCmp(FConditionId cond) {
         return new (arena_) OperatorWith<FConditionId>(Operator::kFCmp, 0, 2/*value_in*/, 0/*control_in*/, 1/*value_out*/,
                                                        0/*control_out*/, cond);
+    }
+    
+    Operator *IsInstanceOf(const Model *model) {
+        return new (arena_) OperatorWith<const Model *>(Operator::kIsInstanceOf, 0, 1/*value_in*/, 0/*control_in*/,
+                                                        1/*value_out*/, 0/*control_out*/, model);
     }
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(OperatorsFactory);

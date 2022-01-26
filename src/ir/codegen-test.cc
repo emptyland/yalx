@@ -465,6 +465,190 @@ TEST_F(IntermediateRepresentationGeneratorTest, ForeachLoop) {
     printf("%s\n", buf.c_str());
 }
 
+// 23-ir-gen-when-expr
+TEST_F(IntermediateRepresentationGeneratorTest, WhenExpr) {
+    bool ok = false;
+    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    IRGen("tests/23-ir-gen-when-expr", &modules, &ok);
+    ASSERT_TRUE(ok);
+    
+    ASSERT_TRUE(modules.find("yalx/lang:lang") != modules.end());
+    ASSERT_TRUE(modules.find("main:main") != modules.end());
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    modules["main:main"]->PrintTo(&printer);
+    
+    static const char z[] = R"(module main @main:main {
+source-files:
+    [0] tests/23-ir-gen-when-expr/src/main/main.yalx
+
+functions:
+    fun $init(): void {
+    boot:
+        %0 = Closure ref[fun ()->void] <fun foo:foo.$init>
+        CallRuntime void ref[fun ()->void] %0, string "foo:foo" <PkgInitOnce>
+        %1 = Closure ref[fun ()->void] <fun yalx/lang:lang.$init>
+        CallRuntime void ref[fun ()->void] %1, string "yalx/lang:lang" <PkgInitOnce>
+        Ret void
+    } // main:main.$init
+
+    fun main(): void {
+    entry:
+        Ret void
+    } // main:main.main
+
+    fun issue1(): void {
+    entry:
+        %0 = CallDirectly i32 <fun foo:foo.gen>
+        Br void out [L1:]
+    L1:
+        %1 = ICmp u8 i32 %0, i32 1 <eq>
+        Br void u8 %1 out [L2:, L5:]
+    L2:
+        %2 = ICmp u8 i32 %0, i32 2 <eq>
+        Br void u8 %2 out [L3:, L5:]
+    L3:
+        %3 = ICmp u8 i32 %0, i32 3 <eq>
+        Br void u8 %3 out [L4:, L5:]
+    L4:
+        CallDirectly void string "br1" <fun yalx/lang:lang.println>
+        Br void out [L11:]
+    L5:
+        %4 = ICmp u8 i32 %0, i32 3 <slt>
+        Br void u8 %4 out [L8:, L6:]
+    L6:
+        %5 = ICmp u8 i32 %0, i32 4 <sgt>
+        Br void u8 %5 out [L8:, L7:]
+    L7:
+        CallDirectly void string "br2" <fun yalx/lang:lang.println>
+        Br void out [L11:]
+    L8:
+        %6 = ICmp u8 i32 %0, i32 5 <sle>
+        Br void u8 %6 out [L11:, L9:]
+    L9:
+        %7 = ICmp u8 i32 %0, i32 6 <sge>
+        Br void u8 %7 out [L11:, L10:]
+    L10:
+        CallDirectly void string "br3" <fun yalx/lang:lang.println>
+        Br void out [L11:]
+    L11:
+        Ret void
+    } // main:main.issue1
+
+    fun issue2(): void {
+    entry:
+        %0 = CallDirectly i32 <fun foo:foo.gen>
+        Br void out [L1:]
+    L1:
+        %1 = CallDirectly i32 <fun foo:foo.foo>
+        %2 = ReturningVal i32 i32 %1 <1>
+        %3 = ReturningVal i32 i32 %1 <2>
+        %4 = ICmp u8 i32 %0, i32 %1 <eq>
+        Br void u8 %4 out [L2:, L5:]
+    L2:
+        %5 = ICmp u8 i32 %0, i32 %2 <eq>
+        Br void u8 %5 out [L3:, L5:]
+    L3:
+        %6 = ICmp u8 i32 %0, i32 %3 <eq>
+        Br void u8 %6 out [L4:, L5:]
+    L4:
+        CallDirectly void string "br1" <fun yalx/lang:lang.println>
+        Br void out [L6:]
+    L5:
+        CallDirectly void string "else" <fun yalx/lang:lang.println>
+        Br void out [L6:]
+    L6:
+        Ret void
+    } // main:main.issue2
+
+    fun issue3(): void {
+    entry:
+        %0 = CallDirectly i32 <fun foo:foo.gen>
+        Br void out [L1:]
+    L1:
+        %1 = CallDirectly u8 <fun foo:foo.bar>
+        Br void u8 %1 out [L2:, L3:]
+    L2:
+        Br void out [L4:]
+    L3:
+        Br void out [L4:]
+    L4:
+        %2 = Phi i32 i32 1, i32 2 in [L2:, L3:]
+        %3 = ICmp u8 i32 %0, i32 %2 <eq>
+        Br void u8 %3 out [L5:, L6:]
+    L5:
+        CallDirectly void string "br1" <fun yalx/lang:lang.println>
+        Br void out [L6:]
+    L6:
+        Ret void
+    } // main:main.issue3
+
+    fun issue4(): void {
+    entry:
+        %0 = CallDirectly ref[yalx/lang:lang.Any] <fun foo:foo.baz>
+        Br void out [L1:]
+    L1:
+        %1 = IsInstanceOf u8 ref[yalx/lang:lang.Any] %0 <Foo>
+        Br void u8 %1 out [L2:, L3:]
+    L2:
+        %2 = RefAssertedTo ref[foo:foo.Foo] ref[yalx/lang:lang.Any] %0
+        CallDirectly void string "br1" <fun yalx/lang:lang.println>
+        Br void out [L5:]
+    L3:
+        %3 = IsInstanceOf u8 ref[yalx/lang:lang.Any] %0 <Foo>
+        Br void u8 %3 out [L4:, L5:]
+    L4:
+        %4 = RefAssertedTo ref[foo:foo.Foo] ref[yalx/lang:lang.Any] %0
+        %5 = LoadEffectField i32 ref[foo:foo.Foo] %4 <foo:foo.Foo::i>
+        CallDirectly void string "br2" <fun yalx/lang:lang.println>
+        Br void out [L5:]
+    L5:
+        Ret void
+    } // main:main.issue4
+
+    fun issue5(): i32 {
+    entry:
+        %0 = CallDirectly i32 <fun foo:foo.gen>
+        Br void out [L1:]
+    L1:
+        %1 = ICmp u8 i32 %0, i32 1 <eq>
+        Br void u8 %1 out [L2:, L5:]
+    L2:
+        %2 = ICmp u8 i32 %0, i32 2 <eq>
+        Br void u8 %2 out [L3:, L5:]
+    L3:
+        %3 = ICmp u8 i32 %0, i32 3 <eq>
+        Br void u8 %3 out [L4:, L5:]
+    L4:
+        Br void out [L11:]
+    L5:
+        %4 = ICmp u8 i32 %0, i32 3 <slt>
+        Br void u8 %4 out [L8:, L6:]
+    L6:
+        %5 = ICmp u8 i32 %0, i32 4 <sgt>
+        Br void u8 %5 out [L8:, L7:]
+    L7:
+        Br void out [L11:]
+    L8:
+        %6 = ICmp u8 i32 %0, i32 5 <sle>
+        Br void u8 %6 out [L11:, L9:]
+    L9:
+        %7 = ICmp u8 i32 %0, i32 6 <sge>
+        Br void u8 %7 out [L11:, L10:]
+    L10:
+        Br void out [L11:]
+    L11:
+        %8 = Phi i32 i32 0, i32 1, i32 2, i32 3 in [entry:, L4:, L7:, L10:]
+        Ret void i32 %8
+    } // main:main.issue5
+
+} // @main:main
+)";
+    //printf("%s\n", buf.c_str());
+    ASSERT_EQ(z, buf);
+}
+
 } // namespace ir
 
 } // namespace yalx

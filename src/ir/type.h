@@ -71,6 +71,8 @@ public:
     bool IsNoneNullable() const { return !IsNullable(); }
     bool IsNullable() const { return flags_ & kNullableBit; }
     
+    bool Equals(const Type &other) const { return kind() == other.kind() && model() == other.model(); }
+    
     std::string_view ToString() const;
     void PrintTo(base::PrintingWriter *printer) const;
 

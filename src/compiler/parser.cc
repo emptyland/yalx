@@ -1521,7 +1521,8 @@ WhenExpression *Parser::ParseWhenExpression(bool *ok) {
                                                                            nullptr, case_location);
             } else if (Test(Token::kLBrace)) {
                 auto symbol = EnsureToSymbol(match_value_or_id, CHECK_OK);
-                auto clause = new (arena_) WhenExpression::StructMatchingCase(arena_, symbol, nullptr, case_location);
+                auto type = new (arena_) Type(arena_, symbol, case_location);
+                auto clause = new (arena_) WhenExpression::StructMatchingCase(arena_, type, nullptr, case_location);
                 do {
                     auto field_name = ParseIdentifier(CHECK_OK);
                     clause->mutable_expecteds()->push_back(field_name);

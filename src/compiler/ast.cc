@@ -644,10 +644,10 @@ WhenExpression::BetweenToCase::BetweenToCase(Expression *lower, Expression *uppe
     , is_close_(is_close) {
 }
 
-WhenExpression::StructMatchingCase::StructMatchingCase(base::Arena *arena, const Symbol *symbol, Statement *then_clause,
+WhenExpression::StructMatchingCase::StructMatchingCase(base::Arena *arena, Type *match_type, Statement *then_clause,
                                                        const SourcePosition &source_position)
     : Case(kStructMatching, then_clause, source_position)
-    , symbol_(DCHECK_NOTNULL(symbol))
+    , match_type_(DCHECK_NOTNULL(match_type))
     , expecteds_(arena) {
 }
 

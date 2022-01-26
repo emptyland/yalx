@@ -1,6 +1,7 @@
 #include "ir/metadata.h"
 #include "ir/node.h"
 #include "ir/utils.h"
+#include "compiler/constants.h"
 #include "base/io.h"
 #include <stack>
 
@@ -32,6 +33,10 @@ void Model::PrintTo(int indent, base::PrintingWriter *printer) const {
 
 Handle *Model::FindMemberOrNull(std::string_view name) const {
     return nullptr;
+}
+
+bool Model::IsBaseOf(const Model *base) const {
+    return base == this || base->full_name()->Equal(cpl::kAnyClassFullName);
 }
 
 PrototypeModel::PrototypeModel(base::Arena *arena, const String *name, bool vargs)
@@ -307,6 +312,15 @@ void StructureModel::InstallVirtualTables(bool force) {
             vtab_.push_back(had);
         }
     }
+}
+
+bool StructureModel::IsBaseOf(const Model *base) const {
+    for (auto it = this; it != nullptr; it = it->base_of()) {
+        if (it == base) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void StructureModel::PrintTo(int indent, base::PrintingWriter *printer) const {

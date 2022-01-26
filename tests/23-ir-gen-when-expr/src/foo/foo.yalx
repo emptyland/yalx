@@ -1,0 +1,10 @@
+package foo
+
+fun gen() -> 1
+
+fun foo() -> 1,2,3
+fun bar() -> true
+
+class Foo(val i: int)
+
+fun baz(): any -> Foo(100) as any

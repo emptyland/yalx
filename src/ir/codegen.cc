@@ -646,7 +646,7 @@ public:
         std::vector<Value *> values[2];
         BasicBlock *blocks[2] = {nullptr, b()/*origin block*/}; // At most two
         
-        auto fun_scope = location_->NearlyFunctionScope();
+        //auto fun_scope = location_->NearlyFunctionScope();
         auto fun = emitting_->fun();
         auto then_block = fun->NewBlock(nullptr);
         auto else_block = fun->NewBlock(nullptr);
@@ -691,6 +691,169 @@ public:
         std::vector<Value *> results;
         if (ReduceValuesOfBranches(types, origin, blocks, values, number_of_branchs, 1/*number_of_branchs_without_else*/,
                                    &results, root_ss.Position()) < 0) {
+            return -1;
+        }
+        return Returning(results);
+    }
+    
+    int VisitWhenExpression(cpl::WhenExpression *node) override {
+        using std::placeholders::_1;
+        using std::placeholders::_2;
+        
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        BranchScope scope(&location_, node);
+        NamespaceScope::Keeper<BranchScope> trunk(&scope);
+        if (node->initializer()) {
+            REDUCE(node->initializer());
+        }
+        
+        Value *dest = nullptr;
+        if (node->destination()) {
+            if (ReduceReturningOnlyOne(node->destination(), &dest) < 0) {
+                return -1;
+            }
+        }
+        
+        auto fun = emitting_->fun();
+        auto else_block = fun->NewBlock(nullptr);
+        auto exit_block = node->else_clause() ? fun->NewBlock(nullptr) : else_block;
+        
+        const int number_of_branchs = node->case_clauses_size() + (!node->else_clause() ? 0 : 1);
+        std::vector<std::vector<Value *>> values(number_of_branchs);
+        std::vector<BasicBlock *> blocks(number_of_branchs + 1, nullptr);
+        blocks[number_of_branchs] = b(); // Initialize last one
+        
+        auto origin = b();
+        auto case_block = fun->NewBlock(nullptr);
+        b()->NewNode(root_ss.Position(), Types::Void, ops()->Br(0, 1), case_block);
+        
+#define NewNextBlock() (case_clause == node->case_clauses().back()) ? else_block : fun->NewBlock(nullptr)
+        int i = 0;
+        for (auto case_clause : node->case_clauses()) {
+            SourcePositionTable::Scope ss(case_clause->source_position(), &root_ss);
+            NamespaceScope::Keeper<BranchScope> br(trunk->Branch(node));
+            BasicBlock *next_block = nullptr;
+            
+            switch (case_clause->pattern()) {
+                case cpl::CaseWhenPattern::kBetweenTo: {
+                    auto ast = cpl::WhenExpression::BetweenToCase::Cast(case_clause);
+                    assert(dest != nullptr);
+                    
+                    b(case_block);
+                    Value *lower = nullptr, *upper = nullptr;
+                    if (ReduceReturningOnlyOne(ast->lower(), &lower) < 0 ||
+                        ReduceReturningOnlyOne(ast->upper(), &upper) < 0) {
+                        return -1;
+                    }
+                    assert(dest->type().Equals(lower->type()));
+                    assert(dest->type().Equals(upper->type()));
+                    
+                    case_block = fun->NewBlock(nullptr);
+                    next_block = NewNextBlock();
+                    EmitLessOrLessEquals(dest, lower, !ast->is_close(), next_block, case_block, ast);
+                    b(case_block);
+
+                    case_block = fun->NewBlock(nullptr);
+                    EmitGreaterOrGreaterEquals(dest, upper, !ast->is_close(), next_block, case_block, ast);
+                    b(case_block);
+                } break;
+                    
+                case cpl::CaseWhenPattern::kExpectValues: {
+                    auto ast = cpl::WhenExpression::ExpectValuesCase::Cast(case_clause);
+                    assert(dest != nullptr);
+
+                    b(case_block);
+                    std::vector<Value *> expected_values;
+                    for (auto match : ast->match_values()) {
+                        if (Reduce(match, &expected_values) < 0) {
+                            return -1;
+                        }
+                    }
+                    
+                    next_block = NewNextBlock();
+                    for (auto match_value : expected_values) {
+                        case_block = fun->NewBlock(nullptr);
+                        EmitEquals(dest, match_value, case_block, next_block, node);
+                        b(case_block);
+                    }
+                } break;
+                    
+                case cpl::CaseWhenPattern::kTypeTesting: {
+                    auto ast = cpl::WhenExpression::TypeTestingCase::Cast(case_clause);
+                    assert(dest != nullptr);
+                    
+                    b(case_block);
+                    auto ty = BuildType(ast->match_type());
+                    auto cond = EmitTesting(ty, dest, ss.Position());
+                    case_block = fun->NewBlock(nullptr);
+                    next_block = NewNextBlock();
+                    auto op = ops()->Br(1/*value_in*/, 2/*control_out*/);
+                    b()->NewNode(ss.Position(), Types::Void, op, cond, case_block, next_block);
+                    
+                    b(case_block);
+                    auto value = EmitCastingIfNeeded(ty, dest, ss.Position());
+                    br->PutValue(ast->name()->name()->ToSlice(), value, b());
+                } break;
+                    
+                case cpl::CaseWhenPattern::kStructMatching: {
+                    auto ast = cpl::WhenExpression::StructMatchingCase::Cast(case_clause);
+                    assert(dest != nullptr);
+                    
+                    b(case_block);
+                    auto ty = BuildType(ast->match_type());
+                    assert(ty.model() != nullptr);
+                    auto cond = EmitTesting(ty, dest, ss.Position());
+                    case_block = fun->NewBlock(nullptr);
+                    next_block = NewNextBlock();
+                    auto op = ops()->Br(1/*value_in*/, 2/*control_out*/);
+                    b()->NewNode(ss.Position(), Types::Void, op, cond, case_block, next_block);
+                    
+                    b(case_block);
+                    auto value = EmitCastingIfNeeded(ty, dest, ss.Position());
+                    for (auto expected : ast->expecteds()) {
+                        SourcePositionTable::Scope ss1(expected->source_position(), &ss);
+                        auto had = DCHECK_NOTNULL(ty.model()->FindMemberOrNull(expected->name()->ToSlice()));
+                        auto val = EmitLoadField(value, had, ss1.Position());
+                        br->PutValue(expected->name()->ToSlice(), val, b());
+                    }
+                } break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+            blocks[i] = case_block;
+            
+            SourcePositionTable::Scope ss1(case_clause->then_clause()->source_position(), &ss);
+            if (Reduce(case_clause->then_clause(), &values[i]) < 0) {
+                return -1;
+            }
+            b()->NewNode(ss1.Position(), Types::Void, ops()->Br(0, 1/*control_out*/), exit_block);
+            
+            case_block = !next_block ? fun->NewBlock(nullptr) : next_block;
+            SetAndMakeLast(case_block);
+            i++;
+        }
+#undef NewNextBlock
+        if (node->else_clause()) {
+            SourcePositionTable::Scope ss(node->else_clause()->source_position(), &root_ss);
+            NamespaceScope::Keeper<BranchScope> br(trunk->Branch(node));
+            b(else_block);
+            if (Reduce(node->else_clause(), &values.back()) < 0) {
+                return -1;
+            }
+            b()->NewNode(ss.Position(), Types::Void, ops()->Br(0, 1/*control_out*/), exit_block);
+            blocks.back() = else_block;
+        }
+        
+        SetAndMakeLast(exit_block);
+        trunk->MergeConflicts(std::bind(&IRGeneratorAstVisitor::HandleMergeConflicts, this, _1, _2));
+        
+        std::vector<Type> types;
+        for (auto ast : node->reduced_types()) { types.push_back(BuildType(ast)); }
+        
+        std::vector<Value *> results;
+        if (ReduceValuesOfBranches(types, origin, &blocks[0], &values[0], number_of_branchs,
+                                   node->case_clauses_size(), &results, root_ss.Position()) < 0) {
             return -1;
         }
         return Returning(results);
@@ -896,6 +1059,44 @@ public:
         return Returning(dest);
     }
     
+    int VisitTesting(cpl::Testing *node) override {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        Value *value = nullptr;
+        if (ReduceReturningOnlyOne(node->source(), &value) < 0) {
+            return -1;
+        }
+        auto dest_ty = BuildType(node->destination());
+        return Returning(EmitTesting(dest_ty, value, root_ss.Position()));
+    }
+    
+    Value *EmitTesting(Type dest_ty, Value *value, SourcePosition source_position) {
+        Value *result = nullptr;
+        auto src_ty = value->type();
+        if (src_ty.IsNumber() && dest_ty.IsNumber()) {
+            return Bool(true);
+        } else if (src_ty.IsReference() && dest_ty.IsReference()) {
+            if (src_ty.model() && dest_ty.model()) {
+                if (src_ty.model()->IsBaseOf(dest_ty.model())) {
+                    return Bool(true);
+                }
+            }
+            auto op = ops()->IsInstanceOf(dest_ty.model());
+            result = b()->NewNode(source_position, Types::UInt8, op, value);
+        } else if (value->type().kind() == Type::kValue && dest_ty.kind() == Type::kValue) {
+            if (value->type().model() && dest_ty.model()) {
+                if (value->type().model()->IsBaseOf(dest_ty.model())) {
+                    return Bool(true);
+                }
+            }
+            auto op = ops()->IsInstanceOf(dest_ty.model());
+            result = b()->NewNode(source_position, Types::UInt8, op, value);
+        } else {
+            UNREACHABLE();
+        }
+
+        return DCHECK_NOTNULL(result);
+    }
+    
     int VisitAnnotationDefinition(cpl::AnnotationDefinition *node) override { UNREACHABLE(); }
     int VisitAnnotationDeclaration(cpl::AnnotationDeclaration *node) override { UNREACHABLE(); }
     int VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
@@ -912,15 +1113,11 @@ public:
     int VisitRecv(cpl::Recv *node) override { UNREACHABLE(); }
     int VisitSend(cpl::Send *node) override { UNREACHABLE(); }
     
-    
-    int VisitTesting(cpl::Testing *node) override { UNREACHABLE(); }
     int VisitNegative(cpl::Negative *node) override { UNREACHABLE(); }
     
     int VisitIndexedGet(cpl::IndexedGet *node) override { UNREACHABLE(); }
     
     int VisitLambdaLiteral(cpl::LambdaLiteral *node) override { UNREACHABLE(); }
-    int VisitWhenExpression(cpl::WhenExpression *node) override { UNREACHABLE(); }
-    
     int VisitArrayInitializer(cpl::ArrayInitializer *node) override { UNREACHABLE(); }
     int VisitTryCatchExpression(cpl::TryCatchExpression *node) override { UNREACHABLE(); }
     int VisitAssertedGet(cpl::AssertedGet *node) override { UNREACHABLE(); }
@@ -1592,6 +1789,68 @@ private:
         return fun;
     }
     
+    void EmitLessOrLessEquals(Value *lhs, Value *rhs, bool is_close, BasicBlock *if_true, BasicBlock *if_false,
+                              cpl::Node *ast) {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
+        assert(lhs->type().Equals(rhs->type()));
+        Operator *op = nullptr;
+        if (lhs->type().IsFloating()) {
+            op = ops()->FCmp(is_close ? FCondition::ule : FCondition::ult);
+        } else if (lhs->type().IsSigned()) {
+            op = ops()->ICmp(is_close ? ICondition::sle : ICondition::slt);
+        } else if (lhs->type().IsUnsigned()) {
+            op = ops()->ICmp(is_close ? ICondition::ule : ICondition::ult);
+        } else {
+            UNREACHABLE();
+        }
+        auto cond = b()->NewNode(root_ss.Position(), Types::UInt8, op, lhs, rhs);
+        b()->NewNode(root_ss.Position(), Types::Void, ops()->Br(1/*value_in*/, 2/*control_out*/), cond,
+                     if_true, if_false);
+        
+    }
+    
+    void EmitGreaterOrGreaterEquals(Value *lhs, Value *rhs, bool is_close, BasicBlock *if_true, BasicBlock *if_false,
+                                    cpl::Node *ast) {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
+        assert(lhs->type().Equals(rhs->type()));
+        Operator *op = nullptr;
+        if (lhs->type().IsFloating()) {
+            op = ops()->FCmp(is_close ? FCondition::uge : FCondition::ugt);
+        } else if (lhs->type().IsSigned()) {
+            op = ops()->ICmp(is_close ? ICondition::sge : ICondition::sgt);
+        } else if (lhs->type().IsUnsigned()) {
+            op = ops()->ICmp(is_close ? ICondition::uge : ICondition::ugt);
+        } else {
+            UNREACHABLE();
+        }
+        auto cond = b()->NewNode(root_ss.Position(), Types::UInt8, op, lhs, rhs);
+        b()->NewNode(root_ss.Position(), Types::Void, ops()->Br(1/*value_in*/, 2/*control_out*/), cond,
+                     if_true, if_false);
+        
+    }
+    
+    void EmitEquals(Value *lhs, Value *rhs, BasicBlock *if_true, BasicBlock *if_false,
+                    cpl::AstNode *ast) {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
+        assert(lhs->type().Equals(rhs->type()));
+        
+        Value *cond = nullptr;
+        if (lhs->type().IsFloating()) {
+            auto op = ops()->FCmp(FCondition::ueq);
+            cond = b()->NewNode(root_ss.Position(), Types::UInt8, op, lhs, rhs);
+        } else if (lhs->type().IsIntegral()) {
+            auto op = ops()->ICmp(ICondition::eq);
+            cond = b()->NewNode(root_ss.Position(), Types::UInt8, op, lhs, rhs);
+        } else if (lhs->type().kind() == Type::kString) {
+            auto op = ops()->CallRuntime(1/*value_out*/, 2/*value_in*/, RuntimeLib::StringEQ);
+            cond = b()->NewNode(root_ss.Position(), Types::UInt8, op, lhs, rhs);
+        } else {
+            UNREACHABLE();
+        }
+        b()->NewNode(root_ss.Position(), Types::Void, ops()->Br(1/*value_in*/, 2/*control_out*/), cond, if_true,
+                     if_false);
+    }
+    
     int EmitComparsion(cpl::BinaryExpression *ast, RuntimeId rid, Operator *candidate[3], size_t n) {
         Value *lhs = nullptr, *rhs = nullptr;
         if (ReduceReturningOnlyOne(ast->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(ast->rhs(), &rhs) < 0) {
@@ -1710,6 +1969,10 @@ private:
     
     Value *Unit() const { return DCHECK_NOTNULL(owns_->unit_val_); }
     
+    Value *Bool(bool value) {
+        return Value::New0(arena(), SourcePosition::Unknown(), Types::UInt8, ops()->U8Constant(value));
+    }
+    
     IntermediateRepresentationGenerator *const owns_;
     NamespaceScope *location_ = nullptr;
     FunContext *emitting_ = nullptr;
@@ -1763,14 +2026,11 @@ base::Status IntermediateRepresentationGenerator::Prepare0() {
     }
     PreparePackage0(entry_);
     
-    nil_val_ = Value::New0(arena_,
-                           SourcePosition::Unknown(),
-                           Type::Ref(AssertedGetUdt(cpl::kAnyClassFullName)),
+    nil_val_ = Value::New0(arena_, SourcePosition::Unknown(), Type::Ref(AssertedGetUdt(cpl::kAnyClassFullName)),
                            ops_->NilConstant());
-    unit_val_ = Value::New0(arena_,
-                            SourcePosition::Unknown(),
-                            Types::Void,
-                            ops_->NilConstant());
+    unit_val_ = Value::New0(arena_, SourcePosition::Unknown(), Types::Void, ops_->NilConstant());
+    true_val_ = Value::New0(arena_, SourcePosition::Unknown(), Types::UInt8, ops_->U8Constant(1));
+    false_val_ = Value::New0(arena_, SourcePosition::Unknown(), Types::UInt8, ops_->U8Constant(0));
     return base::Status::OK();
 }
 

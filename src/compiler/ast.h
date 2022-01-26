@@ -1315,15 +1315,15 @@ public:
     // Foo { name, id } -> name, ... id, ...
     class StructMatchingCase : public Case {
     public:
-        StructMatchingCase(base::Arena *arena, const Symbol *symbol, Statement *then_clause,
+        StructMatchingCase(base::Arena *arena, Type *match_type, Statement *then_clause,
                            const SourcePosition &source_position);
         
-        DEF_PTR_PROP_RW(const Symbol, symbol);
+        DEF_PTR_PROP_RW(Type, match_type);
         DEF_ARENA_VECTOR_GETTER(Identifier *, expected);
         
         DEFINE_CASE_METHODS(StructMatching);
     private:
-        const Symbol *symbol_;
+        Type *match_type_;
         base::ArenaVector<Identifier *> expecteds_;
     }; // case StructMatchingCase
     

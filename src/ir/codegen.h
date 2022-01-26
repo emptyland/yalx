@@ -112,6 +112,8 @@ private:
     OperatorsFactory *ops_;
     Value *nil_val_ = nullptr;
     Value *unit_val_ = nullptr;
+    Value *true_val_ = nullptr;
+    Value *false_val_ = nullptr;
 }; // class IntermediateRepresentationGenerator
 
 
