@@ -48,6 +48,7 @@ private:
     void PreparePackage1(cpl::Package *pkg);
     Function *InstallInitFun(Module *module);
     Type BuildType(const cpl::Type *type);
+    Model *Boxing(Type type);
     PrototypeModel *BuildPrototype(const cpl::FunctionPrototype *ast, StructureModel *owns = nullptr);
     base::Status RecursivePackage(cpl::Package *root, std::function<void(cpl::Package *)> &&callback);
     

@@ -43,3 +43,10 @@ fun issue5(): int {
     }
     return i
 }
+
+fun issue6() -> when(foo.gen()) {
+    1,2,3 -> "br1"
+    in 3 .. 4 -> {}
+    in 5 until 6 -> "br2"
+    else -> foo.Foo(1)
+}

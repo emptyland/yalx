@@ -643,6 +643,47 @@ functions:
         Ret void i32 %8
     } // main:main.issue5
 
+    fun issue6(): ref[yalx/lang:lang.Any]? {
+    entry:
+        %0 = CallDirectly i32 <fun foo:foo.gen>
+        Br void out [L1:]
+    L1:
+        %1 = ICmp u8 i32 %0, i32 1 <eq>
+        Br void u8 %1 out [L2:, L5:]
+    L2:
+        %2 = ICmp u8 i32 %0, i32 2 <eq>
+        Br void u8 %2 out [L3:, L5:]
+    L3:
+        %3 = ICmp u8 i32 %0, i32 3 <eq>
+        Br void u8 %3 out [L4:, L5:]
+    L4:
+        Br void out [L12:]
+    L5:
+        %4 = ICmp u8 i32 %0, i32 3 <slt>
+        Br void u8 %4 out [L8:, L6:]
+    L6:
+        %5 = ICmp u8 i32 %0, i32 4 <sgt>
+        Br void u8 %5 out [L8:, L7:]
+    L7:
+        Br void out [L12:]
+    L8:
+        %6 = ICmp u8 i32 %0, i32 5 <sle>
+        Br void u8 %6 out [L11:, L9:]
+    L9:
+        %7 = ICmp u8 i32 %0, i32 6 <sge>
+        Br void u8 %7 out [L11:, L10:]
+    L10:
+        Br void out [L12:]
+    L11:
+        %8 = HeapAlloc ref[foo:foo.Foo] <Foo>
+        %9 = CallHandle ref[foo:foo.Foo] ref[foo:foo.Foo] %8, i32 1 <foo:foo.Foo::Foo$constructor>
+        Br void out [L12:]
+    L12:
+        %10 = RefAssertedTo ref[yalx/lang:lang.Any]? ref[foo:foo.Foo] %9
+        %11 = Phi ref[yalx/lang:lang.Any]? string "br1", ref[yalx/lang:lang.Any]? nil, string "br2", ref[yalx/lang:lang.Any]? %10 in [L4:, L7:, L10:, L11:]
+        Ret void ref[yalx/lang:lang.Any]? %11
+    } // main:main.issue6
+
 } // @main:main
 )";
     //printf("%s\n", buf.c_str());

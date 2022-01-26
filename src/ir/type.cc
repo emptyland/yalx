@@ -1,5 +1,6 @@
 #include "ir/type.h"
 #include "ir/metadata.h"
+#include "compiler/constants.h"
 #include "base/io.h"
 
 namespace yalx {
@@ -43,7 +44,7 @@ std::string_view Type::ToString() const {
 }
 
 Type Type::Ref(Model *model, bool nullable) {
-    return Type(kReference,
+    return Type(model->full_name()->Equal(cpl::kStringClassFullName) ? kString : kReference,
                 (DCHECK_NOTNULL(model)->ReferenceSizeInBytes() << 3),
                 (nullable ? kNullableBit : 0) | kReferenceBit,
                 DCHECK_NOTNULL(model));
@@ -74,6 +75,9 @@ void Type::PrintTo(base::PrintingWriter *printer) const {
             
         default:
             printer->Write(kTypeNames[kind()]);
+            if (IsNullable()) {
+                printer->Write("?");
+            }
             break;
     }
 }

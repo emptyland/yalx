@@ -466,7 +466,7 @@ public:
             auto type = proto->return_type(0);
             auto value_in = static_cast<int>(proto->params_size());
             Operator *op = nullptr;
-            assert(args[0]->type().kind() == Type::kValue || args[0]->type().kind() == Type::kReference);
+            assert(args[0]->type().kind() == Type::kValue || args[0]->type().IsReference());
             auto self = DCHECK_NOTNULL(args[0]->type().model());
             if (self->declaration() == Model::kInterface) {
                 op = ops()->CallAbstract(handle, 1/*value_out*/, value_in);
@@ -842,7 +842,7 @@ public:
                 return -1;
             }
             b()->NewNode(ss.Position(), Types::Void, ops()->Br(0, 1/*control_out*/), exit_block);
-            blocks.back() = else_block;
+            blocks[number_of_branchs - 1] = else_block;
         }
         
         SetAndMakeLast(exit_block);
@@ -1560,7 +1560,7 @@ private:
         if (ReduceReturningOnlyOne(node, &primary) < 0) {
             return -1;
         }
-        assert(primary->type().kind() == Type::kValue || primary->type().kind() == Type::kReference);
+        assert(primary->type().kind() == Type::kValue || primary->type().IsReference());
         
         // a.b.c.d = x
         // ["b", "c", "d"]
@@ -2230,7 +2230,7 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
             auto ast_ty = type->AsOptionType();
             auto element_ty = BuildType(ast_ty->element_type());
             assert(element_ty.IsReference() || element_ty.kind() == Type::kValue);
-            return Type::Ref(element_ty.model(), true/*nullable*/);
+            return Type::Ref(Boxing(element_ty), true/*nullable*/);
         } break;
         case cpl::Type::kType_channel:
             UNREACHABLE(); // TODO:
@@ -2249,6 +2249,24 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
             UNREACHABLE();
             break;
     }
+}
+
+Model *IntermediateRepresentationGenerator::Boxing(Type type) {
+    switch (type.kind()) {
+        case Type::kInt32:
+            return AssertedGetUdt(cpl::kI32ClassFullName);
+        case Type::kUInt32:
+            return AssertedGetUdt(cpl::kU32ClassFullName);
+        case Type::kString:
+            return AssertedGetUdt(cpl::kStringClassFullName);
+        case Type::kReference:
+        case Type::kValue:
+            return type.model();
+        default:
+            UNREACHABLE();
+            break;
+    }
+    return nullptr;
 }
 
 PrototypeModel *IntermediateRepresentationGenerator::BuildPrototype(const cpl::FunctionPrototype *ast,
