@@ -11,6 +11,12 @@
 		2301676B266A27CF007E8322 /* heap-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2301676A266A27CF007E8322 /* heap-test.cc */; };
 		230C85FE27853E4D00298122 /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 230C85FD27853E4D00298122 /* constants.cc */; };
 		230C85FF27853E4D00298122 /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 230C85FD27853E4D00298122 /* constants.cc */; };
+		2313C4D227A238B000F6A34B /* pass.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2313C4D127A238B000F6A34B /* pass.cc */; };
+		2313C4D327A238B000F6A34B /* pass.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2313C4D127A238B000F6A34B /* pass.cc */; };
+		2313C4D627A23E8500F6A34B /* constants-folding.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2313C4D527A23E8500F6A34B /* constants-folding.cc */; };
+		2313C4D727A23E8500F6A34B /* constants-folding.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2313C4D527A23E8500F6A34B /* constants-folding.cc */; };
+		2313C4DC27A2421C00F6A34B /* constants-folding-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2313C4DB27A2421C00F6A34B /* constants-folding-test.cc */; };
+		2313C4DD27A2421C00F6A34B /* constants-folding-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2313C4DB27A2421C00F6A34B /* constants-folding-test.cc */; };
 		231C4B8C268DA7AD00D4AC62 /* boot-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8A268DA7AD00D4AC62 /* boot-posix-arm64.s */; };
 		231C4B8D268DA7AD00D4AC62 /* test-stub-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8B268DA7AD00D4AC62 /* test-stub-posix-arm64.s */; };
 		231C4B90268DA7D200D4AC62 /* yalx-string-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8E268DA7D200D4AC62 /* yalx-string-posix-arm64.s */; };
@@ -239,6 +245,11 @@
 		2301676A266A27CF007E8322 /* heap-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "heap-test.cc"; path = "../src/runtime/heap/heap-test.cc"; sourceTree = "<group>"; };
 		230C85FC27853D6600298122 /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/ir/constants.h; sourceTree = "<group>"; };
 		230C85FD27853E4D00298122 /* constants.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = constants.cc; path = ../src/ir/constants.cc; sourceTree = "<group>"; };
+		2313C4D027A2386700F6A34B /* pass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pass.h; path = ../src/ir/pass/pass.h; sourceTree = "<group>"; };
+		2313C4D127A238B000F6A34B /* pass.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = pass.cc; path = ../src/ir/pass/pass.cc; sourceTree = "<group>"; };
+		2313C4D427A2396C00F6A34B /* constants-folding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "constants-folding.h"; path = "../src/ir/pass/constants-folding.h"; sourceTree = "<group>"; };
+		2313C4D527A23E8500F6A34B /* constants-folding.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "constants-folding.cc"; path = "../src/ir/pass/constants-folding.cc"; sourceTree = "<group>"; };
+		2313C4DB27A2421C00F6A34B /* constants-folding-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "constants-folding-test.cc"; path = "../src/ir/pass/constants-folding-test.cc"; sourceTree = "<group>"; };
 		231C4B8A268DA7AD00D4AC62 /* boot-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "boot-posix-arm64.s"; path = "../src/runtime/boot-posix-arm64.s"; sourceTree = "<group>"; };
 		231C4B8B268DA7AD00D4AC62 /* test-stub-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "test-stub-posix-arm64.s"; path = "../src/runtime/test-stub-posix-arm64.s"; sourceTree = "<group>"; };
 		231C4B8E268DA7D200D4AC62 /* yalx-string-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "yalx-string-posix-arm64.s"; path = "../src/runtime/object/yalx-string-posix-arm64.s"; sourceTree = "<group>"; };
@@ -395,6 +406,41 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2313C4CF27A237D600F6A34B /* Pass */ = {
+			isa = PBXGroup;
+			children = (
+				2313C4D127A238B000F6A34B /* pass.cc */,
+				2313C4D027A2386700F6A34B /* pass.h */,
+				2313C4DB27A2421C00F6A34B /* constants-folding-test.cc */,
+				2313C4D527A23E8500F6A34B /* constants-folding.cc */,
+				2313C4D427A2396C00F6A34B /* constants-folding.h */,
+			);
+			name = Pass;
+			sourceTree = "<group>";
+		};
+		2313C4D827A2413100F6A34B /* Backend */ = {
+			isa = PBXGroup;
+			children = (
+				2313C4DA27A2414200F6A34B /* X64 */,
+				2313C4D927A2413900F6A34B /* Arm64 */,
+			);
+			name = Backend;
+			sourceTree = "<group>";
+		};
+		2313C4D927A2413900F6A34B /* Arm64 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Arm64;
+			sourceTree = "<group>";
+		};
+		2313C4DA27A2414200F6A34B /* X64 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = X64;
+			sourceTree = "<group>";
+		};
 		232A47C0264B6DE7003DCA4F /* Arch */ = {
 			isa = PBXGroup;
 			children = (
@@ -440,6 +486,7 @@
 		2354CD3226439A1400A2FAC3 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				2313C4D827A2413100F6A34B /* Backend */,
 				23EDFA24269C41B000C8F1FE /* Ir */,
 				2387EF9C2681C56B002E6DCF /* Compiler */,
 				2351F80D26648C8200D337EA /* Runtime */,
@@ -592,6 +639,7 @@
 		23EDFA24269C41B000C8F1FE /* Ir */ = {
 			isa = PBXGroup;
 			children = (
+				2313C4CF27A237D600F6A34B /* Pass */,
 				233236E1269ECAFA0078406C /* node-test.cc */,
 				23EDFA26269C45A400C8F1FE /* node.cc */,
 				23EDFA25269C43F000C8F1FE /* node.h */,
@@ -734,6 +782,7 @@
 				23D4A44F2680D17D0090C631 /* heap.h in Sources */,
 				230C85FF27853E4D00298122 /* constants.cc in Sources */,
 				23A7F0E22699E22A0060BFB7 /* compiler-test.cc in Sources */,
+				2313C4DD27A2421C00F6A34B /* constants-folding-test.cc in Sources */,
 				23D4A4502680D17D0090C631 /* heap.c in Sources */,
 				23D4A4512680D17D0090C631 /* runtime-test.cc in Sources */,
 				23D4A4522680D17D0090C631 /* runtime.h in Sources */,
@@ -798,6 +847,7 @@
 				23D4A4752680D17D0090C631 /* io.h in Sources */,
 				23D4A4762680D17D0090C631 /* io.cc in Sources */,
 				236466CD26F07E870066D168 /* checking.cc in Sources */,
+				2313C4D727A23E8500F6A34B /* constants-folding.cc in Sources */,
 				23D4A4772680D17D0090C631 /* lazy-instance.h in Sources */,
 				2355560F278936EC003ADACE /* utils.cc in Sources */,
 				23D4A4782680D17D0090C631 /* reference-count-test.cc in Sources */,
@@ -805,6 +855,7 @@
 				231C4B91268DA7D200D4AC62 /* any-posix-arm64.s in Sources */,
 				23D4A4792680D17D0090C631 /* reference-count.h in Sources */,
 				2362A0F126A6CB1700A972B1 /* generics-instantiating-test.cc in Sources */,
+				2313C4D327A238B000F6A34B /* pass.cc in Sources */,
 				23D4A47A2680D17D0090C631 /* sha256-test.cc in Sources */,
 				23F6C24C278FC85B00899C4F /* runtime.cc in Sources */,
 				23D4A47B2680D17D0090C631 /* sha256.c in Sources */,
@@ -898,6 +949,7 @@
 				23D5A64C266718ED00635ADB /* runtime-test.cc in Sources */,
 				23235B862797C07600134DEB /* condition.cc in Sources */,
 				23D5A64D266718ED00635ADB /* runtime.h in Sources */,
+				2313C4DC27A2421C00F6A34B /* constants-folding-test.cc in Sources */,
 				23D5A64E266718ED00635ADB /* runtime.c in Sources */,
 				23D5A64F266718ED00635ADB /* macros.h in Sources */,
 				233236DF269EC2EF0078406C /* operator-test.cc in Sources */,
@@ -908,6 +960,7 @@
 				2336A2912774168E00346372 /* codegen-test.cc in Sources */,
 				23D5A654266718ED00635ADB /* process.h in Sources */,
 				2355560A278929C0003ADACE /* io-test.cc in Sources */,
+				2313C4D627A23E8500F6A34B /* constants-folding.cc in Sources */,
 				23D5A655266718ED00635ADB /* process.c in Sources */,
 				23D5A656266718ED00635ADB /* checking.h in Sources */,
 				23D5A657266718ED00635ADB /* scheduler.h in Sources */,
@@ -920,6 +973,7 @@
 				23D5A65C266718ED00635ADB /* asm-x64.h in Sources */,
 				232AA00026861A060098E6A3 /* ast-test.cc in Sources */,
 				23D5A65D266718ED00635ADB /* gtest-all.cc in Sources */,
+				2313C4D227A238B000F6A34B /* pass.cc in Sources */,
 				23FA86A326A121AC001CC777 /* source-position.cc in Sources */,
 				233236E2269ECAFA0078406C /* node-test.cc in Sources */,
 				23D5A68D2667861900635ADB /* boot-posix-x64.s in Sources */,

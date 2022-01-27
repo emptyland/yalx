@@ -185,6 +185,8 @@ public:
     
     const char *name() const { return kNames[value()]; }
     
+    bool IsConstant() const;
+    
     friend class OperatorsFactory;
 protected:
     Operator(Value value, uint32_t properties, int value_in, int control_in, int value_out, int control_out);

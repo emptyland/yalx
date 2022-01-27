@@ -1973,6 +1973,8 @@ private:
         return Value::New0(arena(), SourcePosition::Unknown(), Types::UInt8, ops()->U8Constant(value));
     }
     
+    StructureModel *StringTy() const { return down_cast<StructureModel>(owns_->string_ty_); }
+    
     IntermediateRepresentationGenerator *const owns_;
     NamespaceScope *location_ = nullptr;
     FunContext *emitting_ = nullptr;
@@ -2031,6 +2033,7 @@ base::Status IntermediateRepresentationGenerator::Prepare0() {
     unit_val_ = Value::New0(arena_, SourcePosition::Unknown(), Types::Void, ops_->NilConstant());
     true_val_ = Value::New0(arena_, SourcePosition::Unknown(), Types::UInt8, ops_->U8Constant(1));
     false_val_ = Value::New0(arena_, SourcePosition::Unknown(), Types::UInt8, ops_->U8Constant(0));
+    string_ty_ = AssertedGetUdt(cpl::kStringClassFullName);
     return base::Status::OK();
 }
 
@@ -2212,7 +2215,7 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
             return Type::Val(AssertedGetUdt(clazz->definition()->FullName()));
         } break;
         case cpl::Type::kType_string:
-            return Types::String;
+            return Type::Ref(string_ty_);
         case cpl::Type::kType_array: {
             auto ast_ty = type->AsArrayType();
             auto element_ty = BuildType(ast_ty->element_type());

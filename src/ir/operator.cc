@@ -14,6 +14,17 @@ Operator::Operator(Value value, uint32_t properties, int value_in, int control_i
     , control_out_(control_out) {
 }
 
+bool Operator::IsConstant() const {
+    switch (value()) {
+#define DEFINE_CASE(name) case k##name:
+        DECLARE_IR_CONSTANT(DEFINE_CASE)
+#undef DEFINE_CASE
+            return true;
+        default:
+            break;
+    }
+    return false;
+}
 
 } // namespace ir
 

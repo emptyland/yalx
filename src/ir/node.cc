@@ -387,9 +387,9 @@ void Function::ReplaceUsers(const std::map<Value *, Value *> &values, BasicBlock
     
     for (auto [from, to] : values) {
         std::vector<std::tuple<int, Value *>> target;
-        for (auto used : from->users()) {
-            if (maybe_users.find(used.user) != maybe_users.end()) {
-                target.push_back(std::make_tuple(used.position, used.user));
+        for (auto edge : from->users()) {
+            if (maybe_users.find(edge.user) != maybe_users.end()) {
+                target.push_back(std::make_tuple(edge.position, edge.user));
             }
         }
         for (auto [position, user] : target) {
@@ -480,7 +480,7 @@ Value::User *Value::AddUser(base::Arena *arena, Value *user, int position) {
         auto node = &inline_users_[users_size_++];
         node->user = user;
         node->position = position;
-        users_size_ ++;
+        //users_size_ ++;
         return node;
     }
 }
@@ -516,7 +516,7 @@ void Value::RemoveUser(User *user) {
             // [0 x 2 3 4 5 6 7]
             // [0 2 3 4 5 6 7 #]
             if (pos < real_size - 1) {
-                ::memcpy(&inline_users_[pos], &inline_users_[pos + 1], real_size - pos - 1);
+                ::memcpy(&inline_users_[pos], &inline_users_[pos + 1], (real_size - pos - 1) * sizeof(User));
             }
         }
     } else {
@@ -532,8 +532,8 @@ void Value::Replace(base::Arena *arena, int position, Value *from, Value *to) {
     assert(position >= 0 && position < TotalInOutputs(op()));
     assert(io_[position] == from);
     
-    auto used = DCHECK_NOTNULL(from->FindUser(this, position));
-    from->RemoveUser(used);
+    auto edge = DCHECK_NOTNULL(from->FindUser(this, position));
+    from->RemoveUser(edge);
     
     io_[position] = to;
     to->AddUser(arena, this, position);

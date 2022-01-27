@@ -1,0 +1,12 @@
+package main
+
+val i = 100
+val j = 200
+
+fun issue1() -> i + j
+
+fun main() {
+    val i = 1
+    val j = i + 2
+}
+

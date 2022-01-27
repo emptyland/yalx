@@ -103,9 +103,6 @@ private:
     base::Arena *const arena_;
     cpl::Package *entry_;
     cpl::SyntaxFeedback *error_feedback_;
-//    base::ArenaMap<std::string_view, Model *> global_udts_;
-//    base::ArenaMap<std::string_view, Value *> global_vars_;
-//    base::ArenaMap<std::string_view, Function *> global_funs_;
     base::ArenaMap<std::string_view, Symbol> symbols_;
     base::ArenaMap<std::string_view, Module *> modules_;
     base::ArenaMap<cpl::Package *, PackageScope *> pkg_scopes_;
@@ -115,6 +112,7 @@ private:
     Value *unit_val_ = nullptr;
     Value *true_val_ = nullptr;
     Value *false_val_ = nullptr;
+    Model *string_ty_ = nullptr;
 }; // class IntermediateRepresentationGenerator
 
 

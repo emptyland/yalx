@@ -8,6 +8,7 @@
 #include "base/checking.h"
 #include "base/arena-utils.h"
 #include "base/arena.h"
+#include <algorithm>
 
 namespace yalx {
 namespace base {
@@ -234,6 +235,8 @@ public:
         }
     }
     
+    inline void RemoveDeads();
+    
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
     friend class Function;
 private:
@@ -313,6 +316,15 @@ public:
         io_[control_out_offset() + i] = DCHECK_NOTNULL(node);
     }
     
+    void Kill() {
+        assert(IsAlive());
+        for (size_t i = 0; i < TotalInOutputs(op()); i++) { io_[i] = nullptr; }
+        op_ = nullptr;
+    }
+    
+    bool IsDead() const { return op_ == nullptr; }
+    bool IsAlive() const { return !IsDead(); }
+    
     void Replace(base::Arena *arena, int position, Value *from, Value *to);
     
     struct User {
@@ -344,11 +356,12 @@ public:
             bool operator != (const iterator &other) const { return !operator == (other); }
             
             bool operator == (const iterator &other) const {
-                return owns_ == other.owns_
-                    && inline_index_ == other.inline_index_
-                    && overflow_node_ == other.overflow_node_;
+                if (owns_ != other.owns_) {
+                    return false;
+                }
+                return inline_index_ == other.inline_index_ && overflow_node_ == other.overflow_node_;
             }
-            
+
             iterator &operator = (const iterator &) = default;
             
         private:
@@ -375,9 +388,22 @@ public:
         Users(Value *owns);
         
         iterator begin() { return iterator{this, 0, nullptr}; }
-        iterator end() { return iterator{this, last_index(), overflow_users_}; }
+        iterator end() { return iterator{this, last_index(), last_node()}; }
     private:
-        int last_index() const { return static_cast<int>(inline_users_capacity_) - 1; }
+        int last_index() const {
+            return std::min(static_cast<int>(users_size_), static_cast<int>(inline_users_capacity_) - 1) ;
+        }
+
+        User *last_node() { return has_overflow() ? overflow_users_ : nullptr; }
+        
+        bool has_overflow() const {
+            bool has = users_size_ > inline_users_capacity_;
+            if (has) {
+                assert(overflow_users_->next != overflow_users_);
+                assert(overflow_users_->prev != overflow_users_);
+            }
+            return has;
+        }
         
         bool has_users_overflow_;
         uint32_t users_size_;
@@ -387,6 +413,14 @@ public:
     }; // class Value::Users
     
     Users users() { return Users(this); }
+    
+    std::vector<std::tuple<int, Value *>> GetUsers(){
+        std::vector<std::tuple<int, Value *>> target;
+        for (auto edge : users()) {
+            target.push_back(std::make_tuple(edge.position, edge.user));
+        }
+        return std::move(target);
+    }
     
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
     void IfConstantPrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
@@ -435,6 +469,11 @@ private:
     DECLARE_IR_KINDS(DEFINE_METHODS)
 #undef DEFINE_METHODS
 
+
+inline void BasicBlock::RemoveDeads() {
+    auto iter = std::remove_if(instructions_.begin(), instructions_.end(), [](Value *node) { return node->IsDead(); });
+    instructions_.erase(iter, instructions_.end());
+}
 
 inline void Function::UpdateIdsOfBlocks() {
     int id = 0;

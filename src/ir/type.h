@@ -78,6 +78,7 @@ public:
 
     static Type Ref(Model *model, bool _nullable = false);
     static Type Val(Model *model, bool pointer = false);
+    //static Type String(Model *model, bool _nullable = false);
 private:
     constexpr Type(Kind kind, int bits, uint32_t flags, Model *model)
         : kind_(kind)
