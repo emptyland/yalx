@@ -4,6 +4,22 @@ val i = 100
 val j = 200
 
 fun issue1() -> i + j
+fun issue2() -> i - j
+fun issue3() -> i * j
+fun issue4() -> i / 0
+
+fun issue5(): bool {
+    val i = 1
+    val j = i + 2
+    val k = j * i / 100
+    return k > i
+}
+
+fun issue6(): bool, bool {
+    val i = 0.1
+    val j = 0.2
+    return i > j, i < j
+}
 
 fun main() {
     val i = 1

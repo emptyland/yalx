@@ -27,7 +27,7 @@ namespace ir {
     V(UInt16,  16, Type::kNumberBit) \
     V(UInt32,  32, Type::kNumberBit) \
     V(UInt64,  64, Type::kNumberBit) \
-    V(Float32, 32, Type::kSignedBit|Type::kNumberBit) \
+    V(Float32, 32, Type::kSignedBit|Type::kNumberBit|Type::kFloatBit) \
     V(Float64, 64, Type::kSignedBit|Type::kNumberBit|Type::kFloatBit) \
     V(String,  kPointerSize * 8, Type::kReferenceBit)
 

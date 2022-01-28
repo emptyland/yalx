@@ -416,6 +416,9 @@ public:
     
     std::vector<std::tuple<int, Value *>> GetUsers(){
         std::vector<std::tuple<int, Value *>> target;
+        if (users_size_ == 0) {
+            return std::move(target);
+        }
         for (auto edge : users()) {
             target.push_back(std::make_tuple(edge.position, edge.user));
         }

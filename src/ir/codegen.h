@@ -32,6 +32,7 @@ class IntermediateRepresentationGenerator {
 public:
     IntermediateRepresentationGenerator(const std::unordered_map<std::string_view, cpl::GlobalSymbol> &symbols,
                                         base::Arena *arena,
+                                        OperatorsFactory *ops,
                                         cpl::Package *entry,
                                         cpl::SyntaxFeedback *error_feedback);
     

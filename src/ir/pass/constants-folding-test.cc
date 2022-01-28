@@ -2,6 +2,7 @@
 #include "ir/codegen.h"
 #include "ir/metadata.h"
 #include "ir/node.h"
+#include "ir/operators-factory.h"
 #include "compiler/compiler.h"
 #include "compiler/syntax-feedback.h"
 #include "compiler/source-position.h"
@@ -26,7 +27,7 @@ public:
         }
     }; // class MockErrorFeedback
     
-    ConstantsFoldingPassTest() {}
+    ConstantsFoldingPassTest(): ops_(&arean_) {}
     
     void SetUp() override {}
     void TearDown() override {}
@@ -42,18 +43,20 @@ public:
         rs = cpl::Compiler::ReducePackageDependencesType(main_pkg, &ast_arean_, &feedback_, &symbols);
         ASSERT_TRUE(rs.ok()) << rs.ToString();
         
-        rs = cpl::Compiler::GenerateIntermediateRepresentationCode(symbols, &arean_, main_pkg, &feedback_, modules);
+        rs = cpl::Compiler::GenerateIntermediateRepresentationCode(symbols, &arean_, &ops_, main_pkg, &feedback_,
+                                                                   modules);
         ASSERT_TRUE(rs.ok()) << rs.ToString();
         *ok = true;
     }
     
     void RunPass(ConstantsFoldingPass::ModulesMap *modules) {
-        ConstantsFoldingPass(&arean_, modules, &feedback_).Run();
+        ConstantsFoldingPass(&arean_, &ops_, modules, &feedback_).Run();
     }
     
 protected:
     base::Arena ast_arean_;
     base::Arena arean_;
+    OperatorsFactory ops_;
     MockErrorFeedback feedback_;
 }; // class ConstantsFoldingPassTest
 
@@ -70,8 +73,6 @@ TEST_F(ConstantsFoldingPassTest, Sanity) {
     
     std::string buf;
     base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
-    //    modules["yalx/lang:lang"]->PrintTo(&printer);
-    //    modules["foo:foo"]->PrintTo(&printer);
     modules["main:main"]->PrintTo(&printer);
     
     printf("%s\n", buf.data());

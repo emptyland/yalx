@@ -13,7 +13,7 @@ public:
     constexpr static const char kPassName[] = "constants-folding";
     constexpr static const int kPassLevel = 1;
     
-    ConstantsFoldingPass(base::Arena *arena, ModulesMap *modules, cpl::SyntaxFeedback *feedback);
+    ConstantsFoldingPass(base::Arena *arena, OperatorsFactory *ops, ModulesMap *modules, cpl::SyntaxFeedback *feedback);
     
     void RunModule(Module *module);
     void RunFun(Function *fun);

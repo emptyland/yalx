@@ -5,25 +5,30 @@
 #include "compiler/syntax-feedback.h"
 #include "ir/node.h"
 #include "ir/metadata.h"
-#include "ir/type.h"
-#include "ir/operator.h"
+#include "base/arena-utils.h"
 #include "base/base.h"
 
 namespace yalx {
-
+namespace base {
+class Arena;
+} // namespace base
 namespace ir {
+
+class OperatorsFactory;
 
 template<class T>
 class Pass {
 public:
     using ModulesMap = base::ArenaMap<std::string_view, Module *>;
     
-    Pass(base::Arena *arena, ModulesMap *modules, cpl::SyntaxFeedback *feedback)
+    Pass(base::Arena *arena, OperatorsFactory *ops, ModulesMap *modules, cpl::SyntaxFeedback *feedback)
     : arena_(arena)
+    , ops_(ops)
     , modules_(modules)
     , feedback_(feedback) {}
 
     DEF_PTR_GETTER(base::Arena, arena);
+    DEF_PTR_GETTER(OperatorsFactory, ops);
     DEF_PTR_GETTER(ModulesMap, modules);
     DEF_PTR_GETTER(Module, current_module);
     DEF_PTR_GETTER(StructureModel, current_udt);
@@ -77,6 +82,7 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(Pass);
 private:
     base::Arena *const arena_;
+    OperatorsFactory *const ops_;
     ModulesMap *modules_;
     cpl::SyntaxFeedback *feedback_;
     

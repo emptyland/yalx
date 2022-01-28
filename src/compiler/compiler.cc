@@ -431,10 +431,11 @@ base::Status Compiler::ParsePackageSourceFiles(std::string_view pkg_dir,
 base::Status
 Compiler::GenerateIntermediateRepresentationCode(const std::unordered_map<std::string_view, GlobalSymbol> &symbols,
                                                  base::Arena *arena,
+                                                 ir::OperatorsFactory *ops,
                                                  Package *entry,
                                                  SyntaxFeedback *error_feedback,
                                                  base::ArenaMap<std::string_view, ir::Module *> *modules) {
-    ir::IntermediateRepresentationGenerator generator(symbols, arena, entry, error_feedback);
+    ir::IntermediateRepresentationGenerator generator(symbols, arena, ops, entry, error_feedback);
     auto rs = generator.Run();
     if (rs.ok()) {
         generator.MoveModules(modules);

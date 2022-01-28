@@ -14,6 +14,7 @@
 namespace yalx {
 namespace ir {
 class Module;
+class OperatorsFactory;
 } // namespace ir
 namespace cpl {
 
@@ -88,6 +89,7 @@ public:
     static base::Status
     GenerateIntermediateRepresentationCode(const std::unordered_map<std::string_view, GlobalSymbol> &symbols,
                                            base::Arena *arena,
+                                           ir::OperatorsFactory *ops,
                                            Package *entry,
                                            SyntaxFeedback *error_feedback,
                                            base::ArenaMap<std::string_view, ir::Module *> *modules);

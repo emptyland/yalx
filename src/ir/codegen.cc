@@ -1653,7 +1653,7 @@ private:
             auto op = ops()->Closure(init);
             auto type = Type::Ref(init->prototype());
             auto fun = init_blk_->NewNode(SourcePosition::Unknown(), type, op);
-            
+
             op = ops()->StringConstant(deps->full_name());
             auto pkg_name = Value::New0(arena(), SourcePosition::Unknown(), Types::String, op);
             
@@ -1988,6 +1988,7 @@ private:
 
 IntermediateRepresentationGenerator::IntermediateRepresentationGenerator(const std::unordered_map<std::string_view, cpl::GlobalSymbol> &symbols,
                                                                          base::Arena *arena,
+                                                                         OperatorsFactory *ops,
                                                                          cpl::Package *entry,
                                                                          cpl::SyntaxFeedback *error_feedback)
 : ast_nodes_(symbols)
@@ -2001,7 +2002,7 @@ IntermediateRepresentationGenerator::IntermediateRepresentationGenerator(const s
 , modules_(arena)
 , pkg_scopes_(arena)
 , track_(arena)
-, ops_(arena->New<OperatorsFactory>(arena)) {
+, ops_(DCHECK_NOTNULL(ops)) {
 }
 
 base::Status IntermediateRepresentationGenerator::Run() {
