@@ -48,7 +48,7 @@ public:
     using StringMap = base::ArenaMap<std::string_view, int>;
     using StringPool = base::ArenaVector<const String *>;
     
-    ConstantsPool(base::Arena *arena);
+    explicit ConstantsPool(base::Arena *arena);
     
     DEF_VAL_GETTER(NumbersMap, numbers);
     DEF_VAL_GETTER(StringPool, string_pool);

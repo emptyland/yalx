@@ -1,3 +1,4 @@
+#pragma once
 #ifndef YALX_COMPILER_GLOBAL_SYMBOL_H_
 #define YALX_COMPILER_GLOBAL_SYMBOL_H_
 

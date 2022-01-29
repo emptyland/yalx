@@ -56,8 +56,6 @@
 		2362A0F126A6CB1700A972B1 /* generics-instantiating-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362A0EF26A6CB1700A972B1 /* generics-instantiating-test.cc */; };
 		236466CC26F07E870066D168 /* checking.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236466CB26F07E870066D168 /* checking.cc */; };
 		236466CD26F07E870066D168 /* checking.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236466CB26F07E870066D168 /* checking.cc */; };
-		23711302275F68CE008919BE /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23711301275F68CE008919BE /* constants.cc */; };
-		23711303275F68CE008919BE /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23711301275F68CE008919BE /* constants.cc */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA42684627B002E6DCF /* lexer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFA32684627B002E6DCF /* lexer.cc */; };
@@ -82,12 +80,22 @@
 		23B997DE26A468D500DD037B /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997DC26A468D500DD037B /* scope.cc */; };
 		23C1344A27A3CF0B00C0DEB4 /* instruction.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1344927A3CF0B00C0DEB4 /* instruction.cc */; };
 		23C1344B27A3CF0B00C0DEB4 /* instruction.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1344927A3CF0B00C0DEB4 /* instruction.cc */; };
-		23C1344F27A3E74400C0DEB4 /* codegen-x64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1344E27A3E74400C0DEB4 /* codegen-x64.cc */; };
-		23C1345027A3E74400C0DEB4 /* codegen-x64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1344E27A3E74400C0DEB4 /* codegen-x64.cc */; };
 		23C1345327A3E8CE00C0DEB4 /* constants-pool.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1345227A3E8CE00C0DEB4 /* constants-pool.cc */; };
 		23C1345427A3E8CE00C0DEB4 /* constants-pool.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1345227A3E8CE00C0DEB4 /* constants-pool.cc */; };
 		23C1345627A3F23C00C0DEB4 /* constants-pool-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1345527A3F23C00C0DEB4 /* constants-pool-test.cc */; };
 		23C1345727A3F23C00C0DEB4 /* constants-pool-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1345527A3F23C00C0DEB4 /* constants-pool-test.cc */; };
+		23C1345A27A4DA0D00C0DEB4 /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1345927A4DA0D00C0DEB4 /* constants.cc */; };
+		23C1345B27A4DA0D00C0DEB4 /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1345927A4DA0D00C0DEB4 /* constants.cc */; };
+		23C1345E27A4DDFA00C0DEB4 /* instruction-generating-x64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1345D27A4DDFA00C0DEB4 /* instruction-generating-x64.cc */; };
+		23C1345F27A4DDFA00C0DEB4 /* instruction-generating-x64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1345D27A4DDFA00C0DEB4 /* instruction-generating-x64.cc */; };
+		23C1346127A4E30B00C0DEB4 /* instruction-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1346027A4E30B00C0DEB4 /* instruction-test.cc */; };
+		23C1346227A4E30B00C0DEB4 /* instruction-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1346027A4E30B00C0DEB4 /* instruction-test.cc */; };
+		23C1346627A515D600C0DEB4 /* register-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1346527A515D600C0DEB4 /* register-allocator.cc */; };
+		23C1346727A515D600C0DEB4 /* register-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1346527A515D600C0DEB4 /* register-allocator.cc */; };
+		23C1346927A5333000C0DEB4 /* register-allocator-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1346827A5333000C0DEB4 /* register-allocator-test.cc */; };
+		23C1346A27A5333000C0DEB4 /* register-allocator-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1346827A5333000C0DEB4 /* register-allocator-test.cc */; };
+		23C1346D27A5358600C0DEB4 /* base-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1346C27A5358600C0DEB4 /* base-test.cc */; };
+		23C1346E27A5358600C0DEB4 /* base-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1346C27A5358600C0DEB4 /* base-test.cc */; };
 		23C3543726A1B7E7006607D1 /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3543626A1B7E7006607D1 /* scope.cc */; };
 		23C3543826A1B7E7006607D1 /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3543626A1B7E7006607D1 /* scope.cc */; };
 		23D4A4462680D17D0090C631 /* any.h in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68426676DEF00635ADB /* any.h */; };
@@ -331,7 +339,6 @@
 		2362A0EF26A6CB1700A972B1 /* generics-instantiating-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "generics-instantiating-test.cc"; path = "../src/compiler/generics-instantiating-test.cc"; sourceTree = "<group>"; };
 		236466CB26F07E870066D168 /* checking.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = checking.cc; path = ../src/base/checking.cc; sourceTree = "<group>"; };
 		23711300275F6889008919BE /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/compiler/constants.h; sourceTree = "<group>"; };
-		23711301275F68CE008919BE /* constants.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = constants.cc; sourceTree = "<group>"; };
 		237A0DAB27731390002180FE /* global-symbol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "global-symbol.h"; path = "../src/compiler/global-symbol.h"; sourceTree = "<group>"; };
 		2387EF9D2681C80D002E6DCF /* compiler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = compiler.h; path = ../src/compiler/compiler.h; sourceTree = "<group>"; };
 		2387EF9E2681C8D3002E6DCF /* compiler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = compiler.cc; path = ../src/compiler/compiler.cc; sourceTree = "<group>"; };
@@ -361,11 +368,20 @@
 		23C1344827A3CE9400C0DEB4 /* instruction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = instruction.h; path = ../src/backend/instruction.h; sourceTree = "<group>"; };
 		23C1344927A3CF0B00C0DEB4 /* instruction.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = instruction.cc; path = ../src/backend/instruction.cc; sourceTree = "<group>"; };
 		23C1344C27A3E3B400C0DEB4 /* machine-type.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "machine-type.h"; path = "../src/backend/machine-type.h"; sourceTree = "<group>"; };
-		23C1344D27A3E4E100C0DEB4 /* codegen-x64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "codegen-x64.h"; path = "../src/backend/x64/codegen-x64.h"; sourceTree = "<group>"; };
-		23C1344E27A3E74400C0DEB4 /* codegen-x64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "codegen-x64.cc"; path = "../src/backend/x64/codegen-x64.cc"; sourceTree = "<group>"; };
 		23C1345127A3E86200C0DEB4 /* constants-pool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "constants-pool.h"; path = "../src/backend/constants-pool.h"; sourceTree = "<group>"; };
 		23C1345227A3E8CE00C0DEB4 /* constants-pool.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "constants-pool.cc"; path = "../src/backend/constants-pool.cc"; sourceTree = "<group>"; };
 		23C1345527A3F23C00C0DEB4 /* constants-pool-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "constants-pool-test.cc"; path = "../src/backend/constants-pool-test.cc"; sourceTree = "<group>"; };
+		23C1345827A4D96D00C0DEB4 /* assembly-generating-delegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "assembly-generating-delegate.h"; path = "../src/compiler/assembly-generating-delegate.h"; sourceTree = "<group>"; };
+		23C1345927A4DA0D00C0DEB4 /* constants.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = constants.cc; path = ../src/compiler/constants.cc; sourceTree = "<group>"; };
+		23C1345C27A4DD8400C0DEB4 /* instruction-generating-x64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "instruction-generating-x64.h"; path = "../src/backend/x64/instruction-generating-x64.h"; sourceTree = "<group>"; };
+		23C1345D27A4DDFA00C0DEB4 /* instruction-generating-x64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instruction-generating-x64.cc"; path = "../src/backend/x64/instruction-generating-x64.cc"; sourceTree = "<group>"; };
+		23C1346027A4E30B00C0DEB4 /* instruction-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instruction-test.cc"; path = "../src/backend/instruction-test.cc"; sourceTree = "<group>"; };
+		23C1346327A4EFD800C0DEB4 /* instruction-codes-x64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "instruction-codes-x64.h"; path = "../src/backend/x64/instruction-codes-x64.h"; sourceTree = "<group>"; };
+		23C1346427A5153600C0DEB4 /* register-allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "register-allocator.h"; path = "../src/backend/register-allocator.h"; sourceTree = "<group>"; };
+		23C1346527A515D600C0DEB4 /* register-allocator.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "register-allocator.cc"; path = "../src/backend/register-allocator.cc"; sourceTree = "<group>"; };
+		23C1346827A5333000C0DEB4 /* register-allocator-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "register-allocator-test.cc"; path = "../src/backend/register-allocator-test.cc"; sourceTree = "<group>"; };
+		23C1346B27A5352300C0DEB4 /* base-test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "base-test.h"; path = "../src/ir/base-test.h"; sourceTree = "<group>"; };
+		23C1346C27A5358600C0DEB4 /* base-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "base-test.cc"; path = "../src/ir/base-test.cc"; sourceTree = "<group>"; };
 		23C3543526A1B7A6006607D1 /* scope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scope.h; path = ../src/ir/scope.h; sourceTree = "<group>"; };
 		23C3543626A1B7E7006607D1 /* scope.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scope.cc; path = ../src/ir/scope.cc; sourceTree = "<group>"; };
 		23CAA1DD26667586000EF129 /* checking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = checking.h; path = ../src/runtime/checking.h; sourceTree = "<group>"; };
@@ -439,12 +455,16 @@
 			children = (
 				2313C4D927A2413900F6A34B /* Arm64 */,
 				2313C4DA27A2414200F6A34B /* X64 */,
+				23C1346027A4E30B00C0DEB4 /* instruction-test.cc */,
 				23C1344927A3CF0B00C0DEB4 /* instruction.cc */,
 				23C1344827A3CE9400C0DEB4 /* instruction.h */,
 				23C1344C27A3E3B400C0DEB4 /* machine-type.h */,
 				23C1345527A3F23C00C0DEB4 /* constants-pool-test.cc */,
 				23C1345227A3E8CE00C0DEB4 /* constants-pool.cc */,
 				23C1345127A3E86200C0DEB4 /* constants-pool.h */,
+				23C1346827A5333000C0DEB4 /* register-allocator-test.cc */,
+				23C1346527A515D600C0DEB4 /* register-allocator.cc */,
+				23C1346427A5153600C0DEB4 /* register-allocator.h */,
 			);
 			name = Backend;
 			sourceTree = "<group>";
@@ -459,8 +479,9 @@
 		2313C4DA27A2414200F6A34B /* X64 */ = {
 			isa = PBXGroup;
 			children = (
-				23C1344E27A3E74400C0DEB4 /* codegen-x64.cc */,
-				23C1344D27A3E4E100C0DEB4 /* codegen-x64.h */,
+				23C1345D27A4DDFA00C0DEB4 /* instruction-generating-x64.cc */,
+				23C1345C27A4DD8400C0DEB4 /* instruction-generating-x64.h */,
+				23C1346327A4EFD800C0DEB4 /* instruction-codes-x64.h */,
 			);
 			name = X64;
 			sourceTree = "<group>";
@@ -621,9 +642,10 @@
 				232AA00626861D5D0098E6A3 /* parser-test.cc */,
 				232AA00326861D4C0098E6A3 /* parser.cc */,
 				232AA00226861D3C0098E6A3 /* parser.h */,
-				23711301275F68CE008919BE /* constants.cc */,
+				23C1345927A4DA0D00C0DEB4 /* constants.cc */,
 				23711300275F6889008919BE /* constants.h */,
 				237A0DAB27731390002180FE /* global-symbol.h */,
+				23C1345827A4D96D00C0DEB4 /* assembly-generating-delegate.h */,
 			);
 			name = Compiler;
 			sourceTree = "<group>";
@@ -693,6 +715,8 @@
 				23F6C249278FC03D00899C4F /* runtime.h */,
 				23235B852797C07600134DEB /* condition.cc */,
 				23235B842797BA2000134DEB /* condition.h */,
+				23C1346C27A5358600C0DEB4 /* base-test.cc */,
+				23C1346B27A5352300C0DEB4 /* base-test.h */,
 			);
 			name = Ir;
 			sourceTree = "<group>";
@@ -790,6 +814,7 @@
 				23D4A4462680D17D0090C631 /* any.h in Sources */,
 				23D4A4472680D17D0090C631 /* number.c in Sources */,
 				23B997DE26A468D500DD037B /* scope.cc in Sources */,
+				23C1345F27A4DDFA00C0DEB4 /* instruction-generating-x64.cc in Sources */,
 				23D4A4482680D17D0090C631 /* number.h in Sources */,
 				232FDB1126818CF900D52154 /* number-test.cc in Sources */,
 				23D4A4492680D17D0090C631 /* type.h in Sources */,
@@ -811,6 +836,7 @@
 				23D4A4512680D17D0090C631 /* runtime-test.cc in Sources */,
 				23D4A4522680D17D0090C631 /* runtime.h in Sources */,
 				2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */,
+				23C1346A27A5333000C0DEB4 /* register-allocator-test.cc in Sources */,
 				23D4A4532680D17D0090C631 /* runtime.c in Sources */,
 				2387EFB82685BB99002E6DCF /* node-test.cc in Sources */,
 				23FA86A026A05022001CC777 /* metadata-test.cc in Sources */,
@@ -849,8 +875,8 @@
 				23C1345727A3F23C00C0DEB4 /* constants-pool-test.cc in Sources */,
 				23D4A4692680D17D0090C631 /* arena.h in Sources */,
 				2387EFB4268586F5002E6DCF /* lexer-test.cc in Sources */,
+				23C1346E27A5358600C0DEB4 /* base-test.cc in Sources */,
 				23FA86A426A121AC001CC777 /* source-position.cc in Sources */,
-				23711303275F68CE008919BE /* constants.cc in Sources */,
 				23D4A46A2680D17D0090C631 /* at-exit.cc in Sources */,
 				23D4A46B2680D17D0090C631 /* at-exit.h in Sources */,
 				23D4A46C2680D17D0090C631 /* base.h in Sources */,
@@ -863,12 +889,13 @@
 				23B997DA26A4680300DD037B /* type-reducing.cc in Sources */,
 				2387EFB1268581AD002E6DCF /* token-test.cc in Sources */,
 				23D4A46F2680D17D0090C631 /* crc32.c in Sources */,
-				23C1345027A3E74400C0DEB4 /* codegen-x64.cc in Sources */,
 				23D4A4702680D17D0090C631 /* env-test.cc in Sources */,
+				23C1345B27A4DA0D00C0DEB4 /* constants.cc in Sources */,
 				232AA00526861D4C0098E6A3 /* parser.cc in Sources */,
 				23D4A4712680D17D0090C631 /* env-posix.cc in Sources */,
 				23D4A4722680D17D0090C631 /* env.h in Sources */,
 				23D4A4732680D17D0090C631 /* hash.cc in Sources */,
+				23C1346727A515D600C0DEB4 /* register-allocator.cc in Sources */,
 				23FA86A726A13DE4001CC777 /* source-position-test.cc in Sources */,
 				23D4A4742680D17D0090C631 /* hash.h in Sources */,
 				23D4A4752680D17D0090C631 /* io.h in Sources */,
@@ -876,6 +903,7 @@
 				236466CD26F07E870066D168 /* checking.cc in Sources */,
 				2313C4D727A23E8500F6A34B /* constants-folding.cc in Sources */,
 				23D4A4772680D17D0090C631 /* lazy-instance.h in Sources */,
+				23C1346227A4E30B00C0DEB4 /* instruction-test.cc in Sources */,
 				2355560F278936EC003ADACE /* utils.cc in Sources */,
 				23D4A4782680D17D0090C631 /* reference-count-test.cc in Sources */,
 				2387EFA926846309002E6DCF /* source-position-test.cc in Sources */,
@@ -907,8 +935,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				23D5A65F266718F900635ADB /* arena-utils.cc in Sources */,
-				23711302275F68CE008919BE /* constants.cc in Sources */,
 				23D5A660266718F900635ADB /* arena-utils.h in Sources */,
+				23C1346927A5333000C0DEB4 /* register-allocator-test.cc in Sources */,
 				23D5A661266718F900635ADB /* arena-test.cc in Sources */,
 				23D5A662266718F900635ADB /* arena.h in Sources */,
 				232AA00426861D4C0098E6A3 /* parser.cc in Sources */,
@@ -942,6 +970,7 @@
 				23D5A66F266718F900635ADB /* io.cc in Sources */,
 				23D5A670266718F900635ADB /* lazy-instance.h in Sources */,
 				23D5A671266718F900635ADB /* reference-count-test.cc in Sources */,
+				23C1345A27A4DA0D00C0DEB4 /* constants.cc in Sources */,
 				23D5A672266718F900635ADB /* reference-count.h in Sources */,
 				23FA86A626A13DE4001CC777 /* source-position-test.cc in Sources */,
 				23FA8699269FE4D4001CC777 /* metadata.cc in Sources */,
@@ -950,6 +979,7 @@
 				2301676B266A27CF007E8322 /* heap-test.cc in Sources */,
 				23D5A673266718F900635ADB /* sha256-test.cc in Sources */,
 				23F6C24B278FC85B00899C4F /* runtime.cc in Sources */,
+				23C1346127A4E30B00C0DEB4 /* instruction-test.cc in Sources */,
 				23D5A674266718F900635ADB /* sha256.c in Sources */,
 				23A7F0E12699E22A0060BFB7 /* compiler-test.cc in Sources */,
 				2387EFAC2684643A002E6DCF /* token.cc in Sources */,
@@ -972,16 +1002,19 @@
 				2362A0F026A6CB1700A972B1 /* generics-instantiating-test.cc in Sources */,
 				23D5A67A266718F900635ADB /* format.h in Sources */,
 				23D5A67B266718F900635ADB /* format.cc in Sources */,
+				23C1345E27A4DDFA00C0DEB4 /* instruction-generating-x64.cc in Sources */,
 				23EDFA27269C45A400C8F1FE /* node.cc in Sources */,
 				23D5A67C266718F900635ADB /* utils.h in Sources */,
 				233236DA269E7F110078406C /* operator.cc in Sources */,
 				232AA00726861D5D0098E6A3 /* parser-test.cc in Sources */,
 				23D5A64C266718ED00635ADB /* runtime-test.cc in Sources */,
 				23235B862797C07600134DEB /* condition.cc in Sources */,
+				23C1346627A515D600C0DEB4 /* register-allocator.cc in Sources */,
 				23D5A64D266718ED00635ADB /* runtime.h in Sources */,
 				2313C4DC27A2421C00F6A34B /* constants-folding-test.cc in Sources */,
 				23D5A64E266718ED00635ADB /* runtime.c in Sources */,
 				23D5A64F266718ED00635ADB /* macros.h in Sources */,
+				23C1346D27A5358600C0DEB4 /* base-test.cc in Sources */,
 				233236DF269EC2EF0078406C /* operator-test.cc in Sources */,
 				23D5A68326676BDC00635ADB /* heap.c in Sources */,
 				23D5A651266718ED00635ADB /* stack-test.cc in Sources */,
@@ -993,7 +1026,6 @@
 				2313C4D627A23E8500F6A34B /* constants-folding.cc in Sources */,
 				23D5A655266718ED00635ADB /* process.c in Sources */,
 				23D5A656266718ED00635ADB /* checking.h in Sources */,
-				23C1344F27A3E74400C0DEB4 /* codegen-x64.cc in Sources */,
 				23D5A657266718ED00635ADB /* scheduler.h in Sources */,
 				23D5A658266718ED00635ADB /* scheduler.cc in Sources */,
 				23D5A659266718ED00635ADB /* label.h in Sources */,

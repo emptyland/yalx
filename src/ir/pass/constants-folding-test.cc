@@ -3,6 +3,7 @@
 #include "ir/metadata.h"
 #include "ir/node.h"
 #include "ir/operators-factory.h"
+#include "ir/base-test.h"
 #include "compiler/compiler.h"
 #include "compiler/syntax-feedback.h"
 #include "compiler/source-position.h"
@@ -13,51 +14,11 @@ namespace yalx {
 
 namespace ir {
 
-class ConstantsFoldingPassTest : public ::testing::Test {
+class ConstantsFoldingPassTest : public BaseTest {
 public:
-    class MockErrorFeedback : public cpl::SyntaxFeedback {
-    public:
-        void DidFeedback(const cpl::SourcePosition &location, const char *z, size_t n) override {
-            ::printf("[%s:(%d,%d)-(%d,%d)] %s\n", file_name().data(), location.begin_line(), location.begin_column(),
-                     location.end_line(), location.end_column(), z);
-        }
-        
-        void DidFeedback(const char *z) override {
-            ::puts(z);
-        }
-    }; // class MockErrorFeedback
-    
-    ConstantsFoldingPassTest(): ops_(&arean_) {}
-    
-    void SetUp() override {}
-    void TearDown() override {}
-    
-    void IRGen(const char *project_dir, base::ArenaMap<std::string_view, Module *> *modules, bool *ok) {
-        base::ArenaMap<std::string_view, cpl::Package *> all(&ast_arean_);
-        base::ArenaVector<cpl::Package *> entries(&ast_arean_);
-        cpl::Package *main_pkg = nullptr;
-        auto rs = cpl::Compiler::FindAndParseProjectSourceFiles(project_dir, "libs", &ast_arean_, &feedback_,
-                                                                &main_pkg, &entries, &all);
-        ASSERT_TRUE(rs.ok()) << rs.ToString();
-        std::unordered_map<std::string_view, cpl::GlobalSymbol> symbols;
-        rs = cpl::Compiler::ReducePackageDependencesType(main_pkg, &ast_arean_, &feedback_, &symbols);
-        ASSERT_TRUE(rs.ok()) << rs.ToString();
-        
-        rs = cpl::Compiler::GenerateIntermediateRepresentationCode(symbols, &arean_, &ops_, main_pkg, &feedback_,
-                                                                   modules);
-        ASSERT_TRUE(rs.ok()) << rs.ToString();
-        *ok = true;
-    }
-    
     void RunPass(ConstantsFoldingPass::ModulesMap *modules) {
-        ConstantsFoldingPass(&arean_, &ops_, modules, &feedback_).Run();
+        ConstantsFoldingPass(arean(), ops(), modules, feedback()).Run();
     }
-    
-protected:
-    base::Arena ast_arean_;
-    base::Arena arean_;
-    OperatorsFactory ops_;
-    MockErrorFeedback feedback_;
 }; // class ConstantsFoldingPassTest
 
 // 24-ir-constants-folding
