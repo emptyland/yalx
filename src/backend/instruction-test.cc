@@ -28,7 +28,6 @@ TEST_F(InstructionTest, ArchNop) {
     instr = block->New(ArchUnreachable);
     ASSERT_EQ(ArchUnreachable, instr->op());
     ASSERT_EQ(2, block->instructions().size());
-    
 }
 
 } // namespace backend

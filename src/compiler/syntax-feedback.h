@@ -15,6 +15,9 @@ class SourcePosition;
 // Feed back for error or warning
 class SyntaxFeedback {
 public:
+    SyntaxFeedback() = default;
+    virtual ~SyntaxFeedback() = default;
+    
     void Feedback(const SourcePosition &location, const char *message) {
         DidFeedback(location, message, ::strlen(message));
     }

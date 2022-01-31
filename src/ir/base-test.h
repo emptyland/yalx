@@ -20,7 +20,7 @@ public:
     BaseTest();
     ~BaseTest() override;
     
-    base::Arena *arean() { return &arean_; }
+    base::Arena *arena() { return &arean_; }
     DEF_PTR_GETTER(OperatorsFactory, ops);
     DEF_PTR_GETTER(cpl::SyntaxFeedback, feedback);
     

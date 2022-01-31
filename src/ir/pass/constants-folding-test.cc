@@ -17,7 +17,7 @@ namespace ir {
 class ConstantsFoldingPassTest : public BaseTest {
 public:
     void RunPass(ConstantsFoldingPass::ModulesMap *modules) {
-        ConstantsFoldingPass(arean(), ops(), modules, feedback()).Run();
+        ConstantsFoldingPass(arena(), ops(), modules, feedback()).Run();
     }
 }; // class ConstantsFoldingPassTest
 

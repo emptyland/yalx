@@ -78,6 +78,8 @@
 		23B997DA26A4680300DD037B /* type-reducing.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997D826A4680300DD037B /* type-reducing.cc */; };
 		23B997DD26A468D500DD037B /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997DC26A468D500DD037B /* scope.cc */; };
 		23B997DE26A468D500DD037B /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997DC26A468D500DD037B /* scope.cc */; };
+		23BCAEB127A83D8800EC9D92 /* stackslot-allocator-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23BCAEB027A83D8800EC9D92 /* stackslot-allocator-test.cc */; };
+		23BCAEB227A83D8800EC9D92 /* stackslot-allocator-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23BCAEB027A83D8800EC9D92 /* stackslot-allocator-test.cc */; };
 		23C1344A27A3CF0B00C0DEB4 /* instruction.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1344927A3CF0B00C0DEB4 /* instruction.cc */; };
 		23C1344B27A3CF0B00C0DEB4 /* instruction.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1344927A3CF0B00C0DEB4 /* instruction.cc */; };
 		23C1345327A3E8CE00C0DEB4 /* constants-pool.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1345227A3E8CE00C0DEB4 /* constants-pool.cc */; };
@@ -96,6 +98,10 @@
 		23C1346A27A5333000C0DEB4 /* register-allocator-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1346827A5333000C0DEB4 /* register-allocator-test.cc */; };
 		23C1346D27A5358600C0DEB4 /* base-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1346C27A5358600C0DEB4 /* base-test.cc */; };
 		23C1346E27A5358600C0DEB4 /* base-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C1346C27A5358600C0DEB4 /* base-test.cc */; };
+		23C3356A27A8279500319862 /* instruction-generating-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3356927A8279500319862 /* instruction-generating-arm64.cc */; };
+		23C3356B27A8279500319862 /* instruction-generating-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3356927A8279500319862 /* instruction-generating-arm64.cc */; };
+		23C3356E27A82DB500319862 /* stackslot-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3356D27A82DB500319862 /* stackslot-allocator.cc */; };
+		23C3356F27A82DB500319862 /* stackslot-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3356D27A82DB500319862 /* stackslot-allocator.cc */; };
 		23C3543726A1B7E7006607D1 /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3543626A1B7E7006607D1 /* scope.cc */; };
 		23C3543826A1B7E7006607D1 /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3543626A1B7E7006607D1 /* scope.cc */; };
 		23D4A4462680D17D0090C631 /* any.h in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68426676DEF00635ADB /* any.h */; };
@@ -365,6 +371,7 @@
 		23B997D826A4680300DD037B /* type-reducing.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "type-reducing.cc"; path = "../src/compiler/type-reducing.cc"; sourceTree = "<group>"; };
 		23B997DB26A468BE00DD037B /* scope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scope.h; path = ../src/compiler/scope.h; sourceTree = "<group>"; };
 		23B997DC26A468D500DD037B /* scope.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scope.cc; path = ../src/compiler/scope.cc; sourceTree = "<group>"; };
+		23BCAEB027A83D8800EC9D92 /* stackslot-allocator-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "stackslot-allocator-test.cc"; path = "../src/backend/stackslot-allocator-test.cc"; sourceTree = "<group>"; };
 		23C1344827A3CE9400C0DEB4 /* instruction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = instruction.h; path = ../src/backend/instruction.h; sourceTree = "<group>"; };
 		23C1344927A3CF0B00C0DEB4 /* instruction.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = instruction.cc; path = ../src/backend/instruction.cc; sourceTree = "<group>"; };
 		23C1344C27A3E3B400C0DEB4 /* machine-type.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "machine-type.h"; path = "../src/backend/machine-type.h"; sourceTree = "<group>"; };
@@ -382,6 +389,11 @@
 		23C1346827A5333000C0DEB4 /* register-allocator-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "register-allocator-test.cc"; path = "../src/backend/register-allocator-test.cc"; sourceTree = "<group>"; };
 		23C1346B27A5352300C0DEB4 /* base-test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "base-test.h"; path = "../src/ir/base-test.h"; sourceTree = "<group>"; };
 		23C1346C27A5358600C0DEB4 /* base-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "base-test.cc"; path = "../src/ir/base-test.cc"; sourceTree = "<group>"; };
+		23C3356727A8263900319862 /* instruction-codes-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "instruction-codes-arm64.h"; path = "../src/backend/arm64/instruction-codes-arm64.h"; sourceTree = "<group>"; };
+		23C3356827A8278400319862 /* instruction-generating-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "instruction-generating-arm64.h"; path = "../src/backend/arm64/instruction-generating-arm64.h"; sourceTree = "<group>"; };
+		23C3356927A8279500319862 /* instruction-generating-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instruction-generating-arm64.cc"; path = "../src/backend/arm64/instruction-generating-arm64.cc"; sourceTree = "<group>"; };
+		23C3356C27A82D7B00319862 /* stackslot-allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "stackslot-allocator.h"; path = "../src/backend/stackslot-allocator.h"; sourceTree = "<group>"; };
+		23C3356D27A82DB500319862 /* stackslot-allocator.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "stackslot-allocator.cc"; path = "../src/backend/stackslot-allocator.cc"; sourceTree = "<group>"; };
 		23C3543526A1B7A6006607D1 /* scope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scope.h; path = ../src/ir/scope.h; sourceTree = "<group>"; };
 		23C3543626A1B7E7006607D1 /* scope.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scope.cc; path = ../src/ir/scope.cc; sourceTree = "<group>"; };
 		23CAA1DD26667586000EF129 /* checking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = checking.h; path = ../src/runtime/checking.h; sourceTree = "<group>"; };
@@ -465,6 +477,9 @@
 				23C1346827A5333000C0DEB4 /* register-allocator-test.cc */,
 				23C1346527A515D600C0DEB4 /* register-allocator.cc */,
 				23C1346427A5153600C0DEB4 /* register-allocator.h */,
+				23BCAEB027A83D8800EC9D92 /* stackslot-allocator-test.cc */,
+				23C3356D27A82DB500319862 /* stackslot-allocator.cc */,
+				23C3356C27A82D7B00319862 /* stackslot-allocator.h */,
 			);
 			name = Backend;
 			sourceTree = "<group>";
@@ -472,6 +487,9 @@
 		2313C4D927A2413900F6A34B /* Arm64 */ = {
 			isa = PBXGroup;
 			children = (
+				23C3356927A8279500319862 /* instruction-generating-arm64.cc */,
+				23C3356827A8278400319862 /* instruction-generating-arm64.h */,
+				23C3356727A8263900319862 /* instruction-codes-arm64.h */,
 			);
 			name = Arm64;
 			sourceTree = "<group>";
@@ -861,6 +879,7 @@
 				23D4A4622680D17D0090C631 /* instr-arm64.h in Sources */,
 				23C1345427A3E8CE00C0DEB4 /* constants-pool.cc in Sources */,
 				23D4A4632680D17D0090C631 /* instr-arm64.cc in Sources */,
+				23C3356F27A82DB500319862 /* stackslot-allocator.cc in Sources */,
 				23D4A4642680D17D0090C631 /* gtest-all.cc in Sources */,
 				23D4A4652680D17D0090C631 /* all-tests.cc in Sources */,
 				23235B872797C07600134DEB /* condition.cc in Sources */,
@@ -881,6 +900,7 @@
 				23D4A46B2680D17D0090C631 /* at-exit.h in Sources */,
 				23D4A46C2680D17D0090C631 /* base.h in Sources */,
 				23D4A46D2680D17D0090C631 /* base.cc in Sources */,
+				23C3356B27A8279500319862 /* instruction-generating-arm64.cc in Sources */,
 				23FA869A269FE4D4001CC777 /* metadata.cc in Sources */,
 				232AA00826861D5D0098E6A3 /* parser-test.cc in Sources */,
 				232AA00126861A060098E6A3 /* ast-test.cc in Sources */,
@@ -898,6 +918,7 @@
 				23C1346727A515D600C0DEB4 /* register-allocator.cc in Sources */,
 				23FA86A726A13DE4001CC777 /* source-position-test.cc in Sources */,
 				23D4A4742680D17D0090C631 /* hash.h in Sources */,
+				23BCAEB227A83D8800EC9D92 /* stackslot-allocator-test.cc in Sources */,
 				23D4A4752680D17D0090C631 /* io.h in Sources */,
 				23D4A4762680D17D0090C631 /* io.cc in Sources */,
 				236466CD26F07E870066D168 /* checking.cc in Sources */,
@@ -969,6 +990,7 @@
 				23FA869C26A01091001CC777 /* type.cc in Sources */,
 				23D5A66F266718F900635ADB /* io.cc in Sources */,
 				23D5A670266718F900635ADB /* lazy-instance.h in Sources */,
+				23C3356E27A82DB500319862 /* stackslot-allocator.cc in Sources */,
 				23D5A671266718F900635ADB /* reference-count-test.cc in Sources */,
 				23C1345A27A4DA0D00C0DEB4 /* constants.cc in Sources */,
 				23D5A672266718F900635ADB /* reference-count.h in Sources */,
@@ -1015,10 +1037,12 @@
 				23D5A64E266718ED00635ADB /* runtime.c in Sources */,
 				23D5A64F266718ED00635ADB /* macros.h in Sources */,
 				23C1346D27A5358600C0DEB4 /* base-test.cc in Sources */,
+				23BCAEB127A83D8800EC9D92 /* stackslot-allocator-test.cc in Sources */,
 				233236DF269EC2EF0078406C /* operator-test.cc in Sources */,
 				23D5A68326676BDC00635ADB /* heap.c in Sources */,
 				23D5A651266718ED00635ADB /* stack-test.cc in Sources */,
 				23D5A652266718ED00635ADB /* stack.h in Sources */,
+				23C3356A27A8279500319862 /* instruction-generating-arm64.cc in Sources */,
 				23D5A653266718ED00635ADB /* stack.c in Sources */,
 				2336A2912774168E00346372 /* codegen-test.cc in Sources */,
 				23D5A654266718ED00635ADB /* process.h in Sources */,

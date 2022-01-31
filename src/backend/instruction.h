@@ -3,6 +3,7 @@
 #define YALX_BACKEND_INSTRUCTION_H_
 
 #include "backend/x64/instruction-codes-x64.h"
+#include "backend/arm64/instruction-codes-arm64.h"
 #include "backend/machine-type.h"
 #include "base/arena-utils.h"
 #include "base/base.h"
@@ -22,6 +23,17 @@ enum InstructionCode {
     ArchUnreachable,
 #define DEFINE_ENUM(name) name,
     X64_ARCH_OPCODE_LIST(DEFINE_ENUM)
+    ARM64_ARCH_OPCODE_LIST(DEFINE_ENUM)
+#undef DEFINE_ENUM
+};
+
+enum AddressingMode {
+#define DEFINE_ENUM(name) X64Mode_##name,
+    X64_ADDRESSING_MODE_LIST(DEFINE_ENUM)
+#undef DEFINE_ENUM
+    
+#define DEFINE_ENUM(name) Arm64Mode_##name,
+    ARM64_ADDRESSING_MODE_LIST(DEFINE_ENUM)
 #undef DEFINE_ENUM
 };
 
@@ -32,26 +44,61 @@ class ReloactionOperand;
 class LocationOperand;
 class RegisterOperand;
 
+#define DECLARE_INSTRUCTION_OPERANDS_KINDS(V) \
+    V(Unallocated) \
+    V(Constant) \
+    V(Immediate) \
+    V(Reloaction) \
+    V(Location) \
+    V(Register)
+
 class InstructionOperand : public base::ArenaObject {
 public:
     enum Kind {
         kInvalid,
-        kUnallocated,
-        kConstant,
-        kImmediate,
-        kReloaction,
-        kLocation,
-        kRegister,
+#define DEFINE_ENUM(name) k##name,
+    DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_ENUM)
+#undef  DEFINE_ENUM
     };
     
     DEF_VAL_GETTER(Kind, kind);
+
+#define DEFINE_TESTING(name) bool Is##name() const { return kind() == k##name; }
+    DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_TESTING)
+#undef  DEFINE_TESTING
     
+#define DEFINE_CASTING(name) \
+    name##Operand *As##name() { return !Is##name() ? nullptr : static_cast<name##Operand *>(this); } \
+    const name##Operand *As##name() const { return !Is##name() ? nullptr : static_cast<const name##Operand *>(this); } \
+    DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_CASTING)
+#undef  DEFINE_CASTING
 protected:
     explicit InstructionOperand(Kind kind): kind_(kind) {}
 
     Kind kind_;
 }; // class InstructionOperand
 
+class LocationOperand final : public InstructionOperand {
+public:
+    LocationOperand(AddressingMode mode, int register0_id, int register1_id, int k)
+    : InstructionOperand(kLocation)
+    , mode_(mode)
+    , register0_id_(register0_id)
+    , register1_id_(register1_id)
+    , k_(k) {
+    }
+    
+    DEF_VAL_GETTER(AddressingMode, mode);
+    DEF_VAL_GETTER(int, register0_id);
+    DEF_VAL_GETTER(int, register1_id);
+    DEF_VAL_GETTER(int, k);
+
+private:
+    AddressingMode mode_;
+    int register0_id_;
+    int register1_id_;
+    int k_;
+}; // class LocationOperand
 
 class RegisterOperand final : public InstructionOperand {
 public:
