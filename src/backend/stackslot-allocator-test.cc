@@ -16,7 +16,7 @@ protected:
 }; // class StackSlotAllocatorTest
 
 TEST_F(StackSlotAllocatorTest, Sanity) {
-    auto slot1 = slots_.AllocateSlot(1);
+    auto slot1 = slots_.AllocateValSlot(1, nullptr);
     ASSERT_EQ(Arm64Mode_MRI, slot1->mode());
     ASSERT_EQ(29, slot1->register0_id());
     ASSERT_EQ(-1, slot1->register1_id());
