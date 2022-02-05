@@ -101,6 +101,7 @@ public:
     virtual Member GetMember(const Handle *handle) const;
     virtual Handle *FindMemberOrNull(std::string_view name) const;
     virtual size_t ReferenceSizeInBytes() const = 0;
+    virtual size_t PlacementSizeInBytes() const = 0;
     bool IsNotBaseOf(const Model *base) const { return !IsBaseOf(base); }
     virtual bool IsBaseOf(const Model *base) const;
     virtual void PrintTo(int indent, base::PrintingWriter *printer) const;
@@ -121,6 +122,7 @@ public:
                                 const Type *return_types, const size_t return_types_size);
     
     size_t ReferenceSizeInBytes() const override;
+    size_t PlacementSizeInBytes() const override;
     void PrintTo(int indent, base::PrintingWriter *printer) const override;
 
     DEF_ARENA_VECTOR_GETTER(Type, param);
@@ -143,6 +145,7 @@ public:
     Member GetMember(const Handle *handle) const override;
     std::optional<Method> FindMethod(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
+    size_t PlacementSizeInBytes() const override;
     void PrintTo(int indent, base::PrintingWriter *printer) const override;
 private:
     base::Arena *const arena_;
@@ -158,6 +161,7 @@ public:
     static std::string ToString(int dimension_count, const Type element_type);
     
     size_t ReferenceSizeInBytes() const override;
+    size_t PlacementSizeInBytes() const override;
 private:
     const Type element_type_;
     const int dimension_count_;
@@ -200,10 +204,12 @@ public:
     Member GetMember(const Handle *handle) const override;
     Handle *FindMemberOrNull(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
+    size_t PlacementSizeInBytes() const override;
     bool IsBaseOf(const Model *base) const override;
     void PrintTo(int indent, base::PrintingWriter *printer) const override;
     
     void InstallVirtualTables(bool force);
+    int64_t UpdatePlacementSizeInBytes();
     bool In_itab(Handle *) const;
     bool In_vtab(Handle *) const;
 private:
@@ -211,6 +217,7 @@ private:
     base::Arena * const arena_;
     StructureModel *base_of_;
     Function *constructor_ = nullptr;
+    int64_t placement_size_in_bytes_ = -1;
     base::ArenaVector<InterfaceModel *> interfaces_;
     base::ArenaMap<std::string_view, Handle *> members_;
     base::ArenaVector<Field> fields_;

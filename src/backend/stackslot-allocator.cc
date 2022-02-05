@@ -23,7 +23,8 @@ StackSlotAllocator::StackSlotAllocator(const StackConfiguration *conf, base::Are
 , arena_(arena)
 , max_stack_size_(conf->saved_size())
 , stack_size_(conf->saved_size()) {
-
+    UpdateStackSize(0);
+    MarkUsed(0, conf_->saved_size());
 }
 
 LocationOperand *StackSlotAllocator::AllocateValSlot(size_t size, ir::Model *model) {
@@ -32,18 +33,6 @@ LocationOperand *StackSlotAllocator::AllocateValSlot(size_t size, ir::Model *mod
 
 LocationOperand *StackSlotAllocator::AllocateRefSlot() {
     return Allocate(kPointerSize, true/*is_ref*/, nullptr/*model*/);
-}
-
-void StackSlotAllocator::FreeSlot(LocationOperand *operand) {
-    assert(!slots_.empty());
-    auto iter = std::find_if(slots_.begin(), slots_.end(),
-                             [operand](const auto &slot) {return slot.operand == operand;} );
-    assert(iter != slots_.end());
-    MarkUnused(-operand->k() - iter->size, iter->size);
-    if (operand->k() == stack_size_) { // The top one
-        stack_size_ -= iter->size;
-    }
-    slots_.erase(iter);
 }
 
 LocationOperand *StackSlotAllocator::Allocate(size_t size, bool is_ref, ir::Model *model) {
@@ -58,16 +47,39 @@ LocationOperand *StackSlotAllocator::Allocate(size_t size, bool is_ref, ir::Mode
         offset = stack_size_;
     }
     slot.operand = new (arena_) LocationOperand(conf_->addressing_mode(), conf_->id_of_fp(), -1, -offset - slot.size);
-    if (fit) {
+    if (!fit) {
+        UpdateStackSize(slot.size);
+    }
+    InsertSlot(slot);
+    MarkUsed(-slot.operand->k() - slot.size, slot.size);
+    return slot.operand;
+}
+
+void StackSlotAllocator::FreeSlot(LocationOperand *operand) {
+    assert(!slots_.empty());
+    auto iter = std::find_if(slots_.begin(), slots_.end(),
+                             [operand](const auto &slot) {return slot.operand == operand;} );
+    assert(iter != slots_.end());
+    MarkUnused(-operand->k() - iter->size, iter->size);
+    if (operand->k() == stack_size_) { // The top one
+        UpdateStackSize(-iter->size);
+    }
+    slots_.erase(iter);
+}
+
+void StackSlotAllocator::InsertSlot(const StackSlot &slot) {
+    if (slots_.empty()) {
+        slots_.push_back(slot);
+    } else {
         for (auto iter = slots_.begin(); iter != slots_.end(); iter++) {
             if (slot.operand->k() < iter->operand->k()) {
                 slots_.insert(iter + 1, slot);
+                break;
             }
         }
-    } else {
-        InsertSlot(slot);
     }
-    return slot.operand;
+    UpdateMaxStackSize(slot.operand, slot.size);
+    
 }
 
 bool StackSlotAllocator::FindFirstFitSpace(int *offset, int size) const {
@@ -77,7 +89,7 @@ bool StackSlotAllocator::FindFirstFitSpace(int *offset, int size) const {
             auto required_size = size;
             auto maybe_fit = i * 32 + fz;
             for (auto j = maybe_fit; j < bitmap_.size() * 32; j++) {
-                if (TestBit(j)) {
+                if (!TestBit(j)) {
                     required_size -= conf_->slot_alignment_size();
                 }
                 if (required_size <= 0) {

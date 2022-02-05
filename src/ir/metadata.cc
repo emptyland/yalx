@@ -2,6 +2,7 @@
 #include "ir/node.h"
 #include "ir/utils.h"
 #include "compiler/constants.h"
+#include "runtime/object/any.h"
 #include "base/io.h"
 #include <stack>
 
@@ -76,6 +77,7 @@ std::string PrototypeModel::ToString(const Type *params, const size_t params_siz
 }
 
 size_t PrototypeModel::ReferenceSizeInBytes() const { return kPointerSize; }
+size_t PrototypeModel::PlacementSizeInBytes() const { return kPointerSize; }
 
 void PrototypeModel::PrintTo(int indent, base::PrintingWriter *printer) const {
     printer
@@ -122,7 +124,10 @@ std::optional<Model::Method> InterfaceModel::FindMethod(std::string_view name) c
     }
 }
 
-size_t InterfaceModel::ReferenceSizeInBytes() const { return kPointerSize; }
+// ownership: yalx_any_t *;
+// vtab     : yalx_fun_t **;
+size_t InterfaceModel::ReferenceSizeInBytes() const { return kPointerSize * 2; } // TODO:
+size_t InterfaceModel::PlacementSizeInBytes() const { return kPointerSize * 2; } // TODO:
 
 void InterfaceModel::PrintTo(int indent, base::PrintingWriter *printer) const {
     printer->Indent(indent)->Println("interface %s @%s {", name()->data(), full_name()->data());
@@ -149,6 +154,7 @@ std::string ArrayModel::ToString(int dimension_count, const Type element_type) {
 }
 
 size_t ArrayModel::ReferenceSizeInBytes() const { return kPointerSize; }
+size_t ArrayModel::PlacementSizeInBytes() const { UNREACHABLE(); }
 
 StructureModel::StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration declaration,
                                Module *owns, StructureModel *base_of)
@@ -230,12 +236,10 @@ Handle *StructureModel::FindMemberOrNull(std::string_view name) const {
     return nullptr;
 }
 
-size_t StructureModel::ReferenceSizeInBytes() const {
-    if (declaration() == kClass) {
-        return kPointerSize;
-    }
-    //UNREACHABLE();
-    return 1;
+size_t StructureModel::ReferenceSizeInBytes() const { return kPointerSize; }
+size_t StructureModel::PlacementSizeInBytes() const {
+    assert(placement_size_in_bytes_ > 0);
+    return placement_size_in_bytes_;
 }
 
 void StructureModel::InstallVirtualTables(bool force) {
@@ -312,6 +316,43 @@ void StructureModel::InstallVirtualTables(bool force) {
             vtab_.push_back(had);
         }
     }
+}
+
+int64_t StructureModel::UpdatePlacementSizeInBytes() {
+    ptrdiff_t offset = 0;
+    if (!base_of()) {
+        offset = sizeof(struct yalx_value_any);
+    } else if (base_of()->placement_size_in_bytes_ > 0) {
+        offset = base_of()->PlacementSizeInBytes();
+    } else {
+        offset = base_of()->UpdatePlacementSizeInBytes();
+    }
+    assert(offset > 0);
+    assert(offset % kPointerSize == 0);
+
+    for (const auto &field : fields()) {
+        //offset += field.type.bytes();
+        size_t incoming_size = 0;
+        switch (field.type.kind()) {
+            case Type::kValue:
+                incoming_size = field.type.model()->PlacementSizeInBytes();
+                break;
+            case Type::kReference:
+                incoming_size = field.type.model()->ReferenceSizeInBytes();
+                break;
+            default:
+                incoming_size = field.type.bytes();
+                break;
+        }
+        
+        if (((offset + incoming_size) & 0x1u) == 0u) { // check did offset alignment of 2
+            offset += incoming_size;
+        } else {
+            offset = RoundUp(offset, 2) + incoming_size;
+        }
+    }
+    // size must be aligment of kPointerSize
+    placement_size_in_bytes_ = RoundUp(offset, kPointerSize);
 }
 
 bool StructureModel::IsBaseOf(const Model *base) const {

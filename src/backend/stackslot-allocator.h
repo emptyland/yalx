@@ -62,15 +62,7 @@ private:
     LocationOperand *Allocate(size_t size, bool is_ref, ir::Model *model);
     // int LatestOffset() const;
     
-    void InsertSlot(const StackSlot &slot) {
-        stack_size_ += slot.size;
-        for (auto iter = slots_.begin(); iter != slots_.end(); iter++) {
-            if (slot.operand->k() < iter->operand->k()) {
-                slots_.insert(iter + 1, slot);
-            }
-        }
-        UpdateMaxStackSize(slot.operand, slot.size);
-    }
+    void InsertSlot(const StackSlot &slot);
 
     void UpdateMaxStackSize(const LocationOperand *operand, int size) {
         assert(operand->k() < 0);
@@ -80,7 +72,23 @@ private:
         }
     }
     
+    void UpdateStackSize(int add) {
+        stack_size_ += add;
+        auto offset = stack_size_ / conf_->slot_alignment_size();
+        bitmap_.resize((offset + 31) / 32, 0u);
+    }
+    
     bool FindFirstFitSpace(int *offset, int size) const;
+    
+    void MarkUsed(int offset, int size) {
+        assert(offset >= 0);
+        assert(size > 0);
+        auto begin = offset / conf_->slot_alignment_size();
+        auto end   = begin + size / conf_->slot_alignment_size();
+        for (int i = begin; i < end; i++) {
+            SetBit(i);
+        }
+    }
     
     void MarkUnused(int offset, int size) {
         assert(offset >= 0);
@@ -91,17 +99,23 @@ private:
             ClearBit(i);
         }
     }
+    
+    void SetBit(int index) {
+        assert(index >= 0);
+        assert(index < bitmap_.size() * 32);
+        bitmap_[index / 32] |= (1u << (index % 32));
+    }
 
     void ClearBit(int index) {
         assert(index >= 0);
         assert(index < bitmap_.size() * 32);
-        bitmap_[index / 32] &= ~(1u >> (index % 32));
+        bitmap_[index / 32] &= ~(1u << (index % 32));
     }
     
     bool TestBit(int index) const {
         assert(index >= 0);
         assert(index < bitmap_.size() * 32);
-        return bitmap_[index / 32] & (1u >> (index % 32));
+        return bitmap_[index / 32] & (1u << (index % 32));
     }
     
     const StackConfiguration *const conf_;

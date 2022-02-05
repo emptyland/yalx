@@ -58,7 +58,7 @@ public:
     DEF_VAL_GETTER(int, bits);
     DEF_PTR_GETTER(Model, model);
     
-    int bytes() const { return bits_ / 8; }
+    int bytes() const { return bits_ >> 3; /*/8*/ }
     
     bool IsSigned() const { return flags_ & kSignedBit; }
     bool IsUnsigned() const { return !IsSigned(); }

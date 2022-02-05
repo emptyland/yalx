@@ -262,6 +262,7 @@ public:
         
         fixup(clazz);
         clazz->InstallVirtualTables(false/*force*/);
+        clazz->UpdatePlacementSizeInBytes();
         return Returning(Unit());
     }
     
