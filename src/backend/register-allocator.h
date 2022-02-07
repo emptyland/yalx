@@ -73,40 +73,19 @@ private:
 
 class RegisterAllocator final {
 public:
-    RegisterAllocator(base::Arena *arena, RegisterConfiguration *conf);
-    
-    void Prepare(ir::Function *fun);
-    
+    RegisterAllocator(const RegisterConfiguration *conf, base::Arena *arena);
+
     // SP/RSP
     DEF_PTR_GETTER(RegisterOperand, stack_pointer);
     // FP/RBP
     DEF_PTR_GETTER(RegisterOperand, frame_pointer);
 
-    struct LiveRange {
-        int start_position = -1;
-        int stop_position  = -1;
-    };
-    
-    void Alive(ir::Value *value, int ir_position) {
-        if (auto iter = live_records_.find(value); iter == live_records_.end()) {
-            live_records_[value] = LiveRange{ir_position, -1};
-        }
-    }
-
-    void Dead(ir::Value *value, int ir_position) {
-        if (auto iter = live_records_.find(value); iter != live_records_.end()) {
-            if (iter->second.stop_position == -1) {
-                iter->second.stop_position = ir_position;
-            }
-        }
-    }
 private:
     base::Arena *const arena_;
     const RegisterConfiguration *const conf_;
     
     RegisterOperand *stack_pointer_ = nullptr;
     RegisterOperand *frame_pointer_ = nullptr;
-    std::map<ir::Value *, LiveRange> live_records_;
 }; // class RegisterAllocator
 
 } // namespace backend

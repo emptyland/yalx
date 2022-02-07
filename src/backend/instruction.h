@@ -68,8 +68,8 @@ public:
 #undef  DEFINE_TESTING
     
 #define DEFINE_CASTING(name) \
-    name##Operand *As##name() { return !Is##name() ? nullptr : static_cast<name##Operand *>(this); } \
-    const name##Operand *As##name() const { return !Is##name() ? nullptr : static_cast<const name##Operand *>(this); } \
+    name##Operand *As##name(); \
+    const name##Operand *As##name() const;
     DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_CASTING)
 #undef  DEFINE_CASTING
 protected:
@@ -195,6 +195,16 @@ private:
     base::ArenaVector<InstructionBlock *> predecessors_;
     base::ArenaVector<Instruction *> instructions_;
 }; // class InstructionBlock
+
+//#define DEFINE_CASTING(name) \
+//inline name##Operand *InstructionOperand::As##name() { \
+//    return !Is##name() ? nullptr : static_cast<name##Operand *>(this); \
+//} \
+//inline const name##Operand *InstructionOperand::As##name() const { \
+//    return !Is##name() ? nullptr : static_cast<const name##Operand *>(this); \
+//}
+//DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_CASTING)
+//#undef  DEFINE_CASTING
 
 } // namespace backend
 

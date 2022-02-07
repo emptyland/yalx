@@ -56,6 +56,8 @@
 		2362A0F126A6CB1700A972B1 /* generics-instantiating-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362A0EF26A6CB1700A972B1 /* generics-instantiating-test.cc */; };
 		236466CC26F07E870066D168 /* checking.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236466CB26F07E870066D168 /* checking.cc */; };
 		236466CD26F07E870066D168 /* checking.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236466CB26F07E870066D168 /* checking.cc */; };
+		237D551D27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
+		237D551E27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA42684627B002E6DCF /* lexer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFA32684627B002E6DCF /* lexer.cc */; };
@@ -346,6 +348,8 @@
 		236466CB26F07E870066D168 /* checking.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = checking.cc; path = ../src/base/checking.cc; sourceTree = "<group>"; };
 		23711300275F6889008919BE /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/compiler/constants.h; sourceTree = "<group>"; };
 		237A0DAB27731390002180FE /* global-symbol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "global-symbol.h"; path = "../src/compiler/global-symbol.h"; sourceTree = "<group>"; };
+		237D551B27B0BAD60067A633 /* operand-allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "operand-allocator.h"; path = "../src/backend/operand-allocator.h"; sourceTree = "<group>"; };
+		237D551C27B0C0530067A633 /* operand-allocator.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "operand-allocator.cc"; path = "../src/backend/operand-allocator.cc"; sourceTree = "<group>"; };
 		2387EF9D2681C80D002E6DCF /* compiler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = compiler.h; path = ../src/compiler/compiler.h; sourceTree = "<group>"; };
 		2387EF9E2681C8D3002E6DCF /* compiler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = compiler.cc; path = ../src/compiler/compiler.cc; sourceTree = "<group>"; };
 		2387EFA126842BFF002E6DCF /* object-visitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "object-visitor.h"; path = "../src/runtime/heap/object-visitor.h"; sourceTree = "<group>"; };
@@ -480,6 +484,8 @@
 				23BCAEB027A83D8800EC9D92 /* stackslot-allocator-test.cc */,
 				23C3356D27A82DB500319862 /* stackslot-allocator.cc */,
 				23C3356C27A82D7B00319862 /* stackslot-allocator.h */,
+				237D551C27B0C0530067A633 /* operand-allocator.cc */,
+				237D551B27B0BAD60067A633 /* operand-allocator.h */,
 			);
 			name = Backend;
 			sourceTree = "<group>";
@@ -908,6 +914,7 @@
 				23D4A46E2680D17D0090C631 /* bit-ops.h in Sources */,
 				23B997DA26A4680300DD037B /* type-reducing.cc in Sources */,
 				2387EFB1268581AD002E6DCF /* token-test.cc in Sources */,
+				237D551E27B0C0530067A633 /* operand-allocator.cc in Sources */,
 				23D4A46F2680D17D0090C631 /* crc32.c in Sources */,
 				23D4A4702680D17D0090C631 /* env-test.cc in Sources */,
 				23C1345B27A4DA0D00C0DEB4 /* constants.cc in Sources */,
@@ -1037,6 +1044,7 @@
 				23D5A64E266718ED00635ADB /* runtime.c in Sources */,
 				23D5A64F266718ED00635ADB /* macros.h in Sources */,
 				23C1346D27A5358600C0DEB4 /* base-test.cc in Sources */,
+				237D551D27B0C0530067A633 /* operand-allocator.cc in Sources */,
 				23BCAEB127A83D8800EC9D92 /* stackslot-allocator-test.cc in Sources */,
 				233236DF269EC2EF0078406C /* operator-test.cc in Sources */,
 				23D5A68326676BDC00635ADB /* heap.c in Sources */,

@@ -27,15 +27,15 @@ StackSlotAllocator::StackSlotAllocator(const StackConfiguration *conf, base::Are
     MarkUsed(0, conf_->saved_size());
 }
 
-LocationOperand *StackSlotAllocator::AllocateValSlot(size_t size, ir::Model *model) {
-    return Allocate(size, false/*is_ref*/, model);
+LocationOperand *StackSlotAllocator::AllocateValSlot(size_t size, Policy policy, ir::Model *model) {
+    return Allocate(size, false/*is_ref*/, policy, model);
 }
 
-LocationOperand *StackSlotAllocator::AllocateRefSlot() {
-    return Allocate(kPointerSize, true/*is_ref*/, nullptr/*model*/);
+LocationOperand *StackSlotAllocator::AllocateRefSlot(Policy policy) {
+    return Allocate(kPointerSize, true/*is_ref*/, policy, nullptr/*model*/);
 }
 
-LocationOperand *StackSlotAllocator::Allocate(size_t size, bool is_ref, ir::Model *model) {
+LocationOperand *StackSlotAllocator::Allocate(size_t size, bool is_ref, Policy policy, ir::Model *model) {
     StackSlot slot;
     slot.size    = RoundUp(size, conf_->slot_alignment_size());
     slot.is_ref  = is_ref;

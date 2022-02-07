@@ -50,16 +50,21 @@ struct StackSlot {
 
 class StackSlotAllocator final {
 public:
+    enum Policy {
+        kLinear,
+        kFit,
+    };
+
     StackSlotAllocator(const StackConfiguration *conf, base::Arena *arena);
     
-    LocationOperand *AllocateValSlot(size_t size, ir::Model *model = nullptr);
-    LocationOperand *AllocateRefSlot();
+    LocationOperand *AllocateValSlot(size_t size, Policy policy = kFit, ir::Model *model = nullptr);
+    LocationOperand *AllocateRefSlot(Policy policy = kFit);
 
     void FreeSlot(LocationOperand *operand);
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(StackSlotAllocator);
 private:
-    LocationOperand *Allocate(size_t size, bool is_ref, ir::Model *model);
+    LocationOperand *Allocate(size_t size, bool is_ref, Policy policy, ir::Model *model);
     // int LatestOffset() const;
     
     void InsertSlot(const StackSlot &slot);

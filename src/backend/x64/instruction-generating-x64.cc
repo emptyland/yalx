@@ -131,9 +131,9 @@ void X64InstructionGenerator::GenerateFun(ir::StructureModel *owns, ir::Function
         blocks[blk] = new (arena_) InstructionBlock(arena_);
     }
     
-    RegisterAllocator registers(arena_, kRegConf.Get());
+    RegisterAllocator registers(kRegConf.Get(), arena_);
     for (size_t i = 0; i < std::min(kNumberOfArgumentsRegisters, fun->paramaters_size()); i++) {
-        registers.Alive(fun->paramater(i), 0);
+        //registers.Alive(fun->paramater(i), 0);
     }
 
 }

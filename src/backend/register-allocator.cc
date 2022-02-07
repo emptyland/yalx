@@ -35,42 +35,13 @@ RegisterConfiguration::RegisterConfiguration(
     
 }
 
-RegisterAllocator::RegisterAllocator(base::Arena *arena, RegisterConfiguration *conf)
+RegisterAllocator::RegisterAllocator(const RegisterConfiguration *conf, base::Arena *arena)
 : arena_(arena)
 , conf_(conf) {
     stack_pointer_ = new (arena) RegisterOperand(conf->id_of_sp(), conf->rep_of_ptr());
     frame_pointer_ = new (arena) RegisterOperand(conf->id_of_fp(), conf->rep_of_ptr());
 }
 
-void RegisterAllocator::Prepare(ir::Function *fun) {
-    int position = 0;
-    for (auto blk : fun->blocks()) {
-        for (auto instr : blk->instructions()) {
-            if (instr->type().kind() != ir::Type::kVoid) {
-                Alive(instr, position);
-            }
-            for (int i = 0; i < instr->op()->value_in(); i++) {
-                Alive(instr->InputValue(i), position);
-            }
-            position++;
-        }
-    }
-
-    for (int64_t i = fun->blocks_size() - 1; i >= 0; i--) {
-        auto blk = fun->block(i);
-        for (int64_t j = blk->instructions_size() - 1; j >= 0; j--) {
-            auto instr = blk->instruction(j);
-            if (instr->type().kind() != ir::Type::kVoid) {
-                Dead(instr, position);
-            }
-            for (int k = 0; k < instr->op()->value_in(); k++) {
-                Alive(instr->InputValue(k), position);
-            }
-            position--;
-        }
-    }
-    assert(position == 0);
-}
 
 } // namespace backend
 
