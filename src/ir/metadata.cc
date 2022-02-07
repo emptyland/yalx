@@ -330,25 +330,26 @@ int64_t StructureModel::UpdatePlacementSizeInBytes() {
     assert(offset > 0);
     assert(offset % kPointerSize == 0);
 
-    for (const auto &field : fields()) {
-        //offset += field.type.bytes();
+    for (auto &field : fields_) {
         size_t incoming_size = 0;
         switch (field.type.kind()) {
             case Type::kValue:
+                assert(!field.type.IsPointer());
+                field.offset = RoundUp(offset, kPointerSize);
                 incoming_size = field.type.model()->PlacementSizeInBytes();
+                offset = field.offset + incoming_size;
                 break;
+            case Type::kString:
             case Type::kReference:
                 incoming_size = field.type.model()->ReferenceSizeInBytes();
+                field.offset = RoundUp(offset, incoming_size);
+                offset = field.offset + incoming_size;
                 break;
             default:
                 incoming_size = field.type.bytes();
+                field.offset = RoundUp(offset, incoming_size);
+                offset = field.offset + incoming_size;
                 break;
-        }
-        
-        if (((offset + incoming_size) & 0x1u) == 0u) { // check did offset alignment of 2
-            offset += incoming_size;
-        } else {
-            offset = RoundUp(offset, 2) + incoming_size;
         }
     }
     // size must be aligment of kPointerSize
