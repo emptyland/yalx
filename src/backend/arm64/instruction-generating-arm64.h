@@ -36,6 +36,7 @@ private:
 }; // class X64InstructionGenerator
 
 const StackConfiguration *Arm64StackConf();
+const RegisterConfiguration *Arm64RegisterConf();
 
 } // namespace backend
 } // namespace yalx

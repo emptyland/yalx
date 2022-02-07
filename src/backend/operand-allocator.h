@@ -17,15 +17,22 @@ public:
     
     enum OperandMark {
         kVal,
+        kF32,
+        kF64,
         kPtr,
         kRef,
     };
+    
+    constexpr static const int kAnyRegister = RegisterAllocator::kAny;
     
 
     OperandAllocator(const StackConfiguration *sconf,
                      const RegisterConfiguration *rconf,
                      Policy policy,
                      base::Arena *arena);
+    
+    StackSlotAllocator *slots() { return &slots_; }
+    RegisterAllocator *registers() { return &registers_; }
     
     void Prepare(ir::Function *fun);
     
@@ -36,6 +43,9 @@ public:
     LocationOperand *AllocateStackSlot(OperandMark mark, size_t size,
                                        StackSlotAllocator::Policy policy,
                                        ir::Model *model = nullptr);
+    
+    RegisterOperand *AllocateReigster(ir::Value *value, int designate = kAnyRegister);
+    RegisterOperand *AllocateReigster(OperandMark mark, size_t size, int designate = kAnyRegister);
 
     void Free(ir::Value *value) {
         if (auto iter = allocated_.find(value); iter != allocated_.end()) {
@@ -48,9 +58,9 @@ public:
     void ReleaseDeads(int position);
     
     void Move(ir::Value *value, InstructionOperand *operand) {
-        auto iter = allocated_.find(value);
-        assert(iter != allocated_.end());
-        Free(iter->second);
+        if (auto iter = allocated_.find(value); iter != allocated_.end()) {
+            Free(iter->second);
+        }
         allocated_[value] = operand;
     }
     
@@ -64,6 +74,8 @@ public:
         size_t size;
     };
 private:
+    InstructionOperand *TryAllocateRegisterFirst(ir::Value *value);
+    
     void Alive(ir::Value *value, int ir_position) {
         if (auto iter = live_ranges_.find(value); iter == live_ranges_.end()) {
             live_ranges_[value] = LiveRange{ir_position, -1};

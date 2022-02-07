@@ -5,6 +5,7 @@
 #include "backend/instruction.h"
 #include "base/arena-utils.h"
 #include "base/base.h"
+#include <set>
 
 namespace yalx {
 namespace ir {
@@ -73,23 +74,32 @@ private:
 
 class RegisterAllocator final {
 public:
+    constexpr static const int kAny = -1;
+    
     RegisterAllocator(const RegisterConfiguration *conf, base::Arena *arena);
 
     // SP/RSP
     DEF_PTR_GETTER(RegisterOperand, stack_pointer);
     // FP/RBP
     DEF_PTR_GETTER(RegisterOperand, frame_pointer);
+    DEF_PTR_GETTER(const RegisterConfiguration, conf);
 
+    RegisterOperand *AllocateRegister(MachineRepresentation rep, int designate = kAny);
+    void FreeRegister(RegisterOperand *reg);
 private:
+    RegisterOperand *Allocate(std::set<int> *pool, MachineRepresentation rep, int designate);
+    
     base::Arena *const arena_;
     const RegisterConfiguration *const conf_;
     
     RegisterOperand *stack_pointer_ = nullptr;
     RegisterOperand *frame_pointer_ = nullptr;
+    std::set<int> general_pool_;
+    std::set<int> float_pool_;
+    std::set<int> double_pool_;
 }; // class RegisterAllocator
 
 } // namespace backend
-
 } // namespace yalx
 
 #endif // YALX_BACKEND_REGISTER_ALLOCATOR_H_

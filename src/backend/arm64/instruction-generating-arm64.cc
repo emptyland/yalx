@@ -101,6 +101,7 @@ Arm64InstructionGenerator::Arm64InstructionGenerator(base::Arena *arena, ir::Mod
 }
 
 const StackConfiguration *Arm64StackConf() { return kStackConf.Get(); }
+const RegisterConfiguration *Arm64RegisterConf() { return kRegConf.Get(); }
 
 } // namespace backend
 } // namespace yalx
