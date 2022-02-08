@@ -57,6 +57,9 @@ public:
 
     StackSlotAllocator(const StackConfiguration *conf, base::Arena *arena);
     
+    DEF_VAL_GETTER(uint32_t, max_stack_size);
+    DEF_VAL_GETTER(uint32_t, stack_size);
+    
     LocationOperand *AllocateValSlot(size_t size, Policy policy = kFit, ir::Model *model = nullptr);
     LocationOperand *AllocateRefSlot(Policy policy = kFit);
 

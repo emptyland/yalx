@@ -43,6 +43,23 @@ std::string_view Type::ToString() const {
     return "";
 }
 
+size_t Type::ReferenceSizeInBytes() const {
+    if (IsPointer() || IsReference()) {
+        return kPointerSize;
+    }
+    if (kind() == kValue) {
+        return model()->PlacementSizeInBytes();
+    }
+    return bytes();
+}
+
+size_t Type::PlacementSizeInBytes() const {
+    if (model()) {
+        return model()->PlacementSizeInBytes();
+    }
+    return bytes();
+}
+
 Type Type::Ref(Model *model, bool nullable) {
     return Type(model->full_name()->Equal(cpl::kStringClassFullName) ? kString : kReference,
                 (DCHECK_NOTNULL(model)->ReferenceSizeInBytes() << 3),

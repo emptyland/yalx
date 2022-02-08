@@ -87,7 +87,7 @@ public:
     RegisterOperand *AllocateRegister(MachineRepresentation rep, int designate = kAny);
     void FreeRegister(RegisterOperand *reg);
 private:
-    RegisterOperand *Allocate(std::set<int> *pool, MachineRepresentation rep, int designate);
+    RegisterOperand *Allocate(std::set<int> *pool, std::set<int> *allocated, MachineRepresentation rep, int designate);
     
     base::Arena *const arena_;
     const RegisterConfiguration *const conf_;
@@ -95,8 +95,9 @@ private:
     RegisterOperand *stack_pointer_ = nullptr;
     RegisterOperand *frame_pointer_ = nullptr;
     std::set<int> general_pool_;
+    std::set<int> general_allocated_;
     std::set<int> float_pool_;
-    std::set<int> double_pool_;
+    std::set<int> float_allocated_;
 }; // class RegisterAllocator
 
 } // namespace backend

@@ -20,6 +20,7 @@ enum InstructionCode {
     ArchNop,
     ArchDebugBreak,
     ArchRet,
+    ArchJmp,
     ArchUnreachable,
 #define DEFINE_ENUM(name) name,
     X64_ARCH_OPCODE_LIST(DEFINE_ENUM)
@@ -44,8 +45,9 @@ class ReloactionOperand;
 class LocationOperand;
 class RegisterOperand;
 
+class InstructionBlock;
+
 #define DECLARE_INSTRUCTION_OPERANDS_KINDS(V) \
-    V(Unallocated) \
     V(Constant) \
     V(Immediate) \
     V(Reloaction) \
@@ -68,8 +70,8 @@ public:
 #undef  DEFINE_TESTING
     
 #define DEFINE_CASTING(name) \
-    name##Operand *As##name(); \
-    const name##Operand *As##name() const;
+    inline name##Operand *As##name(); \
+    inline const name##Operand *As##name() const;
     DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_CASTING)
 #undef  DEFINE_CASTING
 protected:
@@ -77,6 +79,103 @@ protected:
 
     Kind kind_;
 }; // class InstructionOperand
+
+class ImmediateOperand final : public InstructionOperand {
+public:
+    DEF_VAL_GETTER(MachineRepresentation, rep);
+    DEF_VAL_GETTER(int8_t, word8);
+    DEF_VAL_GETTER(int16_t, word16);
+    DEF_VAL_GETTER(int32_t, word32);
+    DEF_VAL_GETTER(int64_t, word64);
+    
+    static ImmediateOperand *Word8(base::Arena *arena, int8_t val) {
+        auto imm = new (arena) ImmediateOperand(MachineRepresentation::kWord8);
+        imm->word8_ = val;
+        return imm;
+    }
+    
+    static ImmediateOperand *Word16(base::Arena *arena, int16_t val) {
+        auto imm = new (arena) ImmediateOperand(MachineRepresentation::kWord16);
+        imm->word16_ = val;
+        return imm;
+    }
+    
+    static ImmediateOperand *Word32(base::Arena *arena, int32_t val) {
+        auto imm = new (arena) ImmediateOperand(MachineRepresentation::kWord32);
+        imm->word32_ = val;
+        return imm;
+    }
+    
+    static ImmediateOperand *Word64(base::Arena *arena, int64_t val) {
+        auto imm = new (arena) ImmediateOperand(MachineRepresentation::kWord64);
+        imm->word64_ = val;
+        return imm;
+    }
+    
+    void Set8(int8_t val) {
+        assert(rep_ == MachineRepresentation::kWord8);
+        word8_ = val;
+    }
+    
+    void Set16(int16_t val) {
+        assert(rep_ == MachineRepresentation::kWord16);
+        word16_ = val;
+    }
+    
+    void Set32(int32_t val) {
+        assert(rep_ == MachineRepresentation::kWord32);
+        word32_ = val;
+    }
+    
+    void Set64(int64_t val) {
+        assert(rep_ == MachineRepresentation::kWord64);
+        word64_ = val;
+    }
+
+private:
+    ImmediateOperand(MachineRepresentation rep)
+    : InstructionOperand(kImmediate)
+    , rep_(rep) {}
+
+    const MachineRepresentation rep_;
+    union {
+        int8_t word8_;
+        int16_t word16_;
+        int32_t word32_;
+        int64_t word64_;
+    };
+}; // class ImmediateOperand
+
+class ConstantOperand final : public InstructionOperand {
+public:
+    enum Kind {
+        kString,
+        kNumber,
+    };
+    
+    ConstantOperand(Kind kind, int symbol_id): InstructionOperand(kConstant), kind_(kind), symbol_id_(symbol_id) {}
+    
+    DEF_VAL_GETTER(Kind, kind);
+    DEF_VAL_GETTER(int, symbol_id);
+
+private:
+    Kind kind_;
+    int symbol_id_;
+}; // class ConstantOperand
+
+class ReloactionOperand final : public InstructionOperand {
+public:
+    ReloactionOperand(const String *symbol_name, const InstructionBlock *label)
+    : InstructionOperand(kReloaction)
+    , label_(label)
+    , symbol_name_(symbol_name) {}
+    
+    DEF_PTR_GETTER(const String, symbol_name);
+    DEF_PTR_GETTER(const InstructionBlock, label);
+private:
+    const InstructionBlock *label_;
+    const String *symbol_name_;
+}; // class ReloactionOperand
 
 class LocationOperand final : public InstructionOperand {
 public:
@@ -167,7 +266,7 @@ private:
 
 class InstructionBlock final : public base::ArenaObject {
 public:
-    explicit InstructionBlock(base::Arena *arena);
+    explicit InstructionBlock(base::Arena *arena, int label);
 
     Instruction *New(Instruction::Code op);
     Instruction *NewI(Instruction::Code op, Instruction::Operand *input);
@@ -175,6 +274,7 @@ public:
     Instruction *NewIO(Instruction::Code op, Instruction::Operand *output, Instruction::Operand *in1,
                        Instruction::Operand *in2);
 
+    int label() const { return label_; }
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, successor);
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, predecessor);
     DEF_ARENA_VECTOR_GETTER(Instruction *, instruction);
@@ -194,17 +294,18 @@ private:
     base::ArenaVector<InstructionBlock *> successors_;
     base::ArenaVector<InstructionBlock *> predecessors_;
     base::ArenaVector<Instruction *> instructions_;
+    int label_;
 }; // class InstructionBlock
 
-//#define DEFINE_CASTING(name) \
-//inline name##Operand *InstructionOperand::As##name() { \
-//    return !Is##name() ? nullptr : static_cast<name##Operand *>(this); \
-//} \
-//inline const name##Operand *InstructionOperand::As##name() const { \
-//    return !Is##name() ? nullptr : static_cast<const name##Operand *>(this); \
-//}
-//DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_CASTING)
-//#undef  DEFINE_CASTING
+#define DEFINE_CASTING(name) \
+inline name##Operand *InstructionOperand::As##name() { \
+    return !Is##name() ? nullptr : static_cast<name##Operand *>(this); \
+} \
+inline const name##Operand *InstructionOperand::As##name() const { \
+    return !Is##name() ? nullptr : static_cast<const name##Operand *>(this); \
+}
+DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_CASTING)
+#undef  DEFINE_CASTING
 
 } // namespace backend
 

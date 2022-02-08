@@ -56,6 +56,10 @@
 		2362A0F126A6CB1700A972B1 /* generics-instantiating-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362A0EF26A6CB1700A972B1 /* generics-instantiating-test.cc */; };
 		236466CC26F07E870066D168 /* checking.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236466CB26F07E870066D168 /* checking.cc */; };
 		236466CD26F07E870066D168 /* checking.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236466CB26F07E870066D168 /* checking.cc */; };
+		23667C2E27B235D700612546 /* operand-allocator-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23667C2D27B235D700612546 /* operand-allocator-test.cc */; };
+		23667C2F27B235D700612546 /* operand-allocator-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23667C2D27B235D700612546 /* operand-allocator-test.cc */; };
+		23667C3127B2532E00612546 /* machine-type.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23667C3027B2532E00612546 /* machine-type.cc */; };
+		23667C3227B2532E00612546 /* machine-type.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23667C3027B2532E00612546 /* machine-type.cc */; };
 		237D551D27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
 		237D551E27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
@@ -346,6 +350,8 @@
 		2362A0EC26A69EAF00A972B1 /* generics-instantiating.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "generics-instantiating.cc"; path = "../src/compiler/generics-instantiating.cc"; sourceTree = "<group>"; };
 		2362A0EF26A6CB1700A972B1 /* generics-instantiating-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "generics-instantiating-test.cc"; path = "../src/compiler/generics-instantiating-test.cc"; sourceTree = "<group>"; };
 		236466CB26F07E870066D168 /* checking.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = checking.cc; path = ../src/base/checking.cc; sourceTree = "<group>"; };
+		23667C2D27B235D700612546 /* operand-allocator-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "operand-allocator-test.cc"; path = "../src/backend/operand-allocator-test.cc"; sourceTree = "<group>"; };
+		23667C3027B2532E00612546 /* machine-type.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "machine-type.cc"; path = "../src/backend/machine-type.cc"; sourceTree = "<group>"; };
 		23711300275F6889008919BE /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/compiler/constants.h; sourceTree = "<group>"; };
 		237A0DAB27731390002180FE /* global-symbol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "global-symbol.h"; path = "../src/compiler/global-symbol.h"; sourceTree = "<group>"; };
 		237D551B27B0BAD60067A633 /* operand-allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "operand-allocator.h"; path = "../src/backend/operand-allocator.h"; sourceTree = "<group>"; };
@@ -474,6 +480,7 @@
 				23C1346027A4E30B00C0DEB4 /* instruction-test.cc */,
 				23C1344927A3CF0B00C0DEB4 /* instruction.cc */,
 				23C1344827A3CE9400C0DEB4 /* instruction.h */,
+				23667C3027B2532E00612546 /* machine-type.cc */,
 				23C1344C27A3E3B400C0DEB4 /* machine-type.h */,
 				23C1345527A3F23C00C0DEB4 /* constants-pool-test.cc */,
 				23C1345227A3E8CE00C0DEB4 /* constants-pool.cc */,
@@ -484,6 +491,7 @@
 				23BCAEB027A83D8800EC9D92 /* stackslot-allocator-test.cc */,
 				23C3356D27A82DB500319862 /* stackslot-allocator.cc */,
 				23C3356C27A82D7B00319862 /* stackslot-allocator.h */,
+				23667C2D27B235D700612546 /* operand-allocator-test.cc */,
 				237D551C27B0C0530067A633 /* operand-allocator.cc */,
 				237D551B27B0BAD60067A633 /* operand-allocator.h */,
 			);
@@ -879,6 +887,7 @@
 				23D4A45F2680D17D0090C631 /* asm-arm64.h in Sources */,
 				2362A0EA26A67D1000A972B1 /* type-reducing-test.cc in Sources */,
 				23D4A4602680D17D0090C631 /* asm-arm64.cc in Sources */,
+				23667C2F27B235D700612546 /* operand-allocator-test.cc in Sources */,
 				2362A0EE26A69EAF00A972B1 /* generics-instantiating.cc in Sources */,
 				23D4A4612680D17D0090C631 /* const-arm64.h in Sources */,
 				2355560B278929C0003ADACE /* io-test.cc in Sources */,
@@ -891,6 +900,7 @@
 				23235B872797C07600134DEB /* condition.cc in Sources */,
 				23D4A4662680D17D0090C631 /* arena-utils.cc in Sources */,
 				2387EFA52684627B002E6DCF /* lexer.cc in Sources */,
+				23667C3227B2532E00612546 /* machine-type.cc in Sources */,
 				231C4B8C268DA7AD00D4AC62 /* boot-posix-arm64.s in Sources */,
 				23D4A4672680D17D0090C631 /* arena-utils.h in Sources */,
 				23FA869D26A01091001CC777 /* type.cc in Sources */,
@@ -1008,6 +1018,7 @@
 				2301676B266A27CF007E8322 /* heap-test.cc in Sources */,
 				23D5A673266718F900635ADB /* sha256-test.cc in Sources */,
 				23F6C24B278FC85B00899C4F /* runtime.cc in Sources */,
+				23667C3127B2532E00612546 /* machine-type.cc in Sources */,
 				23C1346127A4E30B00C0DEB4 /* instruction-test.cc in Sources */,
 				23D5A674266718F900635ADB /* sha256.c in Sources */,
 				23A7F0E12699E22A0060BFB7 /* compiler-test.cc in Sources */,
@@ -1015,6 +1026,7 @@
 				2387EFA826846309002E6DCF /* source-position-test.cc in Sources */,
 				23D5A675266718F900635ADB /* sha256.h in Sources */,
 				23D5A68626676DFC00635ADB /* any.c in Sources */,
+				23667C2E27B235D700612546 /* operand-allocator-test.cc in Sources */,
 				23FA86AA26A161DF001CC777 /* codegen.cc in Sources */,
 				23D5A676266718F900635ADB /* status-test.cc in Sources */,
 				2362A0ED26A69EAF00A972B1 /* generics-instantiating.cc in Sources */,

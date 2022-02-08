@@ -5,7 +5,9 @@
 #include "base/base.h"
 
 namespace yalx {
-
+namespace ir {
+class Type;
+} // namespace ir
 namespace backend {
 
 enum class MachineRepresentation : uint8_t {
@@ -17,10 +19,11 @@ enum class MachineRepresentation : uint8_t {
     kWord64,
     kFloat32,
     kFloat64,
-};
+}; // enum class MachineRepresentation
+
+MachineRepresentation ToMachineRepresentation(const ir::Type ty);
 
 } // namespace backend
-
 } // namespace yalx
 
 #endif // YALX_BACKEND_MACHINE_TYPE_H_

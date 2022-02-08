@@ -24,11 +24,12 @@ void *Instruction::AllocatePlacementMemory(base::Arena *arena, size_t inputs_cou
     return arena->Allocate(in_memory_bytes);
 }
 
-InstructionBlock::InstructionBlock(base::Arena *arena)
+InstructionBlock::InstructionBlock(base::Arena *arena, int label)
 : arena_(arena)
 , successors_(arena)
 , predecessors_(arena)
-, instructions_(arena) {
+, instructions_(arena)
+, label_(label) {
     
 }
 

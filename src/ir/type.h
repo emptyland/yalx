@@ -73,6 +73,9 @@ public:
     
     bool Equals(const Type &other) const { return kind() == other.kind() && model() == other.model(); }
     
+    size_t ReferenceSizeInBytes() const;
+    size_t PlacementSizeInBytes() const;
+    
     std::string_view ToString() const;
     void PrintTo(base::PrintingWriter *printer) const;
 

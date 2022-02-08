@@ -36,6 +36,14 @@ public:
     
     void Prepare(ir::Function *fun);
     
+    InstructionOperand *Allocated(ir::Value *value) {
+        if (auto iter = allocated_.find(value); iter != allocated_.end()) {
+            return iter->second;
+        } else {
+            return nullptr;
+        }
+    }
+    
     InstructionOperand *Allocate(ir::Value *value);
     InstructionOperand *Allocate(OperandMark mark, size_t size, ir::Model *model = nullptr);
     

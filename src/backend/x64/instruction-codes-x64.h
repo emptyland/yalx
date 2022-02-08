@@ -37,6 +37,36 @@ namespace backend {
     V(X64UmulHigh32)                        \
     V(X64Idiv)                              \
     V(X64Idiv32)                            \
+    V(X64Ja)                                \
+    V(X64Jae)                               \
+    V(X64Jb)                                \
+    V(X64Jbe)                               \
+    V(X64Jc)                                \
+    V(X64Je)                                \
+    V(X64Jz)                                \
+    V(X64Jg)                                \
+    V(X64Jge)                               \
+    V(X64Jl)                                \
+    V(X64Jle)                               \
+    V(X64Jna)                               \
+    V(X64Jnae)                              \
+    V(X64Jnb)                               \
+    V(X64Jnbe)                              \
+    V(X64Jnc)                               \
+    V(X64Jne)                               \
+    V(X64Jng)                               \
+    V(X64Jnge)                              \
+    V(X64Jnl)                               \
+    V(X64Jnle)                              \
+    V(X64Jno)                               \
+    V(X64Jnp)                               \
+    V(X64Jns)                               \
+    V(X64Jnz)                               \
+    V(X64Jo)                                \
+    V(X64Jp)                                \
+    V(X64Jpe)                               \
+    V(X64Jpo)                               \
+    V(X64Js)                                \
     V(X64Udiv)                              \
     V(X64Udiv32)                            \
     V(X64Not)                               \
