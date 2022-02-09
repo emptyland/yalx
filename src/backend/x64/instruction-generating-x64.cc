@@ -16,6 +16,19 @@ namespace backend {
 
 using namespace x64;
 
+// Byte Registers:
+// Without REX : AL, BL, CL, DL, AH, BH, CH, DH
+// With REX    : AL, BL, CL, DL, DIL, SIL, BPL, SPL, R8L - R15L
+// Word Registers
+// Without REX : AX, BX, CX, DX, DI, SI, BP, SP
+// With REX    : AX, BX, CX, DX, DI, SI, BP, SP, R8W - R15W
+// Doubleword Registers
+// Without REX : EAX, EBX, ECX, EDX, EDI, ESI, EBP, ESP
+// With REX    : EAX, EBX, ECX, EDX, EDI, ESI, EBP, ESP, R8D - R15D
+// Quadword Registers
+// Without REX : N.A.
+// With REX    : RAX, RBX, RCX, RDX, RDI, RSI, RBP, RSP, R8 - R15
+
 //RAX, RCX,
 //RDX, RSI,
 //RDI,
@@ -198,9 +211,10 @@ public:
             ProcessBasicBlock(blk);
         }
         
-        stack_size_->Set32(static_cast<int32_t>(operands_.slots()->max_stack_size()));
+        const auto stack_size = RoundUp(operands_.slots()->max_stack_size(), kStackConf->stack_alignment_size());
+        stack_size_->Set32(stack_size);
     }
-    
+
 private:
     InstructionBlock *current() { return DCHECK_NOTNULL(current_block_); }
     
@@ -245,12 +259,37 @@ private:
         return false;
     }
     
-    size_t ComputeReturningValSizeInBytes() {
-        size_t bytes = 0;
+    size_t ReturningValSizeInBytes() const {
+        size_t size_in_bytes = 0;
         for (auto ty : fun_->prototype()->return_types()) {
-            bytes += ty.ReferenceSizeInBytes();
+            if (ty.kind() == ir::Type::kVoid) {
+                continue;
+            }
+            size_in_bytes = RoundUp(size_in_bytes, kStackConf->slot_alignment_size());
+            size_in_bytes += ty.ReferenceSizeInBytes();
         }
-        return bytes;
+        return size_in_bytes;
+    }
+    
+    size_t OverflowArgumentsSizeInBytes() const {
+        size_t size_in_bytes = 0;
+        int float_count = kNumberOfFloatArgumentsRegisters;
+        int general_count = kNumberOfGeneralArgumentsRegisters;
+        bool overflow = false;
+        for (auto param : fun_->paramaters()) {
+            if (param->type().IsFloating()) {
+                if (--float_count < 0) {
+                    size_in_bytes = RoundUp(size_in_bytes, kStackConf->slot_alignment_size());
+                    size_in_bytes += param->type().ReferenceSizeInBytes();
+                }
+            } else {
+                if (--general_count < 0) {
+                    size_in_bytes = RoundUp(size_in_bytes, kStackConf->slot_alignment_size());
+                    size_in_bytes += param->type().ReferenceSizeInBytes();
+                }
+            }
+        }
+        return size_in_bytes;
     }
     
     base::Arena *const arena_;
@@ -290,11 +329,84 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             auto lhs = Allocate(val->InputValue(0), kAny);
             auto rhs = Allocate(val->InputValue(1), kAny);
             Move(opd, lhs, val->type());
-            current()->NewIO(X64Add, opd, rhs);
+            switch (ToMachineRepresentation(val->type())) {
+                case MachineRepresentation::kWord8:
+                    current()->NewIO(X64Add8, opd, rhs);
+                    break;
+                case MachineRepresentation::kWord16:
+                    current()->NewIO(X64Add16, opd, rhs);
+                    break;
+                case MachineRepresentation::kWord32:
+                    current()->NewIO(X64Add32, opd, rhs);
+                    break;
+                case MachineRepresentation::kWord64:
+                    current()->NewIO(X64Add, opd, rhs);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
         } break;
             
-        case ir::Operator::kRet: {
+        case ir::Operator::kFAdd: {
+            auto lhs = Allocate(val->InputValue(0), kAny);
+            auto rhs = Allocate(val->InputValue(1), kAny);
+            Move(opd, lhs, val->type());
+            switch (ToMachineRepresentation(val->type())) {
+                case MachineRepresentation::kFloat32:
+                    current()->NewIO(SSEFloat32Add, opd, rhs);
+                    break;
+                case MachineRepresentation::kFloat64:
+                    current()->NewIO(SSEFloat64Add, opd, rhs);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
             
+            //
+            // +------------------+
+            // | returning val[0] | <- bp + 16 + overflow-args-size + returning-val-size
+            // +------------------+
+            // | returning val[1] |
+            // +------------------+
+            // | returning val[2] |
+            // +------------------+
+            // |    ... ...       |
+            // +------------------+
+            // | overflow argv[0] | <- bp + 16 + overflow-args-size
+            // +------------------+
+            // | overflow argv[1] |
+            // +------------------+
+            // | overflow argv[2] |
+            // +------------------+
+            // |    ... ...       | <- bp + 16
+            // +------------------+
+            // | returning addr   | <- bp + 8
+            // +------------------+
+            // | saved bp         | <- bp + 0
+            // +------------------+
+            //
+        case ir::Operator::kRet: {
+            auto overflow_args_size = OverflowArgumentsSizeInBytes();
+            auto returning_val_size = ReturningValSizeInBytes();
+            auto returning_val_offset = kPointerSize * 2 + overflow_args_size + returning_val_size;
+            
+            assert(fun_->prototype()->return_types_size() == val->op()->value_in());
+            for (int i = 0; i < val->op()->value_in(); i++) {
+                auto ty = fun_->prototype()->return_type(i);
+                if (ty.kind() == ir::Type::kVoid) {
+                    continue;
+                }
+                auto ret = Allocate(val->InputValue(i), kAny);
+                auto opd = new (arena_) LocationOperand(X64Mode_MRI, rbp.code(), 0, returning_val_offset);
+                Move(opd, ret, ty);
+                returning_val_offset -= RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
+            }
+            
+            current()->NewI(X64Pop, operands_.registers()->frame_pointer());
+            current()->NewIO(X64Add, operands_.registers()->stack_pointer(), stack_size_);
             current()->New(ArchRet);
         } break;
             
@@ -305,7 +417,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
 }
 
 void X64FunctionInstructionSelector::ProcessParameters(InstructionBlock *block) {
-    auto returning_val_size = ComputeReturningValSizeInBytes();
+    auto returning_val_size = ReturningValSizeInBytes();
     int number_of_float_args = kNumberOfFloatArgumentsRegisters;
     int number_of_general_args = kNumberOfGeneralArgumentsRegisters;
     for (auto param : fun_->paramaters()) {

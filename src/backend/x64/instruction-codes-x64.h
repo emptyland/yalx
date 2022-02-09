@@ -14,6 +14,8 @@ namespace backend {
 // Most opcodes specify a single instruction.
 #define X64_ARCH_OPCODE_LIST(V)             \
     V(X64Add)                               \
+    V(X64Add8)                              \
+    V(X64Add16)                             \
     V(X64Add32)                             \
     V(X64And)                               \
     V(X64And32)                             \
@@ -30,6 +32,8 @@ namespace backend {
     V(X64Xor)                               \
     V(X64Xor32)                             \
     V(X64Sub)                               \
+    V(X64Sub8)                              \
+    V(X64Sub16)                             \
     V(X64Sub32)                             \
     V(X64Imul)                              \
     V(X64Imul32)                            \
@@ -87,6 +91,7 @@ namespace backend {
     V(X64Lzcnt32)                           \
     V(X64Tzcnt)                             \
     V(X64Tzcnt32)                           \
+    V(X64Pop)                               \
     V(X64Popcnt)                            \
     V(X64Popcnt32)                          \
     V(X64Bswap)                             \
