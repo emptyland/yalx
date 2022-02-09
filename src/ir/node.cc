@@ -404,8 +404,32 @@ BasicBlock::BasicBlock(base::Arena *arena, const String *name)
 //, name_(DCHECK_NOTNULL(name))
 , name_(name)
 , instructions_(arena)
+, phi_node_users_(arena)
 , inputs_(arena)
 , outputs_(arena) {
+}
+
+void BasicBlock::AddInstruction(Value *value) {
+    if (value->Is(Operator::kPhi)) {
+        for (int i = 0; i < value->op()->control_in(); i++) {
+            PhiUser user;
+            user.phi = value;
+            user.dest = value->InputValue(i);
+            DCHECK_NOTNULL(value->InputControl(i)->AsBasicBlock())->phi_node_users_.push_back(user);
+        }
+    }
+    instructions_.push_back(value);
+}
+
+void BasicBlock::RemoveDeads() {
+    auto iter = std::remove_if(instructions_.begin(), instructions_.end(), [](Value *node) { return node->IsDead(); });
+    instructions_.erase(iter, instructions_.end());
+}
+
+void BasicBlock::RemovePhiUsersOfDeads() {
+    auto iter = std::remove_if(phi_node_users_.begin(), phi_node_users_.end(),
+                               [](auto user) { return user.phi->IsDead() || user.dest->IsDead(); });
+    phi_node_users_.erase(iter, phi_node_users_.end());
 }
 
 void BasicBlock::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const {

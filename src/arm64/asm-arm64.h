@@ -50,7 +50,7 @@ namespace arm64 {
 #define ALWAYS_ALLOCATABLE_GENERAL_REGISTERS(R)                  \
   R(x0)  R(x1)  R(x2)  R(x3)  R(x4)  R(x5)  R(x6)  R(x7)  \
   R(x8)  R(x9)  R(x10) R(x11) R(x12) R(x13) R(x14) R(x15) \
-         R(x19) R(x20) R(x21) R(x22) R(x23) R(x24) R(x25) \
+                R(x20) R(x21) R(x22) R(x23) R(x24) R(x25) \
   R(x27)
 
 #define ALLOCATABLE_GENERAL_REGISTERS(V)  \
@@ -86,7 +86,7 @@ namespace arm64 {
 #define ALLOCATABLE_DOUBLE_REGISTERS(R)                   \
   R(d0)  R(d1)  R(d2)  R(d3)  R(d4)  R(d5)  R(d6)  R(d7)  \
   R(d8)  R(d9)  R(d10) R(d11) R(d12) R(d13) R(d14) R(d16) \
-  R(d17) R(d18) R(d19) R(d20) R(d21) R(d22) R(d23) R(d24) \
+  R(d17) R(d18)        R(d20) R(d21) R(d22) R(d23) R(d24) \
   R(d25) R(d26) R(d27) R(d28)
 // clang-format on
 

@@ -27,6 +27,10 @@ namespace backend {
 // r9…r15 Temporary registers
 // r8 Indirect result location register
 // r0…r7 Parameter/result registers
+static const int kScratchGeneralRegister = arm64::x19.code();
+static const int kScratchFloatRegister   = arm64::s19.code();
+static const int kScratchDoubleRegister  = arm64::d19.code();
+
 static const int kAllocatableGeneralRegisters[] = {
 #define DEFINE_CODE(name) arm64::name.code(),
     ALWAYS_ALLOCATABLE_GENERAL_REGISTERS(DEFINE_CODE)
@@ -35,7 +39,7 @@ static const int kAllocatableGeneralRegisters[] = {
 
 static const int kAllocatableFloatRegisters[] = {
 #define DEFINE_CODE(name) arm64::name.code(),
-    FLOAT_REGISTERS(DEFINE_CODE)
+    ALLOCATABLE_DOUBLE_REGISTERS(DEFINE_CODE)
 #undef  DEFINE_CODE
 };
 
@@ -61,6 +65,9 @@ struct Arm64RegisterConfigurationInitializer {
     static RegisterConfiguration *New(void *chunk) {
         return new (chunk) RegisterConfiguration(arm64::fp.code()/*fp*/,
                                                  arm64::sp.code()/*sp*/,
+                                                 kScratchGeneralRegister,
+                                                 kScratchFloatRegister,
+                                                 kScratchDoubleRegister,
                                                  MachineRepresentation::kWord64,
                                                  32/*number_of_general_registers*/,
                                                  32/*number_of_float_registers*/,

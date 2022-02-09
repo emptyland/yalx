@@ -188,6 +188,11 @@ private:
 
 class BasicBlock : public Node {
 public:
+    struct PhiUser {
+        Value *phi;
+        Value *dest;
+    };
+    
     template<class ...Nodes>
     inline Value *NewNode(SourcePosition source_position, Type type, Operator *op, Nodes... nodes);
     
@@ -210,6 +215,7 @@ public:
     DEF_PTR_GETTER(base::Arena, arena);
     DEF_VAL_GETTER(int, id);
     DEF_ARENA_VECTOR_GETTER(Value *, instruction);
+    DEF_ARENA_VECTOR_GETTER(PhiUser, phi_node_user);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, input);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, output);
     
@@ -235,12 +241,21 @@ public:
         }
     }
     
-    inline void RemoveDeads();
+    void RemoveDeads();
+    void RemovePhiUsersOfDeads();
+    
+    void AddInstruction(Value *value);
     
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
     friend class Function;
 private:
     BasicBlock(base::Arena *arena, const String *name);
+    
+    void RemovePhiNodeUser(Value *phi) {
+        auto iter = std::find_if(phi_node_users_.begin(), phi_node_users_.end(),
+                                 [phi](auto user){ return user.phi == phi; });
+        phi_node_users_.erase(iter);
+    }
     
     const String *const name_;
     base::Arena *const arena_;
@@ -248,6 +263,7 @@ private:
     base::ArenaVector<Value *> instructions_;
     base::ArenaVector<BasicBlock *> inputs_;
     base::ArenaVector<BasicBlock *> outputs_;
+    base::ArenaVector<PhiUser> phi_node_users_;
 }; // class BasicBlock
 
 
@@ -473,11 +489,6 @@ private:
 #undef DEFINE_METHODS
 
 
-inline void BasicBlock::RemoveDeads() {
-    auto iter = std::remove_if(instructions_.begin(), instructions_.end(), [](Value *node) { return node->IsDead(); });
-    instructions_.erase(iter, instructions_.end());
-}
-
 inline void Function::UpdateIdsOfBlocks() {
     int id = 0;
     for (auto blk : blocks()) {
@@ -493,7 +504,7 @@ inline Value *BasicBlock::NewNode(SourcePosition source_position, Type type, Ope
     Node *inputs[] = {DCHECK_NOTNULL(nodes)...};
     auto instr = Value::NewWithInputs(arena(), nullptr, source_position, type, op, inputs,
                                       sizeof(inputs)/sizeof(inputs[0]));
-    instructions_.push_back(instr);
+    AddInstruction(instr);
     return instr;
 }
 
@@ -502,7 +513,7 @@ inline Value *BasicBlock::NewNode(const String *name, SourcePosition source_posi
                                   Nodes... nodes) {
     Node *inputs[] = {DCHECK_NOTNULL(nodes)...};
     auto instr = Value::NewWithInputs(arena(), name, source_position, type, op, inputs, sizeof(inputs)/sizeof(inputs[0]));
-    instructions_.push_back(instr);
+    AddInstruction(instr);
     return instr;
 }
 
@@ -515,7 +526,7 @@ inline Value *BasicBlock::NewNodeWithValues(const String *name, SourcePosition s
                                             Value **inputs, size_t inputs_size) {
     auto instr = Value::NewWithInputs(arena(), name, source_position, type, op, reinterpret_cast<Node **>(inputs),
                                       inputs_size);
-    instructions_.push_back(instr);
+    AddInstruction(instr);
     return instr;
 }
 
@@ -527,7 +538,7 @@ inline Value *BasicBlock::NewNodeWithNodes(const String *name, SourcePosition so
 inline Value *BasicBlock::NewNodeWithNodes(const String *name, SourcePosition source_position, Type type, Operator *op,
                                            Node **nodes, size_t nodes_size)  {
     auto instr = Value::NewWithInputs(arena(), name, source_position, type, op, nodes, nodes_size);
-    instructions_.push_back(instr);
+    AddInstruction(instr);
     return instr;
 }
 

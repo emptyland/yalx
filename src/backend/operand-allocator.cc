@@ -22,6 +22,9 @@ OperandAllocator::OperandAllocator(const StackConfiguration *sconf,
 void OperandAllocator::Prepare(ir::Function *fun) {
     int position = 0;
     for (auto blk : fun->blocks()) {
+        for (auto user : blk->phi_node_users()) {
+            Alive(user.phi, position);
+        }
         for (auto instr : blk->instructions()) {
             if (instr->type().kind() != ir::Type::kVoid) {
                 Alive(instr, position);
@@ -77,6 +80,30 @@ InstructionOperand *OperandAllocator::Allocate(ir::Value *value) {
         default:
             UNREACHABLE();
             break;
+    }
+    return nullptr;
+}
+
+InstructionOperand *OperandAllocator::Allocate(ir::Type ty) {
+    switch (ty.kind()) {
+        case ir::Type::kValue:
+            if (ty.IsPointer()) {
+                return Allocate(kPtr, kPointerSize, ty.model());
+            } else {
+                return Allocate(kVal, ty.ReferenceSizeInBytes(), ty.model());
+            }
+            break;
+
+        case ir::Type::kString:
+        case ir::Type::kReference:
+            return Allocate(kRef, kPointerSize, ty.model());
+            
+        case ir::Type::kVoid:
+            UNREACHABLE();
+            break;
+    
+        default:
+            return Allocate(kVal, ty.ReferenceSizeInBytes(), ty.model());
     }
     return nullptr;
 }

@@ -16,7 +16,12 @@ namespace backend {
 
 class RegisterConfiguration final {
 public:
-    RegisterConfiguration(int id_of_fp, int id_of_sp, MachineRepresentation rep_of_ptr,
+    RegisterConfiguration(int id_of_fp,
+                          int id_of_sp,
+                          int id_of_general_scratch,
+                          int id_of_float_scratch,
+                          int id_of_double_scratch,
+                          MachineRepresentation rep_of_ptr,
                           int number_of_general_registers,
                           int number_of_float_registers,
                           int number_of_double_registers,
@@ -29,6 +34,9 @@ public:
     
     DEF_VAL_GETTER(int, id_of_fp);
     DEF_VAL_GETTER(int, id_of_sp);
+    DEF_VAL_GETTER(int, id_of_general_scratch);
+    DEF_VAL_GETTER(int, id_of_float_scratch);
+    DEF_VAL_GETTER(int, id_of_double_scratch);
     DEF_VAL_GETTER(MachineRepresentation, rep_of_ptr);
     DEF_VAL_GETTER(int, number_of_general_registers);
     DEF_VAL_GETTER(int, number_of_float_registers);
@@ -54,6 +62,9 @@ public:
 private:
     int id_of_fp_ = -1;
     int id_of_sp_ = -1;
+    int id_of_general_scratch_ = -1;
+    int id_of_float_scratch_ = -1;
+    int id_of_double_scratch_ = -1;
     MachineRepresentation rep_of_ptr_ = MachineRepresentation::kNone;
     int number_of_general_registers_ = -1;
     int number_of_float_registers_ = -1;
@@ -75,6 +86,7 @@ private:
 class RegisterAllocator final {
 public:
     constexpr static const int kAny = -1;
+    constexpr static const int kNumberOfGeneralScratchs = 8;
     
     RegisterAllocator(const RegisterConfiguration *conf, base::Arena *arena);
 
@@ -82,7 +94,11 @@ public:
     DEF_PTR_GETTER(RegisterOperand, stack_pointer);
     // FP/RBP
     DEF_PTR_GETTER(RegisterOperand, frame_pointer);
+    DEF_PTR_GETTER(RegisterOperand, float_scratch);
+    DEF_PTR_GETTER(RegisterOperand, double_scratch);
     DEF_PTR_GETTER(const RegisterConfiguration, conf);
+    
+    RegisterOperand *GeneralScratch(MachineRepresentation rep);
 
     RegisterOperand *AllocateRegister(MachineRepresentation rep, int designate = kAny);
     void FreeRegister(RegisterOperand *reg);
@@ -94,6 +110,9 @@ private:
     
     RegisterOperand *stack_pointer_ = nullptr;
     RegisterOperand *frame_pointer_ = nullptr;
+    RegisterOperand *general_scratch_[kNumberOfGeneralScratchs];
+    RegisterOperand *float_scratch_ = nullptr;
+    RegisterOperand *double_scratch_ = nullptr;
     std::set<int> general_pool_;
     std::set<int> general_allocated_;
     std::set<int> float_pool_;

@@ -9,19 +9,26 @@ namespace yalx {
 
 namespace backend {
 
-RegisterConfiguration::RegisterConfiguration(
-    int id_of_fp, int id_of_sp, MachineRepresentation rep_of_ptr,
-    int number_of_general_registers,
-    int number_of_float_registers,
-    int number_of_double_registers,
-    const int *allocatable_general_registers,
-    size_t number_of_allocatable_general_registers,
-    const int *allocatable_float_registers,
-    size_t number_of_allocatable_float_registers,
-    const int *allocatable_double_registers,
-    size_t number_of_allocatable_double_registers)
+RegisterConfiguration::RegisterConfiguration(int id_of_fp,
+                                             int id_of_sp,
+                                             int id_of_general_scratch,
+                                             int id_of_float_scratch,
+                                             int id_of_double_scratch,
+                                             MachineRepresentation rep_of_ptr,
+                                             int number_of_general_registers,
+                                             int number_of_float_registers,
+                                             int number_of_double_registers,
+                                             const int *allocatable_general_registers,
+                                             size_t number_of_allocatable_general_registers,
+                                             const int *allocatable_float_registers,
+                                             size_t number_of_allocatable_float_registers,
+                                             const int *allocatable_double_registers,
+                                             size_t number_of_allocatable_double_registers)
 : id_of_fp_(id_of_fp)
 , id_of_sp_(id_of_sp)
+, id_of_general_scratch_(id_of_general_scratch)
+, id_of_float_scratch_(id_of_float_scratch)
+, id_of_double_scratch_(id_of_double_scratch)
 , rep_of_ptr_(rep_of_ptr)
 , number_of_general_registers_(number_of_general_registers)
 , number_of_float_registers_(number_of_float_registers)
@@ -40,12 +47,24 @@ RegisterAllocator::RegisterAllocator(const RegisterConfiguration *conf, base::Ar
 , conf_(conf) {
     stack_pointer_ = new (arena) RegisterOperand(conf->id_of_sp(), conf->rep_of_ptr());
     frame_pointer_ = new (arena) RegisterOperand(conf->id_of_fp(), conf->rep_of_ptr());
+    float_scratch_ = new (arena) RegisterOperand(conf->id_of_float_scratch(), MachineRepresentation::kFloat32);
+    double_scratch_ = new (arena) RegisterOperand(conf->id_of_double_scratch(), MachineRepresentation::kFloat64);
+    ::memset(general_scratch_, 0, sizeof(RegisterOperand *) * kNumberOfGeneralScratchs);
     for (int i = 0; i < conf->number_of_allocatable_general_registers(); i++) {
         general_pool_.insert(conf->allocatable_general_register(i));
     }
     for (int i = 0; i < conf->number_of_allocatable_float_registers(); i++) {
         float_pool_.insert(conf->allocatable_float_register(i));
     }
+}
+
+RegisterOperand *RegisterAllocator::GeneralScratch(MachineRepresentation rep) {
+    auto opd = general_scratch_[static_cast<int>(rep)];
+    if (!opd) {
+        opd = new (arena_) RegisterOperand(conf_->id_of_general_scratch(), rep);
+        general_scratch_[static_cast<int>(rep)] = opd;
+    }
+    return opd;
 }
 
 RegisterOperand *RegisterAllocator::AllocateRegister(MachineRepresentation rep, int designate) {

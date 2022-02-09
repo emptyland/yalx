@@ -45,6 +45,7 @@ public:
     }
     
     InstructionOperand *Allocate(ir::Value *value);
+    InstructionOperand *Allocate(ir::Type ty);
     InstructionOperand *Allocate(OperandMark mark, size_t size, ir::Model *model = nullptr);
     
     LocationOperand *AllocateStackSlot(ir::Value *value, StackSlotAllocator::Policy policy);
@@ -87,6 +88,8 @@ private:
     void Alive(ir::Value *value, int ir_position) {
         if (auto iter = live_ranges_.find(value); iter == live_ranges_.end()) {
             live_ranges_[value] = LiveRange{ir_position, -1};
+        } else {
+            live_ranges_[value].start_position = std::min(ir_position, live_ranges_[value].start_position);
         }
     }
     
