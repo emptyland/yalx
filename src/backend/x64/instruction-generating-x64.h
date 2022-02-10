@@ -19,11 +19,12 @@ class Arena;
 namespace backend {
 
 class ConstantsPool;
+class LinkageSymbols;
 class RegisterConfiguration;
 
 class X64InstructionGenerator final {
 public:
-    X64InstructionGenerator(base::Arena *arena, ir::Module *module, ConstantsPool *const_pool);
+    X64InstructionGenerator(base::Arena *arena, ir::Module *module, ConstantsPool *const_pool, LinkageSymbols *symbols);
     
     void Run();
     
@@ -36,6 +37,7 @@ private:
     base::Arena *const arena_;
     ir::Module *const module_;
     ConstantsPool *const const_pool_;
+    LinkageSymbols *const symbols_;
 }; // class X64InstructionGenerator
 
 } // namespace backend

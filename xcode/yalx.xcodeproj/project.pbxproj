@@ -78,6 +78,12 @@
 		2387EFB82685BB99002E6DCF /* node-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFB62685BB99002E6DCF /* node-test.cc */; };
 		2387EFBB2685BEAD002E6DCF /* ast.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFBA2685BEAD002E6DCF /* ast.cc */; };
 		2387EFBC2685BEAD002E6DCF /* ast.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFBA2685BEAD002E6DCF /* ast.cc */; };
+		239735C827B54BA300FAD063 /* code-generate-x64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735C727B54BA300FAD063 /* code-generate-x64.cc */; };
+		239735C927B54BA300FAD063 /* code-generate-x64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735C727B54BA300FAD063 /* code-generate-x64.cc */; };
+		239735CC27B54D2800FAD063 /* linkage-symbols.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735CB27B54D2800FAD063 /* linkage-symbols.cc */; };
+		239735CD27B54D2800FAD063 /* linkage-symbols.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735CB27B54D2800FAD063 /* linkage-symbols.cc */; };
+		239735CF27B551A500FAD063 /* linkage-symbols-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735CE27B551A500FAD063 /* linkage-symbols-test.cc */; };
+		239735D027B551A500FAD063 /* linkage-symbols-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735CE27B551A500FAD063 /* linkage-symbols-test.cc */; };
 		23A7F0E12699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
 		23A7F0E22699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
 		23B997D926A4680300DD037B /* type-reducing.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997D826A4680300DD037B /* type-reducing.cc */; };
@@ -372,6 +378,11 @@
 		2387EFB62685BB99002E6DCF /* node-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "node-test.cc"; path = "../src/compiler/node-test.cc"; sourceTree = "<group>"; };
 		2387EFB92685BE66002E6DCF /* ast.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ast.h; path = ../src/compiler/ast.h; sourceTree = "<group>"; };
 		2387EFBA2685BEAD002E6DCF /* ast.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ast.cc; path = ../src/compiler/ast.cc; sourceTree = "<group>"; };
+		239735C627B54B2400FAD063 /* code-generate-x64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "code-generate-x64.h"; path = "../src/backend/x64/code-generate-x64.h"; sourceTree = "<group>"; };
+		239735C727B54BA300FAD063 /* code-generate-x64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "code-generate-x64.cc"; path = "../src/backend/x64/code-generate-x64.cc"; sourceTree = "<group>"; };
+		239735CA27B54CD500FAD063 /* linkage-symbols.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "linkage-symbols.h"; path = "../src/backend/linkage-symbols.h"; sourceTree = "<group>"; };
+		239735CB27B54D2800FAD063 /* linkage-symbols.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "linkage-symbols.cc"; path = "../src/backend/x64/linkage-symbols.cc"; sourceTree = "<group>"; };
+		239735CE27B551A500FAD063 /* linkage-symbols-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "linkage-symbols-test.cc"; path = "../src/backend/linkage-symbols-test.cc"; sourceTree = "<group>"; };
 		23A3AB5A2664BAE800007658 /* stack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = stack.h; path = ../src/runtime/stack.h; sourceTree = "<group>"; };
 		23A3AB5B2664C1DB00007658 /* stack.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = stack.c; path = ../src/runtime/stack.c; sourceTree = "<group>"; };
 		23A3AB5D2664DB9F00007658 /* stack-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "stack-test.cc"; path = "../src/runtime/stack-test.cc"; sourceTree = "<group>"; };
@@ -392,7 +403,7 @@
 		23C1345927A4DA0D00C0DEB4 /* constants.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = constants.cc; path = ../src/compiler/constants.cc; sourceTree = "<group>"; };
 		23C1345C27A4DD8400C0DEB4 /* instruction-generating-x64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "instruction-generating-x64.h"; path = "../src/backend/x64/instruction-generating-x64.h"; sourceTree = "<group>"; };
 		23C1345D27A4DDFA00C0DEB4 /* instruction-generating-x64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instruction-generating-x64.cc"; path = "../src/backend/x64/instruction-generating-x64.cc"; sourceTree = "<group>"; };
-		23C1346027A4E30B00C0DEB4 /* instruction-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instruction-test.cc"; path = "../src/backend/instruction-test.cc"; sourceTree = "<group>"; };
+		23C1346027A4E30B00C0DEB4 /* instruction-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instruction-test.cc"; path = "../src/backend/instruction-test.cc"; sourceTree = "<group>"; wrapsLines = 0; };
 		23C1346327A4EFD800C0DEB4 /* instruction-codes-x64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "instruction-codes-x64.h"; path = "../src/backend/x64/instruction-codes-x64.h"; sourceTree = "<group>"; };
 		23C1346427A5153600C0DEB4 /* register-allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "register-allocator.h"; path = "../src/backend/register-allocator.h"; sourceTree = "<group>"; };
 		23C1346527A515D600C0DEB4 /* register-allocator.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "register-allocator.cc"; path = "../src/backend/register-allocator.cc"; sourceTree = "<group>"; };
@@ -485,6 +496,9 @@
 				23C1345527A3F23C00C0DEB4 /* constants-pool-test.cc */,
 				23C1345227A3E8CE00C0DEB4 /* constants-pool.cc */,
 				23C1345127A3E86200C0DEB4 /* constants-pool.h */,
+				239735CE27B551A500FAD063 /* linkage-symbols-test.cc */,
+				239735CB27B54D2800FAD063 /* linkage-symbols.cc */,
+				239735CA27B54CD500FAD063 /* linkage-symbols.h */,
 				23C1346827A5333000C0DEB4 /* register-allocator-test.cc */,
 				23C1346527A515D600C0DEB4 /* register-allocator.cc */,
 				23C1346427A5153600C0DEB4 /* register-allocator.h */,
@@ -511,6 +525,8 @@
 		2313C4DA27A2414200F6A34B /* X64 */ = {
 			isa = PBXGroup;
 			children = (
+				239735C727B54BA300FAD063 /* code-generate-x64.cc */,
+				239735C627B54B2400FAD063 /* code-generate-x64.h */,
 				23C1345D27A4DDFA00C0DEB4 /* instruction-generating-x64.cc */,
 				23C1345C27A4DD8400C0DEB4 /* instruction-generating-x64.h */,
 				23C1346327A4EFD800C0DEB4 /* instruction-codes-x64.h */,
@@ -813,9 +829,11 @@
 				TargetAttributes = {
 					23D4A43E2680D1440090C631 = {
 						CreatedOnToolsVersion = 12.5;
+						LastSwiftMigration = 1320;
 					};
 					23D5A644266718B400635ADB = {
 						CreatedOnToolsVersion = 12.5;
+						LastSwiftMigration = 1320;
 					};
 				};
 			};
@@ -874,10 +892,12 @@
 				23FA86A026A05022001CC777 /* metadata-test.cc in Sources */,
 				23D4A4542680D17D0090C631 /* macros.h in Sources */,
 				23D4A4552680D17D0090C631 /* stack-test.cc in Sources */,
+				239735CD27B54D2800FAD063 /* linkage-symbols.cc in Sources */,
 				23D4A4562680D17D0090C631 /* stack.h in Sources */,
 				23D4A4572680D17D0090C631 /* stack.c in Sources */,
 				23D4A4582680D17D0090C631 /* process.h in Sources */,
 				23FA86AE26A26CC9001CC777 /* scope-test.cc in Sources */,
+				239735C927B54BA300FAD063 /* code-generate-x64.cc in Sources */,
 				23D4A4592680D17D0090C631 /* process.c in Sources */,
 				23D4A45A2680D17D0090C631 /* checking.h in Sources */,
 				23D4A45B2680D17D0090C631 /* scheduler.h in Sources */,
@@ -905,6 +925,7 @@
 				23D4A4672680D17D0090C631 /* arena-utils.h in Sources */,
 				23FA869D26A01091001CC777 /* type.cc in Sources */,
 				23FA86AB26A161DF001CC777 /* codegen.cc in Sources */,
+				239735D027B551A500FAD063 /* linkage-symbols-test.cc in Sources */,
 				23D4A4682680D17D0090C631 /* arena-test.cc in Sources */,
 				231C4B90268DA7D200D4AC62 /* yalx-string-posix-arm64.s in Sources */,
 				23C1345727A3F23C00C0DEB4 /* constants-pool-test.cc in Sources */,
@@ -997,6 +1018,7 @@
 				23B997D926A4680300DD037B /* type-reducing.cc in Sources */,
 				232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */,
 				2362A0E926A67D1000A972B1 /* type-reducing-test.cc in Sources */,
+				239735CC27B54D2800FAD063 /* linkage-symbols.cc in Sources */,
 				232FDB0926802E4700D52154 /* yalx-string-posix-x64.s in Sources */,
 				23D5A6892667734A00635ADB /* builtin-types.c in Sources */,
 				23D5A66C266718F900635ADB /* hash.cc in Sources */,
@@ -1046,6 +1068,7 @@
 				23C1345E27A4DDFA00C0DEB4 /* instruction-generating-x64.cc in Sources */,
 				23EDFA27269C45A400C8F1FE /* node.cc in Sources */,
 				23D5A67C266718F900635ADB /* utils.h in Sources */,
+				239735C827B54BA300FAD063 /* code-generate-x64.cc in Sources */,
 				233236DA269E7F110078406C /* operator.cc in Sources */,
 				232AA00726861D5D0098E6A3 /* parser-test.cc in Sources */,
 				23D5A64C266718ED00635ADB /* runtime-test.cc in Sources */,
@@ -1067,6 +1090,7 @@
 				2336A2912774168E00346372 /* codegen-test.cc in Sources */,
 				23D5A654266718ED00635ADB /* process.h in Sources */,
 				2355560A278929C0003ADACE /* io-test.cc in Sources */,
+				239735CF27B551A500FAD063 /* linkage-symbols-test.cc in Sources */,
 				2313C4D627A23E8500F6A34B /* constants-folding.cc in Sources */,
 				23D5A655266718ED00635ADB /* process.c in Sources */,
 				23D5A656266718ED00635ADB /* checking.h in Sources */,
@@ -1235,11 +1259,19 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 11.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "all-tests-arm64-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -1289,10 +1321,17 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 11.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "all-tests-arm64-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -1350,11 +1389,19 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 11.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "all-tests-x64-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -1407,11 +1454,18 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 11.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "all-tests-x64-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};

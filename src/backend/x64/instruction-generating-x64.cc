@@ -365,6 +365,10 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             }
         } break;
             
+        case ir::Operator::kCallDirectly: {
+            // TODO
+        } break;
+            
             //
             // +------------------+
             // | returning val[0] | <- bp + 16 + overflow-args-size + returning-val-size
@@ -658,10 +662,12 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
     }
 }
 
-X64InstructionGenerator::X64InstructionGenerator(base::Arena *arena, ir::Module *module, ConstantsPool *const_pool)
+X64InstructionGenerator::X64InstructionGenerator(base::Arena *arena, ir::Module *module, ConstantsPool *const_pool,
+                                                 LinkageSymbols *symbols)
 : arena_(arena)
 , module_(module)
-, const_pool_(const_pool) {
+, const_pool_(const_pool)
+, symbols_(symbols) {
     kRegConf.Get();
     kStackConf.Get();
 }
