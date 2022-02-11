@@ -1,6 +1,7 @@
 #include "backend/x64/instruction-generating-x64.h"
 #include "backend/operand-allocator.h"
 #include "backend/constants-pool.h"
+#include "backend/linkage-symbols.h"
 #include "backend/instruction.h"
 #include "x64/asm-x64.h"
 #include "ir/metadata.h"
@@ -15,19 +16,6 @@ namespace yalx {
 namespace backend {
 
 using namespace x64;
-
-// Byte Registers:
-// Without REX : AL, BL, CL, DL, AH, BH, CH, DH
-// With REX    : AL, BL, CL, DL, DIL, SIL, BPL, SPL, R8L - R15L
-// Word Registers
-// Without REX : AX, BX, CX, DX, DI, SI, BP, SP
-// With REX    : AX, BX, CX, DX, DI, SI, BP, SP, R8W - R15W
-// Doubleword Registers
-// Without REX : EAX, EBX, ECX, EDX, EDI, ESI, EBP, ESP
-// With REX    : EAX, EBX, ECX, EDX, EDI, ESI, EBP, ESP, R8D - R15D
-// Quadword Registers
-// Without REX : N.A.
-// With REX    : RAX, RBX, RCX, RDX, RDI, RSI, RBP, RSP, R8 - R15
 
 //RAX, RCX,
 //RDX, RSI,
@@ -175,24 +163,27 @@ public:
     
     X64FunctionInstructionSelector(base::Arena *arena,
                                    ConstantsPool *const_pool,
+                                   LinkageSymbols *symbols,
                                    ir::StructureModel *owns,
                                    ir::Function *fun,
                                    bool use_registers_allocation)
     : arena_(arena)
     , const_pool_(const_pool)
+    , symbols_(symbols)
     , owns_(owns)
     , fun_(fun)
     , operands_(kStackConf.Get(), kRegConf.Get(),
                 use_registers_allocation
                 ? OperandAllocator::kRegisterFirst
                 : OperandAllocator::kStackOnly, arena)
-    , blocks_(arena) {}
+    {}
     
     void Prepare() {
+        bundle_ = new (arena_) InstructionFunction(arena_, symbols_->Symbolize(fun_->full_name()));
         int label = 0;
         for (auto bb : fun_->blocks()) {
             bb->RemoveDeads(); // Remove deads again for phi_node_users
-            auto ib = new (arena_) InstructionBlock(arena_, label++);
+            auto ib = bundle_->NewBlock(label++); //new (arena_) InstructionBlock(arena_, label++);
             blocks_[bb] = ib;
         }
         operands_.Prepare(fun_);
@@ -296,8 +287,10 @@ private:
     ir::StructureModel *const owns_;
     ir::Function *const fun_;
     ConstantsPool *const const_pool_;
+    LinkageSymbols *const symbols_;
     OperandAllocator operands_;
-    base::ArenaMap<ir::BasicBlock *, InstructionBlock *> blocks_;
+    std::map<ir::BasicBlock *, InstructionBlock *> blocks_;
+    InstructionFunction *bundle_ = nullptr;
     InstructionBlock *current_block_ = nullptr;
     std::vector<InstructionOperand *> tmps_;
     int instruction_position_ = 0;
@@ -686,7 +679,7 @@ void X64InstructionGenerator::Run() {
 }
 
 void X64InstructionGenerator::GenerateFun(ir::StructureModel *owns, ir::Function *fun) {
-    X64FunctionInstructionSelector selector(arena_, const_pool_, owns, fun, false/*use_registers_allocation*/);
+    X64FunctionInstructionSelector selector(arena_, const_pool_, symbols_, owns, fun, false/*use_registers_allocation*/);
     selector.Prepare();
     selector.Run();
 }

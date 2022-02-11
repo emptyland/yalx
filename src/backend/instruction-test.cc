@@ -16,13 +16,13 @@ protected:
 
 
 TEST_F(InstructionTest, Sanity) {
-    auto block = new (arena()) InstructionBlock(arena(), 0);
+    auto block = new (arena()) InstructionBlock(arena(), nullptr, 0);
     ASSERT_TRUE(block->successors().empty());
     ASSERT_TRUE(block->predecessors().empty());
 }
 
 TEST_F(InstructionTest, ArchNop) {
-    auto block = new (arena()) InstructionBlock(arena(), 0);
+    auto block = new (arena()) InstructionBlock(arena(), nullptr, 0);
     auto instr = block->New(ArchNop);
     ASSERT_EQ(ArchNop, instr->op());
     instr = block->New(ArchUnreachable);

@@ -264,9 +264,31 @@ private:
 }; // class Instruction
 
 
+class InstructionFunction final : public base::ArenaObject {
+public:
+    using SymbolMap = base::ArenaUnorderedMap<std::string_view, const String *>;
+    
+    InstructionFunction(base::Arena *arena, const String *symbol);
+    
+    DEF_PTR_GETTER(const String, symbol);
+    DEF_VAL_GETTER(SymbolMap, external_symbols);
+    DEF_ARENA_VECTOR_GETTER(InstructionBlock *, block);
+    
+    inline InstructionBlock *NewBlock(int label);
+    
+    void AddExternalSymbol(std::string_view name, const String *symbol) {
+        external_symbols_[name] = symbol;
+    }
+private:
+    const String *const symbol_;
+    base::Arena *const arena_;
+    SymbolMap external_symbols_;
+    base::ArenaVector<InstructionBlock *> blocks_;
+}; // class InstructionFunction
+
 class InstructionBlock final : public base::ArenaObject {
 public:
-    explicit InstructionBlock(base::Arena *arena, int label);
+    explicit InstructionBlock(base::Arena *arena, InstructionFunction *owns, int label);
 
     Instruction *New(Instruction::Code op);
     Instruction *NewI(Instruction::Code op, Instruction::Operand *input);
@@ -274,6 +296,7 @@ public:
     Instruction *NewIO(Instruction::Code op, Instruction::Operand *output, Instruction::Operand *in1,
                        Instruction::Operand *in2);
 
+    DEF_PTR_GETTER(InstructionFunction, owns);
     int label() const { return label_; }
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, successor);
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, predecessor);
@@ -291,6 +314,7 @@ private:
     }
 
     base::Arena *const arena_;
+    InstructionFunction *owns_;
     base::ArenaVector<InstructionBlock *> successors_;
     base::ArenaVector<InstructionBlock *> predecessors_;
     base::ArenaVector<Instruction *> instructions_;
@@ -306,6 +330,11 @@ inline const name##Operand *InstructionOperand::As##name() const { \
 }
 DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_CASTING)
 #undef  DEFINE_CASTING
+
+inline InstructionBlock *InstructionFunction::NewBlock(int label) {
+    return new (arena_) InstructionBlock(arena_, this, label);
+}
+
 
 } // namespace backend
 
