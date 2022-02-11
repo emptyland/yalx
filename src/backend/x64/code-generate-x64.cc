@@ -1,4 +1,5 @@
 #include "backend/x64/code-generate-x64.h"
+#include "backend/linkage-symbols.h"
 #include "backend/constants-pool.h"
 #include "backend/instruction.h"
 #include "ir/metadata.h"
@@ -6,7 +7,9 @@
 #include "ir/type.h"
 #include "ir/operator.h"
 #include "base/io.h"
+#include <inttypes.h>
 #include <set>
+
 
 namespace yalx {
 namespace backend {
@@ -133,6 +136,26 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             printer()->Writeln("retq");
             break;
             
+        case X64Add8:
+            printer()->Write("addb ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Add16:
+            printer()->Write("addw ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Add32:
+            printer()->Write("addl ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Add:
+            printer()->Write("addq ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+
         case X64Movb:
             printer()->Write("movb ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
@@ -189,7 +212,24 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
         } break;
             
         case InstructionOperand::kImmediate: {
-            
+            auto opd = operand->AsImmediate();
+            switch (opd->rep()) {
+                case MachineRepresentation::kWord8:
+                    printer()->Print("$%" PRId8, opd->word8());
+                    break;
+                case MachineRepresentation::kWord16:
+                    printer()->Print("$%" PRId16, opd->word16());
+                    break;
+                case MachineRepresentation::kWord32:
+                    printer()->Print("$%" PRId32, opd->word32());
+                    break;
+                case MachineRepresentation::kWord64:
+                    printer()->Print("$%" PRId64, opd->word64());
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
         } break;
             
         case InstructionOperand::kReloaction: {
@@ -283,9 +323,79 @@ void X64CodeGenerator::EmitAll() {
             gen.EmitAll();
         }
     }
+        
+    // string constants:
+    if (!const_pool_->string_pool().empty()) {
+        printer_->Writeln("# CString constants");
+        printer_->Writeln(".section __TEXT,__cstring,cstring_literals");
+        for (size_t i = 0; i < const_pool_->string_pool().size(); i++) {
+            auto kval = const_pool_->string_pool()[i];
+            printer_->Println("Lkzs.%zd:", i);
+            // TODO process unicode
+            printer_->Indent(1)->Println(".asciz \"%s\"", kval->data());
+        }
+    }
+    
+    if (!const_pool_->numbers().empty()) {
+        printer_->Writeln("# Number constants");
+        printer_->Writeln(".section __TEXT,__literal8,8byte_literals");
+        printer_->Writeln(".p2align 4");
+        
+        // "Knnn.%zd"
+        for (const auto &[slot, id] : const_pool_->numbers()) {
+            printer_->Indent(1);
+            switch (slot.kind) {
+                case MachineRepresentation::kWord8:
+                    printer_->Println(".byte %" PRId8, slot.value<int8_t>());
+                    break;
+                case MachineRepresentation::kWord16:
+                    printer_->Println(".short %" PRId16, slot.value<int16_t>());
+                    break;
+                case MachineRepresentation::kWord32:
+                    printer_->Println(".long %" PRId32, slot.value<int16_t>());
+                    break;
+                case MachineRepresentation::kFloat32:
+                    printer_->Println(".long %08" PRIx32 "    # float.%f", slot.value<uint32_t>(),
+                                      slot.value<float>());
+                    break;
+                case MachineRepresentation::kWord64:
+                    printer_->Println(".long %" PRId64, slot.value<int64_t>());
+                    break;
+                case MachineRepresentation::kFloat64:
+                    printer_->Println(".long %016" PRIx64 "    # double.%f", slot.value<uint64_t>(),
+                                      slot.value<double>());
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        }
+    }
+    
+    // TODO: Classes metadata
     
     
-    // TODO: string constants:
+    printer_->Writeln(".section __DATA,__data");
+    printer_->Writeln(".p2align 4");
+    
+    if (!const_pool_->string_pool().empty()) {
+        printer_->Writeln("# Yalx-String constants");
+        auto symbol = symbols_->Symbolize(module_->full_name());
+        printer_->Println(".global %s_Lksz", symbol->data());
+        printer_->Println("%s_lksz:", symbol->data());
+        printer_->Indent(1)->Println(".long %zd", const_pool_->string_pool().size());
+        for (size_t i = 0; i < const_pool_->string_pool().size(); i++) {
+            printer_->Indent(1)->Println(".quad Lkzs.%zd", i);
+        }
+        
+        printer_->Println(".global %s_Kstr", symbol->data());
+        printer_->Println("%s_Kstr:", symbol->data());
+        printer_->Indent(1)->Println(".long %zd", const_pool_->string_pool().size());
+        for (size_t i = 0; i < const_pool_->string_pool().size(); i++) {
+            printer_->Println("Kstr.%zd:", i);
+            printer_->Indent(1)->Println(".quad 0", i);
+        }
+    }
 }
 
 } // namespace backend

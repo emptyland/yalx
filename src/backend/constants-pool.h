@@ -2,6 +2,7 @@
 #ifndef YALX_BACKEND_CONSTANTS_POOL_H_
 #define YALX_BACKEND_CONSTANTS_POOL_H_
 
+#include "backend/machine-type.h"
 #include "base/arena-utils.h"
 #include "base/hash.h"
 #include "base/base.h"
@@ -14,22 +15,13 @@ using String = base::ArenaString;
 
 class ConstantsPool final {
 public:
-    enum Kind {
-        kWord8,
-        kWord16,
-        kWord32,
-        kWord64,
-        kFloat32,
-        kFloat64,
-        kString,
-    }; // enum Kind
-
     struct Slot {
-        Kind    kind;
+        MachineRepresentation kind;
         uint8_t data[8];
         
         template<class T> inline T *location() { return reinterpret_cast<T *>(data); }
-        template<class T> inline T value() { return *location<T>(); }
+        template<class T> inline const T *location() const { return reinterpret_cast<const T *>(data); }
+        template<class T> inline T value() const { return *location<T>(); }
     }; // struct Slot
     
     struct SlotHash : public std::unary_function<Slot, size_t> {
@@ -54,32 +46,32 @@ public:
     DEF_VAL_GETTER(StringPool, string_pool);
     
     int FindOrInsertWord8(uint8_t value) {
-        return FindOrInsertSlot(kWord8, &value, sizeof(value));
+        return FindOrInsertSlot(MachineRepresentation::kWord8, &value, sizeof(value));
     }
     
     int FindOrInsertWord16(uint16_t value) {
-        return FindOrInsertSlot(kWord16, &value, sizeof(value));
+        return FindOrInsertSlot(MachineRepresentation::kWord16, &value, sizeof(value));
     }
     
     int FindOrInsertWord32(uint32_t value) {
-        return FindOrInsertSlot(kWord32, &value, sizeof(value));
+        return FindOrInsertSlot(MachineRepresentation::kWord32, &value, sizeof(value));
     }
     
     int FindOrInsertWord64(uint64_t value) {
-        return FindOrInsertSlot(kWord64, &value, sizeof(value));
+        return FindOrInsertSlot(MachineRepresentation::kWord64, &value, sizeof(value));
     }
     
     int FindOrInsertFloat32(float value) {
-        return FindOrInsertSlot(kFloat32, &value, sizeof(value));
+        return FindOrInsertSlot(MachineRepresentation::kFloat32, &value, sizeof(value));
     }
     
     int FindOrInsertFloat64(double value) {
-        return FindOrInsertSlot(kFloat64, &value, sizeof(value));
+        return FindOrInsertSlot(MachineRepresentation::kFloat64, &value, sizeof(value));
     }
     
     int FindOrInsertString(const String *value);
 private:
-    int FindOrInsertSlot(Kind kind, const void *data, size_t size);
+    int FindOrInsertSlot(MachineRepresentation kind, const void *data, size_t size);
     
     base::Arena *const arena_;
     NumbersMap numbers_;

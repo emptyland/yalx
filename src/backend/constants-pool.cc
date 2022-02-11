@@ -11,7 +11,7 @@ ConstantsPool::ConstantsPool(base::Arena *arena)
 , string_pool_(arena) {
 }
 
-int ConstantsPool::FindOrInsertSlot(Kind kind, const void *data, size_t size) {
+int ConstantsPool::FindOrInsertSlot(MachineRepresentation kind, const void *data, size_t size) {
     assert(size <= 8);
     Slot key;
     key.kind = kind;

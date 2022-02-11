@@ -34,7 +34,7 @@ TEST_F(ConstantsPoolTest, Kind) {
     
     for (auto pair : pool_.numbers()) {
         auto slot = std::get<0>(pair);
-        EXPECT_EQ(ConstantsPool::kWord32, slot.kind);
+        EXPECT_EQ(MachineRepresentation::kWord32, slot.kind);
         EXPECT_LT(slot.value<uint32_t>(), 1000);
     }
 }

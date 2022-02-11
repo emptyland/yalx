@@ -446,6 +446,8 @@ InstructionOperand *X64FunctionInstructionSelector::CopyArgumentValue(Instructio
     auto to = operands_.AllocateStackSlot(OperandAllocator::kVal, ty.ReferenceSizeInBytes(),
                                           StackSlotAllocator::kFit);
     if (ty.ReferenceSizeInBytes() > 64) {
+        bundle_->AddExternalSymbol("memcpy", kLibc_memcpy);
+        
         // TODO: use memcpy
         UNREACHABLE();
     } else {
