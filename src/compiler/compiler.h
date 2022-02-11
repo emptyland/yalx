@@ -12,10 +12,18 @@
 #include <set>
 
 namespace yalx {
+namespace base {
+class PrintingWriter;
+} // namespace base
 namespace ir {
 class Module;
 class OperatorsFactory;
 } // namespace ir
+namespace backend {
+class InstructionFunction;
+class ConstantsPool;
+class LinkageSymbols;
+} // namespace backend
 namespace cpl {
 
 class Package;
@@ -85,7 +93,7 @@ public:
                                                      SyntaxFeedback *error_feedback,
                                                      std::unordered_map<std::string_view, GlobalSymbol> *symbols);
     
-     // intermediate representation
+    // intermediate representation
     static base::Status
     GenerateIntermediateRepresentationCode(const std::unordered_map<std::string_view, GlobalSymbol> &symbols,
                                            base::Arena *arena,
@@ -93,6 +101,21 @@ public:
                                            Package *entry,
                                            SyntaxFeedback *error_feedback,
                                            base::ArenaMap<std::string_view, ir::Module *> *modules);
+
+    static base::Status
+    SelectX64InstructionCode(base::Arena *arena,
+                             ir::Module *module,
+                             backend::ConstantsPool *const_pool,
+                             backend::LinkageSymbols *symbols,
+                             int optimizing_level,
+                             base::ArenaMap<std::string_view, backend::InstructionFunction *> *funs);
+    
+    static base::Status
+    GenerateX64InstructionCode(const base::ArenaMap<std::string_view, backend::InstructionFunction *> &funs,
+                               ir::Module *module,
+                               backend::ConstantsPool *const_pool,
+                               backend::LinkageSymbols *symbols,
+                               base::PrintingWriter *printer);
     
     static constexpr char kSourceExtendedName[] = ".yalx";
     static constexpr char kSourceDirName[] = "src";

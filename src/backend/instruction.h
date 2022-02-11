@@ -221,9 +221,9 @@ public:
     using Operand = InstructionOperand;
     
     DEF_VAL_GETTER(Code, op);
-    DEF_VAL_GETTER(size_t, inputs_count);
-    DEF_VAL_GETTER(size_t, outputs_count);
-    DEF_VAL_GETTER(size_t, temps_count);
+    DEF_VAL_GETTER(int, inputs_count);
+    DEF_VAL_GETTER(int, outputs_count);
+    DEF_VAL_GETTER(int, temps_count);
     size_t operands_size() const { return inputs_count() + outputs_count() + temps_count(); }
     
     Operand *InputAt(size_t i) const {
@@ -241,9 +241,9 @@ public:
 private:
     Instruction(Code op, size_t inputs_count, size_t outputs_count, size_t temps_count, Operand *operands[]);
     
-    constexpr size_t input_offset() const { return 0; }
-    size_t output_offset() const { input_offset() + inputs_count(); }
-    size_t temp_offset() const { output_offset() + outputs_count(); }
+    constexpr int input_offset() const { return 0; }
+    int output_offset() const { return input_offset() + inputs_count_; }
+    int temp_offset() const { return output_offset() + outputs_count_; }
     
     static Instruction *New(base::Arena *arena, Code op, Operand *operands[] = nullptr,
                             size_t inputs_count = 0,
@@ -256,10 +256,10 @@ private:
                                          size_t temps_count = 0);
     
     Code op_;
-    uint32_t inputs_count_  : 4;
-    uint32_t outputs_count_ : 4;
-    uint32_t temps_count_   : 4;
-    uint32_t is_call_       : 1;
+    uint8_t inputs_count_;
+    uint8_t outputs_count_;
+    uint8_t temps_count_;
+    uint8_t is_call_;
     Operand *operands_[1];
 }; // class Instruction
 
@@ -292,6 +292,7 @@ public:
 
     Instruction *New(Instruction::Code op);
     Instruction *NewI(Instruction::Code op, Instruction::Operand *input);
+    Instruction *NewO(Instruction::Code op, Instruction::Operand *output);
     Instruction *NewIO(Instruction::Code op, Instruction::Operand *io, Instruction::Operand *input);
     Instruction *NewIO(Instruction::Code op, Instruction::Operand *output, Instruction::Operand *in1,
                        Instruction::Operand *in2);
@@ -332,7 +333,9 @@ DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_CASTING)
 #undef  DEFINE_CASTING
 
 inline InstructionBlock *InstructionFunction::NewBlock(int label) {
-    return new (arena_) InstructionBlock(arena_, this, label);
+    auto block = new (arena_) InstructionBlock(arena_, this, label);
+    blocks_.push_back(block);
+    return block;
 }
 
 

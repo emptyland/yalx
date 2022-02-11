@@ -9,7 +9,7 @@ Instruction::Instruction(Code op, size_t inputs_count, size_t outputs_count, siz
 , inputs_count_(inputs_count)
 , outputs_count_(outputs_count)
 , temps_count_(temps_count) {
-    ::memcpy(operands_, operands, operands_size() * sizeof(operands_[0]));
+    ::memcpy(operands_, operands, operands_size() * sizeof(Operand *));
 }
 
 Instruction *Instruction::New(base::Arena *arena, Code op, Operand *operands[], size_t inputs_count,
@@ -50,6 +50,12 @@ Instruction *InstructionBlock::New(Instruction::Code op) {
 
 Instruction *InstructionBlock::NewI(Instruction::Code op, Instruction::Operand *input) {
     auto instr = Instruction::New(arena_, op, &input, 1/*inputs_count*/);
+    instructions_.push_back(instr);
+    return instr;
+}
+
+Instruction *InstructionBlock::NewO(Instruction::Code op, Instruction::Operand *output) {
+    auto instr = Instruction::New(arena_, op, &output, 0/*inputs_count*/, 1/*outputs_count*/);
     instructions_.push_back(instr);
     return instr;
 }

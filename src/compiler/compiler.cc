@@ -3,6 +3,8 @@
 #include "compiler/syntax-feedback.h"
 #include "compiler/ast.h"
 #include "ir/codegen.h"
+#include "backend/x64/code-generate-x64.h"
+#include "backend/x64/instruction-generating-x64.h"
 #include "base/checking.h"
 #include "base/arena.h"
 #include "base/env.h"
@@ -443,6 +445,30 @@ Compiler::GenerateIntermediateRepresentationCode(const std::unordered_map<std::s
     return rs;
 }
 
+
+base::Status
+Compiler::SelectX64InstructionCode(base::Arena *arena,
+                                   ir::Module *module,
+                                   backend::ConstantsPool *const_pool,
+                                   backend::LinkageSymbols *symbols,
+                                   int optimizing_level,
+                                   base::ArenaMap<std::string_view, backend::InstructionFunction *> *funs) {
+    backend::X64InstructionGenerator generator(arena, module, const_pool, symbols, optimizing_level);
+    generator.Run();
+    generator.MoveFuns(funs);
+    return base::Status::OK();
+}
+
+base::Status
+Compiler::GenerateX64InstructionCode(const base::ArenaMap<std::string_view, backend::InstructionFunction *> &funs,
+                                     ir::Module *module,
+                                     backend::ConstantsPool *const_pool,
+                                     backend::LinkageSymbols *symbols,
+                                     base::PrintingWriter *printer) {
+    backend::X64CodeGenerator generator(funs, module, const_pool, symbols, printer);
+    generator.EmitAll();
+    return base::Status::OK();
+}
 
 } // namespace cpl
 

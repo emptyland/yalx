@@ -265,10 +265,9 @@ void OperandAllocator::ReleaseDeads(int position) {
         if (auto iter = allocated_.find(key); iter != allocated_.end()) {
             auto operand = iter->second;
             if (operand->IsLocation()) {
-                slots_.FreeSlot(static_cast<LocationOperand *>(operand));
+                slots_.FreeSlot(operand->AsLocation());
             } else if (operand->IsRegister()) {
-                // TODO:
-                UNREACHABLE();
+                registers_.FreeRegister(operand->AsRegister());
             } else {
                 UNREACHABLE();
             }

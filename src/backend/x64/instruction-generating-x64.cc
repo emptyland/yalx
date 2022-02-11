@@ -175,8 +175,9 @@ public:
     , operands_(kStackConf.Get(), kRegConf.Get(),
                 use_registers_allocation
                 ? OperandAllocator::kRegisterFirst
-                : OperandAllocator::kStackOnly, arena)
-    {}
+                : OperandAllocator::kStackOnly, arena) {}
+    
+    DEF_PTR_GETTER(InstructionFunction, bundle);
     
     void Prepare() {
         bundle_ = new (arena_) InstructionFunction(arena_, symbols_->Symbolize(fun_->full_name()));
@@ -206,6 +207,7 @@ public:
         stack_size_->Set32(stack_size);
     }
 
+    DISALLOW_IMPLICIT_CONSTRUCTORS(X64FunctionInstructionSelector);
 private:
     InstructionBlock *current() { return DCHECK_NOTNULL(current_block_); }
     
@@ -358,8 +360,16 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             }
         } break;
             
+        case ir::Operator::kClosure: {
+            // TODO:
+        } break;;
+            
+        case ir::Operator::kCallRuntime: {
+            // TODO:
+        } break;
+            
         case ir::Operator::kCallDirectly: {
-            // TODO
+            // TODO:
         } break;
             
             //
@@ -390,7 +400,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             auto returning_val_size = ReturningValSizeInBytes();
             auto returning_val_offset = kPointerSize * 2 + overflow_args_size + returning_val_size;
             
-            assert(fun_->prototype()->return_types_size() == val->op()->value_in());
+            //assert(fun_->prototype()->return_types_size() == val->op()->value_in());
             for (int i = 0; i < val->op()->value_in(); i++) {
                 auto ty = fun_->prototype()->return_type(i);
                 if (ty.kind() == ir::Type::kVoid) {
@@ -402,7 +412,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
                 returning_val_offset -= RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
             }
             
-            current()->NewI(X64Pop, operands_.registers()->frame_pointer());
+            current()->NewO(X64Pop, operands_.registers()->frame_pointer());
             current()->NewIO(X64Add, operands_.registers()->stack_pointer(), stack_size_);
             current()->New(ArchRet);
         } break;
@@ -658,11 +668,13 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
 }
 
 X64InstructionGenerator::X64InstructionGenerator(base::Arena *arena, ir::Module *module, ConstantsPool *const_pool,
-                                                 LinkageSymbols *symbols)
+                                                 LinkageSymbols *symbols, int optimizing_level)
 : arena_(arena)
 , module_(module)
 , const_pool_(const_pool)
-, symbols_(symbols) {
+, symbols_(symbols)
+, optimizing_level_(optimizing_level)
+, funs_(arena) {
     kRegConf.Get();
     kStackConf.Get();
 }
@@ -681,9 +693,11 @@ void X64InstructionGenerator::Run() {
 }
 
 void X64InstructionGenerator::GenerateFun(ir::StructureModel *owns, ir::Function *fun) {
-    X64FunctionInstructionSelector selector(arena_, const_pool_, symbols_, owns, fun, false/*use_registers_allocation*/);
+    X64FunctionInstructionSelector selector(arena_, const_pool_, symbols_, owns, fun,
+                                            optimizing_level_ > 0 /*use_registers_allocation*/);
     selector.Prepare();
     selector.Run();
+    funs_[fun->full_name()->ToSlice()] = selector.bundle();
 }
 
 void X64InstructionGenerator::PrepareGlobalValues() {

@@ -1,0 +1,7 @@
+package main
+
+fun main() {
+
+}
+
+fun foo() -> 1,2,1.1

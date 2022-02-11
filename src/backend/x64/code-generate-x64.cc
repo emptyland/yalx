@@ -155,6 +155,26 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             printer()->Write("addq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
+            
+        case X64Sub8:
+            printer()->Write("subb ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Sub16:
+            printer()->Write("subw ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Sub32:
+            printer()->Write("subl ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Sub:
+            printer()->Write("subq ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
 
         case X64Movb:
             printer()->Write("movb ");
@@ -176,6 +196,28 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
+        case X64Movss:
+            printer()->Write("movss ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+
+        case X64Movsd:
+            printer()->Write("movsd ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Push:
+            printer()->Write("pushq ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Pop:
+            printer()->Write("popq ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+
         default:
             UNREACHABLE();
             break;
@@ -282,7 +324,10 @@ void X64CodeGenerator::EmitAll() {
                 break;
             }
         }
-        printer_->Print(".file %zd ")->Write(dir)->Write(" ")->Writeln(name);
+        printer_->Print(".file %zd ", i)
+        ->Write("\"")->Write(dir)->Write("\"")
+        ->Write(" ")
+        ->Write("\"")->Write(name)->Writeln("\"");
     }
     
     std::set<std::string_view> external_symbols;
@@ -343,7 +388,7 @@ void X64CodeGenerator::EmitAll() {
         
         // "Knnn.%zd"
         for (const auto &[slot, id] : const_pool_->numbers()) {
-            printer_->Indent(1);
+            printer_->Println("Knnn.%zd:", id)->Indent(1);
             switch (slot.kind) {
                 case MachineRepresentation::kWord8:
                     printer_->Println(".byte %" PRId8, slot.value<int8_t>());
@@ -355,14 +400,14 @@ void X64CodeGenerator::EmitAll() {
                     printer_->Println(".long %" PRId32, slot.value<int16_t>());
                     break;
                 case MachineRepresentation::kFloat32:
-                    printer_->Println(".long %08" PRIx32 "    # float.%f", slot.value<uint32_t>(),
+                    printer_->Println(".long 0x%08" PRIx32 "    # float.%f", slot.value<uint32_t>(),
                                       slot.value<float>());
                     break;
                 case MachineRepresentation::kWord64:
                     printer_->Println(".long %" PRId64, slot.value<int64_t>());
                     break;
                 case MachineRepresentation::kFloat64:
-                    printer_->Println(".long %016" PRIx64 "    # double.%f", slot.value<uint64_t>(),
+                    printer_->Println(".long 0x%016" PRIx64 "    # double.%f", slot.value<uint64_t>(),
                                       slot.value<double>());
                     break;
                 default:
