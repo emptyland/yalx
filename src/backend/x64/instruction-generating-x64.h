@@ -23,11 +23,13 @@ class ConstantsPool;
 class LinkageSymbols;
 class RegisterConfiguration;
 class InstructionFunction;
+class InstructionBlockLabelGenerator;
 
 class X64InstructionGenerator final {
 public:
     X64InstructionGenerator(base::Arena *arena, ir::Module *module, ConstantsPool *const_pool, LinkageSymbols *symbols,
                             int optimizing_level);
+    ~X64InstructionGenerator();
     
     void Run();
     
@@ -47,6 +49,7 @@ private:
     LinkageSymbols *const symbols_;
     const int optimizing_level_;
     base::ArenaMap<std::string_view, InstructionFunction *> funs_;
+    std::unique_ptr<InstructionBlockLabelGenerator> lables_;
 }; // class X64InstructionGenerator
 
 } // namespace backend

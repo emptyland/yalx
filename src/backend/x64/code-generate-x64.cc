@@ -136,6 +136,12 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             printer()->Writeln("retq");
             break;
             
+        case ArchCall:
+            printer()->Write("call ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
         case X64Add8:
             printer()->Write("addb ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));

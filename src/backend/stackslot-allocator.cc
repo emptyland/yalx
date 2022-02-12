@@ -42,7 +42,7 @@ LocationOperand *StackSlotAllocator::Allocate(size_t size, bool is_ref, Policy p
     slot.model   = model;
     
     int offset = 0;
-    auto fit = FindFirstFitSpace(&offset, slot.size);
+    auto fit = (policy == kFit) ? FindFirstFitSpace(&offset, slot.size) : false;
     if (!fit) {
         offset = stack_size_;
     }

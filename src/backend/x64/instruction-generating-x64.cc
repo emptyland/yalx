@@ -164,12 +164,14 @@ public:
     X64FunctionInstructionSelector(base::Arena *arena,
                                    ConstantsPool *const_pool,
                                    LinkageSymbols *symbols,
+                                   InstructionBlockLabelGenerator *labels,
                                    ir::StructureModel *owns,
                                    ir::Function *fun,
                                    bool use_registers_allocation)
     : arena_(arena)
     , const_pool_(const_pool)
     , symbols_(symbols)
+    , labels_(labels)
     , owns_(owns)
     , fun_(fun)
     , operands_(kStackConf.Get(), kRegConf.Get(),
@@ -181,10 +183,9 @@ public:
     
     void Prepare() {
         bundle_ = new (arena_) InstructionFunction(arena_, symbols_->Symbolize(fun_->full_name()));
-        int label = 0;
         for (auto bb : fun_->blocks()) {
             bb->RemoveDeads(); // Remove deads again for phi_node_users
-            auto ib = bundle_->NewBlock(label++); //new (arena_) InstructionBlock(arena_, label++);
+            auto ib = bundle_->NewBlock(labels_->NextLable());
             blocks_[bb] = ib;
         }
         operands_.Prepare(fun_);
@@ -205,6 +206,10 @@ public:
         
         const auto stack_size = RoundUp(operands_.slots()->max_stack_size(), kStackConf->stack_alignment_size());
         stack_size_->Set32(stack_size);
+        for (auto adjust : calling_stack_adjust_) {
+            assert(stack_size >= adjust->word32());
+            adjust->Set32(stack_size - adjust->word32());
+        }
     }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(X64FunctionInstructionSelector);
@@ -243,7 +248,7 @@ private:
     
     bool CanDirectlyMove(InstructionOperand *dest, InstructionOperand *src) {
         assert(dest->IsRegister() || dest->IsLocation());
-        if (dest->IsRegister()) {
+        if (dest->IsRegister() || src->IsRegister()) {
             return true;
         }
         if (dest->IsLocation()) {
@@ -252,9 +257,9 @@ private:
         return false;
     }
     
-    size_t ReturningValSizeInBytes() const {
+    static size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto) {
         size_t size_in_bytes = 0;
-        for (auto ty : fun_->prototype()->return_types()) {
+        for (auto ty : proto->return_types()) {
             if (ty.kind() == ir::Type::kVoid) {
                 continue;
             }
@@ -264,12 +269,12 @@ private:
         return size_in_bytes;
     }
     
-    size_t OverflowArgumentsSizeInBytes() const {
+    static size_t OverflowArgumentsSizeInBytes(const ir::Function *fun) {
         size_t size_in_bytes = 0;
         int float_count = kNumberOfFloatArgumentsRegisters;
         int general_count = kNumberOfGeneralArgumentsRegisters;
         bool overflow = false;
-        for (auto param : fun_->paramaters()) {
+        for (auto param : fun->paramaters()) {
             if (param->type().IsFloating()) {
                 if (--float_count < 0) {
                     size_in_bytes = RoundUp(size_in_bytes, kStackConf->slot_alignment_size());
@@ -290,21 +295,18 @@ private:
     ir::Function *const fun_;
     ConstantsPool *const const_pool_;
     LinkageSymbols *const symbols_;
+    InstructionBlockLabelGenerator *const labels_;
     OperandAllocator operands_;
-    std::map<ir::BasicBlock *, InstructionBlock *> blocks_;
     InstructionFunction *bundle_ = nullptr;
     InstructionBlock *current_block_ = nullptr;
-    std::vector<InstructionOperand *> tmps_;
     int instruction_position_ = 0;
     ImmediateOperand *stack_size_ = nullptr;
+    std::map<ir::BasicBlock *, InstructionBlock *> blocks_;
+    std::vector<InstructionOperand *> tmps_;
+    std::vector<ImmediateOperand *> calling_stack_adjust_;
 }; // class X64FunctionInstructionSelector
 
 void X64FunctionInstructionSelector::Select(ir::Value *val) {
-    InstructionOperand *opd = nullptr;
-    if (val->type().kind() != ir::Type::kVoid) {
-        assert(!val->op()->IsConstant());
-        opd = Allocate(val, kMoR);
-    }
     switch (val->op()->value()) {
         case ir::Operator::kBr: {
             if (val->op()->value_in() == 0) {
@@ -321,6 +323,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
         } break;
             
         case ir::Operator::kAdd: {
+            auto opd = Allocate(val, kMoR);
             auto lhs = Allocate(val->InputValue(0), kAny);
             auto rhs = Allocate(val->InputValue(1), kAny);
             Move(opd, lhs, val->type());
@@ -344,6 +347,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
         } break;
             
         case ir::Operator::kFAdd: {
+            auto opd = Allocate(val, kMoR);
             auto lhs = Allocate(val->InputValue(0), kAny);
             auto rhs = Allocate(val->InputValue(1), kAny);
             Move(opd, lhs, val->type());
@@ -369,8 +373,42 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
         } break;
             
         case ir::Operator::kCallDirectly: {
-            // TODO:
+            auto callee = ir::OperatorWith<ir::Function *>::Data(val->op());
+            std::vector<ir::Value *> returning_vals;
+            returning_vals.push_back(val);
+            for (auto edge : val->users()) {
+                if (edge.user->Is(ir::Operator::kReturningVal)) {
+                    returning_vals.push_back(edge.user);
+                }
+            }
+            if (returning_vals.size() > 1) {
+                std::sort(returning_vals.begin() + 1, returning_vals.end(), [](ir::Value *v1, ir::Value *v2) {
+                    return ir::OperatorWith<int>::Data(v1) < ir::OperatorWith<int>::Data(v2);
+                });
+            }
+            auto current_stack_size = operands_.slots()->stack_size();
+            std::vector<InstructionOperand *> operands;
+            for (auto rv : returning_vals) {
+                if (rv->type().kind() != ir::Type::kVoid) {
+                    operands.push_back(operands_.AllocateStackSlot(rv, StackSlotAllocator::kLinear));
+                }
+            }
+
+            current_stack_size += ReturningValSizeInBytes(callee->prototype());
+            current_stack_size += OverflowArgumentsSizeInBytes(callee);
+            current_stack_size = RoundUp(current_stack_size, kStackConf->stack_alignment_size());
+    
+            auto adjust = ImmediateOperand::Word32(arena_, static_cast<int>(current_stack_size));
+            calling_stack_adjust_.push_back(adjust);
+            current()->NewIO(X64Add, operands_.registers()->stack_pointer(), adjust);
+            auto rel = new (arena_) ReloactionOperand(symbols_->Symbolize(callee->full_name()), nullptr);
+            current()->NewI(ArchCall, rel);
+            current()->NewIO(X64Sub, operands_.registers()->stack_pointer(), adjust);
         } break;
+            
+        case ir::Operator::kReturningVal:
+            // Just Ignore this ir code
+            break;
             
             //
             // +------------------+
@@ -396,8 +434,8 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             // +------------------+
             //
         case ir::Operator::kRet: {
-            auto overflow_args_size = OverflowArgumentsSizeInBytes();
-            auto returning_val_size = ReturningValSizeInBytes();
+            auto overflow_args_size = OverflowArgumentsSizeInBytes(fun_);
+            auto returning_val_size = ReturningValSizeInBytes(fun_->prototype());
             auto returning_val_offset = kPointerSize * 2 + overflow_args_size + returning_val_size;
             
             //assert(fun_->prototype()->return_types_size() == val->op()->value_in());
@@ -412,8 +450,8 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
                 returning_val_offset -= RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
             }
             
-            current()->NewO(X64Pop, operands_.registers()->frame_pointer());
             current()->NewIO(X64Add, operands_.registers()->stack_pointer(), stack_size_);
+            current()->NewO(X64Pop, operands_.registers()->frame_pointer());
             current()->New(ArchRet);
         } break;
             
@@ -424,7 +462,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
 }
 
 void X64FunctionInstructionSelector::ProcessParameters(InstructionBlock *block) {
-    auto returning_val_size = ReturningValSizeInBytes();
+    auto returning_val_size = ReturningValSizeInBytes(fun_->prototype());
     int number_of_float_args = kNumberOfFloatArgumentsRegisters;
     int number_of_general_args = kNumberOfGeneralArgumentsRegisters;
     for (auto param : fun_->paramaters()) {
@@ -595,7 +633,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             } else {
                 auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord16);
                 current()->NewIO(X64Movw, tmp, src);
-                current()->NewIO(X64Movw, dest, src);
+                current()->NewIO(X64Movw, dest, tmp);
             }
             break;
             
@@ -606,7 +644,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             } else {
                 auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord32);
                 current()->NewIO(X64Movl, tmp, src);
-                current()->NewIO(X64Movl, dest, src);
+                current()->NewIO(X64Movl, dest, tmp);
             }
             break;
             
@@ -619,7 +657,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             } else {
                 auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord64);
                 current()->NewIO(X64Movq, tmp, src);
-                current()->NewIO(X64Movq, dest, src);
+                current()->NewIO(X64Movq, dest, tmp);
             }
             break;
             
@@ -651,7 +689,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
                 } else {
                     auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord64);
                     current()->NewIO(X64Movq, tmp, src);
-                    current()->NewIO(X64Movq, dest, src);
+                    current()->NewIO(X64Movq, dest, tmp);
                 }
                 return;
             }
@@ -674,9 +712,13 @@ X64InstructionGenerator::X64InstructionGenerator(base::Arena *arena, ir::Module 
 , const_pool_(const_pool)
 , symbols_(symbols)
 , optimizing_level_(optimizing_level)
-, funs_(arena) {
+, funs_(arena)
+, lables_(new InstructionBlockLabelGenerator()) {
     kRegConf.Get();
     kStackConf.Get();
+}
+
+X64InstructionGenerator::~X64InstructionGenerator() {
 }
 
 void X64InstructionGenerator::Run() {
@@ -693,7 +735,7 @@ void X64InstructionGenerator::Run() {
 }
 
 void X64InstructionGenerator::GenerateFun(ir::StructureModel *owns, ir::Function *fun) {
-    X64FunctionInstructionSelector selector(arena_, const_pool_, symbols_, owns, fun,
+    X64FunctionInstructionSelector selector(arena_, const_pool_, symbols_, lables_.get(), owns, fun,
                                             optimizing_level_ > 0 /*use_registers_allocation*/);
     selector.Prepare();
     selector.Run();

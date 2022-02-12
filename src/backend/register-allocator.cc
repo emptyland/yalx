@@ -120,9 +120,10 @@ RegisterOperand *RegisterAllocator::Allocate(std::set<int> *pool, std::set<int> 
     } else {
         if (!pool->empty()) {
             auto iter = pool->begin();
+            auto rid = *iter;
             pool->erase(iter);
-            allocated->insert(*iter);
-            return new (arena_) RegisterOperand(*iter, rep);
+            allocated->insert(rid);
+            return new (arena_) RegisterOperand(rid, rep);
         } else {
             return nullptr;
         }

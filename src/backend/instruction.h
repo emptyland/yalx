@@ -21,6 +21,7 @@ enum InstructionCode {
     ArchDebugBreak,
     ArchRet,
     ArchJmp,
+    ArchCall,
     ArchUnreachable,
 #define DEFINE_ENUM(name) name,
     X64_ARCH_OPCODE_LIST(DEFINE_ENUM)
@@ -322,6 +323,17 @@ private:
     int label_;
 }; // class InstructionBlock
 
+class InstructionBlockLabelGenerator final {
+public:
+    InstructionBlockLabelGenerator() = default;
+    
+    int NextLable() { return next_label_id_++; }
+    
+    DISALLOW_IMPLICIT_CONSTRUCTORS(InstructionBlockLabelGenerator);
+private:
+    int next_label_id_ = 0;
+}; // class InstructionBlockLabelGenerator
+
 #define DEFINE_CASTING(name) \
 inline name##Operand *InstructionOperand::As##name() { \
     return !Is##name() ? nullptr : static_cast<name##Operand *>(this); \
@@ -337,6 +349,8 @@ inline InstructionBlock *InstructionFunction::NewBlock(int label) {
     blocks_.push_back(block);
     return block;
 }
+
+
 
 
 } // namespace backend

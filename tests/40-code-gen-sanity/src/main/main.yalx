@@ -4,4 +4,10 @@ fun main() {
 
 }
 
+fun issue1(): int {
+    val a,b,c = foo()
+    val d = a + b
+    return d
+}
+
 fun foo() -> 1,2,1.1
