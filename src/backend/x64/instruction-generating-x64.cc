@@ -363,13 +363,25 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
                     break;
             }
         } break;
+
+        case ir::Operator::kLoadFunAddr: {
+            auto fun = ir::OperatorWith<const ir::Function *>::Data(val->op());
+            auto symbol = symbols_->Symbolize(fun->full_name());
+            bundle()->AddExternalSymbol(fun->full_name()->ToSlice(), symbol);
+
+            auto opd = Allocate(val, kAny));
+            auto rel = new (arena_) ReloactionOperand(symbol, nullptr);
+            Move(opd, rel);
+        } break;
             
         case ir::Operator::kClosure: {
             // TODO:
+            
         } break;;
             
         case ir::Operator::kCallRuntime: {
             // TODO:
+            // PkgInitOnce -> pkg_init_once(void *fun, const char *name)
         } break;
             
         case ir::Operator::kCallDirectly: {

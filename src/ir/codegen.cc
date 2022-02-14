@@ -1651,8 +1651,8 @@ private:
             
             auto deps = owns_->AssertedGetModule(full_name);
             auto init = DCHECK_NOTNULL(deps->FindFunOrNull(cpl::kModuleInitFunName));
-            auto op = ops()->Closure(init);
-            auto type = Type::Ref(init->prototype());
+            auto op = ops()->LoadFunAddr(init);
+            auto type = Type::Val(init->prototype(), true/*pointer*/);
             auto fun = init_blk_->NewNode(SourcePosition::Unknown(), type, op);
 
             op = ops()->StringConstant(deps->full_name());

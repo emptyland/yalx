@@ -40,6 +40,7 @@ namespace ir {
     V(StoreGlobal) \
     V(LazyValue) \
     V(LazyLoad) \
+    V(LoadFunAddr) \
     V(LoadEffectAddress) \
     V(LoadAccessField) \
     V(StoreAccessField) \
@@ -131,6 +132,7 @@ namespace ir {
     V(IsInstanceOf,     Model const *) \
     V(GlobalValue,      String const *) \
     V(LazyValue,        String const *) \
+    V(LoadFunAddr,      Function *) \
     V(LoadInlineField,  Handle const *) \
     V(LoadAccessField,  Handle const *) \
     V(LoadEffectField,  Handle const *) \

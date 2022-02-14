@@ -82,6 +82,11 @@ public:
         return new (arena_) Operator(Operator::kStoreGlobal, 0, 2/*value_in*/, 0/*control_in*/, 0/*value_out*/,
                                      0/*control_out*/);
     }
+
+    Operator *LoadFunAddr(const Function *fun) {
+        return new (arena_) OperatorWith<const Function *>(Operator::kLoadEffectAddress, 0, 1/*value_in*/, 0/*control_in*/,
+                                                           0/*value_out*/, 0/*control_out*/, fun);
+    }
     
     // Load Value type's pointer of field
     // input[0]: Value pinter
