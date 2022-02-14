@@ -9,7 +9,6 @@
 _trampoline:
     pushq %rbp
     movq %rsp, %rbp;
-    // Save fucking callee shit registers
 
     pushq %rbx
     pushq %r12

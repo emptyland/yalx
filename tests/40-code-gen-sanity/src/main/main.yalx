@@ -10,4 +10,8 @@ fun issue1(): int {
     return d
 }
 
+fun issue2() -> doo(1,2,3)
+
 fun foo() -> 1,2,1.1
+
+fun doo(a: int, b: int, c: int) -> a + b + c

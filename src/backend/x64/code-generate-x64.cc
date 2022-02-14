@@ -137,7 +137,7 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             break;
             
         case ArchCall:
-            printer()->Write("call ");
+            printer()->Write("callq ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
@@ -246,16 +246,99 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
             
         case InstructionOperand::kLocation: {
             auto opd = operand->AsLocation();
-            printer()->Print("%d(%%%s)", opd->k(), RegisterName(MachineRepresentation::kWord64, opd->register0_id()));
+            
+//            V(MR)   /* [%r1            ] */      \
+//            V(MRI)  /* [%r1         + K] */      \
+//            V(MR1)  /* [%r1 + %r2*1    ] */      \
+//            V(MR2)  /* [%r1 + %r2*2    ] */      \
+//            V(MR4)  /* [%r1 + %r2*4    ] */      \
+//            V(MR8)  /* [%r1 + %r2*8    ] */      \
+//            V(MR1I) /* [%r1 + %r2*1 + K] */      \
+//            V(MR2I) /* [%r1 + %r2*2 + K] */      \
+//            V(MR4I) /* [%r1 + %r2*3 + K] */      \
+//            V(MR8I) /* [%r1 + %r2*4 + K] */      \
+//            V(M1)   /* [      %r2*1    ] */      \
+//            V(M2)   /* [      %r2*2    ] */      \
+//            V(M4)   /* [      %r2*4    ] */      \
+//            V(M8)   /* [      %r2*8    ] */      \
+//            V(M1I)  /* [      %r2*1 + K] */      \
+//            V(M2I)  /* [      %r2*2 + K] */      \
+//            V(M4I)  /* [      %r2*4 + K] */      \
+//            V(M8I)  /* [      %r2*8 + K] */      \
+//            V(Root) /* [%root       + K] */
+            const char *r1 = opd->register0_id() < 0 ? "not-allocated"
+            : RegisterName(MachineRepresentation::kWord64, opd->register0_id());
+            const char *r2 = opd->register1_id() < 0 ? "not-allocated"
+            : RegisterName(MachineRepresentation::kWord64, opd->register1_id());
+            switch (opd->mode()) {
+                case X64Mode_MR:
+                    printer()->Print("(%%%s)", r1);
+                    break;
+                case X64Mode_MRI:
+                    printer()->Print("%d(%%%s)", opd->k(), r1);
+                    break;
+                case X64Mode_MR1:
+                    printer()->Print("(%%%s, %%%s, 1)", r1, r2);
+                    break;
+                case X64Mode_MR2:
+                    printer()->Print("(%%%s, %%%s, 2)", r1, r2);
+                    break;
+                case X64Mode_MR4:
+                    printer()->Print("(%%%s, %%%s, 4)", r1, r2);
+                    break;
+                case X64Mode_MR8:
+                    printer()->Print("(%%%s, %%%s, 8)", r1, r2);
+                    break;
+                case X64Mode_MR1I:
+                    printer()->Print("%d(%%%s, %%%s, 1)", opd->k(), r1, r2);
+                    break;
+                case X64Mode_MR2I:
+                    printer()->Print("%d(%%%s, %%%s, 2)", opd->k(), r1, r2);
+                    break;
+                case X64Mode_MR4I:
+                    printer()->Print("%d(%%%s, %%%s, 4)", opd->k(), r1, r2);
+                    break;
+                case X64Mode_MR8I:
+                    printer()->Print("%d(%%%s, %%%s, 8)", opd->k(), r1, r2);
+                    break;
+                case X64Mode_M1:
+                    printer()->Print("(%%%s, 1)", r2);
+                    break;
+                case X64Mode_M2:
+                    printer()->Print("(%%%s, 2)", r2);
+                    break;
+                case X64Mode_M4:
+                    printer()->Print("(%%%s, 4)", r2);
+                    break;
+                case X64Mode_M8:
+                    printer()->Print("(%%%s, 8)", r2);
+                    break;
+                case X64Mode_M1I:
+                    printer()->Print("%d(%%%s, 1)", opd->k(), r2);
+                    break;
+                case X64Mode_M2I:
+                    printer()->Print("%d(%%%s, 2)", opd->k(), r2);
+                    break;
+                case X64Mode_M4I:
+                    printer()->Print("%d(%%%s, 4)", opd->k(), r2);
+                    break;
+                case X64Mode_M8I:
+                    printer()->Print("%d(%%%s, 8)", opd->k(), r2);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+            
         } break;
             
         case InstructionOperand::kConstant: {
             auto opd = operand->AsConstant();
             if (opd->kind() == ConstantOperand::kString) {
-                printer()->Print("Kstr.%d(%rip)", opd->symbol_id());
+                printer()->Print("Kstr.%d(%%rip)", opd->symbol_id());
             } else {
                 assert(opd->kind() == ConstantOperand::kNumber);
-                printer()->Print("Knnn.%d(%rip)", opd->symbol_id());
+                printer()->Print("Knnn.%d(%%rip)", opd->symbol_id());
             }
         } break;
             
@@ -330,7 +413,7 @@ void X64CodeGenerator::EmitAll() {
                 break;
             }
         }
-        printer_->Print(".file %zd ", i)
+        printer_->Print(".file %zd ", i+1)
         ->Write("\"")->Write(dir)->Write("\"")
         ->Write(" ")
         ->Write("\"")->Write(name)->Writeln("\"");
