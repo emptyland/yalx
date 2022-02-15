@@ -210,6 +210,10 @@ public:
     DEF_VAL_GETTER(int, register_id);
     DEF_VAL_GETTER(MachineRepresentation, rep);
     
+    bool IsGeneralRegister() const;
+    bool IsFloatRegister() const { return rep() == MachineRepresentation::kFloat32; }
+    bool IsDoubleRegister() const { return rep() == MachineRepresentation::kFloat64; }
+    
     DISALLOW_IMPLICIT_CONSTRUCTORS(RegisterOperand);
 private:
     int register_id_;

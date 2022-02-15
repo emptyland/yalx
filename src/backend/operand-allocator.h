@@ -49,6 +49,7 @@ public:
     InstructionOperand *Allocate(OperandMark mark, size_t size, ir::Model *model = nullptr);
     
     LocationOperand *AllocateStackSlot(ir::Value *value, StackSlotAllocator::Policy policy);
+    LocationOperand *AllocateStackSlot(ir::Type ty, StackSlotAllocator::Policy policy);
     LocationOperand *AllocateStackSlot(OperandMark mark, size_t size,
                                        StackSlotAllocator::Policy policy,
                                        ir::Model *model = nullptr);
@@ -82,6 +83,10 @@ public:
         size_t index;
         size_t size;
     };
+    
+    friend class RegisterSavingScope;
+    friend class RegisterPreemptiveScope;
+    DISALLOW_IMPLICIT_CONSTRUCTORS(OperandAllocator);
 private:
     InstructionOperand *TryAllocateRegisterFirst(ir::Value *value);
     
@@ -100,16 +105,71 @@ private:
             }
         }
     }
+    
+    struct RegisterRecord {
+        RegisterOperand *opd;
+        LocationOperand *bak;
+        ir::Value *val;
+    };
 
     const Policy policy_;
     base::Arena *const arena_;
     StackSlotAllocator slots_;
     RegisterAllocator registers_;
+    std::map<int, RegisterRecord> active_general_registers_;
+    std::map<int, RegisterRecord> active_float_registers_;
     std::map<ir::Value *, Instruction::Operand *> allocated_;
     std::map<ir::Value *, LiveRange> live_ranges_;
     std::vector<LiveRecord> dead_records_;
     std::vector<ir::Value *> deads_;
 }; // class OperandAllocator
+
+class RegisterSavingScope final {
+public:
+    using MoveCallback = std::function<void(InstructionOperand *, InstructionOperand *, ir::Value *)>;
+    
+    explicit RegisterSavingScope(OperandAllocator *allocator, MoveCallback &&callback);
+    ~RegisterSavingScope();
+    
+    void AddExclude(ir::Value *exclude, int designate, int position);
+    void SaveAll();
+private:
+    void Exit();
+    
+    struct Backup {
+        ir::Value *val;
+        LocationOperand *current;
+        RegisterOperand *old;
+    };
+    
+    OperandAllocator *const allocator_;
+    std::set<int> general_exclude_;
+    std::set<int> float_exclude_;
+    MoveCallback move_callback_;
+    std::vector<Backup> backup_;
+}; // class RegisterSavingScope
+
+class RegisterPreemptiveScope final {
+public:
+    explicit RegisterPreemptiveScope(OperandAllocator *allocator);
+    ~RegisterPreemptiveScope();
+    
+    RegisterOperand *Preempt(ir::Value *val, int designate);
+    
+private:
+    struct BackupRecord {
+        ir::Value *val;
+        RegisterOperand *current;
+        LocationOperand *backup;
+        InstructionOperand *old;
+    };
+    
+    void Enter();
+    void Exit();
+    
+    OperandAllocator *const allocator_;
+    std::vector<BackupRecord> backup_;
+}; // class RegisterPreemptiveScope
 
 } // namespace backend
 } // namespace yalx

@@ -4,6 +4,19 @@ namespace yalx {
 
 namespace backend {
 
+bool RegisterOperand::IsGeneralRegister() const {
+    switch (rep()) {
+        case MachineRepresentation::kWord8:
+        case MachineRepresentation::kWord16:
+        case MachineRepresentation::kWord32:
+        case MachineRepresentation::kWord64:
+            return true;
+            
+        default:
+            return false;
+    }
+}
+
 Instruction::Instruction(Code op, size_t inputs_count, size_t outputs_count, size_t temps_count, Operand *operands[])
 : op_(op)
 , inputs_count_(inputs_count)

@@ -76,7 +76,7 @@ InstructionOperand *OperandAllocator::Allocate(ir::Value *value) {
             
         case kRegisterFirst:
             return TryAllocateRegisterFirst(value);
-
+            
         default:
             UNREACHABLE();
             break;
@@ -93,7 +93,7 @@ InstructionOperand *OperandAllocator::Allocate(ir::Type ty) {
                 return Allocate(kVal, ty.ReferenceSizeInBytes(), ty.model());
             }
             break;
-
+            
         case ir::Type::kString:
         case ir::Type::kReference:
             return Allocate(kRef, kPointerSize, ty.model());
@@ -101,7 +101,7 @@ InstructionOperand *OperandAllocator::Allocate(ir::Type ty) {
         case ir::Type::kVoid:
             UNREACHABLE();
             break;
-    
+            
         default:
             return Allocate(kVal, ty.ReferenceSizeInBytes(), ty.model());
     }
@@ -170,6 +170,27 @@ LocationOperand *OperandAllocator::AllocateStackSlot(ir::Value *value, StackSlot
     return slot;
 }
 
+LocationOperand *OperandAllocator::AllocateStackSlot(ir::Type ty, StackSlotAllocator::Policy policy) {
+    LocationOperand *slot = nullptr;
+    switch (ty.kind()) {
+        case ir::Type::kValue:
+            if (ty.IsPointer()) {
+                slot = AllocateStackSlot(kPtr, kPointerSize, policy);
+            } else {
+                slot = AllocateStackSlot(kVal, ty.model()->PlacementSizeInBytes(), policy, ty.model());
+            }
+            break;
+        case ir::Type::kString:
+        case ir::Type::kReference:
+            slot = AllocateStackSlot(kRef, kPointerSize, policy);
+            break;
+        default:
+            slot = AllocateStackSlot(kVal, ty.bytes(), policy);
+            break;
+    }
+    return slot;
+}
+
 LocationOperand *OperandAllocator::AllocateStackSlot(OperandMark mark, size_t size, StackSlotAllocator::Policy policy,
                                                      ir::Model *model) {
     switch (mark) {
@@ -202,6 +223,11 @@ RegisterOperand *OperandAllocator::AllocateReigster(ir::Value *value, int design
     }
     if (reg) {
         allocated_[value] = reg;
+        if (reg->IsGeneralRegister()) {
+            active_general_registers_[reg->register_id()].val = value;
+        } else if (reg->IsFloatRegister() || reg->IsDoubleRegister()) {
+            active_float_registers_[reg->register_id()].val = value;
+        }
     }
     return reg;
 }
@@ -224,30 +250,56 @@ static MachineRepresentation ToMachineRepresentation(size_t size) {
 }
 
 RegisterOperand *OperandAllocator::AllocateReigster(OperandMark mark, size_t size, int designate) {
+    RegisterOperand *opd = nullptr;
     switch (mark) {
         case kPtr:
         case kRef:
-            return registers_.AllocateRegister(registers_.conf()->rep_of_ptr(), designate);
+            opd = registers_.AllocateRegister(registers_.conf()->rep_of_ptr(), designate);
+            break;
         case kVal:
-            return registers_.AllocateRegister(ToMachineRepresentation(size), designate);
+            opd = registers_.AllocateRegister(ToMachineRepresentation(size), designate);
+            break;
         case kF32:
-            return registers_.AllocateRegister(MachineRepresentation::kFloat32, designate);
+            opd = registers_.AllocateRegister(MachineRepresentation::kFloat32, designate);
+            break;
         case kF64:
-            return registers_.AllocateRegister(MachineRepresentation::kFloat64, designate);
+            opd = registers_.AllocateRegister(MachineRepresentation::kFloat64, designate);
+            break;
         default:
             UNREACHABLE();
-            break;
+            return nullptr;
     }
-    return nullptr;
+    if (opd) {
+        if (opd->IsGeneralRegister()) {
+            active_general_registers_[opd->register_id()] = {
+                .val = nullptr,
+                .opd = opd,
+                .bak = nullptr,
+            };
+        } else if (opd->IsFloatRegister() || opd->IsDoubleRegister()) {
+            active_float_registers_[opd->register_id()] = {
+                .val = nullptr,
+                .opd = opd,
+                .bak = nullptr,
+            };
+        }
+    }
+    return opd;
 }
 
 void OperandAllocator::Free(InstructionOperand *operand) {
     switch (operand->kind()) {
-        case InstructionOperand::kRegister:
-            registers()->FreeRegister(static_cast<RegisterOperand *>(operand));
-            break;
+        case InstructionOperand::kRegister: {
+            auto reg = operand->AsRegister();
+            registers()->FreeRegister(reg);
+            if (reg->IsGeneralRegister()) {
+                active_general_registers_.erase(reg->register_id());
+            } else if (reg->IsFloatRegister() || reg->IsDoubleRegister()) {
+                active_float_registers_.erase(reg->register_id());
+            }
+        } break;
         case InstructionOperand::kLocation:
-            slots()->FreeSlot(static_cast<LocationOperand *>(operand));
+            slots()->FreeSlot(operand->AsLocation());
             break;
         default:
             UNREACHABLE();
@@ -273,6 +325,99 @@ void OperandAllocator::ReleaseDeads(int position) {
             }
         }
     }
+}
+
+RegisterSavingScope::RegisterSavingScope(OperandAllocator *allocator, MoveCallback &&callback)
+: allocator_(allocator)
+, move_callback_(std::move(callback)) {
+}
+
+RegisterSavingScope::~RegisterSavingScope() {
+    Exit();
+}
+
+void RegisterSavingScope::AddExclude(ir::Value *exclude, int designate, int position) {
+    assert(position >= 0);
+    assert(position + 1 < allocator_->live_ranges_.size());
+    auto dead = allocator_->dead_records_[position + 1];
+    for (int i = dead.index; i < dead.index + dead.size; i++) {
+        if (exclude == allocator_->deads_[i]) {
+            if (!exclude->type().IsFloating()) {
+                general_exclude_.insert(designate);
+            } else {
+                float_exclude_.insert(designate);
+            }
+            return;
+        }
+    }
+    
+    auto opd = allocator_->Allocated(exclude);
+    if (opd) {
+        if (auto reg = opd->AsRegister()) {
+            if (reg->register_id() == designate) {
+                if (!exclude->type().IsFloating()) {
+                    general_exclude_.insert(designate);
+                } else {
+                    float_exclude_.insert(designate);
+                }
+                return;
+            }
+        }
+    }
+}
+
+void RegisterSavingScope::SaveAll() {
+    //std::map<ir::Value *, InstructionOperand *> incoming_move;
+    for (auto [rid, rd] : allocator_->active_general_registers_) {
+        if (general_exclude_.find(rid) != general_exclude_.end()) {
+            continue;
+        }
+        auto bak = allocator_->AllocateStackSlot(rd.val->type(), StackSlotAllocator::kFit);
+        move_callback_(bak, rd.opd, rd.val);
+        backup_.push_back({rd.val, bak, rd.opd});
+    }
+    for (auto [rid, rd] : allocator_->active_float_registers_) {
+        if (float_exclude_.find(rid) != float_exclude_.end()) {
+            continue;
+        }
+        auto bak = allocator_->AllocateStackSlot(rd.val->type(), StackSlotAllocator::kFit);
+        move_callback_(bak, rd.opd, rd.val);
+        backup_.push_back({rd.val, bak, rd.opd});
+    }
+    for (auto bak : backup_) {
+        allocator_->Move(bak.val, bak.current);
+    }
+}
+
+void RegisterSavingScope::Exit() {
+    for (auto bak : backup_) {
+        auto opd = DCHECK_NOTNULL(allocator_->AllocateReigster(bak.val, bak.old->register_id()));
+        move_callback_(opd, bak.current, bak.val);
+        allocator_->Move(bak.val, opd);
+    }
+}
+
+RegisterPreemptiveScope::RegisterPreemptiveScope(OperandAllocator *allocator)
+: allocator_(allocator) {
+    Enter();
+}
+
+RegisterPreemptiveScope::~RegisterPreemptiveScope() {
+    Exit();
+}
+
+RegisterOperand *RegisterPreemptiveScope::Preempt(ir::Value *val, int designate) {
+    UNREACHABLE();
+    // TODO:
+    return nullptr;
+}
+
+void RegisterPreemptiveScope::Enter() {
+    
+}
+
+void RegisterPreemptiveScope::Exit() {
+    
 }
 
 } // namespace backend
