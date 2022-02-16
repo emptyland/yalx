@@ -1,8 +1,9 @@
 #include "backend/instruction.h"
+#include "base/checking.h"
 
 namespace yalx {
-
 namespace backend {
+
 
 bool RegisterOperand::IsGeneralRegister() const {
     switch (rep()) {
@@ -14,6 +15,62 @@ bool RegisterOperand::IsGeneralRegister() const {
             
         default:
             return false;
+    }
+}
+
+bool InstructionOperand::Equals(const InstructionOperand *other) const {
+    if (kind() != other->kind()) {
+        return false;
+    }
+    switch (kind()) {
+        case kInvalid:
+            return other->IsInvalid();
+        case kConstant: {
+            auto lhs = AsConstant();
+            auto rhs = other->AsConstant();
+            return lhs->type() == rhs->type() && lhs->symbol_id() == rhs->symbol_id();
+        } break;
+        case kLocation: {
+            auto lhs = AsLocation();
+            auto rhs = other->AsLocation();
+            return lhs->mode() == rhs->mode() &&
+                lhs->register0_id() == rhs->register0_id() &&
+                lhs->register1_id() == rhs->register1_id() &&
+                lhs->k() == rhs->k();
+        } break;
+        case kRegister: {
+            auto lhs = AsRegister();
+            auto rhs = other->AsRegister();
+            return lhs->rep() == rhs->rep() && lhs->register_id() == rhs->register_id();
+        } break;
+        case kImmediate: {
+            auto lhs = AsImmediate();
+            auto rhs = other->AsImmediate();
+            if (lhs->rep() != rhs->rep()) {
+                return false;
+            }
+            switch (lhs->rep()) {
+                case MachineRepresentation::kWord8:
+                    return lhs->word8() == rhs->word8();
+                case MachineRepresentation::kWord16:
+                    return lhs->word16() == rhs->word16();
+                case MachineRepresentation::kWord32:
+                    return lhs->word32() == rhs->word32();
+                case MachineRepresentation::kWord64:
+                    return lhs->word64() == rhs->word64();
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+        case kReloaction: {
+            auto lhs = AsReloaction();
+            auto rhs = other->AsReloaction();
+            return lhs->label() == rhs->label() && lhs->symbol_name() == rhs->symbol_name();
+        } break;
+        default:
+            UNREACHABLE();
+            break;
     }
 }
 
@@ -89,5 +146,4 @@ Instruction *InstructionBlock::NewIO(Instruction::Code op, Instruction::Operand 
 }
 
 } // namespace backend
-
 } // namespace yalx

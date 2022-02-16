@@ -65,10 +65,15 @@ public:
     };
     
     DEF_VAL_GETTER(Kind, kind);
+    
+    void Kill() { kind_ = kInvalid; }
 
 #define DEFINE_TESTING(name) bool Is##name() const { return kind() == k##name; }
     DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_TESTING)
 #undef  DEFINE_TESTING
+    bool IsInvalid() const { return kind() == kInvalid; }
+    
+    bool Equals(const InstructionOperand *other) const;
     
 #define DEFINE_CASTING(name) \
     inline name##Operand *As##name(); \
@@ -149,18 +154,18 @@ private:
 
 class ConstantOperand final : public InstructionOperand {
 public:
-    enum Kind {
+    enum Type {
         kString,
         kNumber,
     };
     
-    ConstantOperand(Kind kind, int symbol_id): InstructionOperand(kConstant), kind_(kind), symbol_id_(symbol_id) {}
+    ConstantOperand(Type type, int symbol_id): InstructionOperand(kConstant), type_(type), symbol_id_(symbol_id) {}
     
-    DEF_VAL_GETTER(Kind, kind);
+    DEF_VAL_GETTER(Type, type);
     DEF_VAL_GETTER(int, symbol_id);
 
 private:
-    Kind kind_;
+    Type type_;
     int symbol_id_;
 }; // class ConstantOperand
 
