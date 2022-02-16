@@ -43,6 +43,56 @@ _trampoline:
 
 
 //----------------------------------------------------------------------------------------------------------------------
+// void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun)
+//----------------------------------------------------------------------------------------------------------------------
+// constexpr Register Argv_0 = rdi; // {kRDI},
+// constexpr Register Argv_1 = rsi; // {kRSI},
+// constexpr Register Argv_2 = rdx; // {kRDX},
+// constexpr Register Argv_3 = rcx; // {kRCX},
+// constexpr Register Argv_4 = r8;  // {kR8},
+// constexpr Register Argv_5 = r9;  // {kR9},
+// constexpr Register Argv_6 = r10; // {kR10},
+// constexpr Register Argv_7 = r11; // {kR11},
+// memcpy(dest, src, size)
+.global _call_returning_vals, _memcpy
+_call_returning_vals:
+    pushq %rbp
+    pushq %rbx
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+    pushq %r15
+
+    movq %rsp, %rbp
+    addq $32, %rsi
+    subq %rsi, %rsp
+    
+    movq %rdi, -8(%rbp) // returnning_vals
+    movq %rsi, -16(%rbp) // size_in_bytes
+    movq %rdx, -24(%rbp) // yalx_fun
+    
+    callq *%rdx
+
+    movq -8(%rbp), %rdi // dest
+    movq %rsp, %rsi // src
+    addq $8, %rsi
+    movq -16(%rbp), %rdx // size
+    subq $32, %rdx
+    callq _memcpy
+
+    movq -16(%rbp), %rsi
+    addq %rsi, %rsp
+
+    popq %r15
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    popq %rbp
+    retq
+//----------------------------------------------------------------------------------------------------------------------
 // void yield()
 //----------------------------------------------------------------------------------------------------------------------
 .global _yield,_yalx_schedule,_thread_local_mach

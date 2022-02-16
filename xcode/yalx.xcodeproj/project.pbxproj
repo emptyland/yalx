@@ -64,6 +64,7 @@
 		23667C2F27B235D700612546 /* operand-allocator-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23667C2D27B235D700612546 /* operand-allocator-test.cc */; };
 		23667C3127B2532E00612546 /* machine-type.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23667C3027B2532E00612546 /* machine-type.cc */; };
 		23667C3227B2532E00612546 /* machine-type.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23667C3027B2532E00612546 /* machine-type.cc */; };
+		236C1FD827BD17CC009C93B2 /* issue-01-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 236C1FD727BD17CC009C93B2 /* issue-01-posix-x64.s */; };
 		237D551D27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
 		237D551E27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
@@ -364,6 +365,7 @@
 		236466CB26F07E870066D168 /* checking.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = checking.cc; path = ../src/base/checking.cc; sourceTree = "<group>"; };
 		23667C2D27B235D700612546 /* operand-allocator-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "operand-allocator-test.cc"; path = "../src/backend/operand-allocator-test.cc"; sourceTree = "<group>"; };
 		23667C3027B2532E00612546 /* machine-type.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "machine-type.cc"; path = "../src/backend/machine-type.cc"; sourceTree = "<group>"; };
+		236C1FD727BD17CC009C93B2 /* issue-01-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-01-posix-x64.s"; path = "../src/backend/x64/issue-01-posix-x64.s"; sourceTree = "<group>"; };
 		23711300275F6889008919BE /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/compiler/constants.h; sourceTree = "<group>"; };
 		237A0DAB27731390002180FE /* global-symbol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "global-symbol.h"; path = "../src/compiler/global-symbol.h"; sourceTree = "<group>"; };
 		237D551B27B0BAD60067A633 /* operand-allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "operand-allocator.h"; path = "../src/backend/operand-allocator.h"; sourceTree = "<group>"; };
@@ -538,6 +540,7 @@
 				23C1345D27A4DDFA00C0DEB4 /* instruction-generating-x64.cc */,
 				23C1345C27A4DD8400C0DEB4 /* instruction-generating-x64.h */,
 				23C1346327A4EFD800C0DEB4 /* instruction-codes-x64.h */,
+				236C1FD727BD17CC009C93B2 /* issue-01-posix-x64.s */,
 			);
 			name = X64;
 			sourceTree = "<group>";
@@ -1031,6 +1034,7 @@
 				2362A0E926A67D1000A972B1 /* type-reducing-test.cc in Sources */,
 				239735CC27B54D2800FAD063 /* linkage-symbols.cc in Sources */,
 				232FDB0926802E4700D52154 /* yalx-string-posix-x64.s in Sources */,
+				236C1FD827BD17CC009C93B2 /* issue-01-posix-x64.s in Sources */,
 				23D5A6892667734A00635ADB /* builtin-types.c in Sources */,
 				23D5A66C266718F900635ADB /* hash.cc in Sources */,
 				23D5A67E26672FE000635ADB /* test-stub-posix-x64.s in Sources */,

@@ -86,6 +86,11 @@ static const char *RegisterName(MachineRepresentation rep, int id) {
 
 class X64CodeGenerator::FunctionGenerator {
 public:
+    enum X64RelocationStyle {
+        kDefault,
+        kIndirectly
+    };
+    
     FunctionGenerator(X64CodeGenerator *owns, InstructionFunction *fun)
     : owns_(owns)
     , fun_(fun) {
@@ -107,8 +112,8 @@ public:
 
 private:
     void Emit(Instruction *instr);
-    void EmitOperand(InstructionOperand *operand);
-    void EmitOperands(InstructionOperand *io, InstructionOperand *input);
+    void EmitOperand(InstructionOperand *operand, X64RelocationStyle style = kDefault);
+    void EmitOperands(InstructionOperand *io, InstructionOperand *input, X64RelocationStyle style = kDefault);
     
     base::PrintingWriter *Incoming() { return printer()->Indent(1); }
     base::PrintingWriter *printer() { return owns_->printer_; }
@@ -138,7 +143,7 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             
         case ArchCall:
             printer()->Write("callq ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->InputAt(0), kIndirectly);
             printer()->Writeln("");
             break;
             
@@ -230,14 +235,15 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
     }
 }
 
-void X64CodeGenerator::FunctionGenerator::EmitOperands(InstructionOperand *io, InstructionOperand *input) {
-    EmitOperand(input);
+void X64CodeGenerator::FunctionGenerator::EmitOperands(InstructionOperand *io, InstructionOperand *input,
+                                                       X64RelocationStyle style) {
+    EmitOperand(input, style);
     printer()->Write(", ");
-    EmitOperand(io);
+    EmitOperand(io, style);
     printer()->Write("\n");
 }
 
-void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operand) {
+void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operand, X64RelocationStyle style) {
     switch (operand->kind()) {
         case InstructionOperand::kRegister: {
             auto opd = operand->AsRegister();
@@ -266,6 +272,9 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
 //            V(M4I)  /* [      %r2*4 + K] */      \
 //            V(M8I)  /* [      %r2*8 + K] */      \
 //            V(Root) /* [%root       + K] */
+            if (style == kIndirectly) {
+                printer()->Write("*");
+            }
             const char *r1 = opd->register0_id() < 0 ? "not-allocated"
             : RegisterName(MachineRepresentation::kWord64, opd->register0_id());
             const char *r2 = opd->register1_id() < 0 ? "not-allocated"
@@ -366,10 +375,18 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
         case InstructionOperand::kReloaction: {
             auto opd = operand->AsReloaction();
             if (opd->label()) {
-                printer()->Print("Lblk%d", opd->label()->label());
+                if (style == kIndirectly) {
+                    printer()->Print("*Lblk%d", opd->label()->label());
+                } else {
+                    printer()->Print("Lblk%d", opd->label()->label());
+                }
             } else {
                 assert(opd->symbol_name() != nullptr);
-                printer()->Print("%s", opd->symbol_name()->data());
+                if (style == kIndirectly) {
+                    printer()->Print("%s", opd->symbol_name()->data());
+                } else {
+                    printer()->Print("%s(%%rip)", opd->symbol_name()->data());
+                }
             }
         } break;
 

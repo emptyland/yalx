@@ -449,20 +449,24 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             // +------------------+
             //
         case ir::Operator::kRet: {
+            printd("%s", fun_->full_name()->data());
             auto overflow_args_size = OverflowParametersSizeInBytes(fun_);
             auto returning_val_size = ReturningValSizeInBytes(fun_->prototype());
-            auto returning_val_offset = kPointerSize * 2 + overflow_args_size + returning_val_size;
-            
-            //assert(fun_->prototype()->return_types_size() == val->op()->value_in());
+            auto caller_saving_size = RoundUp(overflow_args_size + returning_val_size,
+                                              kStackConf->stack_alignment_size());
+            auto caller_padding_size = caller_saving_size - returning_val_size - overflow_args_size;
+            auto returning_val_offset = kPointerSize * 2 + caller_padding_size;
+            // padding = 8   returning-vals = 12 offset = 24
+            // padding = 12  returning-vals = 4  offset = 28
             for (int i = 0; i < val->op()->value_in(); i++) {
                 auto ty = fun_->prototype()->return_type(i);
                 if (ty.kind() == ir::Type::kVoid) {
                     continue;
                 }
                 auto ret = Allocate(val->InputValue(i), kAny);
+                returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
                 auto opd = new (arena_) LocationOperand(X64Mode_MRI, rbp.code(), 0, returning_val_offset);
                 Move(opd, ret, ty);
-                returning_val_offset -= RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
             }
             
             current()->NewIO(X64Add, operands_.registers()->stack_pointer(), stack_size_);
@@ -476,6 +480,27 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
     }
 }
 
+// --------------
+// return address |
+// --------------
+//    saved RBP   |
+// --------------
+//                |      -8
+// --------------
+//                |      -16
+// --------------
+//                |      -24
+// --------------
+//                | +32  -32  returning_vals[0] a
+// --------------   +28  -36  returning_vals[1] b
+//                | +24  -40  returning_vals[2]
+// --------------
+//                | +16  -48
+// --------------
+// return address | +8
+// --------------
+//    saved RBP   | 0
+// --------------
 void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
     auto callee = ir::OperatorWith<ir::Function *>::Data(val->op());
     std::vector<ir::Value *> returning_vals;

@@ -32,6 +32,10 @@ protected:
     LinkageSymbols symbols_;
 }; // class X64InstructionGeneratorTest
 
+extern "C" void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
+extern "C" void main_Zomain_Zdissue1();
+extern "C" void main_Zomain_Zdfoo();
+
 TEST_F(X64CodeGeneratorTest, Sanity) {
     std::string buf;
     base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
@@ -39,6 +43,15 @@ TEST_F(X64CodeGeneratorTest, Sanity) {
     CodeGen("tests/40-code-gen-sanity", "main:main", &printer, &ok);
     ASSERT_TRUE(ok);
     printf("%s\n", buf.c_str());
+}
+
+TEST_F(X64CodeGeneratorTest, ReturningVals) {
+    int buf[4] = {0};
+    printf("%p\n", main_Zomain_Zdfoo);
+    call_returning_vals(buf, arraysize(buf) * sizeof(buf[0]), reinterpret_cast<void *>(&main_Zomain_Zdfoo));
+    memset(buf, 0, sizeof(buf));
+    call_returning_vals(buf, arraysize(buf) * sizeof(buf[0]), reinterpret_cast<void *>(&main_Zomain_Zdissue1));
+    printf("ok\n");
 }
 
 } // namespace backend
