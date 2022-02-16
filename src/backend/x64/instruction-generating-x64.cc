@@ -211,7 +211,7 @@ public:
             adjust->Set32(stack_size - adjust->word32());
         }
     }
-
+    
     DISALLOW_IMPLICIT_CONSTRUCTORS(X64FunctionInstructionSelector);
 private:
     InstructionBlock *current() { return DCHECK_NOTNULL(current_block_); }
@@ -238,6 +238,7 @@ private:
     
     
     void Select(ir::Value *val);
+    void CallDirectly(ir::Value *val);
     void ProcessParameters(InstructionBlock *block);
     InstructionOperand *CopyArgumentValue(InstructionBlock *block, ir::Type ty, InstructionOperand *from);
     
@@ -346,6 +347,14 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             UNREACHABLE();
         } break;
             
+        case ir::Operator::kLoadEffectField: {
+            UNREACHABLE();
+        } break;
+            
+        case ir::Operator::kLoadEffectAddress: {
+            UNREACHABLE();
+        } break;
+            
         case ir::Operator::kAdd: {
             auto opd = Allocate(val, kMoR);
             auto lhs = Allocate(val->InputValue(0), kAny);
@@ -387,12 +396,12 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
                     break;
             }
         } break;
-
+            
         case ir::Operator::kLoadFunAddr: {
             auto fun = ir::OperatorWith<const ir::Function *>::Data(val->op());
             auto symbol = symbols_->Symbolize(fun->full_name());
             bundle()->AddExternalSymbol(fun->full_name()->ToSlice(), symbol);
-
+            
             auto opd = Allocate(val, kAny);
             auto rel = new (arena_) ReloactionOperand(symbol, nullptr);
             Move(opd, rel, val->type());
@@ -408,79 +417,9 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             // PkgInitOnce -> pkg_init_once(void *fun, const char *name)
         } break;
             
-        case ir::Operator::kCallDirectly: {
-            auto callee = ir::OperatorWith<ir::Function *>::Data(val->op());
-            std::vector<ir::Value *> returning_vals;
-            returning_vals.push_back(val);
-            for (auto edge : val->users()) {
-                if (edge.user->Is(ir::Operator::kReturningVal)) {
-                    returning_vals.push_back(edge.user);
-                }
-            }
-            if (returning_vals.size() > 1) {
-                std::sort(returning_vals.begin() + 1, returning_vals.end(), [](ir::Value *v1, ir::Value *v2) {
-                    return ir::OperatorWith<int>::Data(v1) < ir::OperatorWith<int>::Data(v2);
-                });
-            }
-            std::vector<ir::Value *> overflow_args;
-            RegisterSavingScope saving_scope(&operands_, [this](auto dest, auto src, auto val){
-                Move(dest, src, val->type());
-            });
-            size_t overflow_args_size = 0;
-            int general_index = 0, float_index = 0;
-            for (int i = 0; i < val->op()->value_in(); i++) {
-                auto arg = val->InputValue(i);
-                if (general_index < kNumberOfGeneralArgumentsRegisters) {
-                    saving_scope.AddExclude(arg, kGeneralArgumentsRegisters[general_index], instruction_position_);
-                } else {
-                    // overflow
-                    const auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
-                    overflow_args_size += size;
-                    overflow_args.push_back(arg);
-                }
-                if (float_index < kNumberOfFloatArgumentsRegisters) {
-                    saving_scope.AddExclude(arg, kFloatArgumentsRegisters[float_index], instruction_position_);
-                } else {
-                    // overflow
-                    const auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
-                    overflow_args_size += size;
-                    overflow_args.push_back(arg);
-                }
-                
-                general_index++;
-                float_index++;
-            }
-            
-            saving_scope.SaveAll();
-            
-            auto current_stack_size = operands_.slots()->stack_size();
-            for (auto rv : returning_vals) {
-                if (rv->type().kind() != ir::Type::kVoid) {
-                    operands_.AllocateStackSlot(rv, StackSlotAllocator::kLinear);
-                }
-            }
-            
-            //const auto overflow_args_size = OverflowArgumentsSizeInBytes(val, &overflow_args);
-            if (overflow_args_size > 0) {
-                for (auto arg : overflow_args) {
-                    auto opd = operands_.AllocateStackSlot(arg->type(), StackSlotAllocator::kLinear);
-                    tmps_.push_back(opd);
-                    Move(opd, Allocate(arg, kAny), arg->type());
-                }
-                
-            }
-
-            current_stack_size += ReturningValSizeInBytes(callee->prototype());
-            current_stack_size += overflow_args_size;
-            current_stack_size = RoundUp(current_stack_size, kStackConf->stack_alignment_size());
-    
-            auto adjust = ImmediateOperand::Word32(arena_, static_cast<int>(current_stack_size));
-            calling_stack_adjust_.push_back(adjust);
-            current()->NewIO(X64Add, operands_.registers()->stack_pointer(), adjust);
-            auto rel = new (arena_) ReloactionOperand(symbols_->Symbolize(callee->full_name()), nullptr);
-            current()->NewI(ArchCall, rel);
-            current()->NewIO(X64Sub, operands_.registers()->stack_pointer(), adjust);
-        } break;
+        case ir::Operator::kCallDirectly:
+            CallDirectly(val);
+            break;
             
         case ir::Operator::kReturningVal:
             // Just Ignore this ir code
@@ -535,6 +474,106 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             UNREACHABLE();
             break;
     }
+}
+
+void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
+    auto callee = ir::OperatorWith<ir::Function *>::Data(val->op());
+    std::vector<ir::Value *> returning_vals;
+    returning_vals.push_back(val);
+    for (auto edge : val->users()) {
+        if (edge.user->Is(ir::Operator::kReturningVal)) {
+            returning_vals.push_back(edge.user);
+        }
+    }
+    if (returning_vals.size() > 1) {
+        std::sort(returning_vals.begin() + 1, returning_vals.end(), [](ir::Value *v1, ir::Value *v2) {
+            return ir::OperatorWith<int>::Data(v1) < ir::OperatorWith<int>::Data(v2);
+        });
+    }
+    std::vector<ir::Value *> overflow_args;
+    RegisterSavingScope saving_scope(&operands_, instruction_position_, [this](auto dest, auto src, auto val){
+        Move(dest, src, val->type());
+    });
+    size_t overflow_args_size = 0;
+    int general_index = 0, float_index = 0;
+    for (int i = 0; i < val->op()->value_in(); i++) {
+        auto arg = val->InputValue(i);
+        const auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
+        if (arg->type().IsFloating()) {
+            if (float_index < kNumberOfFloatArgumentsRegisters) {
+                saving_scope.AddExclude(arg, kFloatArgumentsRegisters[float_index], instruction_position_);
+            } else {
+                // overflow
+                overflow_args_size += size;
+                overflow_args.push_back(arg);
+            }
+            float_index++;
+        } else {
+            if (general_index < kNumberOfGeneralArgumentsRegisters) {
+                saving_scope.AddExclude(arg, kGeneralArgumentsRegisters[general_index], instruction_position_);
+            } else {
+                // overflow
+                overflow_args_size += size;
+                overflow_args.push_back(arg);
+            }
+            general_index++;
+        }
+    }
+    saving_scope.SaveAll();
+
+    general_index = 0, float_index = 0;
+    for (int i = 0; i < val->op()->value_in(); i++) {
+        auto arg = val->InputValue(i);
+        auto opd = Allocate(arg, kAny);
+        if (arg->type().IsFloating()) {
+            if (float_index < kNumberOfFloatArgumentsRegisters) {
+                if (saving_scope.Include(kFloatArgumentsRegisters[float_index], false/*general*/)) {
+                    auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
+                                                                          kFloatArgumentsRegisters[float_index]));
+                    Move(dest, opd, arg->type());
+                    operands_.Move(arg, dest);
+                }
+            }
+            float_index++;
+        } else {
+            if (general_index < kNumberOfGeneralArgumentsRegisters) {
+                if (saving_scope.Include(kGeneralArgumentsRegisters[general_index], true/*general*/)) {
+                    auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
+                                                                          kGeneralArgumentsRegisters[general_index]));
+                    Move(dest, opd, arg->type());
+                    operands_.Move(arg, dest);
+                }
+            }
+            general_index++;
+        }
+    }
+    
+    auto current_stack_size = operands_.slots()->stack_size();
+    for (auto rv : returning_vals) {
+        if (rv->type().kind() != ir::Type::kVoid) {
+            operands_.AllocateStackSlot(rv, StackSlotAllocator::kLinear);
+        }
+    }
+    
+    if (overflow_args_size > 0) {
+        for (auto arg : overflow_args) {
+            auto opd = operands_.AllocateStackSlot(arg->type(), StackSlotAllocator::kLinear);
+            tmps_.push_back(opd);
+            Move(opd, Allocate(arg, kAny), arg->type());
+        }
+        
+    }
+    
+    current_stack_size += ReturningValSizeInBytes(callee->prototype());
+    current_stack_size += overflow_args_size;
+    current_stack_size = RoundUp(current_stack_size, kStackConf->stack_alignment_size());
+    
+    auto adjust = ImmediateOperand::Word32(arena_, static_cast<int>(current_stack_size));
+    calling_stack_adjust_.push_back(adjust);
+    current()->NewIO(X64Add, operands_.registers()->stack_pointer(), adjust);
+    auto rel = new (arena_) ReloactionOperand(symbols_->Symbolize(callee->full_name()), nullptr);
+    current()->NewI(ArchCall, rel);
+    current()->NewIO(X64Sub, operands_.registers()->stack_pointer(), adjust);
 }
 
 void X64FunctionInstructionSelector::ProcessParameters(InstructionBlock *block) {

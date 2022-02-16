@@ -55,6 +55,7 @@ public:
                                        ir::Model *model = nullptr);
     
     RegisterOperand *AllocateReigster(ir::Value *value, int designate = kAnyRegister);
+    RegisterOperand *AllocateReigster(ir::Type ty, int designate = kAnyRegister);
     RegisterOperand *AllocateReigster(OperandMark mark, size_t size, int designate = kAnyRegister);
 
     void Free(ir::Value *value) {
@@ -64,6 +65,9 @@ public:
         }
     }
     void Free(InstructionOperand *operand);
+    
+    bool WillBeLive(ir::Value *value, int position) const { return !WillBeDead(value, position); }
+    bool WillBeDead(ir::Value *value, int position) const;
     
     void ReleaseDeads(int position);
     
@@ -128,10 +132,19 @@ class RegisterSavingScope final {
 public:
     using MoveCallback = std::function<void(InstructionOperand *, InstructionOperand *, ir::Value *)>;
     
-    explicit RegisterSavingScope(OperandAllocator *allocator, MoveCallback &&callback);
+    RegisterSavingScope(OperandAllocator *allocator, int position, MoveCallback &&callback);
     ~RegisterSavingScope();
     
     void AddExclude(ir::Value *exclude, int designate, int position);
+
+    bool Include(int designate, bool general) { return !Exclude(designate, general); }
+    bool Exclude(int designate, bool general) {
+        if (general) {
+            return general_exclude_.find(designate) != general_exclude_.end();
+        } else {
+            return float_exclude_.find(designate) != float_exclude_.end();
+        }
+    }
     void SaveAll();
 private:
     void Exit();
@@ -143,6 +156,7 @@ private:
     };
     
     OperandAllocator *const allocator_;
+    const int position_;
     std::set<int> general_exclude_;
     std::set<int> float_exclude_;
     MoveCallback move_callback_;
