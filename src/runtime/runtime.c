@@ -311,3 +311,8 @@ void dbg_output(yalx_ref_t obj) {
             break;
     }
 }
+
+
+void pkg_init_once(void *init_fun, const char *const plain_name) {
+    assert(0); // TODO:
+}

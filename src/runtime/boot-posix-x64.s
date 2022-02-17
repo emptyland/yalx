@@ -76,7 +76,7 @@ _call_returning_vals:
 
     movq -8(%rbp), %rdi // dest
     movq %rsp, %rsi // src
-    addq $8, %rsi
+    //addq $8, %rsi
     movq -16(%rbp), %rdx // size
     subq $32, %rdx
     callq _memcpy

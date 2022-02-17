@@ -32,9 +32,12 @@ protected:
     LinkageSymbols symbols_;
 }; // class X64InstructionGeneratorTest
 
-extern "C" void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
-extern "C" void main_Zomain_Zdissue1();
-extern "C" void main_Zomain_Zdfoo();
+extern "C" {
+void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
+void main_Zomain_Zdissue1();
+void main_Zomain_Zdissue5();
+void main_Zomain_Zdfoo();
+} // extern "C"
 
 TEST_F(X64CodeGeneratorTest, Sanity) {
     std::string buf;
@@ -47,11 +50,19 @@ TEST_F(X64CodeGeneratorTest, Sanity) {
 
 TEST_F(X64CodeGeneratorTest, ReturningVals) {
     int buf[4] = {0};
-    printf("%p\n", main_Zomain_Zdfoo);
-    call_returning_vals(buf, arraysize(buf) * sizeof(buf[0]), reinterpret_cast<void *>(&main_Zomain_Zdfoo));
+    call_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zdissue1));
+    ASSERT_EQ(3, buf[3]);
     memset(buf, 0, sizeof(buf));
-    call_returning_vals(buf, arraysize(buf) * sizeof(buf[0]), reinterpret_cast<void *>(&main_Zomain_Zdissue1));
-    printf("ok\n");
+    call_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zdfoo));
+    ASSERT_EQ(1066192077, buf[1]);
+    ASSERT_EQ(2, buf[2]);
+    ASSERT_EQ(1, buf[3]);
+    memset(buf, 0, sizeof(buf));
+    call_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zdissue5));
+    ASSERT_EQ(4, buf[0]);
+    ASSERT_EQ(3, buf[1]);
+    ASSERT_EQ(2, buf[2]);
+    ASSERT_EQ(1, buf[3]);
 }
 
 } // namespace backend

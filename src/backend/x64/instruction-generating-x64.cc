@@ -449,7 +449,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             // +------------------+
             //
         case ir::Operator::kRet: {
-            printd("%s", fun_->full_name()->data());
+            //printd("%s", fun_->full_name()->data());
             auto overflow_args_size = OverflowParametersSizeInBytes(fun_);
             auto returning_val_size = ReturningValSizeInBytes(fun_->prototype());
             auto caller_saving_size = RoundUp(overflow_args_size + returning_val_size,
@@ -458,14 +458,15 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             auto returning_val_offset = kPointerSize * 2 + caller_padding_size;
             // padding = 8   returning-vals = 12 offset = 24
             // padding = 12  returning-vals = 4  offset = 28
-            for (int i = 0; i < val->op()->value_in(); i++) {
+            //for (int i = 0; i < val->op()->value_in(); i++) {
+            for (int i = val->op()->value_in() - 1; i >= 0; i--) {
                 auto ty = fun_->prototype()->return_type(i);
                 if (ty.kind() == ir::Type::kVoid) {
                     continue;
                 }
                 auto ret = Allocate(val->InputValue(i), kAny);
-                returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
                 auto opd = new (arena_) LocationOperand(X64Mode_MRI, rbp.code(), 0, returning_val_offset);
+                returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
                 Move(opd, ret, ty);
             }
             
