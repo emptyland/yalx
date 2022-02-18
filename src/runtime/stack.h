@@ -2,12 +2,12 @@
 #ifndef YALX_RUNTIME_STACK_H_
 #define YALX_RUNTIME_STACK_H_
 
+#include "runtime/runtime.h"
+#include <pthread.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "runtime/runtime.h"
-#include <pthread.h>
 
 #define STACK_PADDKING_SIZE 512
 #define STACK_RED_ZONE_SIZE 512

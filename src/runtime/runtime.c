@@ -2,12 +2,16 @@
 #include "runtime/scheduler.h"
 #include "runtime/process.h"
 #include "runtime/checking.h"
+#include "runtime/hash-table.h"
 #include "runtime/heap/heap.h"
 #include "runtime/object/yalx-string.h"
 #include "runtime/object/number.h"
 #include "runtime/object/type.h"
 #include <unistd.h>
+#if defined(YALX_OS_DARWIN)
 #include <sys/sysctl.h>
+#endif
+#include <dlfcn.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -35,6 +39,9 @@ struct stack_pool stack_pool;
 extern uint32_t yalx_magic_number1;
 extern uint32_t yalx_magic_number2;
 extern uint32_t yalx_magic_number3;
+
+static struct hash_table pkg_init_records;
+static pthread_mutex_t pkg_init_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #ifndef NDEBUG
 
@@ -94,6 +101,8 @@ static const struct dev_struct_field string_fields[] = {
 
 #undef DECLARE_FIELD
 
+
+
 static void dev_print_fields(const struct dev_struct_field *field) {
     for (;field->name.z != NULL; field++) {
         printf("    %s %d 0x%04x\n", field->name.z, field->offset, field->offset);
@@ -135,7 +144,7 @@ int yalx_runtime_init() {
     }
     ncpus = (int)cpu_count;
 #endif // defined(YALX_OS_DARWIN)
-    
+    yalx_init_hash_table(&pkg_init_records, 1.2);
     if (yalx_init_heap(&heap) < 0) {
         return -1;
     }
@@ -177,6 +186,7 @@ int yalx_runtime_init() {
 }
 
 void yalx_runtime_eixt(void) {
+    yalx_free_hash_table(&pkg_init_records);
     yalx_free_scheduler(&scheduler);
     // TODO:
 }
@@ -313,6 +323,121 @@ void dbg_output(yalx_ref_t obj) {
 }
 
 
+void *yalx_zalloc(size_t n) {
+    void *chunk = malloc(n);
+    if (!chunk) {
+        return NULL;
+    }
+    memset(chunk, 0, n);
+    return chunk;
+}
+
+int yalx_name_symbolize(const char *const plain_name, char symbol[], size_t size) {
+    char *p = symbol;
+    const char *const limit = p + size;
+    
+    *p++ = '_';
+
+    const char *z = plain_name;
+    while (*z) {
+        char c = *z++;
+        const char *escape = NULL;
+        size_t n = 0;
+        switch (c) {
+            case '.':
+                escape = "_Zd";
+                n = 3;
+                break;
+            case '$':
+                escape = "_Z4";
+                n = 3;
+                break;
+            case ':':
+                escape = "_Zo";
+                n = 3;
+                break;
+            case '<':
+                escape = "_Dk";
+                n = 3;
+                break;
+            case '>':
+                escape = "_Dl";
+                n = 3;
+                break;
+            case '/':
+            case '\\':
+                escape = "_Zp";
+                n = 3;
+                break;
+            default:
+                escape = &c;
+                n = 1;
+                break;
+        }
+        if (limit - p < n) {
+            return -1;
+        }
+        memcpy(p, escape, n);
+        p += n;
+    }
+    if (limit - p < 1) {
+        return -1;
+    }
+    *p++ = '\0'; // term zero
+    return (int)(p - symbol);
+}
+
+struct lksz_header {
+    int number_of_strings;
+    const char *const sz[1];
+};
+
+struct kstr_header {
+    int number_of_strings;
+    struct yalx_value_str *ks[1];
+};
+
 void pkg_init_once(void *init_fun, const char *const plain_name) {
-    assert(0); // TODO:
+    char *symbol = NULL;
+    pthread_mutex_lock(&pkg_init_records);
+    
+    size_t buf_size = 98;
+    do {
+        free(symbol);
+        buf_size <<= 1;
+        symbol = (char *)realloc(symbol, buf_size);
+    } while(yalx_name_symbolize(plain_name, symbol, buf_size) < 0);
+    
+    struct hash_table_value_span pkg = yalx_get_string_key(&pkg_init_records, symbol);
+    if (pkg.value != NULL) {
+        goto done; // Already init
+    }
+    const size_t prefix_len = strlen(symbol);
+    assert(prefix_len > 1);
+    if (prefix_len + 6 > buf_size) {
+        symbol = (char *)realloc(symbol, prefix_len + 6);
+    }
+    strncpy(symbol + prefix_len, "_Lksz", 6);
+    
+#if defined(YALX_OS_POSIX)
+    struct lksz_header *lksz_addr = (struct lksz_header *)dlsym(RTLD_SELF, symbol);
+#endif
+    
+    strncpy(symbol + prefix_len, "_Kstr", 6);
+
+#if defined(YALX_OS_POSIX)
+    struct kstr_header *kstr_addr = (struct kstr_header *)dlsym(RTLD_SELF, symbol);
+#endif
+    
+    if (!lksz_addr || !kstr_addr) {
+        goto done; // No constant string will be initializing
+    }
+    assert(lksz_addr->number_of_strings == kstr_addr->number_of_strings);
+    
+    for (int i = 0; i < lksz_addr->number_of_strings; i++) {
+        kstr_addr->ks[i] = yalx_new_string(&heap, lksz_addr->sz[i], strlen(lksz_addr->sz[i]));
+    }
+done:
+    pthread_mutex_unlock(&pkg_init_records);
+    free(symbol);
 }

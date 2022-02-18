@@ -65,6 +65,10 @@
 		23667C3127B2532E00612546 /* machine-type.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23667C3027B2532E00612546 /* machine-type.cc */; };
 		23667C3227B2532E00612546 /* machine-type.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23667C3027B2532E00612546 /* machine-type.cc */; };
 		236C1FD827BD17CC009C93B2 /* issue-01-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 236C1FD727BD17CC009C93B2 /* issue-01-posix-x64.s */; };
+		236CC7B627BF383F00754BC0 /* hash-table.c in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B527BF383F00754BC0 /* hash-table.c */; };
+		236CC7B727BF383F00754BC0 /* hash-table.c in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B527BF383F00754BC0 /* hash-table.c */; };
+		236CC7B927BF754D00754BC0 /* hash-table-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B827BF754D00754BC0 /* hash-table-test.cc */; };
+		236CC7BA27BF754D00754BC0 /* hash-table-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B827BF754D00754BC0 /* hash-table-test.cc */; };
 		237D551D27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
 		237D551E27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
@@ -366,6 +370,9 @@
 		23667C2D27B235D700612546 /* operand-allocator-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "operand-allocator-test.cc"; path = "../src/backend/operand-allocator-test.cc"; sourceTree = "<group>"; };
 		23667C3027B2532E00612546 /* machine-type.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "machine-type.cc"; path = "../src/backend/machine-type.cc"; sourceTree = "<group>"; };
 		236C1FD727BD17CC009C93B2 /* issue-01-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-01-posix-x64.s"; path = "../src/backend/x64/issue-01-posix-x64.s"; sourceTree = "<group>"; };
+		236CC7B427BF343C00754BC0 /* hash-table.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "hash-table.h"; path = "../src/runtime/hash-table.h"; sourceTree = "<group>"; };
+		236CC7B527BF383F00754BC0 /* hash-table.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "hash-table.c"; path = "../src/runtime/hash-table.c"; sourceTree = "<group>"; };
+		236CC7B827BF754D00754BC0 /* hash-table-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "hash-table-test.cc"; path = "../src/runtime/hash-table-test.cc"; sourceTree = "<group>"; };
 		23711300275F6889008919BE /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/compiler/constants.h; sourceTree = "<group>"; };
 		237A0DAB27731390002180FE /* global-symbol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "global-symbol.h"; path = "../src/compiler/global-symbol.h"; sourceTree = "<group>"; };
 		237D551B27B0BAD60067A633 /* operand-allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "operand-allocator.h"; path = "../src/backend/operand-allocator.h"; sourceTree = "<group>"; };
@@ -570,6 +577,9 @@
 				23CAA1DD26667586000EF129 /* checking.h */,
 				23CAA1DE2666790B000EF129 /* scheduler.h */,
 				23CAA1DF2666799F000EF129 /* scheduler.cc */,
+				236CC7B827BF754D00754BC0 /* hash-table-test.cc */,
+				236CC7B427BF343C00754BC0 /* hash-table.h */,
+				236CC7B527BF383F00754BC0 /* hash-table.c */,
 				231C4B8B268DA7AD00D4AC62 /* test-stub-posix-arm64.s */,
 				23D5A67D26672FE000635ADB /* test-stub-posix-x64.s */,
 				231C4B8A268DA7AD00D4AC62 /* boot-posix-arm64.s */,
@@ -941,6 +951,7 @@
 				239735D027B551A500FAD063 /* linkage-symbols-test.cc in Sources */,
 				23D4A4682680D17D0090C631 /* arena-test.cc in Sources */,
 				231C4B90268DA7D200D4AC62 /* yalx-string-posix-arm64.s in Sources */,
+				236CC7BA27BF754D00754BC0 /* hash-table-test.cc in Sources */,
 				23C1345727A3F23C00C0DEB4 /* constants-pool-test.cc in Sources */,
 				23D4A4692680D17D0090C631 /* arena.h in Sources */,
 				2387EFB4268586F5002E6DCF /* lexer-test.cc in Sources */,
@@ -990,6 +1001,7 @@
 				23D4A47C2680D17D0090C631 /* sha256.h in Sources */,
 				23D4A47D2680D17D0090C631 /* status-test.cc in Sources */,
 				23D4A47E2680D17D0090C631 /* status.h in Sources */,
+				236CC7B727BF383F00754BC0 /* hash-table.c in Sources */,
 				23D4A47F2680D17D0090C631 /* status.cc in Sources */,
 				23D4A4802680D17D0090C631 /* checking.h in Sources */,
 				2331FFA7268DC66B00F69508 /* ast-utils.cc in Sources */,
@@ -1032,6 +1044,7 @@
 				23B997D926A4680300DD037B /* type-reducing.cc in Sources */,
 				232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */,
 				2362A0E926A67D1000A972B1 /* type-reducing-test.cc in Sources */,
+				236CC7B627BF383F00754BC0 /* hash-table.c in Sources */,
 				239735CC27B54D2800FAD063 /* linkage-symbols.cc in Sources */,
 				232FDB0926802E4700D52154 /* yalx-string-posix-x64.s in Sources */,
 				236C1FD827BD17CC009C93B2 /* issue-01-posix-x64.s in Sources */,
@@ -1065,6 +1078,7 @@
 				23D5A675266718F900635ADB /* sha256.h in Sources */,
 				23D5A68626676DFC00635ADB /* any.c in Sources */,
 				23667C2E27B235D700612546 /* operand-allocator-test.cc in Sources */,
+				236CC7B927BF754D00754BC0 /* hash-table-test.cc in Sources */,
 				23FA86AA26A161DF001CC777 /* codegen.cc in Sources */,
 				23D5A676266718F900635ADB /* status-test.cc in Sources */,
 				2362A0ED26A69EAF00A972B1 /* generics-instantiating.cc in Sources */,

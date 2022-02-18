@@ -455,7 +455,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             auto caller_saving_size = RoundUp(overflow_args_size + returning_val_size,
                                               kStackConf->stack_alignment_size());
             auto caller_padding_size = caller_saving_size - returning_val_size - overflow_args_size;
-            auto returning_val_offset = kPointerSize * 2 + caller_padding_size;
+            auto returning_val_offset = kPointerSize * 2 + caller_padding_size + overflow_args_size;
             // padding = 8   returning-vals = 12 offset = 24
             // padding = 12  returning-vals = 4  offset = 28
             //for (int i = 0; i < val->op()->value_in(); i++) {
