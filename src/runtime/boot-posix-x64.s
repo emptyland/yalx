@@ -45,15 +45,6 @@ _trampoline:
 //----------------------------------------------------------------------------------------------------------------------
 // void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun)
 //----------------------------------------------------------------------------------------------------------------------
-// constexpr Register Argv_0 = rdi; // {kRDI},
-// constexpr Register Argv_1 = rsi; // {kRSI},
-// constexpr Register Argv_2 = rdx; // {kRDX},
-// constexpr Register Argv_3 = rcx; // {kRCX},
-// constexpr Register Argv_4 = r8;  // {kR8},
-// constexpr Register Argv_5 = r9;  // {kR9},
-// constexpr Register Argv_6 = r10; // {kR10},
-// constexpr Register Argv_7 = r11; // {kR11},
-// memcpy(dest, src, size)
 .global _call_returning_vals, _memcpy
 _call_returning_vals:
     pushq %rbp
@@ -76,7 +67,6 @@ _call_returning_vals:
 
     movq -8(%rbp), %rdi // dest
     movq %rsp, %rsi // src
-    //addq $8, %rsi
     movq -16(%rbp), %rdx // size
     subq $32, %rdx
     callq _memcpy

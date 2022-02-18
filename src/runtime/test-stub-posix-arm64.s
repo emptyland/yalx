@@ -72,6 +72,25 @@ _y2zmain_main:
     // TODO:
     ret
 
+.global _asm_stub6
+_asm_stub6:
+    sub sp, sp, 0x10
+    stp fp, lr, [sp, 0]
+    add fp, sp, 0
+    
+    mov w0, 199
+    str w0, [fp, 28]
+    mov w0, 911
+    str w0, [fp, 24]
+    mov w0, 222
+    str w0, [fp, 20]
+    mov w0, 220
+    str w0, [fp, 16]
+
+    ldp fp, lr, [sp, 0]
+    add sp, sp, 0x10
+    ret
+
 co_dummy_entry1:
     ret
 

@@ -52,3 +52,50 @@ _coroutine_finalize_stub:
     ret
 
 
+
+//----------------------------------------------------------------------------------------------------------------------
+// void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun)
+//----------------------------------------------------------------------------------------------------------------------
+// x0 = returnning_vals
+// x1 = size_in_bytes
+// x2 = yalx_fun
+// r19…r28 Callee-saved registers
+.global _call_returning_vals, _memcpy
+_call_returning_vals:
+    sub sp, sp, 96
+    stp fp, lr, [sp, 80]
+    stp x19, x20, [sp, 64]
+    stp x21, x22, [sp, 48]
+    stp x23, x24, [sp, 32]
+    stp x25, x26, [sp, 16]
+    stp x27, x28, [sp, 0]
+    
+    mov x19, x1
+    add x19, x19, 32
+    mov fp, sp
+    sub sp, sp, x19
+
+    str x0, [fp, -8]  // store returnning_vals
+    str x1, [fp, -16] // store size_in_bytes
+    str x2, [fp, -24] // stroe yalx_fun
+
+    blr x2
+
+    ldr x0, [fp, -8]
+    mov x1, sp
+    ldr x2, [fp, -16]
+    bl _memcpy
+
+    ldr x19, [fp, -16]
+    add x19, x19, 32
+    add sp, sp, x19
+
+    ldp x27, x28, [sp, 0]
+    ldp x25, x26, [sp, 16]
+    ldp x23, x24, [sp, 32]
+    ldp x21, x22, [sp, 48]
+    ldp x19, x20, [sp, 64]
+    ldp fp, lr, [sp, 80]
+    add sp, sp, 96
+    mov x0, 0
+    ret

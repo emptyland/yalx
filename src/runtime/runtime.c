@@ -399,7 +399,12 @@ struct kstr_header {
 
 void pkg_init_once(void *init_fun, const char *const plain_name) {
     char *symbol = NULL;
-    pthread_mutex_lock(&pkg_init_records);
+    pthread_mutex_lock(&pkg_init_mutex);
+
+    struct hash_table_value_span pkg = yalx_get_string_key(&pkg_init_records, plain_name);
+    if (pkg.value != NULL) {
+        goto done; // Already init
+    }
     
     size_t buf_size = 98;
     do {
@@ -408,10 +413,6 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
         symbol = (char *)realloc(symbol, buf_size);
     } while(yalx_name_symbolize(plain_name, symbol, buf_size) < 0);
     
-    struct hash_table_value_span pkg = yalx_get_string_key(&pkg_init_records, symbol);
-    if (pkg.value != NULL) {
-        goto done; // Already init
-    }
     const size_t prefix_len = strlen(symbol);
     assert(prefix_len > 1);
     if (prefix_len + 6 > buf_size) {
@@ -430,6 +431,7 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
 #endif
     
     if (!lksz_addr || !kstr_addr) {
+        yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name), 4);
         goto done; // No constant string will be initializing
     }
     assert(lksz_addr->number_of_strings == kstr_addr->number_of_strings);
@@ -437,7 +439,18 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     for (int i = 0; i < lksz_addr->number_of_strings; i++) {
         kstr_addr->ks[i] = yalx_new_string(&heap, lksz_addr->sz[i], strlen(lksz_addr->sz[i]));
     }
+    
+    yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name), 4);
 done:
-    pthread_mutex_unlock(&pkg_init_records);
+    pthread_mutex_unlock(&pkg_init_mutex);
     free(symbol);
+}
+
+int pkg_initialized_count() { return pkg_init_records.size; }
+
+int pkg_has_initialized(const char *const plain_name) {
+    pthread_mutex_lock(&pkg_init_mutex);
+    hash_table_value_span_t span = yalx_get_string_key(&pkg_init_records, plain_name);
+    pthread_mutex_unlock(&pkg_init_mutex);
+    return span.value != NULL;
 }

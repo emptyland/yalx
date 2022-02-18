@@ -60,3 +60,17 @@ TEST(RuntimeTest, C0M0) {
 TEST(RuntimeTest, MockRt0Sanity) {
     //yalx_rt0(0, NULL);
 }
+
+TEST(RuntimeTest, PkgInitOnce) {
+    ASSERT_EQ(0, pkg_initialized_count());
+    pkg_init_once(nullptr, "testing/test:test");
+    ASSERT_EQ(1, pkg_initialized_count());
+    ASSERT_TRUE(pkg_has_initialized("testing/test:test"));
+}
+
+TEST(RuntimeTest, CallReturningVals) {
+    int buf[4] = {0};
+    call_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(asm_stub6));
+    ASSERT_EQ(220, buf[0]);
+    ASSERT_EQ(199, buf[3]);
+}

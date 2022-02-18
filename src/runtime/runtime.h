@@ -103,6 +103,7 @@ int asm_stub2(const struct yalx_str *);
 u64_t asm_stub3(void);
 int asm_stub4(void);
 void *asm_stub5(void);
+void *asm_stub6(void);
 
 // implements in boot-[Arch].s
 int trampoline(void);
@@ -110,6 +111,8 @@ void coroutine_finalize_stub(void);
 void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
 
 void pkg_init_once(void *init_fun, const char *const plain_name);
+int pkg_initialized_count();
+int pkg_has_initialized(const char *const plain_name);
 
 // generated entry symbol: main:main.main(): unit
 void y2zmain_main(void);

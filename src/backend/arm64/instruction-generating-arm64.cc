@@ -49,7 +49,7 @@ static const int kAllocatableDoubleRegisters[] = {
 #undef  DEFINE_CODE
 };
 
-static const int kArgumentsRegisters[] = {
+static const int kGeneralArgumentsRegisters[] = {
     arm64::x0.code(),
     arm64::x1.code(),
     arm64::x3.code(),
@@ -59,7 +59,19 @@ static const int kArgumentsRegisters[] = {
     arm64::x7.code(),
 };
 
-constexpr static const size_t kNumberOfArgumentsRegisters = arraysize(kArgumentsRegisters);
+static const int kFloatArgumentsRegisters[] = {
+    arm64::s0.code(),
+    arm64::s1.code(),
+    arm64::s2.code(),
+    arm64::s3.code(),
+    arm64::s4.code(),
+    arm64::s5.code(),
+    arm64::s6.code(),
+    arm64::s7.code(),
+};
+
+constexpr static const size_t kNumberOfGeneralArgumentsRegisters = arraysize(kGeneralArgumentsRegisters);
+constexpr static const size_t kNumberOfFloatArgumentsRegisters = arraysize(kFloatArgumentsRegisters);
 
 struct Arm64RegisterConfigurationInitializer {
     static RegisterConfiguration *New(void *chunk) {
@@ -99,16 +111,90 @@ struct Arm64StackConfigurationInitializer {
 static base::LazyInstance<RegisterConfiguration, Arm64RegisterConfigurationInitializer> kRegConf;
 static base::LazyInstance<StackConfiguration, Arm64StackConfigurationInitializer>       kStackConf;
 
-Arm64InstructionGenerator::Arm64InstructionGenerator(base::Arena *arena, ir::Module *module, ConstantsPool *const_pool)
+Arm64InstructionGenerator::Arm64InstructionGenerator(base::Arena *arena, ir::Module *module, ConstantsPool *const_pool,
+                                                     LinkageSymbols *symbols, int optimizing_level)
 : arena_(arena)
 , module_(module)
-, const_pool_(const_pool) {
+, const_pool_(const_pool)
+, symbols_(symbols)
+, optimizing_level_(optimizing_level)
+, funs_(arena)
+, lables_(new InstructionBlockLabelGenerator()) {
     kRegConf.Get();
     kStackConf.Get();
 }
 
+Arm64InstructionGenerator::~Arm64InstructionGenerator() {
+}
+
+void Arm64InstructionGenerator::GenerateFun(ir::StructureModel *owns, ir::Function *fun) {
+    // TODO:
+    UNREACHABLE();
+}
+
+void Arm64InstructionGenerator::PrepareGlobalValues() {
+    for (auto global_val : module_->values()) {
+        if (global_val->op()->IsConstant()) {
+            UniquifyConstant(global_val);
+        } else {
+            
+        }
+    }
+}
+
+std::tuple<int, bool> Arm64InstructionGenerator::UniquifyConstant(ir::Value *kval) {
+    int id = 0;
+    bool is_string = false;
+    switch (kval->op()->value()) {
+        case ir::Operator::kWord8Constant:
+        case ir::Operator::kU8Constant:
+        case ir::Operator::kI8Constant:
+            id = const_pool_->FindOrInsertWord8(ir::OperatorWith<uint8_t>::Data(kval->op()));
+            break;
+            
+        case ir::Operator::kWord16Constant:
+        case ir::Operator::kU16Constant:
+        case ir::Operator::kI16Constant:
+            id = const_pool_->FindOrInsertWord16(ir::OperatorWith<uint16_t>::Data(kval->op()));
+            break;
+            
+        case ir::Operator::kWord32Constant:
+        case ir::Operator::kU32Constant:
+        case ir::Operator::kI32Constant:
+            id = const_pool_->FindOrInsertWord32(ir::OperatorWith<uint32_t>::Data(kval->op()));
+            break;
+            
+        case ir::Operator::kWord64Constant:
+        case ir::Operator::kU64Constant:
+        case ir::Operator::kI64Constant:
+            id = const_pool_->FindOrInsertWord64(ir::OperatorWith<uint64_t>::Data(kval->op()));
+            break;
+            
+        case ir::Operator::kF32Constant:
+            id = const_pool_->FindOrInsertFloat32(ir::OperatorWith<float>::Data(kval->op()));
+            break;
+            
+        case ir::Operator::kF64Constant:
+            id = const_pool_->FindOrInsertFloat64(ir::OperatorWith<double>::Data(kval->op()));
+            break;
+            
+        case ir::Operator::kStringConstant:
+            id = const_pool_->FindOrInsertString(ir::OperatorWith<const String *>::Data(kval->op()));
+            is_string = true;
+            break;
+            
+        default:
+            UNREACHABLE();
+            break;
+    }
+    return std::make_tuple(id, is_string);
+}
+
 const StackConfiguration *Arm64StackConf() { return kStackConf.Get(); }
 const RegisterConfiguration *Arm64RegisterConf() { return kRegConf.Get(); }
+
+
+
 
 } // namespace backend
 } // namespace yalx

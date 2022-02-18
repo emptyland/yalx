@@ -32,12 +32,16 @@ protected:
     LinkageSymbols symbols_;
 }; // class X64InstructionGeneratorTest
 
+#ifdef YALX_ARCH_X64
+
 extern "C" {
 void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
 void main_Zomain_Zdissue1();
 void main_Zomain_Zdissue5();
 void main_Zomain_Zdfoo();
 } // extern "C"
+
+#endif // YALX_ARCH_X64
 
 TEST_F(X64CodeGeneratorTest, Sanity) {
     std::string buf;
@@ -47,6 +51,8 @@ TEST_F(X64CodeGeneratorTest, Sanity) {
     ASSERT_TRUE(ok);
     printf("%s\n", buf.c_str());
 }
+
+#ifdef YALX_ARCH_X64
 
 TEST_F(X64CodeGeneratorTest, ReturningVals) {
     int buf[4] = {0};
@@ -64,6 +70,8 @@ TEST_F(X64CodeGeneratorTest, ReturningVals) {
     ASSERT_EQ(2, buf[2]);
     ASSERT_EQ(1, buf[3]);
 }
+
+#endif // YALX_ARCH_X64
 
 } // namespace backend
 } // namespace yalx
