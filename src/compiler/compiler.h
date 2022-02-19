@@ -111,6 +111,14 @@ public:
                              base::ArenaMap<std::string_view, backend::InstructionFunction *> *funs);
     
     static base::Status
+    SelectArm64InstructionCode(base::Arena *arena,
+                               ir::Module *module,
+                               backend::ConstantsPool *const_pool,
+                               backend::LinkageSymbols *symbols,
+                               int optimizing_level,
+                               base::ArenaMap<std::string_view, backend::InstructionFunction *> *funs);
+    
+    static base::Status
     GenerateX64InstructionCode(const base::ArenaMap<std::string_view, backend::InstructionFunction *> &funs,
                                ir::Module *module,
                                backend::ConstantsPool *const_pool,

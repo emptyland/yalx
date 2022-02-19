@@ -68,6 +68,8 @@ namespace backend {
     V(Arm64Asr32)                             \
     V(Arm64Ror)                               \
     V(Arm64Ror32)                             \
+    V(Arm64FMov)                              \
+    V(Arm64Mov)                               \
     V(Arm64Mov32)                             \
     V(Arm64Sxtb32)                            \
     V(Arm64Sxth32)                            \
@@ -172,6 +174,7 @@ namespace backend {
     V(Arm64LdrDecompressAnyTagged)            \
     V(Arm64Str)                               \
     V(Arm64StrCompressTagged)                 \
+    V(Arm64Stp)                               \
     V(Arm64DmbIsh)                            \
     V(Arm64DsbIsb)                            \
     V(Arm64Sxtl)                              \

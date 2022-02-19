@@ -196,7 +196,7 @@ public:
     DEF_VAL_GETTER(AddressingMode, mode);
     DEF_VAL_GETTER(int, register0_id);
     DEF_VAL_GETTER(int, register1_id);
-    DEF_VAL_GETTER(int, k);
+    DEF_VAL_PROP_RW(int, k);
 
 private:
     AddressingMode mode_;

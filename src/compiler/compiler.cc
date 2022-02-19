@@ -3,6 +3,8 @@
 #include "compiler/syntax-feedback.h"
 #include "compiler/ast.h"
 #include "ir/codegen.h"
+//#include "backend/arm64/code-generate-arm64.h"
+#include "backend/arm64/instruction-generating-arm64.h"
 #include "backend/x64/code-generate-x64.h"
 #include "backend/x64/instruction-generating-x64.h"
 #include "base/checking.h"
@@ -445,6 +447,18 @@ Compiler::GenerateIntermediateRepresentationCode(const std::unordered_map<std::s
     return rs;
 }
 
+base::Status
+Compiler::SelectArm64InstructionCode(base::Arena *arena,
+                                     ir::Module *module,
+                                     backend::ConstantsPool *const_pool,
+                                     backend::LinkageSymbols *symbols,
+                                     int optimizing_level,
+                                     base::ArenaMap<std::string_view, backend::InstructionFunction *> *funs) {
+    backend::Arm64InstructionGenerator generator(arena, module, const_pool, symbols, optimizing_level);
+    generator.Run();
+    generator.MoveFuns(funs);
+    return base::Status::OK();
+}
 
 base::Status
 Compiler::SelectX64InstructionCode(base::Arena *arena,
