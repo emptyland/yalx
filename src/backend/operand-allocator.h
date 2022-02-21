@@ -71,12 +71,14 @@ public:
     
     void ReleaseDeads(int position);
     
-    void Move(ir::Value *value, InstructionOperand *operand) {
+    void Associate(ir::Value *value, InstructionOperand *operand) {
         if (auto iter = allocated_.find(value); iter != allocated_.end()) {
             Free(iter->second);
         }
         allocated_[value] = operand;
     }
+    
+    RegisterOperand *BorrowRegister(ir::Type ty, InstructionOperand *bak, int designate = kAnyRegister);
     
     struct LiveRange {
         int start_position = -1;
@@ -130,9 +132,19 @@ private:
 
 class RegisterSavingScope final {
 public:
-    using MoveCallback = std::function<void(InstructionOperand *, InstructionOperand *, ir::Value *)>;
+    //using MoveCallback = std::function<void(InstructionOperand *, InstructionOperand *, ir::Value *)>;
     
-    RegisterSavingScope(OperandAllocator *allocator, int position, MoveCallback &&callback);
+    class MovingDelegate {
+    public:
+        MovingDelegate() = default;
+        virtual ~MovingDelegate() = default;
+        virtual void MoveTo(InstructionOperand *, InstructionOperand *, ir::Value *) = 0;
+        virtual void Initialize() = 0;
+        virtual void Finalize() = 0;
+        DISALLOW_IMPLICIT_CONSTRUCTORS(MovingDelegate);
+    }; // class MovingCallback
+    
+    RegisterSavingScope(OperandAllocator *allocator, int position, MovingDelegate *callback);
     ~RegisterSavingScope();
     
     void AddExclude(ir::Value *exclude, int designate, int position);
@@ -146,6 +158,8 @@ public:
         }
     }
     void SaveAll();
+    
+    DISALLOW_IMPLICIT_CONSTRUCTORS(RegisterSavingScope);
 private:
     void Exit();
     
@@ -159,7 +173,7 @@ private:
     const int position_;
     std::set<int> general_exclude_;
     std::set<int> float_exclude_;
-    MoveCallback move_callback_;
+    MovingDelegate *moving_delegate_;
     std::vector<Backup> backup_;
 }; // class RegisterSavingScope
 

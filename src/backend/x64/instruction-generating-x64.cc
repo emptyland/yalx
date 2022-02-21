@@ -161,6 +161,21 @@ public:
         kAny, // can be a immediate number
     };
     
+    class X64MovingDelegate final : public RegisterSavingScope::MovingDelegate {
+    public:
+        X64MovingDelegate(X64FunctionInstructionSelector *owns): owns_(owns) {}
+        ~X64MovingDelegate() override = default;
+        
+        void MoveTo(InstructionOperand *dest, InstructionOperand *src, ir::Value *val) override {
+            owns_->Move(dest, src, val->type());
+        }
+        void Initialize() override {}
+        void Finalize() override {}
+        DISALLOW_IMPLICIT_CONSTRUCTORS(X64MovingDelegate);
+    private:
+        X64FunctionInstructionSelector *const owns_;
+    }; // class X64MovingDelegate
+    
     X64FunctionInstructionSelector(base::Arena *arena,
                                    ConstantsPool *const_pool,
                                    LinkageSymbols *symbols,
@@ -174,6 +189,7 @@ public:
     , labels_(labels)
     , owns_(owns)
     , fun_(fun)
+    , moving_delegate_(this)
     , operands_(kStackConf.Get(), kRegConf.Get(),
                 use_registers_allocation
                 ? OperandAllocator::kRegisterFirst
@@ -321,6 +337,7 @@ private:
     ConstantsPool *const const_pool_;
     LinkageSymbols *const symbols_;
     InstructionBlockLabelGenerator *const labels_;
+    X64MovingDelegate moving_delegate_;
     OperandAllocator operands_;
     InstructionFunction *bundle_ = nullptr;
     InstructionBlock *current_block_ = nullptr;
@@ -517,9 +534,7 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
         });
     }
     std::vector<ir::Value *> overflow_args;
-    RegisterSavingScope saving_scope(&operands_, instruction_position_, [this](auto dest, auto src, auto val){
-        Move(dest, src, val->type());
-    });
+    RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
     size_t overflow_args_size = 0;
     int general_index = 0, float_index = 0;
     for (int i = 0; i < val->op()->value_in(); i++) {
@@ -557,7 +572,7 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
                     auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
                                                                           kFloatArgumentsRegisters[float_index]));
                     Move(dest, opd, arg->type());
-                    operands_.Move(arg, dest);
+                    operands_.Associate(arg, dest);
                 }
             }
             float_index++;
@@ -567,7 +582,7 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
                     auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
                                                                           kGeneralArgumentsRegisters[general_index]));
                     Move(dest, opd, arg->type());
-                    operands_.Move(arg, dest);
+                    operands_.Associate(arg, dest);
                 }
             }
             general_index++;
@@ -619,7 +634,7 @@ void X64FunctionInstructionSelector::ProcessParameters(InstructionBlock *block) 
             assert(arg != nullptr);
             if (param->type().kind() == ir::Type::kValue && !param->type().IsPointer()) {
                 auto opd = CopyArgumentValue(block, param->type(), arg);
-                operands_.Move(param, opd);
+                operands_.Associate(param, opd);
             }
             
             number_of_general_args--;

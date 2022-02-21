@@ -342,10 +342,10 @@ void OperandAllocator::ReleaseDeads(int position) {
     }
 }
 
-RegisterSavingScope::RegisterSavingScope(OperandAllocator *allocator, int position, MoveCallback &&callback)
+RegisterSavingScope::RegisterSavingScope(OperandAllocator *allocator, int position, MovingDelegate *callback)
 : allocator_(allocator)
 , position_(position)
-, move_callback_(std::move(callback)) {
+, moving_delegate_(callback) {
     assert(position >= 0);
     assert(position + 1 < allocator_->dead_records_.size());
 }
@@ -371,15 +371,16 @@ void RegisterSavingScope::AddExclude(ir::Value *exclude, int designate, int posi
 }
 
 void RegisterSavingScope::SaveAll() {
+    moving_delegate_->Initialize();
     for (auto [rid, rd] : allocator_->active_general_registers_) {
         if (general_exclude_.find(rid) != general_exclude_.end()) {
             continue;
         }
         
         //if (allocator_->WillBeLive(rd.val, position_ + 1)) {
-            auto bak = allocator_->AllocateStackSlot(rd.val->type(), StackSlotAllocator::kFit);
-            move_callback_(bak, rd.opd, rd.val);
-            backup_.push_back({rd.val, bak, rd.opd});
+        auto bak = allocator_->AllocateStackSlot(rd.val->type(), StackSlotAllocator::kFit);
+        moving_delegate_->MoveTo(bak, rd.opd, rd.val);
+        backup_.push_back({rd.val, bak, rd.opd});
         //}
     }
     for (auto [rid, rd] : allocator_->active_float_registers_) {
@@ -388,24 +389,27 @@ void RegisterSavingScope::SaveAll() {
         }
         
         //if (allocator_->WillBeLive(rd.val, position_ + 1)) {
-            auto bak = allocator_->AllocateStackSlot(rd.val->type(), StackSlotAllocator::kFit);
-            move_callback_(bak, rd.opd, rd.val);
-            backup_.push_back({rd.val, bak, rd.opd});
+        auto bak = allocator_->AllocateStackSlot(rd.val->type(), StackSlotAllocator::kFit);
+        moving_delegate_->MoveTo(bak, rd.opd, rd.val);
+        backup_.push_back({rd.val, bak, rd.opd});
         //}
     }
     for (auto bak : backup_) {
-        allocator_->Move(bak.val, bak.current);
+        allocator_->Associate(bak.val, bak.current);
     }
+    moving_delegate_->Finalize();
 }
 
 void RegisterSavingScope::Exit() {
+    moving_delegate_->Initialize();
     for (auto bak : backup_) {
         if (allocator_->WillBeLive(bak.val, position_ + 1)) {
             auto opd = allocator_->Allocate(bak.val->type());
-            move_callback_(opd, bak.current, bak.val);
-            allocator_->Move(bak.val, opd);
+            moving_delegate_->MoveTo(opd, bak.current, bak.val);
+            allocator_->Associate(bak.val, opd);
         }
     }
+    moving_delegate_->Finalize();
 }
 
 RegisterPreemptiveScope::RegisterPreemptiveScope(OperandAllocator *allocator)

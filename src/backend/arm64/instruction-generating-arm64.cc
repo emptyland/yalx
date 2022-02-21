@@ -114,6 +114,33 @@ static base::LazyInstance<StackConfiguration, Arm64StackConfigurationInitializer
 
 class Arm64FunctionInstructionSelector final {
 public:
+    enum Policy {
+        kReg, // only register
+        kMoR, // in memory or register
+        kRoI, // can be register or immediate
+        kAny,
+    };
+    
+    enum ImmBits {
+        kInt0,
+        kInt12,
+    };
+    
+    class Arm64MovingDelegate final : public RegisterSavingScope::MovingDelegate {
+    public:
+        Arm64MovingDelegate(Arm64FunctionInstructionSelector *owns): owns_(owns) {}
+        ~Arm64MovingDelegate() override = default;
+        
+        void MoveTo(InstructionOperand *dest, InstructionOperand *src, ir::Value *val) override {
+            owns_->Move(dest, src, val->type());
+        }
+        void Initialize() override {}
+        void Finalize() override {}
+        DISALLOW_IMPLICIT_CONSTRUCTORS(Arm64MovingDelegate);
+    private:
+        Arm64FunctionInstructionSelector *const owns_;
+    }; // class Arm64MovingDelegate
+
     Arm64FunctionInstructionSelector(base::Arena *arena,
                                      ConstantsPool *const_pool,
                                      LinkageSymbols *symbols,
@@ -144,44 +171,21 @@ public:
         operands_.Prepare(fun_);
     }
     
-    void Run() {
-        auto blk = blocks_[fun_->entry()];
-        stack_total_size_ = ImmediateOperand::Word32(arena_, 0);
-        blk->NewIO(Arm64Sub, operands_.registers()->stack_pointer(), operands_.registers()->stack_pointer(),
-                   stack_total_size_); // sub sp, sp, stack-total-size
-        //stack_sp_fp_offset_ = ImmediateOperand::word32(arena_, 0);
-        stack_sp_fp_location_ = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::sp.code(), -1, 0);
-        // stp sp, lr, [sp, location]
-        blk->NewIO(Arm64Stp, stack_sp_fp_location_, operands_.registers()->frame_pointer(),
-                   new (arena_) RegisterOperand(arm64::lr.code(), MachineRepresentation::kWord64));
-        // add fp, sp, stack-used-size
-        stack_used_size_ = ImmediateOperand::Word32(arena_, 0);
-        blk->NewIO(Arm64Add, operands_.registers()->frame_pointer(), operands_.registers()->stack_pointer(),
-                   stack_used_size_);
-        
-        AssociateParameters(blk);
-//        ProcessParameters(blk);
-//        for (auto blk : fun_->blocks()) {
-//            ProcessBasicBlock(blk);
-//        }
-        
-        const auto stack_size = RoundUp(operands_.slots()->max_stack_size(), kStackConf->stack_alignment_size());
-        stack_total_size_->Set32(stack_size + kPointerSize * 2);
-        stack_used_size_->Set32(stack_size);
-        stack_sp_fp_location_->set_k(stack_size);
+    void Run();
 
-        for (auto adjust : calling_stack_adjust_) {
-            assert(stack_size >= adjust->word32());
-            adjust->Set32(stack_size - adjust->word32());
-        }
-    }
-    
-    
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arm64FunctionInstructionSelector);
 private:
     InstructionBlock *current() { return DCHECK_NOTNULL(current_block_); }
     
     void AssociateParameters(InstructionBlock *block);
+    
+    void SelectBasicBlock(ir::BasicBlock *block);
+    
+    void Select(ir::Value *instr);
+    
+    InstructionOperand *Allocate(ir::Value *value, Policy policy, ImmBits imm_bits = kInt0);
+    
+    InstructionOperand *Constant(ir::Value *value, ImmBits imm_bits = kInt0);
     
     void Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty);
     
@@ -196,38 +200,8 @@ private:
         return false;
     }
     
-    static size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto) {
-        size_t size_in_bytes = 0;
-        for (auto ty : proto->return_types()) {
-            if (ty.kind() == ir::Type::kVoid) {
-                continue;
-            }
-            size_in_bytes = RoundUp(size_in_bytes, kStackConf->slot_alignment_size());
-            size_in_bytes += ty.ReferenceSizeInBytes();
-        }
-        return size_in_bytes;
-    }
-    
-    static size_t OverflowParametersSizeInBytes(const ir::Function *fun) {
-        size_t size_in_bytes = 0;
-        int float_count = kNumberOfFloatArgumentsRegisters;
-        int general_count = kNumberOfGeneralArgumentsRegisters;
-        //bool overflow = false;
-        for (auto param : fun->paramaters()) {
-            if (param->type().IsFloating()) {
-                if (--float_count < 0) {
-                    auto size = RoundUp(param->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
-                    size_in_bytes += size;
-                }
-            } else {
-                if (--general_count < 0) {
-                    auto size = RoundUp(param->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
-                    size_in_bytes += size;
-                }
-            }
-        }
-        return size_in_bytes;
-    }
+    static size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto);
+    static size_t OverflowParametersSizeInBytes(const ir::Function *fun);
 
     base::Arena *const arena_;
     ir::StructureModel *const owns_;
@@ -246,6 +220,37 @@ private:
     std::vector<InstructionOperand *> tmps_;
     std::vector<ImmediateOperand *> calling_stack_adjust_;
 }; // class Arm64FunctionInstructionSelector
+
+void Arm64FunctionInstructionSelector::Run() {
+    auto blk = blocks_[fun_->entry()];
+    stack_total_size_ = ImmediateOperand::Word32(arena_, 0);
+    blk->NewIO(Arm64Sub, operands_.registers()->stack_pointer(), operands_.registers()->stack_pointer(),
+               stack_total_size_); // sub sp, sp, stack-total-size
+    //stack_sp_fp_offset_ = ImmediateOperand::word32(arena_, 0);
+    stack_sp_fp_location_ = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::sp.code(), -1, 0);
+    // stp sp, lr, [sp, location]
+    blk->NewIO(Arm64Stp, stack_sp_fp_location_, operands_.registers()->frame_pointer(),
+               new (arena_) RegisterOperand(arm64::lr.code(), MachineRepresentation::kWord64));
+    // add fp, sp, stack-used-size
+    stack_used_size_ = ImmediateOperand::Word32(arena_, 0);
+    blk->NewIO(Arm64Add, operands_.registers()->frame_pointer(), operands_.registers()->stack_pointer(),
+               stack_used_size_);
+    
+    AssociateParameters(blk);
+    for (auto blk : fun_->blocks()) {
+        SelectBasicBlock(blk);
+    }
+    
+    const auto stack_size = RoundUp(operands_.slots()->max_stack_size(), kStackConf->stack_alignment_size());
+    stack_total_size_->Set32(stack_size + kPointerSize * 2);
+    stack_used_size_->Set32(stack_size);
+    stack_sp_fp_location_->set_k(stack_size);
+
+    for (auto adjust : calling_stack_adjust_) {
+        assert(stack_size >= adjust->word32());
+        adjust->Set32(stack_size - adjust->word32());
+    }
+}
 
 void Arm64FunctionInstructionSelector::AssociateParameters(InstructionBlock *block) {
     current_block_ = block;
@@ -267,7 +272,7 @@ void Arm64FunctionInstructionSelector::AssociateParameters(InstructionBlock *blo
             if (param->type().kind() == ir::Type::kValue && !param->type().IsPointer()) {
                 auto opd = operands_.AllocateStackSlot(param->type(), StackSlotAllocator::kLinear);
                 Move(opd, arg, param->type());
-                operands_.Move(param, opd);
+                operands_.Associate(param, opd);
             }
             
             number_of_general_args--;
@@ -275,6 +280,205 @@ void Arm64FunctionInstructionSelector::AssociateParameters(InstructionBlock *blo
     }
     
     current_block_ = nullptr;
+}
+
+void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
+    current_block_ = blocks_[bb];
+    for (auto user : bb->phi_node_users()) {
+        Allocate(user.phi, kMoR);
+    }
+    for (auto instr : bb->instructions()) {
+        operands_.ReleaseDeads(instruction_position_);
+        tmps_.clear();
+        Select(instr);
+        for (auto tmp : tmps_) { operands_.Free(tmp); }
+        instruction_position_++;
+    }
+    for (auto user : bb->phi_node_users()) {
+        auto phi_slot = DCHECK_NOTNULL(operands_.Allocated(user.phi));
+        auto dest = Allocate(user.dest, kAny);
+        Move(phi_slot, dest, user.phi->type());
+    }
+    current_block_ = nullptr;
+}
+
+void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
+    switch (instr->op()->value()) {
+        case ir::Operator::kBr: {
+            if (instr->op()->value_in() == 0) {
+                auto ib = blocks_[instr->OutputControl(0)];
+                auto label = new (arena_) ReloactionOperand(nullptr/*symbol_name*/, ib);
+                current()->NewI(ArchJmp, label);
+                current()->New(ArchNop);
+                current()->AddSuccessor(ib);
+                ib->AddPredecessors(current());
+                return;
+            }
+            // TODO: condition br
+            UNREACHABLE();
+        } break;
+            
+        case ir::Operator::kLoadEffectField: {
+            UNREACHABLE();
+        } break;
+            
+        case ir::Operator::kLoadEffectAddress: {
+            UNREACHABLE();
+        } break;
+            
+        case ir::Operator::kAdd: {
+            auto opd = Allocate(instr, kReg);
+            auto lhs = Allocate(instr->InputValue(0), kReg);
+            auto rhs = Allocate(instr->InputValue(1), kAny, kInt12);
+            //Move(opd, lhs, instr->type());
+            switch (ToMachineRepresentation(instr->type())) {
+                case MachineRepresentation::kWord8:
+                case MachineRepresentation::kWord16:
+                case MachineRepresentation::kWord32:
+                    current()->NewIO(Arm64Add32, opd, lhs, rhs);
+                    break;
+                case MachineRepresentation::kWord64:
+                    current()->NewIO(Arm64Add, opd, lhs, rhs);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+            
+        case ir::Operator::kFAdd: {
+            UNREACHABLE();
+        } break;
+            
+        case ir::Operator::kLoadFunAddr: {
+            auto fun = ir::OperatorWith<const ir::Function *>::Data(instr->op());
+            auto symbol = symbols_->Symbolize(fun->full_name());
+            bundle()->AddExternalSymbol(fun->full_name()->ToSlice(), symbol);
+            
+            auto opd = Allocate(instr, kAny);
+            auto rel = new (arena_) ReloactionOperand(symbol, nullptr);
+            Move(opd, rel, instr->type());
+        } break;
+            
+        case ir::Operator::kClosure: {
+            // TODO:
+            
+        } break;;
+            
+        case ir::Operator::kCallRuntime: {
+            // TODO:
+            // PkgInitOnce -> pkg_init_once(void *fun, const char *name)
+        } break;
+            
+        case ir::Operator::kCallDirectly:
+            //CallDirectly(instr);
+            break;
+            
+        case ir::Operator::kReturningVal:
+            // Just Ignore this ir code
+            break;
+            
+            //
+            // +------------------+
+            // | returning val[0] | <- bp + 16 + overflow-args-size + returning-val-size
+            // +------------------+
+            // | returning val[1] |
+            // +------------------+
+            // | returning val[2] |
+            // +------------------+
+            // |    ... ...       |
+            // +------------------+
+            // | overflow argv[0] | <- bp + 16 + overflow-args-size
+            // +------------------+
+            // | overflow argv[1] |
+            // +------------------+
+            // | overflow argv[2] |
+            // +------------------+
+            // |    ... ...       | <- bp + 16
+            // +------------------+
+            // | returning addr   | <- bp + 8
+            // +------------------+
+            // | saved bp         | <- bp + 0
+            // +------------------+
+            //
+        case ir::Operator::kRet: {
+            //printd("%s", fun_->full_name()->data());
+            auto overflow_args_size = OverflowParametersSizeInBytes(fun_);
+            auto returning_val_size = ReturningValSizeInBytes(fun_->prototype());
+            auto caller_saving_size = RoundUp(overflow_args_size + returning_val_size,
+                                              kStackConf->stack_alignment_size());
+            auto caller_padding_size = caller_saving_size - returning_val_size - overflow_args_size;
+            auto returning_val_offset = kPointerSize * 2 + caller_padding_size + overflow_args_size;
+            // padding = 8   returning-vals = 12 offset = 24
+            // padding = 12  returning-vals = 4  offset = 28
+            //for (int i = 0; i < val->op()->value_in(); i++) {
+            for (int i = instr->op()->value_in() - 1; i >= 0; i--) {
+                auto ty = fun_->prototype()->return_type(i);
+                if (ty.kind() == ir::Type::kVoid) {
+                    continue;
+                }
+                auto ret = Allocate(instr->InputValue(i), kAny);
+                auto opd = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::fp.code(), 0, returning_val_offset);
+                returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
+                Move(opd, ret, ty);
+            }
+            
+//            current()->NewIO(X64Add, operands_.registers()->stack_pointer(), stack_size_);
+//            current()->NewO(X64Pop, operands_.registers()->frame_pointer());
+            current()->New(ArchRet);
+        } break;
+            
+        default:
+            UNREACHABLE();
+            break;
+    }
+}
+
+InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value, Policy policy, ImmBits imm_bits) {
+    switch (policy) {
+        case kReg: {
+            // TODO: constants
+            auto opd = operands_.Allocate(value);
+            if (!opd->IsRegister()) {
+                auto bak = operands_.Allocate(value->type());
+                auto reg = operands_.BorrowRegister(value->type(), bak);
+                Move(bak, reg, value->type()); // Saving
+                
+                // TODO: record opd <- reg
+                return reg;
+            }
+            return opd;
+        } break;
+        case kRoI: {
+            if (value->op()->IsConstant()) {
+                return Constant(value, imm_bits);
+            }
+            auto opd = operands_.Allocate(value);
+            if (!opd->IsRegister()) {
+                auto bak = operands_.Allocate(value->type());
+                auto reg = operands_.BorrowRegister(value->type(), bak);
+                Move(bak, reg, value->type()); // Saving
+                
+                // TODO: record opd <- reg
+                return reg;
+            }
+            return opd;
+        } break;
+        case kMoR:
+            break;
+        case kAny:
+            break;
+            
+        default:
+            UNREACHABLE();
+            break;
+    }
+    return nullptr;
+}
+
+InstructionOperand *Arm64FunctionInstructionSelector::Constant(ir::Value *value, ImmBits imm_bits) {
+    UNREACHABLE();
+    return nullptr;
 }
 
 void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty) {
@@ -461,6 +665,39 @@ void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, Instructio
             UNREACHABLE();
             break;
     }
+}
+
+size_t Arm64FunctionInstructionSelector::ReturningValSizeInBytes(const ir::PrototypeModel *proto) {
+    size_t size_in_bytes = 0;
+    for (auto ty : proto->return_types()) {
+        if (ty.kind() == ir::Type::kVoid) {
+            continue;
+        }
+        size_in_bytes = RoundUp(size_in_bytes, kStackConf->slot_alignment_size());
+        size_in_bytes += ty.ReferenceSizeInBytes();
+    }
+    return size_in_bytes;
+}
+
+size_t Arm64FunctionInstructionSelector::OverflowParametersSizeInBytes(const ir::Function *fun) {
+    size_t size_in_bytes = 0;
+    int float_count = kNumberOfFloatArgumentsRegisters;
+    int general_count = kNumberOfGeneralArgumentsRegisters;
+    //bool overflow = false;
+    for (auto param : fun->paramaters()) {
+        if (param->type().IsFloating()) {
+            if (--float_count < 0) {
+                auto size = RoundUp(param->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
+                size_in_bytes += size;
+            }
+        } else {
+            if (--general_count < 0) {
+                auto size = RoundUp(param->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
+                size_in_bytes += size;
+            }
+        }
+    }
+    return size_in_bytes;
 }
 
 Arm64InstructionGenerator::Arm64InstructionGenerator(base::Arena *arena, ir::Module *module, ConstantsPool *const_pool,
