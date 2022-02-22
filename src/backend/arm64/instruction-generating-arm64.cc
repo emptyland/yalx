@@ -28,9 +28,10 @@ namespace backend {
 // r9…r15 Temporary registers
 // r8 Indirect result location register
 // r0…r7 Parameter/result registers
-static const int kScratchGeneralRegister = arm64::x19.code();
-static const int kScratchFloatRegister   = arm64::s19.code();
-static const int kScratchDoubleRegister  = arm64::d19.code();
+static const int kScratchGeneralRegister0 = arm64::x19.code();
+static const int kScratchGeneralRegister1 = arm64::x20.code();
+static const int kScratchFloatRegister    = arm64::s19.code();
+static const int kScratchDoubleRegister   = arm64::d19.code();
 
 static const int kAllocatableGeneralRegisters[] = {
 #define DEFINE_CODE(name) arm64::name.code(),
@@ -78,7 +79,8 @@ struct Arm64RegisterConfigurationInitializer {
     static RegisterConfiguration *New(void *chunk) {
         return new (chunk) RegisterConfiguration(arm64::fp.code()/*fp*/,
                                                  arm64::sp.code()/*sp*/,
-                                                 kScratchGeneralRegister,
+                                                 kScratchGeneralRegister0,
+                                                 kScratchGeneralRegister1,
                                                  kScratchFloatRegister,
                                                  kScratchDoubleRegister,
                                                  MachineRepresentation::kWord64,
@@ -119,11 +121,6 @@ public:
         kMoR, // in memory or register
         kRoI, // can be register or immediate
         kAny,
-    };
-    
-    enum ImmBits {
-        kInt0,
-        kInt12,
     };
     
     class Arm64MovingDelegate final : public RegisterSavingScope::MovingDelegate {
@@ -183,11 +180,13 @@ private:
     
     void Select(ir::Value *instr);
     
-    InstructionOperand *Allocate(ir::Value *value, Policy policy, ImmBits imm_bits = kInt0);
+    InstructionOperand *Allocate(ir::Value *value, Policy policy, uint32_t imm_bits = 0);
     
-    InstructionOperand *Constant(ir::Value *value, ImmBits imm_bits = kInt0);
+    InstructionOperand *Constant(ir::Value *value, uint32_t imm_bits);
     
     void Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty);
+    void MoveMachineWords(Instruction::Code load_op, Instruction::Code store_op, InstructionOperand *dest,
+                          InstructionOperand *src, MachineRepresentation rep, MachineRepresentation scratch_rep);
     
     bool CanDirectlyMove(InstructionOperand *dest, InstructionOperand *src) {
         assert(dest->IsRegister() || dest->IsLocation());
@@ -218,6 +217,7 @@ private:
     LocationOperand *stack_sp_fp_location_ = nullptr;
     std::map<ir::BasicBlock *, InstructionBlock *> blocks_;
     std::vector<InstructionOperand *> tmps_;
+    std::vector<OperandAllocator::BorrowedRecord> borrowed_registers_;
     std::vector<ImmediateOperand *> calling_stack_adjust_;
 }; // class Arm64FunctionInstructionSelector
 
@@ -292,6 +292,9 @@ void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
         tmps_.clear();
         Select(instr);
         for (auto tmp : tmps_) { operands_.Free(tmp); }
+        for (const auto &borrow : borrowed_registers_) {
+            operands_.Associate(borrow.original, borrow.old);
+        }
         instruction_position_++;
     }
     for (auto user : bb->phi_node_users()) {
@@ -329,7 +332,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         case ir::Operator::kAdd: {
             auto opd = Allocate(instr, kReg);
             auto lhs = Allocate(instr->InputValue(0), kReg);
-            auto rhs = Allocate(instr->InputValue(1), kAny, kInt12);
+            auto rhs = Allocate(instr->InputValue(1), kRoI, 12/*imm_bits*/);
             //Move(opd, lhs, instr->type());
             switch (ToMachineRepresentation(instr->type())) {
                 case MachineRepresentation::kWord8:
@@ -434,40 +437,101 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
     }
 }
 
-InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value, Policy policy, ImmBits imm_bits) {
+InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value, Policy policy, uint32_t imm_bits) {
+    auto opd = operands_.Allocated(value);
     switch (policy) {
         case kReg: {
-            // TODO: constants
-            auto opd = operands_.Allocate(value);
+            if (opd && opd->IsRegister()) {
+                return opd;
+            }
+            if (value->op()->IsConstant()) {
+                auto kop = Constant(value, imm_bits);
+                assert(kop->IsImmediate() || kop->IsReloaction());
+                auto bak = operands_.Allocate(value->type());
+                if (bak->IsRegister()) {
+                    tmps_.push_back(bak);
+                    Move(bak, kop, value->type());
+                    return bak;
+                }
+                assert(bak->IsLocation());
+                auto brd = operands_.BorrowRegister(value->type(), bak);
+                Move(bak, brd.target, value->type()); // Saving
+                borrowed_registers_.push_back(brd);
+                
+                return brd.target;
+            }
+            if (!opd) {
+                opd = operands_.Allocate(value);
+            }
             if (!opd->IsRegister()) {
                 auto bak = operands_.Allocate(value->type());
-                auto reg = operands_.BorrowRegister(value->type(), bak);
-                Move(bak, reg, value->type()); // Saving
+                auto brd = operands_.BorrowRegister(value->type(), bak);
+                Move(bak, brd.target, value->type()); // Saving
+                borrowed_registers_.push_back(brd);
                 
-                // TODO: record opd <- reg
-                return reg;
+                return brd.target;
             }
             return opd;
         } break;
+
         case kRoI: {
+            if (opd && opd->IsRegister()) {
+                return opd;
+            }
+            if (value->op()->IsConstant()) {
+                auto opd = Constant(value, imm_bits);
+                if (opd->IsRegister() || opd->IsImmediate()) {
+                    return opd;
+                }
+                assert(opd->IsReloaction());
+                auto bak = operands_.Allocate(value->type());
+                auto brd = operands_.BorrowRegister(value->type(), bak);
+                Move(bak, brd.target, value->type()); // Saving
+                Move(brd.target, opd, value->type()); //
+                borrowed_registers_.push_back(brd);
+
+                return brd.target;
+            }
+            if (!opd) {
+                opd = operands_.Allocate(value);
+            }
+            if (opd->IsRegister()) {
+                return opd;
+            }
+
+            assert(opd->IsLocation());
+            auto bak = operands_.Allocate(value->type());
+            auto brd = operands_.BorrowRegister(value->type(), bak);
+            Move(bak, brd.target, value->type()); // Saving
+            borrowed_registers_.push_back(brd);
+
+            return brd.target;
+        } break;
+
+        case kMoR: {
+            if (opd) {
+                return opd;
+            }
+            if (value->op()->IsConstant()) {
+                auto kop = Constant(value, imm_bits);
+                assert(kop->IsImmediate() || kop->IsReloaction());
+                auto opd = operands_.Allocate(value->type());
+                tmps_.push_back(opd);
+                Move(opd, kop, value->type());
+                return opd;
+            }
+            return operands_.Allocate(value);
+        } break;
+
+        case kAny: {
+            if (opd) {
+                return opd;
+            }
             if (value->op()->IsConstant()) {
                 return Constant(value, imm_bits);
             }
-            auto opd = operands_.Allocate(value);
-            if (!opd->IsRegister()) {
-                auto bak = operands_.Allocate(value->type());
-                auto reg = operands_.BorrowRegister(value->type(), bak);
-                Move(bak, reg, value->type()); // Saving
-                
-                // TODO: record opd <- reg
-                return reg;
-            }
-            return opd;
+            return operands_.Allocate(value);
         } break;
-        case kMoR:
-            break;
-        case kAny:
-            break;
             
         default:
             UNREACHABLE();
@@ -476,7 +540,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
     return nullptr;
 }
 
-InstructionOperand *Arm64FunctionInstructionSelector::Constant(ir::Value *value, ImmBits imm_bits) {
+InstructionOperand *Arm64FunctionInstructionSelector::Constant(ir::Value *value, uint32_t imm_bits) {
     UNREACHABLE();
     return nullptr;
 }
@@ -485,175 +549,50 @@ void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, Instructio
     assert(dest->IsRegister() || dest->IsLocation());
     switch (ty.kind()) {
         case ir::Type::kInt8:
+            MoveMachineWords(Arm64Ldrsb, Arm64Strb, dest, src, MachineRepresentation::kWord8,
+                             MachineRepresentation::kWord32);
+            break;
         case ir::Type::kUInt8:
-            if (dest->IsRegister()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64Mov, dest, src); // TODO:
-                } else if (src->IsLocation() || src->IsConstant() || src->IsReloaction()) {
-                    current()->NewIO(ty.IsSigned() ? Arm64Ldrsb : Arm64Ldrb, dest, src);
-                } else if (src->IsImmediate()) {
-                    current()->NewIO(Arm64Mov, dest, src); // TODO:
-                } else {
-                    UNREACHABLE();
-                }
-            } else if (dest->IsLocation() || dest->IsReloaction()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64Strb, dest, src);
-                } else if (src->IsLocation() || src->IsReloaction() || src->IsConstant()) {
-                    auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord32);
-                    current()->NewIO(ty.IsSigned() ? Arm64Ldrsb : Arm64Ldrb, tmp, src);
-                    current()->NewIO(Arm64Strb, dest, tmp);
-                } else if (src->IsImmediate()) {
-                    current()->NewIO(Arm64Mov, dest, src);
-                } else {
-                    UNREACHABLE();
-                }
-            } else {
-                UNREACHABLE();
-            }
+            MoveMachineWords(Arm64Ldrb, Arm64Strb, dest, src, MachineRepresentation::kWord8,
+                             MachineRepresentation::kWord32);
             break;
             
         case ir::Type::kInt16:
+            MoveMachineWords(Arm64Ldrsw, Arm64StrW, dest, src, MachineRepresentation::kWord16,
+                             MachineRepresentation::kWord32);
+            break;
         case ir::Type::kUInt16:
-            if (dest->IsRegister()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64Mov, dest, src); // TODO:
-                } else if (src->IsLocation() || src->IsConstant() || src->IsReloaction()) {
-                    current()->NewIO(ty.IsSigned() ? Arm64Ldrsh : Arm64Ldrh, dest, src);
-                } else if (src->IsImmediate()) {
-                    current()->NewIO(Arm64Mov, dest, src); // TODO:
-                } else {
-                    UNREACHABLE();
-                }
-            } else if (dest->IsLocation() || dest->IsReloaction()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64Strh, dest, src);
-                } else if (src->IsLocation() || src->IsReloaction() || src->IsConstant()) {
-                    auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord32);
-                    current()->NewIO(ty.IsSigned() ? Arm64Ldrsh : Arm64Ldrh, tmp, src);
-                    current()->NewIO(Arm64Strh, dest, tmp);
-                } else if (src->IsImmediate()) {
-                    current()->NewIO(Arm64Mov, dest, src);
-                } else {
-                    UNREACHABLE();
-                }
-            } else {
-                UNREACHABLE();
-            }
+            MoveMachineWords(Arm64LdrW, Arm64StrW, dest, src, MachineRepresentation::kWord16,
+                             MachineRepresentation::kWord32);
             break;
             
         case ir::Type::kInt32:
         case ir::Type::kUInt32:
-            if (dest->IsRegister()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64Mov, dest, src); // TODO:
-                } else if (src->IsLocation() || src->IsConstant() || src->IsReloaction()) {
-                    current()->NewIO(ty.IsSigned() ? Arm64Ldrsw : Arm64LdrW, dest, src);
-                } else if (src->IsImmediate()) {
-                    current()->NewIO(Arm64Mov, dest, src); // TODO:
-                } else {
-                    UNREACHABLE();
-                }
-            } else if (dest->IsLocation() || dest->IsReloaction()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64StrW, dest, src);
-                } else if (src->IsLocation() || src->IsReloaction() || src->IsConstant()) {
-                    auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord32);
-                    current()->NewIO(ty.IsSigned() ? Arm64Ldrsw : Arm64LdrW, tmp, src);
-                    current()->NewIO(Arm64StrW, dest, tmp);
-                } else if (src->IsImmediate()) {
-                    current()->NewIO(Arm64Mov, dest, src);
-                } else {
-                    UNREACHABLE();
-                }
-            } else {
-                UNREACHABLE();
-            }
+            MoveMachineWords(Arm64Ldr, Arm64Str, dest, src, MachineRepresentation::kWord32,
+                             MachineRepresentation::kWord32);
             break;
             
         case ir::Type::kInt64:
         case ir::Type::kUInt64:
         case ir::Type::kReference:
         case ir::Type::kString:
-            if (dest->IsRegister()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64Mov, dest, src); // TODO:
-                } else if (src->IsLocation() || src->IsConstant() || src->IsReloaction()) {
-                    current()->NewIO(Arm64Ldr, dest, src);
-                } else if (src->IsImmediate()) {
-                    current()->NewIO(Arm64Mov, dest, src); // TODO:
-                } else {
-                    UNREACHABLE();
-                }
-            } else if (dest->IsLocation() || dest->IsReloaction()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64Str, dest, src);
-                } else if (src->IsLocation() || src->IsReloaction() || src->IsConstant()) {
-                    auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord64);
-                    current()->NewIO(Arm64Ldr, tmp, src);
-                    current()->NewIO(Arm64Str, dest, tmp);
-                } else if (src->IsImmediate()) {
-                    current()->NewIO(Arm64Mov, dest, src);
-                } else {
-                    UNREACHABLE();
-                }
-            } else {
-                UNREACHABLE();
-            }
+            MoveMachineWords(Arm64Ldr, Arm64Str, dest, src, MachineRepresentation::kWord64,
+                             MachineRepresentation::kWord64);
             break;
             
         case ir::Type::kFloat32:
-            if (dest->IsRegister()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64FMov, dest, src); // TODO:
-                } else if (src->IsLocation() || src->IsConstant() || src->IsReloaction()) {
-                    current()->NewIO(Arm64LdrS, dest, src);
-                } else {
-                    UNREACHABLE();
-                }
-            } else if (dest->IsLocation() || dest->IsReloaction()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64StrS, dest, src);
-                } else if (src->IsLocation() || src->IsReloaction() || src->IsConstant()) {
-                    auto tmp = operands_.registers()->float_scratch();
-                    current()->NewIO(Arm64LdrS, tmp, src);
-                    current()->NewIO(Arm64StrS, dest, tmp);
-                } else {
-                    UNREACHABLE();
-                }
-            } else {
-                UNREACHABLE();
-            }
+            UNREACHABLE();
             break;
             
         case ir::Type::kFloat64:
-            if (dest->IsRegister()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64FMov, dest, src); // TODO:
-                } else if (src->IsLocation() || src->IsConstant() || src->IsReloaction()) {
-                    current()->NewIO(Arm64LdrD, dest, src);
-                } else {
-                    UNREACHABLE();
-                }
-            } else if (dest->IsLocation() || dest->IsReloaction()) {
-                if (src->IsRegister()) {
-                    current()->NewIO(Arm64StrD, dest, src);
-                } else if (src->IsLocation() || src->IsReloaction() || src->IsConstant()) {
-                    auto tmp = operands_.registers()->double_scratch();
-                    current()->NewIO(Arm64LdrD, tmp, src);
-                    current()->NewIO(Arm64StrD, dest, tmp);
-                } else {
-                    UNREACHABLE();
-                }
-            } else {
-                UNREACHABLE();
-            }
+            UNREACHABLE();
             break;
             
         case ir::Type::kValue: {
             if (ty.IsPointer()) {
-                // TODO:
-                UNREACHABLE();
+                MoveMachineWords(Arm64Ldr, Arm64Str, dest, src, MachineRepresentation::kWord64,
+                                 MachineRepresentation::kWord64);
+                return;
             }
             
             // TODO:
@@ -664,6 +603,85 @@ void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, Instructio
         default:
             UNREACHABLE();
             break;
+    }
+}
+
+void Arm64FunctionInstructionSelector::MoveMachineWords(Instruction::Code load_op, Instruction::Code store_op,
+                                                        InstructionOperand *dest, InstructionOperand *src,
+                                                        MachineRepresentation rep, MachineRepresentation scratch_rep) {
+    if (dest->IsRegister()) {
+        if (src->IsRegister()) {
+            current()->NewIO(Arm64Mov, dest, src);
+        } else if (src->IsLocation()) {
+            current()->NewIO(load_op, dest, src);
+        } else if (src->IsConstant() || src->IsReloaction()) {
+            auto tmp = operands_.registers()->GeneralScratch0(scratch_rep);
+            current()->NewIO(Arm64Adrp, tmp, src);
+            current()->NewIO(Arm64AddOff, tmp, tmp, src);
+            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, kScratchGeneralRegister0, -1, 0);
+            current()->NewIO(load_op, dest, loc);
+        } else if (src->IsImmediate()) {
+            current()->NewIO(Arm64Mov, dest, src);
+        } else {
+            UNREACHABLE();
+        }
+    } else if (dest->IsLocation()) {
+        auto tmp0 = operands_.registers()->GeneralScratch0(scratch_rep);
+        
+        if (src->IsRegister()) {
+            current()->NewIO(store_op, dest, src);
+        } else if (src->IsLocation()) {
+            // ldr x19, [src]
+            // str x19, [dest]
+            current()->NewIO(load_op, tmp0, src);
+            current()->NewIO(store_op, dest, tmp0);
+        } else if (src->IsReloaction() || src->IsConstant()) {
+            // adrp x19, dest@PAGE
+            // add x19, x19, dest@PAGEOFF
+            // ldr x19, [x19, 0]
+            // str x19, [dest]
+            current()->NewIO(Arm64Adrp, tmp0, src);
+            current()->NewIO(Arm64AddOff, tmp0, tmp0, src);
+            auto loc0 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp0->register_id(), -1, 0);
+            current()->NewIO(load_op, tmp0, loc0);
+            current()->NewIO(store_op, dest, tmp0);
+        } else if (src->IsImmediate()) {
+            current()->NewIO(Arm64Mov, dest, src);
+        } else {
+            UNREACHABLE();
+        }
+    } else if (dest->IsReloaction()) {
+        auto tmp0 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+        auto tmp1 = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord64);
+        current()->NewIO(Arm64Adrp, tmp0, dest);
+        current()->NewIO(Arm64AddOff, tmp0, tmp0, dest);
+        auto loc0 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp0->register_id(), -1, 0);
+        
+        if (src->IsRegister()) {
+            current()->NewIO(store_op, loc0, dest);
+        } else if (src->IsLocation()) {
+            // adrp x19, dest@PAGE
+            // add x19, x19, dest@PAGEOFF
+            // ldr x20, [fp, src]
+            // str x20, [x19, 0]
+            
+            current()->NewIO(load_op, tmp1, src);
+            current()->NewIO(store_op, loc0, tmp1); // Saving `tmp' aka `src'
+        } else if (src->IsConstant() || src->IsReloaction()) {
+            // adrp x19, dest@PAGE
+            // add x19, x19, dest@PAGEOFF
+            // adrp x20, src@PAGE
+            // add x20, x20, src@PAGEOFF
+            // ldr x20, [x20, 0]
+            // str x20, [x19, 0]
+            current()->NewIO(Arm64Adrp, tmp1, src);
+            current()->NewIO(Arm64AddOff, tmp1, tmp1, src);
+            auto loc1 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp1->register_id(), -1, 0);
+            current()->NewIO(load_op, tmp1, loc1);
+            current()->NewIO(store_op, loc0, tmp1); // Saving `tmp' aka `src'
+        }
+    } else {
+        UNREACHABLE();
     }
 }
 

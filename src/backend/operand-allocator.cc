@@ -290,6 +290,28 @@ RegisterOperand *OperandAllocator::AllocateReigster(OperandMark mark, size_t siz
     return opd;
 }
 
+void OperandAllocator::Associate(ir::Value *value, InstructionOperand *operand) {
+    if (auto iter = allocated_.find(value); iter != allocated_.end()) {
+        Free(iter->second);
+    }
+    allocated_[value] = operand;
+    if (auto reg = operand->AsRegister()) {
+        if (reg->IsGeneralRegister()) {
+            active_general_registers_[reg->register_id()] = {
+                .val = value,
+                .opd = reg,
+                .bak = nullptr,
+            };
+        } else {
+            active_float_registers_[reg->register_id()] = {
+                .val = value,
+                .opd = reg,
+                .bak = nullptr,
+            };
+        }
+    }
+}
+
 void OperandAllocator::Free(InstructionOperand *operand) {
     switch (operand->kind()) {
         case InstructionOperand::kRegister: {
@@ -340,6 +362,49 @@ void OperandAllocator::ReleaseDeads(int position) {
             }
         }
     }
+}
+
+OperandAllocator::BorrowedRecord OperandAllocator::BorrowRegister(ir::Type ty, InstructionOperand *bak,
+                                                                  int designate/* = kAnyRegister*/) {
+    constexpr static const BorrowedRecord kNoBorrowed = {nullptr, nullptr, nullptr, nullptr};
+    RegisterRecord active_rd;
+    const auto rep = ToMachineRepresentation(ty);
+    if (designate != kAnyRegister) {
+        if (ty.IsFloating()) {
+            auto iter = active_float_registers_.find(designate);
+            if (iter == active_float_registers_.end()) {
+                return kNoBorrowed;
+            }
+            active_rd = iter->second;
+        } else {
+            auto iter = active_general_registers_.find(designate);
+            if (iter == active_general_registers_.end()) {
+                return kNoBorrowed;
+            }
+            active_rd = iter->second;
+        }
+    } else {
+        if (ty.IsFloating()) {
+            if (active_float_registers_.empty()) {
+                return kNoBorrowed;
+            }
+            auto iter = active_float_registers_.begin();
+            active_rd = iter->second;
+        } else {
+            if (active_general_registers_.empty()) {
+                return kNoBorrowed;
+            }
+            auto iter = active_general_registers_.begin();
+            active_rd = iter->second;
+        }
+    }
+
+    if (active_rd.val) {
+        Associate(active_rd.val, bak);
+    } else {
+        Free(active_rd.opd);
+    }
+    return {AllocateReigster(ty), active_rd.opd, bak, active_rd.val};
 }
 
 RegisterSavingScope::RegisterSavingScope(OperandAllocator *allocator, int position, MovingDelegate *callback)

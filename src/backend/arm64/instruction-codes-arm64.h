@@ -13,6 +13,9 @@ namespace backend {
 #define ARM64_ARCH_OPCODE_LIST(V)             \
     V(Arm64Add)                               \
     V(Arm64Add32)                             \
+    V(Arm64AddOff)                            \
+    V(Arm64Adr)                               \
+    V(Arm64Adrp)                              \
     V(Arm64And)                               \
     V(Arm64And32)                             \
     V(Arm64Bic)                               \

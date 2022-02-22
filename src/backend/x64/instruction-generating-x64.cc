@@ -120,6 +120,7 @@ struct X64RegisterConfigurationInitializer {
         return new (chunk) RegisterConfiguration(rbp.code()/*fp*/,
                                                  rsp.code()/*sp*/,
                                                  kScratchGeneralRegister,
+                                                 -1, // id_of_1
                                                  kScratchFloatRegister,
                                                  kScratchDoubleRegister,
                                                  MachineRepresentation::kWord64,
@@ -776,7 +777,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             if (CanDirectlyMove(dest, src)) {
                 current()->NewIO(X64Movb, dest, src);
             } else {
-                auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord8);
+                auto tmp = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord8);
                 current()->NewIO(X64Movb, tmp, src);
                 current()->NewIO(X64Movb, dest, src);
             }
@@ -787,7 +788,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             if (CanDirectlyMove(dest, src)) {
                 current()->NewIO(X64Movw, dest, src);
             } else {
-                auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord16);
+                auto tmp = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord16);
                 current()->NewIO(X64Movw, tmp, src);
                 current()->NewIO(X64Movw, dest, tmp);
             }
@@ -798,7 +799,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             if (CanDirectlyMove(dest, src)) {
                 current()->NewIO(X64Movl, dest, src);
             } else {
-                auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord32);
+                auto tmp = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord32);
                 current()->NewIO(X64Movl, tmp, src);
                 current()->NewIO(X64Movl, dest, tmp);
             }
@@ -811,7 +812,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             if (CanDirectlyMove(dest, src)) {
                 current()->NewIO(X64Movq, dest, src);
             } else {
-                auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord64);
+                auto tmp = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
                 current()->NewIO(X64Movq, tmp, src);
                 current()->NewIO(X64Movq, dest, tmp);
             }
@@ -843,7 +844,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
                 if (CanDirectlyMove(dest, src)) {
                     current()->NewIO(X64Movq, dest, src);
                 } else {
-                    auto tmp = operands_.registers()->GeneralScratch(MachineRepresentation::kWord64);
+                    auto tmp = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
                     current()->NewIO(X64Movq, tmp, src);
                     current()->NewIO(X64Movq, dest, tmp);
                 }

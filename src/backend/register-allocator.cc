@@ -11,7 +11,8 @@ namespace backend {
 
 RegisterConfiguration::RegisterConfiguration(int id_of_fp,
                                              int id_of_sp,
-                                             int id_of_general_scratch,
+                                             int id_of_general_scratch0,
+                                             int id_of_general_scratch1,
                                              int id_of_float_scratch,
                                              int id_of_double_scratch,
                                              MachineRepresentation rep_of_ptr,
@@ -26,7 +27,8 @@ RegisterConfiguration::RegisterConfiguration(int id_of_fp,
                                              size_t number_of_allocatable_double_registers)
 : id_of_fp_(id_of_fp)
 , id_of_sp_(id_of_sp)
-, id_of_general_scratch_(id_of_general_scratch)
+, id_of_general_scratch0_(id_of_general_scratch0)
+, id_of_general_scratch1_(id_of_general_scratch1)
 , id_of_float_scratch_(id_of_float_scratch)
 , id_of_double_scratch_(id_of_double_scratch)
 , rep_of_ptr_(rep_of_ptr)
@@ -49,7 +51,8 @@ RegisterAllocator::RegisterAllocator(const RegisterConfiguration *conf, base::Ar
     frame_pointer_ = new (arena) RegisterOperand(conf->id_of_fp(), conf->rep_of_ptr());
     float_scratch_ = new (arena) RegisterOperand(conf->id_of_float_scratch(), MachineRepresentation::kFloat32);
     double_scratch_ = new (arena) RegisterOperand(conf->id_of_double_scratch(), MachineRepresentation::kFloat64);
-    ::memset(general_scratch_, 0, sizeof(RegisterOperand *) * kNumberOfGeneralScratchs);
+    ::memset(general_scratch0_, 0, sizeof(RegisterOperand *) * kNumberOfGeneralScratchs);
+    ::memset(general_scratch1_, 0, sizeof(RegisterOperand *) * kNumberOfGeneralScratchs);
     for (int i = 0; i < conf->number_of_allocatable_general_registers(); i++) {
         general_pool_.insert(conf->allocatable_general_register(i));
     }
@@ -58,11 +61,26 @@ RegisterAllocator::RegisterAllocator(const RegisterConfiguration *conf, base::Ar
     }
 }
 
-RegisterOperand *RegisterAllocator::GeneralScratch(MachineRepresentation rep) {
-    auto opd = general_scratch_[static_cast<int>(rep)];
+RegisterOperand *RegisterAllocator::GeneralScratch0(MachineRepresentation rep) {
+    if (conf_->id_of_general_scratch0() < 0) {
+        return nullptr;
+    }
+    auto opd = general_scratch0_[static_cast<int>(rep)];
     if (!opd) {
-        opd = new (arena_) RegisterOperand(conf_->id_of_general_scratch(), rep);
-        general_scratch_[static_cast<int>(rep)] = opd;
+        opd = new (arena_) RegisterOperand(conf_->id_of_general_scratch0(), rep);
+        general_scratch0_[static_cast<int>(rep)] = opd;
+    }
+    return opd;
+}
+
+RegisterOperand *RegisterAllocator::GeneralScratch1(MachineRepresentation rep) {
+    if (conf_->id_of_general_scratch1() < 0) {
+        return nullptr;
+    }
+    auto opd = general_scratch1_[static_cast<int>(rep)];
+    if (!opd) {
+        opd = new (arena_) RegisterOperand(conf_->id_of_general_scratch1(), rep);
+        general_scratch1_[static_cast<int>(rep)] = opd;
     }
     return opd;
 }

@@ -47,6 +47,19 @@ _asm_stub5:
     //movq %rbp, %rsp
     ret
 
+.global _asm_stub6
+_asm_stub6:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movl $199, 28(%rbp)
+    movl $911, 24(%rbp)
+    movl $222, 20(%rbp)
+    movl $220, 16(%rbp)
+
+    popq %rbp
+    retq
+
 .global _y2zmain_main,_yield,_yalx_new_string,_heap,_y2zlang_debugOutput
 _y2zmain_main:
     pushq %rbp

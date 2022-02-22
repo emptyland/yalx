@@ -18,7 +18,8 @@ class RegisterConfiguration final {
 public:
     RegisterConfiguration(int id_of_fp,
                           int id_of_sp,
-                          int id_of_general_scratch,
+                          int id_of_general_scratch0,
+                          int id_of_general_scratch1,
                           int id_of_float_scratch,
                           int id_of_double_scratch,
                           MachineRepresentation rep_of_ptr,
@@ -34,7 +35,8 @@ public:
     
     DEF_VAL_GETTER(int, id_of_fp);
     DEF_VAL_GETTER(int, id_of_sp);
-    DEF_VAL_GETTER(int, id_of_general_scratch);
+    DEF_VAL_GETTER(int, id_of_general_scratch0);
+    DEF_VAL_GETTER(int, id_of_general_scratch1);
     DEF_VAL_GETTER(int, id_of_float_scratch);
     DEF_VAL_GETTER(int, id_of_double_scratch);
     DEF_VAL_GETTER(MachineRepresentation, rep_of_ptr);
@@ -62,7 +64,8 @@ public:
 private:
     int id_of_fp_ = -1;
     int id_of_sp_ = -1;
-    int id_of_general_scratch_ = -1;
+    int id_of_general_scratch0_ = -1;
+    int id_of_general_scratch1_ = -1;
     int id_of_float_scratch_ = -1;
     int id_of_double_scratch_ = -1;
     MachineRepresentation rep_of_ptr_ = MachineRepresentation::kNone;
@@ -98,7 +101,8 @@ public:
     DEF_PTR_GETTER(RegisterOperand, double_scratch);
     DEF_PTR_GETTER(const RegisterConfiguration, conf);
     
-    RegisterOperand *GeneralScratch(MachineRepresentation rep);
+    RegisterOperand *GeneralScratch0(MachineRepresentation rep);
+    RegisterOperand *GeneralScratch1(MachineRepresentation rep);
 
     RegisterOperand *AllocateRegister(MachineRepresentation rep, int designate = kAny);
     void FreeRegister(RegisterOperand *reg);
@@ -112,7 +116,8 @@ private:
     
     RegisterOperand *stack_pointer_ = nullptr;
     RegisterOperand *frame_pointer_ = nullptr;
-    RegisterOperand *general_scratch_[kNumberOfGeneralScratchs];
+    RegisterOperand *general_scratch0_[kNumberOfGeneralScratchs];
+    RegisterOperand *general_scratch1_[kNumberOfGeneralScratchs];
     RegisterOperand *float_scratch_ = nullptr;
     RegisterOperand *double_scratch_ = nullptr;
     std::set<int> general_pool_;

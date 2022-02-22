@@ -71,14 +71,17 @@ public:
     
     void ReleaseDeads(int position);
     
-    void Associate(ir::Value *value, InstructionOperand *operand) {
-        if (auto iter = allocated_.find(value); iter != allocated_.end()) {
-            Free(iter->second);
-        }
-        allocated_[value] = operand;
-    }
+    void Associate(ir::Value *value, InstructionOperand *operand);
     
-    RegisterOperand *BorrowRegister(ir::Type ty, InstructionOperand *bak, int designate = kAnyRegister);
+    struct BorrowedRecord {
+        RegisterOperand *target;
+        RegisterOperand *old;
+        InstructionOperand *bak;
+        ir::Value *original;
+    };
+    
+    BorrowedRecord BorrowRegister(ir::Type ty, InstructionOperand *bak, int designate = kAnyRegister);
+    //void RepayRegister(ir::Value *original, RegisterOperand *old, InstructionOperand *bak);
     
     struct LiveRange {
         int start_position = -1;
@@ -113,8 +116,8 @@ private:
     }
     
     struct RegisterRecord {
-        RegisterOperand *opd;
-        LocationOperand *bak;
+        RegisterOperand    *opd;
+        InstructionOperand *bak;
         ir::Value *val;
     };
 
