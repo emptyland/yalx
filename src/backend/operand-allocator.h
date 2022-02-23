@@ -80,7 +80,9 @@ public:
         ir::Value *original;
     };
     
+    BorrowedRecord BorrowRegister(ir::Value *value, InstructionOperand *bak, int designate = kAnyRegister);
     BorrowedRecord BorrowRegister(ir::Type ty, InstructionOperand *bak, int designate = kAnyRegister);
+    
     //void RepayRegister(ir::Value *original, RegisterOperand *old, InstructionOperand *bak);
     
     struct LiveRange {

@@ -364,6 +364,13 @@ void OperandAllocator::ReleaseDeads(int position) {
     }
 }
 
+OperandAllocator::BorrowedRecord OperandAllocator::BorrowRegister(ir::Value *value, InstructionOperand *bak,
+                                                                  int designate/* = kAnyRegister*/) {
+    auto brd = BorrowRegister(value->type(), bak, designate);
+    Associate(value, brd.target);
+    return brd;
+}
+
 OperandAllocator::BorrowedRecord OperandAllocator::BorrowRegister(ir::Type ty, InstructionOperand *bak,
                                                                   int designate/* = kAnyRegister*/) {
     constexpr static const BorrowedRecord kNoBorrowed = {nullptr, nullptr, nullptr, nullptr};

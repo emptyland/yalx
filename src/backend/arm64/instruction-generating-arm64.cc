@@ -187,6 +187,8 @@ private:
     void Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty);
     void MoveMachineWords(Instruction::Code load_op, Instruction::Code store_op, InstructionOperand *dest,
                           InstructionOperand *src, MachineRepresentation rep, MachineRepresentation scratch_rep);
+    void MoveMachineFloat(Instruction::Code load_op, Instruction::Code store_op, InstructionOperand *dest,
+                          InstructionOperand *src, MachineRepresentation rep);
     
     bool CanDirectlyMove(InstructionOperand *dest, InstructionOperand *src) {
         assert(dest->IsRegister() || dest->IsLocation());
@@ -293,7 +295,13 @@ void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
         Select(instr);
         for (auto tmp : tmps_) { operands_.Free(tmp); }
         for (const auto &borrow : borrowed_registers_) {
-            operands_.Associate(borrow.original, borrow.old);
+            Move(borrow.old, borrow.bak, borrow.original->type());
+            if (borrow.original) {
+                operands_.Associate(borrow.original, borrow.old);
+            } else {
+                operands_.Free(borrow.bak);
+                operands_.Free(borrow.target);
+            }
         }
         instruction_position_++;
     }
@@ -333,7 +341,6 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             auto opd = Allocate(instr, kReg);
             auto lhs = Allocate(instr->InputValue(0), kReg);
             auto rhs = Allocate(instr->InputValue(1), kRoI, 12/*imm_bits*/);
-            //Move(opd, lhs, instr->type());
             switch (ToMachineRepresentation(instr->type())) {
                 case MachineRepresentation::kWord8:
                 case MachineRepresentation::kWord16:
@@ -454,7 +461,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
                     return bak;
                 }
                 assert(bak->IsLocation());
-                auto brd = operands_.BorrowRegister(value->type(), bak);
+                auto brd = operands_.BorrowRegister(value, bak);
                 Move(bak, brd.target, value->type()); // Saving
                 borrowed_registers_.push_back(brd);
                 
@@ -465,7 +472,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
             }
             if (!opd->IsRegister()) {
                 auto bak = operands_.Allocate(value->type());
-                auto brd = operands_.BorrowRegister(value->type(), bak);
+                auto brd = operands_.BorrowRegister(value, bak);
                 Move(bak, brd.target, value->type()); // Saving
                 borrowed_registers_.push_back(brd);
                 
@@ -485,7 +492,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
                 }
                 assert(opd->IsReloaction());
                 auto bak = operands_.Allocate(value->type());
-                auto brd = operands_.BorrowRegister(value->type(), bak);
+                auto brd = operands_.BorrowRegister(value, bak);
                 Move(bak, brd.target, value->type()); // Saving
                 Move(brd.target, opd, value->type()); //
                 borrowed_registers_.push_back(brd);
@@ -501,7 +508,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
 
             assert(opd->IsLocation());
             auto bak = operands_.Allocate(value->type());
-            auto brd = operands_.BorrowRegister(value->type(), bak);
+            auto brd = operands_.BorrowRegister(value, bak);
             Move(bak, brd.target, value->type()); // Saving
             borrowed_registers_.push_back(brd);
 
@@ -581,11 +588,13 @@ void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, Instructio
             break;
             
         case ir::Type::kFloat32:
-            UNREACHABLE();
+            MoveMachineFloat(Arm64LdrS, Arm64StrS, dest, src, MachineRepresentation::kFloat32,
+                             MachineRepresentation::kWord32);
             break;
             
         case ir::Type::kFloat64:
-            UNREACHABLE();
+            MoveMachineFloat(Arm64LdrD, Arm64StrD, dest, src, MachineRepresentation::kFloat64,
+                             MachineRepresentation::kWord64);
             break;
             
         case ir::Type::kValue: {
@@ -603,6 +612,85 @@ void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, Instructio
         default:
             UNREACHABLE();
             break;
+    }
+}
+
+void Arm64FunctionInstructionSelector::MoveMachineFloat(Instruction::Code load_op, Instruction::Code store_op,
+                                                        InstructionOperand *dest, InstructionOperand *src,
+                                                        MachineRepresentation rep) {
+    auto scratch = rep == MachineRepresentation::kFloat32
+    ? operands_.registers()->float_scratch()
+    : operands_.registers()->double_scratch();
+
+    if (dest->IsRegister()) {
+        if (src->IsRegister()) {
+            current()->NewIO(Arm64FMov, dest, src);
+        } else if (src->IsLocation()) {
+            current()->NewIO(load_op, dest, src);
+        } else if (src->IsReloaction() || src->IsConstant()) {
+            auto tmp = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+            current()->NewIO(Arm64Adrp, tmp, src);
+            current()->NewIO(Arm64AddOff, tmp, tmp, src);
+            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, tmp->register_id(), -1, 0);
+            current()->NewIO(load_op, dest, loc);
+        } else {
+            UNREACHABLE();
+        }
+    } else if (dest->IsLocation()) {
+        if (src->IsRegister()) {
+            current()->NewIO(store_op, dest, src);
+        } else if (src->IsLocation()) {
+            // ldr s19, [src]
+            // str s19, [dest]
+            current()->NewIO(load_op, scratch, src);
+            current()->NewIO(store_op, dest, scratch);
+        } else if (src->IsReloaction() || src->IsConstant()) {
+            // adrp x19, src@PAGE
+            // add x19, x19, src@PAGEOFF
+            // ldr s19, [x19, 0]
+            // str s19, [dest]
+            auto tmp0 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+            current()->NewIO(Arm64Adrp, tmp0, src);
+            current()->NewIO(Arm64AddOff, tmp0, tmp0, src);
+            auto loc0 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp0->register_id(), -1, 0);
+            current()->NewIO(load_op, scratch, loc0);
+            current()->NewIO(store_op, dest, scratch);
+        } else {
+            UNREACHABLE();
+        }
+    } else if (dest->IsReloaction()) {
+        auto tmp0 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+        current()->NewIO(Arm64Adrp, tmp0, dest);
+        current()->NewIO(Arm64AddOff, tmp0, tmp0, dest);
+        auto loc0 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp0->register_id(), -1, 0);
+        
+        if (src->IsRegister()) {
+            current()->NewIO(store_op, loc0, src);
+        } else if (src->IsLocation()) {
+            // adrp x19, dest@PAGE
+            // add x19, x19, dest@PAGEOFF
+            // ldr s19, [src]
+            // str s19, [x19, 0]
+            current()->NewIO(load_op, scratch, src);
+            current()->NewIO(store_op, loc0, scratch);
+        } else if (src->IsReloaction() || src->IsConstant()) {
+            // adrp x19, dest@PAGE
+            // add x19, x19, dest@PAGEOFF
+            // adrp x20, src@PAGE
+            // add x20, x20, src@PAGEOFF
+            // ldr s19, [x20, 0]
+            // str s19, [x19, 0]
+            auto tmp1 = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord64);
+            current()->NewIO(Arm64Adrp, tmp1, src);
+            current()->NewIO(Arm64AddOff, tmp1, tmp1, src);
+            auto loc1 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp1->register_id(), -1, 0);
+            current()->NewIO(load_op, scratch, loc1);
+            current()->NewIO(store_op, loc0, scratch);
+        } else {
+            UNREACHABLE();
+        }
+    } else {
+        UNREACHABLE();
     }
 }
 
