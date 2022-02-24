@@ -3,7 +3,7 @@
 #include "compiler/syntax-feedback.h"
 #include "compiler/ast.h"
 #include "ir/codegen.h"
-//#include "backend/arm64/code-generate-arm64.h"
+#include "backend/arm64/code-generate-arm64.h"
 #include "backend/arm64/instruction-generating-arm64.h"
 #include "backend/x64/code-generate-x64.h"
 #include "backend/x64/instruction-generating-x64.h"
@@ -457,6 +457,17 @@ Compiler::SelectArm64InstructionCode(base::Arena *arena,
     backend::Arm64InstructionGenerator generator(arena, module, const_pool, symbols, optimizing_level);
     generator.Run();
     generator.MoveFuns(funs);
+    return base::Status::OK();
+}
+
+base::Status
+Compiler::GenerateArm64InstructionCode(const base::ArenaMap<std::string_view, backend::InstructionFunction *> &funs,
+                                       ir::Module *module,
+                                       backend::ConstantsPool *const_pool,
+                                       backend::LinkageSymbols *symbols,
+                                       base::PrintingWriter *printer) {
+    backend::Arm64CodeGenerator generator(funs, module, const_pool, symbols, printer);
+    generator.EmitAll();
     return base::Status::OK();
 }
 

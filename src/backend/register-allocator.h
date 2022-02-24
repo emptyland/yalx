@@ -18,6 +18,7 @@ class RegisterConfiguration final {
 public:
     RegisterConfiguration(int id_of_fp,
                           int id_of_sp,
+                          int id_of_root,
                           int id_of_general_scratch0,
                           int id_of_general_scratch1,
                           int id_of_float_scratch,
@@ -35,6 +36,7 @@ public:
     
     DEF_VAL_GETTER(int, id_of_fp);
     DEF_VAL_GETTER(int, id_of_sp);
+    DEF_VAL_GETTER(int, id_of_root);
     DEF_VAL_GETTER(int, id_of_general_scratch0);
     DEF_VAL_GETTER(int, id_of_general_scratch1);
     DEF_VAL_GETTER(int, id_of_float_scratch);
@@ -64,6 +66,7 @@ public:
 private:
     int id_of_fp_ = -1;
     int id_of_sp_ = -1;
+    int id_of_root_ = -1;
     int id_of_general_scratch0_ = -1;
     int id_of_general_scratch1_ = -1;
     int id_of_float_scratch_ = -1;
@@ -97,6 +100,7 @@ public:
     DEF_PTR_GETTER(RegisterOperand, stack_pointer);
     // FP/RBP
     DEF_PTR_GETTER(RegisterOperand, frame_pointer);
+    DEF_PTR_GETTER(RegisterOperand, root);
     DEF_PTR_GETTER(RegisterOperand, float_scratch);
     DEF_PTR_GETTER(RegisterOperand, double_scratch);
     DEF_PTR_GETTER(const RegisterConfiguration, conf);
@@ -116,6 +120,7 @@ private:
     
     RegisterOperand *stack_pointer_ = nullptr;
     RegisterOperand *frame_pointer_ = nullptr;
+    RegisterOperand *root_ = nullptr;
     RegisterOperand *general_scratch0_[kNumberOfGeneralScratchs];
     RegisterOperand *general_scratch1_[kNumberOfGeneralScratchs];
     RegisterOperand *float_scratch_ = nullptr;

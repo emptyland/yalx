@@ -312,6 +312,18 @@ void OperandAllocator::Associate(ir::Value *value, InstructionOperand *operand) 
     }
 }
 
+InstructionOperand *OperandAllocator::LinkTo(ir::Value *value, InstructionOperand *operand) {
+    InstructionOperand *old = nullptr;
+    if (auto iter = allocated_.find(value); iter != allocated_.end()) {
+        old = iter->second;
+    }
+    if (old && old->Equals(operand)) {
+        return nullptr;
+    }
+    allocated_[value] = operand;
+    return old;
+}
+
 void OperandAllocator::Free(InstructionOperand *operand) {
     switch (operand->kind()) {
         case InstructionOperand::kRegister: {

@@ -51,7 +51,7 @@ namespace arm64 {
   R(x0)  R(x1)  R(x2)  R(x3)  R(x4)  R(x5)  R(x6)  R(x7)  \
   R(x8)  R(x9)  R(x10) R(x11) R(x12) R(x13) R(x14) R(x15) \
                        R(x21) R(x22) R(x23) R(x24) R(x25) \
-  R(x27)
+         R(x27)
 
 #define ALLOCATABLE_GENERAL_REGISTERS(V)  \
   ALWAYS_ALLOCATABLE_GENERAL_REGISTERS(V) \

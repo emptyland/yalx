@@ -306,6 +306,8 @@ public:
     Instruction *NewIO(Instruction::Code op, Instruction::Operand *io, Instruction::Operand *input);
     Instruction *NewIO(Instruction::Code op, Instruction::Operand *output, Instruction::Operand *in1,
                        Instruction::Operand *in2);
+    Instruction *NewIO2(Instruction::Code op, Instruction::Operand *out1, Instruction::Operand *out2,
+                        Instruction::Operand *input);
 
     DEF_PTR_GETTER(InstructionFunction, owns);
     int label() const { return label_; }

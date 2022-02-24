@@ -11,6 +11,7 @@ namespace backend {
 
 RegisterConfiguration::RegisterConfiguration(int id_of_fp,
                                              int id_of_sp,
+                                             int id_of_root,
                                              int id_of_general_scratch0,
                                              int id_of_general_scratch1,
                                              int id_of_float_scratch,
@@ -27,6 +28,7 @@ RegisterConfiguration::RegisterConfiguration(int id_of_fp,
                                              size_t number_of_allocatable_double_registers)
 : id_of_fp_(id_of_fp)
 , id_of_sp_(id_of_sp)
+, id_of_root_(id_of_root)
 , id_of_general_scratch0_(id_of_general_scratch0)
 , id_of_general_scratch1_(id_of_general_scratch1)
 , id_of_float_scratch_(id_of_float_scratch)
@@ -49,6 +51,7 @@ RegisterAllocator::RegisterAllocator(const RegisterConfiguration *conf, base::Ar
 , conf_(conf) {
     stack_pointer_ = new (arena) RegisterOperand(conf->id_of_sp(), conf->rep_of_ptr());
     frame_pointer_ = new (arena) RegisterOperand(conf->id_of_fp(), conf->rep_of_ptr());
+    root_ = new (arena) RegisterOperand(conf_->id_of_root(), conf->rep_of_ptr());
     float_scratch_ = new (arena) RegisterOperand(conf->id_of_float_scratch(), MachineRepresentation::kFloat32);
     double_scratch_ = new (arena) RegisterOperand(conf->id_of_double_scratch(), MachineRepresentation::kFloat64);
     ::memset(general_scratch0_, 0, sizeof(RegisterOperand *) * kNumberOfGeneralScratchs);

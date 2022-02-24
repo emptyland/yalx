@@ -23,6 +23,7 @@ using namespace x64;
 //R8-R11,
 //ST(0)-ST(7) K0-K7,
 //XMM0-XMM15, YMM0-YMM15 ZMM0-ZMM31
+static const int kRootRegister = kR14;
 static const int kScratchGeneralRegister = kR13;
 static const int kScratchFloatRegister   = xmm13.code();
 static const int kScratchDoubleRegister  = xmm13.code();
@@ -39,7 +40,7 @@ static const int kAllocatableGeneralRegisters[] = {
     kR11,
     kR12,
     //kR13, // r13 = scratch
-    kR14, // 14
+    //kR14, // r14 = root
     kR15,
 };
 
@@ -119,6 +120,7 @@ struct X64RegisterConfigurationInitializer {
     static RegisterConfiguration *New(void *chunk) {
         return new (chunk) RegisterConfiguration(rbp.code()/*fp*/,
                                                  rsp.code()/*sp*/,
+                                                 kRootRegister,
                                                  kScratchGeneralRegister,
                                                  -1, // id_of_1
                                                  kScratchFloatRegister,

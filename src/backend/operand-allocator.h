@@ -72,6 +72,7 @@ public:
     void ReleaseDeads(int position);
     
     void Associate(ir::Value *value, InstructionOperand *operand);
+    InstructionOperand *LinkTo(ir::Value *value, InstructionOperand *operand);
     
     struct BorrowedRecord {
         RegisterOperand *target;

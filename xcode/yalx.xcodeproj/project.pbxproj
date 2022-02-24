@@ -69,6 +69,13 @@
 		236CC7B727BF383F00754BC0 /* hash-table.c in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B527BF383F00754BC0 /* hash-table.c */; };
 		236CC7B927BF754D00754BC0 /* hash-table-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B827BF754D00754BC0 /* hash-table-test.cc */; };
 		236CC7BA27BF754D00754BC0 /* hash-table-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B827BF754D00754BC0 /* hash-table-test.cc */; };
+		236D0E5727C7357200E86AD2 /* instruction-generating-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236D0E5627C7357200E86AD2 /* instruction-generating-arm64-test.cc */; };
+		236D0E5827C7357200E86AD2 /* instruction-generating-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236D0E5627C7357200E86AD2 /* instruction-generating-arm64-test.cc */; };
+		236D0E5B27C7380100E86AD2 /* code-generate-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236D0E5A27C7380100E86AD2 /* code-generate-arm64.cc */; };
+		236D0E5C27C7380100E86AD2 /* code-generate-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236D0E5A27C7380100E86AD2 /* code-generate-arm64.cc */; };
+		236D0E5E27C7381800E86AD2 /* code-generate-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236D0E5D27C7381800E86AD2 /* code-generate-arm64-test.cc */; };
+		236D0E5F27C7381800E86AD2 /* code-generate-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236D0E5D27C7381800E86AD2 /* code-generate-arm64-test.cc */; };
+		236D0E6127C785D000E86AD2 /* issue-01-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 236D0E6027C785D000E86AD2 /* issue-01-posix-arm64.s */; };
 		237D551D27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
 		237D551E27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
@@ -373,6 +380,11 @@
 		236CC7B427BF343C00754BC0 /* hash-table.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "hash-table.h"; path = "../src/runtime/hash-table.h"; sourceTree = "<group>"; };
 		236CC7B527BF383F00754BC0 /* hash-table.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "hash-table.c"; path = "../src/runtime/hash-table.c"; sourceTree = "<group>"; };
 		236CC7B827BF754D00754BC0 /* hash-table-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "hash-table-test.cc"; path = "../src/runtime/hash-table-test.cc"; sourceTree = "<group>"; };
+		236D0E5627C7357200E86AD2 /* instruction-generating-arm64-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instruction-generating-arm64-test.cc"; path = "../src/backend/arm64/instruction-generating-arm64-test.cc"; sourceTree = "<group>"; };
+		236D0E5927C737EE00E86AD2 /* code-generate-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "code-generate-arm64.h"; path = "../src/backend/arm64/code-generate-arm64.h"; sourceTree = "<group>"; };
+		236D0E5A27C7380100E86AD2 /* code-generate-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "code-generate-arm64.cc"; path = "../src/backend/arm64/code-generate-arm64.cc"; sourceTree = "<group>"; };
+		236D0E5D27C7381800E86AD2 /* code-generate-arm64-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "code-generate-arm64-test.cc"; path = "../src/backend/arm64/code-generate-arm64-test.cc"; sourceTree = "<group>"; };
+		236D0E6027C785D000E86AD2 /* issue-01-posix-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-01-posix-arm64.s"; path = "../src/backend/arm64/issue-01-posix-arm64.s"; sourceTree = "<group>"; };
 		23711300275F6889008919BE /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/compiler/constants.h; sourceTree = "<group>"; };
 		237A0DAB27731390002180FE /* global-symbol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "global-symbol.h"; path = "../src/compiler/global-symbol.h"; sourceTree = "<group>"; };
 		237D551B27B0BAD60067A633 /* operand-allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "operand-allocator.h"; path = "../src/backend/operand-allocator.h"; sourceTree = "<group>"; };
@@ -530,9 +542,14 @@
 		2313C4D927A2413900F6A34B /* Arm64 */ = {
 			isa = PBXGroup;
 			children = (
+				236D0E5D27C7381800E86AD2 /* code-generate-arm64-test.cc */,
+				236D0E5A27C7380100E86AD2 /* code-generate-arm64.cc */,
+				236D0E5927C737EE00E86AD2 /* code-generate-arm64.h */,
+				236D0E5627C7357200E86AD2 /* instruction-generating-arm64-test.cc */,
 				23C3356927A8279500319862 /* instruction-generating-arm64.cc */,
 				23C3356827A8278400319862 /* instruction-generating-arm64.h */,
 				23C3356727A8263900319862 /* instruction-codes-arm64.h */,
+				236D0E6027C785D000E86AD2 /* issue-01-posix-arm64.s */,
 			);
 			name = Arm64;
 			sourceTree = "<group>";
@@ -911,6 +928,7 @@
 				23C1346A27A5333000C0DEB4 /* register-allocator-test.cc in Sources */,
 				23D4A4532680D17D0090C631 /* runtime.c in Sources */,
 				2387EFB82685BB99002E6DCF /* node-test.cc in Sources */,
+				236D0E6127C785D000E86AD2 /* issue-01-posix-arm64.s in Sources */,
 				23FA86A026A05022001CC777 /* metadata-test.cc in Sources */,
 				23D4A4542680D17D0090C631 /* macros.h in Sources */,
 				23D4A4552680D17D0090C631 /* stack-test.cc in Sources */,
@@ -932,6 +950,7 @@
 				23667C2F27B235D700612546 /* operand-allocator-test.cc in Sources */,
 				2362A0EE26A69EAF00A972B1 /* generics-instantiating.cc in Sources */,
 				23D4A4612680D17D0090C631 /* const-arm64.h in Sources */,
+				236D0E5F27C7381800E86AD2 /* code-generate-arm64-test.cc in Sources */,
 				2355560B278929C0003ADACE /* io-test.cc in Sources */,
 				23D4A4622680D17D0090C631 /* instr-arm64.h in Sources */,
 				23C1345427A3E8CE00C0DEB4 /* constants-pool.cc in Sources */,
@@ -970,6 +989,7 @@
 				23B997DA26A4680300DD037B /* type-reducing.cc in Sources */,
 				2387EFB1268581AD002E6DCF /* token-test.cc in Sources */,
 				237D551E27B0C0530067A633 /* operand-allocator.cc in Sources */,
+				236D0E5C27C7380100E86AD2 /* code-generate-arm64.cc in Sources */,
 				23D4A46F2680D17D0090C631 /* crc32.c in Sources */,
 				23D4A4702680D17D0090C631 /* env-test.cc in Sources */,
 				23C1345B27A4DA0D00C0DEB4 /* constants.cc in Sources */,
@@ -981,6 +1001,7 @@
 				23FA86A726A13DE4001CC777 /* source-position-test.cc in Sources */,
 				23D4A4742680D17D0090C631 /* hash.h in Sources */,
 				23BCAEB227A83D8800EC9D92 /* stackslot-allocator-test.cc in Sources */,
+				236D0E5827C7357200E86AD2 /* instruction-generating-arm64-test.cc in Sources */,
 				23D4A4752680D17D0090C631 /* io.h in Sources */,
 				23D4A4762680D17D0090C631 /* io.cc in Sources */,
 				236466CD26F07E870066D168 /* checking.cc in Sources */,
@@ -1033,6 +1054,7 @@
 				230C47D927B6AE0D00312896 /* code-generate-x64-test.cc in Sources */,
 				23D5A666266718F900635ADB /* base.cc in Sources */,
 				2355560E278936EC003ADACE /* utils.cc in Sources */,
+				236D0E5727C7357200E86AD2 /* instruction-generating-arm64-test.cc in Sources */,
 				23D5A667266718F900635ADB /* bit-ops.h in Sources */,
 				23D5A668266718F900635ADB /* crc32.c in Sources */,
 				23D5A669266718F900635ADB /* env-test.cc in Sources */,
@@ -1106,6 +1128,7 @@
 				23C1346627A515D600C0DEB4 /* register-allocator.cc in Sources */,
 				23D5A64D266718ED00635ADB /* runtime.h in Sources */,
 				2313C4DC27A2421C00F6A34B /* constants-folding-test.cc in Sources */,
+				236D0E5B27C7380100E86AD2 /* code-generate-arm64.cc in Sources */,
 				23D5A64E266718ED00635ADB /* runtime.c in Sources */,
 				23D5A64F266718ED00635ADB /* macros.h in Sources */,
 				23C1346D27A5358600C0DEB4 /* base-test.cc in Sources */,
@@ -1114,6 +1137,7 @@
 				233236DF269EC2EF0078406C /* operator-test.cc in Sources */,
 				23D5A68326676BDC00635ADB /* heap.c in Sources */,
 				23D5A651266718ED00635ADB /* stack-test.cc in Sources */,
+				236D0E5E27C7381800E86AD2 /* code-generate-arm64-test.cc in Sources */,
 				23D5A652266718ED00635ADB /* stack.h in Sources */,
 				23C3356A27A8279500319862 /* instruction-generating-arm64.cc in Sources */,
 				23D5A653266718ED00635ADB /* stack.c in Sources */,

@@ -392,6 +392,7 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
 
         case InstructionOperand::kInvalid:
         default:
+            UNREACHABLE();
             break;
     }
 }
