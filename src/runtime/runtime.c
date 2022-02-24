@@ -399,6 +399,7 @@ struct kstr_header {
 
 void pkg_init_once(void *init_fun, const char *const plain_name) {
     char *symbol = NULL;
+    char buf[16] = {0};
     pthread_mutex_lock(&pkg_init_mutex);
 
     struct hash_table_value_span pkg = yalx_get_string_key(&pkg_init_records, plain_name);
@@ -421,13 +422,13 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     strncpy(symbol + prefix_len, "_Lksz", 6);
     
 #if defined(YALX_OS_POSIX)
-    struct lksz_header *lksz_addr = (struct lksz_header *)dlsym(RTLD_SELF, symbol);
+    struct lksz_header *lksz_addr = (struct lksz_header *)dlsym(RTLD_MAIN_ONLY, symbol + 1/*Skip prefx '_'*/);
 #endif
     
     strncpy(symbol + prefix_len, "_Kstr", 6);
 
 #if defined(YALX_OS_POSIX)
-    struct kstr_header *kstr_addr = (struct kstr_header *)dlsym(RTLD_SELF, symbol);
+    struct kstr_header *kstr_addr = (struct kstr_header *)dlsym(RTLD_MAIN_ONLY, symbol + 1/*Skip prefx '_'*/);
 #endif
     
     if (!lksz_addr || !kstr_addr) {
@@ -443,7 +444,9 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name), 4);
 done:
     pthread_mutex_unlock(&pkg_init_mutex);
+    printf("pkg init...%s\n", plain_name);
     free(symbol);
+    call_returning_vals(buf, sizeof(buf), init_fun);
 }
 
 int pkg_initialized_count() { return pkg_init_records.size; }

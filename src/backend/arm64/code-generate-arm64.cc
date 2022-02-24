@@ -271,7 +271,7 @@ void Arm64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *oper
             
         case InstructionOperand::kConstant: {
             auto opd = operand->AsConstant();
-            if (opd->kind() == ConstantOperand::kString) {
+            if (opd->type() == ConstantOperand::kString) {
                 printer()->Print("Kstr.%d", opd->symbol_id());
             } else {
                 assert(opd->kind() == ConstantOperand::kNumber);

@@ -169,8 +169,8 @@ public:
         X64MovingDelegate(X64FunctionInstructionSelector *owns): owns_(owns) {}
         ~X64MovingDelegate() override = default;
         
-        void MoveTo(InstructionOperand *dest, InstructionOperand *src, ir::Value *val) override {
-            owns_->Move(dest, src, val->type());
+        void MoveTo(InstructionOperand *dest, InstructionOperand *src, ir::Type ty) override {
+            owns_->Move(dest, src, ty);
         }
         void Initialize() override {}
         void Finalize() override {}

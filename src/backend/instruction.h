@@ -171,16 +171,20 @@ private:
 
 class ReloactionOperand final : public InstructionOperand {
 public:
-    ReloactionOperand(const String *symbol_name, const InstructionBlock *label)
+    ReloactionOperand(const String *symbol_name, const InstructionBlock *label, bool fetch_address = false)
     : InstructionOperand(kReloaction)
     , label_(label)
-    , symbol_name_(symbol_name) {}
+    , symbol_name_(symbol_name)
+    , fetch_address_(fetch_address)
+    {}
     
     DEF_PTR_GETTER(const String, symbol_name);
     DEF_PTR_GETTER(const InstructionBlock, label);
+    DEF_VAL_GETTER(bool, fetch_address);
 private:
     const InstructionBlock *label_;
     const String *symbol_name_;
+    int fetch_address_;
 }; // class ReloactionOperand
 
 class LocationOperand final : public InstructionOperand {

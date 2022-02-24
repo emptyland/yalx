@@ -461,11 +461,18 @@ void RegisterSavingScope::SaveAll() {
             continue;
         }
         
-        //if (allocator_->WillBeLive(rd.val, position_ + 1)) {
-        auto bak = allocator_->AllocateStackSlot(rd.val->type(), StackSlotAllocator::kFit);
-        moving_delegate_->MoveTo(bak, rd.opd, rd.val);
+//        LocationOperand *bak = nullptr;
+//        if (!rd.val) {
+//            bak = allocator_->AllocateStackSlot(OperandAllocator::kVal, kPointerSize, StackSlotAllocator::kFit);
+//            moving_delegate_->MoveTo(bak, rd.opd, ir::Types::Word64);
+//        } else {
+//            bak = allocator_->AllocateStackSlot(rd.val->type(), StackSlotAllocator::kFit);
+//            moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
+//        }
+        //moving_delegate_->MoveTo(bak, rd.opd, rd.val);
+        auto bak = allocator_->AllocateStackSlot(DCHECK_NOTNULL(rd.val)->type(), StackSlotAllocator::kFit);
+        moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
         backup_.push_back({rd.val, bak, rd.opd});
-        //}
     }
     for (auto [rid, rd] : allocator_->active_float_registers_) {
         if (float_exclude_.find(rid) != float_exclude_.end()) {
@@ -474,12 +481,16 @@ void RegisterSavingScope::SaveAll() {
         
         //if (allocator_->WillBeLive(rd.val, position_ + 1)) {
         auto bak = allocator_->AllocateStackSlot(rd.val->type(), StackSlotAllocator::kFit);
-        moving_delegate_->MoveTo(bak, rd.opd, rd.val);
+        moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
         backup_.push_back({rd.val, bak, rd.opd});
         //}
     }
     for (auto bak : backup_) {
-        allocator_->Associate(bak.val, bak.current);
+        if (bak.val) {
+            allocator_->Associate(bak.val, bak.current);
+        } else {
+            allocator_->Free(bak.old);
+        }
     }
     moving_delegate_->Finalize();
 }
@@ -487,9 +498,10 @@ void RegisterSavingScope::SaveAll() {
 void RegisterSavingScope::Exit() {
     moving_delegate_->Initialize();
     for (auto bak : backup_) {
+        DCHECK_NOTNULL(bak.val);
         if (allocator_->WillBeLive(bak.val, position_ + 1)) {
             auto opd = allocator_->Allocate(bak.val->type());
-            moving_delegate_->MoveTo(opd, bak.current, bak.val);
+            moving_delegate_->MoveTo(opd, bak.current, bak.val->type());
             allocator_->Associate(bak.val, opd);
         }
     }

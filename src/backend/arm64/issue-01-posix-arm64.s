@@ -15,8 +15,10 @@ Lblk0:
     stp fp, lr, [sp, #32]
     add fp, sp, #32
     adrp x19, _yalx_Zplang_Zolang_Zd_Z4init@PAGE
-    add x19, x19, _yalx_Zplang_Zolang_Zd_Z4init@PAGEOFF
-    ldr x0, [x19, #0]
+    add x0, x19, _yalx_Zplang_Zolang_Zd_Z4init@PAGEOFF
+    adrp x19, Lkzs.0@PAGE
+    add x1, x19, Lkzs.0@PAGEOFF
+    bl _pkg_init_once
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
     ret
@@ -131,8 +133,8 @@ Lblk7:
     add fp, sp, #32
     adrp x19, Knnn.0@PAGE
     add x19, x19, Knnn.0@PAGEOFF
-    ldr s19, [x19, #0]
-    str s19, [fp, #20]
+    ldr s0, [x19, #0]
+    str s0, [fp, #20]
     mov w0, #2
     str w0, [fp, #24]
     mov w1, #1
@@ -154,6 +156,10 @@ Lblk8:
     ret
 _yalx_Zplang_Zolang_Zd_Z4init:
     ret
+; CString constants
+.section __TEXT,__cstring,cstring_literals
+Lkzs.0:
+    .asciz "yalx/lang:lang"
 ; Number constants
 .section __TEXT,__literal8,8byte_literals
 .p2align 4
@@ -161,3 +167,13 @@ Knnn.0:
     .long 0x3f8ccccd    ; float.1.100000
 .section __DATA,__data
 .p2align 4
+; Yalx-String constants
+.global _main_Zomain_Lksz
+_main_Zomain_Lksz:
+    .long 1
+    .quad Lkzs.0
+.global _main_Zomain_Kstr
+_main_Zomain_Kstr:
+    .long 1
+Kstr.0:
+    .quad 0

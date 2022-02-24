@@ -83,8 +83,13 @@ public:
     
     BorrowedRecord BorrowRegister(ir::Value *value, InstructionOperand *bak, int designate = kAnyRegister);
     BorrowedRecord BorrowRegister(ir::Type ty, InstructionOperand *bak, int designate = kAnyRegister);
-    
-    //void RepayRegister(ir::Value *original, RegisterOperand *old, InstructionOperand *bak);
+
+    bool IsGeneralRegisterAlive(int id) const {
+        return active_general_registers_.find(id) != active_general_registers_.end();
+    }
+    bool IsFloatRegisterAlive(int id) const {
+        return active_float_registers_.find(id) != active_float_registers_.end();
+    }
     
     struct LiveRange {
         int start_position = -1;
@@ -144,7 +149,7 @@ public:
     public:
         MovingDelegate() = default;
         virtual ~MovingDelegate() = default;
-        virtual void MoveTo(InstructionOperand *, InstructionOperand *, ir::Value *) = 0;
+        virtual void MoveTo(InstructionOperand *, InstructionOperand *, ir::Type) = 0;
         virtual void Initialize() = 0;
         virtual void Finalize() = 0;
         DISALLOW_IMPLICIT_CONSTRUCTORS(MovingDelegate);

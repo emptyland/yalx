@@ -6,11 +6,13 @@
 #include "backend/instruction.h"
 #include "arm64/asm-arm64.h"
 #include "ir/metadata.h"
+#include "ir/operator.h"
+#include "ir/runtime.h"
 #include "ir/node.h"
 #include "ir/type.h"
-#include "ir/operator.h"
-#include "base/arena-utils.h"
 #include "base/lazy-instance.h"
+#include "base/arena-utils.h"
+#include "base/format.h"
 
 namespace yalx {
 namespace backend {
@@ -131,8 +133,8 @@ public:
         Arm64MovingDelegate(Arm64FunctionInstructionSelector *owns): owns_(owns) {}
         ~Arm64MovingDelegate() override = default;
         
-        void MoveTo(InstructionOperand *dest, InstructionOperand *src, ir::Value *val) override {
-            owns_->Move(dest, src, val->type());
+        void MoveTo(InstructionOperand *dest, InstructionOperand *src, ir::Type ty) override {
+            owns_->Move(dest, src, ty);
         }
         void Initialize() override {}
         void Finalize() override {}
@@ -183,6 +185,7 @@ private:
     void Select(ir::Value *instr);
     
     void CallDirectly(ir::Value *instr);
+    void CallRuntime(ir::Value *instr);
     
     InstructionOperand *Allocate(ir::Value *value, Policy policy, uint32_t imm_bits = 0);
     InstructionOperand *Constant(ir::Value *value, uint32_t imm_bits);
@@ -384,19 +387,18 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             bundle()->AddExternalSymbol(fun->full_name()->ToSlice(), symbol);
             
             auto opd = Allocate(instr, kAny);
-            auto rel = new (arena_) ReloactionOperand(symbol, nullptr);
+            auto rel = new (arena_) ReloactionOperand(symbol, nullptr, true/*fetch_address*/);
             Move(opd, rel, instr->type());
         } break;
             
         case ir::Operator::kClosure: {
             // TODO:
-            
+            UNREACHABLE();
         } break;;
             
-        case ir::Operator::kCallRuntime: {
-            // TODO:
-            // PkgInitOnce -> pkg_init_once(void *fun, const char *name)
-        } break;
+        case ir::Operator::kCallRuntime:
+            CallRuntime(instr);
+            break;
             
         case ir::Operator::kCallDirectly:
             CallDirectly(instr);
@@ -470,11 +472,11 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
     }
 }
 
-void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
-    auto callee = ir::OperatorWith<ir::Function *>::Data(val->op());
+void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
+    auto callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
     std::vector<ir::Value *> returning_vals;
-    returning_vals.push_back(val);
-    for (auto edge : val->users()) {
+    returning_vals.push_back(instr);
+    for (auto edge : instr->users()) {
         if (edge.user->Is(ir::Operator::kReturningVal)) {
             returning_vals.push_back(edge.user);
         }
@@ -489,8 +491,8 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
     RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
     size_t overflow_args_size = 0;
     int general_index = 0, float_index = 0;
-    for (int i = 0; i < val->op()->value_in(); i++) {
-        auto arg = val->InputValue(i);
+    for (int i = 0; i < instr->op()->value_in(); i++) {
+        auto arg = instr->InputValue(i);
         const auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
@@ -517,8 +519,8 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
     saving_scope.SaveAll();
 
     general_index = 0, float_index = 0;
-    for (int i = 0; i < val->op()->value_in(); i++) {
-        auto arg = val->InputValue(i);
+    for (int i = 0; i < instr->op()->value_in(); i++) {
+        auto arg = instr->InputValue(i);
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
                 if (saving_scope.Include(kFloatArgumentsRegisters[float_index], false/*general*/)) {
@@ -574,6 +576,99 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
                      operands_.registers()->stack_pointer(),
                      operands_.registers()->stack_pointer(),
                      adjust);
+}
+
+void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
+    const auto runtime_id = ir::OperatorWith<ir::RuntimeId>::Data(instr->op());
+    const String *symbol = nullptr;
+    switch (runtime_id.value) {
+        case ir::RuntimeId::kPkgInitOnce: {
+            symbol = kRt_pkg_init_once;
+            assert(instr->op()->value_in() == 2);
+        } break;
+            
+        default:
+            UNREACHABLE();
+            break;
+    }
+    
+    RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+    std::vector<InstructionOperand *> args;
+    int general_index = 0, float_index = 0;
+    for (int i = 0; i < instr->op()->value_in(); i++) {
+        auto arg = instr->InputValue(i);
+        if (symbol == kRt_pkg_init_once && i == 1) {
+            const auto const pkg_name = ir::OperatorWith<const String *>::Data(arg->op());
+            const auto kid = const_pool_->FindOrInsertString(pkg_name);
+            const auto linked_name = String::New(arena_, base::Sprintf("Lkzs.%d", kid));
+            args.push_back(new (arena_) ReloactionOperand(linked_name, nullptr, true/*fetch_address*/));
+            general_index++;
+            continue;
+        }
+        const auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
+        if (arg->type().IsFloating()) {
+            if (float_index < kNumberOfFloatArgumentsRegisters) {
+                args.push_back(Allocate(arg, kAny));
+                saving_scope.AddExclude(arg, kFloatArgumentsRegisters[float_index], instruction_position_);
+            } else {
+                // overflow
+                UNREACHABLE();
+            }
+            float_index++;
+        } else {
+            if (general_index < kNumberOfGeneralArgumentsRegisters) {
+                args.push_back(Allocate(arg, kAny));
+                saving_scope.AddExclude(arg, kGeneralArgumentsRegisters[general_index], instruction_position_);
+            } else {
+                // overflow
+                UNREACHABLE();
+            }
+            general_index++;
+        }
+    }
+    if (instr->type().kind() != ir::Type::kVoid) {
+        if (instr->type().IsFloating()) {
+            if (operands_.IsFloatRegisterAlive(arm64::d0.code())) {
+                // TODO:
+                UNREACHABLE();
+            }
+        } else {
+            if (operands_.IsGeneralRegisterAlive(arm64::x0.code())) {
+                // TODO:
+                UNREACHABLE();
+            }
+        }
+    }
+    saving_scope.SaveAll();
+    
+    general_index = 0, float_index = 0;
+    for (int i = 0; i < instr->op()->value_in(); i++) {
+        auto arg = instr->InputValue(i);
+        if (arg->type().IsFloating()) {
+            if (float_index < kNumberOfFloatArgumentsRegisters) {
+                if (saving_scope.Include(kFloatArgumentsRegisters[float_index], false/*general*/)) {
+                    auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
+                                                                          kFloatArgumentsRegisters[float_index]));
+                    Move(dest, args[i], arg->type());
+                    operands_.Associate(arg, dest);
+                }
+            }
+            float_index++;
+        } else {
+            if (general_index < kNumberOfGeneralArgumentsRegisters) {
+                if (saving_scope.Include(kGeneralArgumentsRegisters[general_index], true/*general*/)) {
+                    auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
+                                                                          kGeneralArgumentsRegisters[general_index]));
+                    Move(dest, args[i], arg->type());
+                    operands_.Associate(arg, dest);
+                }
+            }
+            general_index++;
+        }
+    }
+    
+    auto rel = new (arena_) ReloactionOperand(symbol, nullptr);
+    current()->NewI(ArchCall, rel);
 }
 
 InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value, Policy policy, uint32_t imm_bits) {
@@ -671,8 +766,8 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
             if (value->op()->IsConstant()) {
                 auto kop = Constant(value, 0/*imm_bits*/);
                 assert(kop->IsImmediate() || kop->IsConstant());
-                auto opd = operands_.Allocate(value->type());
-                tmps_.push_back(opd);
+                auto opd = operands_.Allocate(value);
+                //tmps_.push_back(opd);
                 Move(opd, kop, value->type());
                 return opd;
             }
@@ -683,17 +778,25 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
             if (opd) {
                 return opd;
             }
+            
             if (value->op()->IsConstant()) {
+//                if (value->Is(ir::Operator::kStringConstant)) {
+//                    return Constant(value, imm_bits);
+//                }
                 opd = operands_.Allocate(value);
+                //tmps_.push_back(opd);
                 if (opd->IsRegister()) {
                     auto imm = Constant(value, 16);
                     if (imm->IsImmediate()) {
                         current()->NewIO(Arm64Mov, opd, imm);
                         return opd;
                     }
-                    return imm;
+                    Move(opd, imm, value->type());
+                    return opd;
                 }
-                return Constant(value, imm_bits);
+                auto kval = Constant(value, imm_bits);
+                Move(opd, kval, value->type());
+                return opd;
             }
             return operands_.Allocate(value);
         } break;
@@ -785,7 +888,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Constant(ir::Value *value,
         } break;
         case ir::Operator::kStringConstant: {
             const auto kval = ir::OperatorWith<const String *>::Data(value->op());
-            return new (arena_) ConstantOperand(ConstantOperand::kNumber, const_pool_->FindOrInsertString(kval));
+            return new (arena_) ConstantOperand(ConstantOperand::kString, const_pool_->FindOrInsertString(kval));
         } break;
         case ir::Operator::kNilConstant:
             return ImmediateOperand::Word64(arena_, 0);
@@ -804,6 +907,7 @@ void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, Instructio
                              MachineRepresentation::kWord32);
             break;
         case ir::Type::kUInt8:
+        case ir::Type::kWord8:
             MoveMachineWords(Arm64Ldrb, Arm64Strb, dest, src, MachineRepresentation::kWord8,
                              MachineRepresentation::kWord32);
             break;
@@ -813,18 +917,21 @@ void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, Instructio
                              MachineRepresentation::kWord32);
             break;
         case ir::Type::kUInt16:
+        case ir::Type::kWord16:
             MoveMachineWords(Arm64LdrW, Arm64StrW, dest, src, MachineRepresentation::kWord16,
                              MachineRepresentation::kWord32);
             break;
             
         case ir::Type::kInt32:
         case ir::Type::kUInt32:
+        case ir::Type::kWord32:
             MoveMachineWords(Arm64Ldr, Arm64Str, dest, src, MachineRepresentation::kWord32,
                              MachineRepresentation::kWord32);
             break;
             
         case ir::Type::kInt64:
         case ir::Type::kUInt64:
+        case ir::Type::kWord64:
         case ir::Type::kReference:
         case ir::Type::kString:
             MoveMachineWords(Arm64Ldr, Arm64Str, dest, src, MachineRepresentation::kWord64,
@@ -854,6 +961,94 @@ void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, Instructio
         default:
             UNREACHABLE();
             break;
+    }
+}
+
+void Arm64FunctionInstructionSelector::MoveMachineWords(Instruction::Code load_op, Instruction::Code store_op,
+                                                        InstructionOperand *dest, InstructionOperand *src,
+                                                        MachineRepresentation rep, MachineRepresentation scratch_rep) {
+    const bool fetch_address = src->IsReloaction() && src->AsReloaction()->fetch_address();
+    if (dest->IsRegister()) {
+        if (src->IsRegister()) {
+            current()->NewIO(Arm64Mov, dest, src);
+        } else if (src->IsLocation()) {
+            current()->NewIO(load_op, dest, src);
+        } else if (src->IsConstant() || src->IsReloaction()) {
+            auto tmp = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+            current()->NewIO(Arm64Adrp, tmp, src);
+            if (fetch_address) {
+                current()->NewIO(Arm64AddOff, dest, tmp, src);
+            } else {
+                current()->NewIO(Arm64AddOff, tmp, tmp, src);
+                auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, kScratchGeneralRegister0, -1, 0);
+                current()->NewIO(load_op, dest, loc);
+            }
+        } else if (src->IsImmediate()) {
+            current()->NewIO(Arm64Mov, dest, src);
+        } else {
+            UNREACHABLE();
+        }
+    } else if (dest->IsLocation()) {
+        if (src->IsRegister()) {
+            current()->NewIO(store_op, dest, src);
+        } else if (src->IsLocation()) {
+            // ldr x19, [src]
+            // str x19, [dest]
+            auto tmp0 = operands_.registers()->GeneralScratch0(scratch_rep);
+            current()->NewIO(load_op, tmp0, src);
+            current()->NewIO(store_op, dest, tmp0);
+        } else if (src->IsReloaction() || src->IsConstant()) {
+            // adrp x19, dest@PAGE
+            // add x19, x19, dest@PAGEOFF
+            // ldr x19, [x19, 0]
+            // str x19, [dest]
+            auto tmp0 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+            current()->NewIO(Arm64Adrp, tmp0, src);
+            current()->NewIO(Arm64AddOff, tmp0, tmp0, src);
+            if (!fetch_address) {
+                auto loc0 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp0->register_id(), -1, 0);
+                current()->NewIO(load_op, tmp0, loc0);
+            }
+            current()->NewIO(store_op, dest, tmp0);
+        } else if (src->IsImmediate()) {
+            current()->NewIO(Arm64Mov, dest, src);
+        } else {
+            UNREACHABLE();
+        }
+    } else if (dest->IsReloaction()) {
+        auto tmp0 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+        auto tmp1 = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord64);
+        current()->NewIO(Arm64Adrp, tmp0, dest);
+        current()->NewIO(Arm64AddOff, tmp0, tmp0, dest);
+        auto loc0 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp0->register_id(), -1, 0);
+        
+        if (src->IsRegister()) {
+            current()->NewIO(store_op, loc0, src);
+        } else if (src->IsLocation()) {
+            // adrp x19, dest@PAGE
+            // add x19, x19, dest@PAGEOFF
+            // ldr x20, [fp, src]
+            // str x20, [x19, 0]
+            
+            current()->NewIO(load_op, tmp1, src);
+            current()->NewIO(store_op, loc0, tmp1); // Saving `tmp' aka `src'
+        } else if (src->IsConstant() || src->IsReloaction()) {
+            // adrp x19, dest@PAGE
+            // add x19, x19, dest@PAGEOFF
+            // adrp x20, src@PAGE
+            // add x20, x20, src@PAGEOFF
+            // ldr x20, [x20, 0]
+            // str x20, [x19, 0]
+            current()->NewIO(Arm64Adrp, tmp1, src);
+            current()->NewIO(Arm64AddOff, tmp1, tmp1, src);
+            if (!fetch_address) {
+                auto loc1 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp1->register_id(), -1, 0);
+                current()->NewIO(load_op, tmp1, loc1);
+            }
+            current()->NewIO(store_op, loc0, tmp1); // Saving `tmp' aka `src'
+        }
+    } else {
+        UNREACHABLE();
     }
 }
 
@@ -930,87 +1125,6 @@ void Arm64FunctionInstructionSelector::MoveMachineFloat(Instruction::Code load_o
             current()->NewIO(store_op, loc0, scratch);
         } else {
             UNREACHABLE();
-        }
-    } else {
-        UNREACHABLE();
-    }
-}
-
-void Arm64FunctionInstructionSelector::MoveMachineWords(Instruction::Code load_op, Instruction::Code store_op,
-                                                        InstructionOperand *dest, InstructionOperand *src,
-                                                        MachineRepresentation rep, MachineRepresentation scratch_rep) {
-    if (dest->IsRegister()) {
-        if (src->IsRegister()) {
-            current()->NewIO(Arm64Mov, dest, src);
-        } else if (src->IsLocation()) {
-            current()->NewIO(load_op, dest, src);
-        } else if (src->IsConstant() || src->IsReloaction()) {
-            auto tmp = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
-            current()->NewIO(Arm64Adrp, tmp, src);
-            current()->NewIO(Arm64AddOff, tmp, tmp, src);
-            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, kScratchGeneralRegister0, -1, 0);
-            current()->NewIO(load_op, dest, loc);
-        } else if (src->IsImmediate()) {
-            current()->NewIO(Arm64Mov, dest, src);
-        } else {
-            UNREACHABLE();
-        }
-    } else if (dest->IsLocation()) {
-        
-        
-        if (src->IsRegister()) {
-            current()->NewIO(store_op, dest, src);
-        } else if (src->IsLocation()) {
-            // ldr x19, [src]
-            // str x19, [dest]
-            auto tmp0 = operands_.registers()->GeneralScratch0(scratch_rep);
-            current()->NewIO(load_op, tmp0, src);
-            current()->NewIO(store_op, dest, tmp0);
-        } else if (src->IsReloaction() || src->IsConstant()) {
-            // adrp x19, dest@PAGE
-            // add x19, x19, dest@PAGEOFF
-            // ldr x19, [x19, 0]
-            // str x19, [dest]
-            auto tmp0 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
-            current()->NewIO(Arm64Adrp, tmp0, src);
-            current()->NewIO(Arm64AddOff, tmp0, tmp0, src);
-            auto loc0 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp0->register_id(), -1, 0);
-            current()->NewIO(load_op, tmp0, loc0);
-            current()->NewIO(store_op, dest, tmp0);
-        } else if (src->IsImmediate()) {
-            current()->NewIO(Arm64Mov, dest, src);
-        } else {
-            UNREACHABLE();
-        }
-    } else if (dest->IsReloaction()) {
-        auto tmp0 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
-        auto tmp1 = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord64);
-        current()->NewIO(Arm64Adrp, tmp0, dest);
-        current()->NewIO(Arm64AddOff, tmp0, tmp0, dest);
-        auto loc0 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp0->register_id(), -1, 0);
-        
-        if (src->IsRegister()) {
-            current()->NewIO(store_op, loc0, dest);
-        } else if (src->IsLocation()) {
-            // adrp x19, dest@PAGE
-            // add x19, x19, dest@PAGEOFF
-            // ldr x20, [fp, src]
-            // str x20, [x19, 0]
-            
-            current()->NewIO(load_op, tmp1, src);
-            current()->NewIO(store_op, loc0, tmp1); // Saving `tmp' aka `src'
-        } else if (src->IsConstant() || src->IsReloaction()) {
-            // adrp x19, dest@PAGE
-            // add x19, x19, dest@PAGEOFF
-            // adrp x20, src@PAGE
-            // add x20, x20, src@PAGEOFF
-            // ldr x20, [x20, 0]
-            // str x20, [x19, 0]
-            current()->NewIO(Arm64Adrp, tmp1, src);
-            current()->NewIO(Arm64AddOff, tmp1, tmp1, src);
-            auto loc1 = new (arena_) LocationOperand(Arm64Mode_MRI, tmp1->register_id(), -1, 0);
-            current()->NewIO(load_op, tmp1, loc1);
-            current()->NewIO(store_op, loc0, tmp1); // Saving `tmp' aka `src'
         }
     } else {
         UNREACHABLE();

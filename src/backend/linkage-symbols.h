@@ -36,6 +36,8 @@ struct StaticString {
 extern const String *const kLibc_memcpy;
 extern const String *const kLibc_memset;
 
+extern const String *const kRt_pkg_init_once;
+
 } // namespace backend
 } // namespace yalx
 

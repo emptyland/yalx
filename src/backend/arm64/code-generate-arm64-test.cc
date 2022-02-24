@@ -5,6 +5,7 @@
 #include "compiler/compiler.h"
 #include "ir/base-test.h"
 #include "base/io.h"
+#include "runtime/runtime.h"
 #include <gtest/gtest.h>
 
 namespace yalx {
@@ -48,6 +49,7 @@ void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx
 void main_Zomain_Zdissue1();
 void main_Zomain_Zdissue5();
 void main_Zomain_Zdfoo();
+void main_Zomain_Zd_Z4init();
 } // extern "C"
 
 #endif // YALX_ARCH_ARM64
@@ -69,6 +71,12 @@ TEST_F(Arm64CodeGeneratorTest, ReturningVals) {
     ASSERT_EQ(3, buf[1]);
     ASSERT_EQ(2, buf[2]);
     ASSERT_EQ(1, buf[3]);
+}
+
+TEST_F(Arm64CodeGeneratorTest, PkgInitOnce) {
+//    int buf[4] = {0};
+//    call_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zd_Z4init));
+    pkg_init_once(reinterpret_cast<void *>(&main_Zomain_Zd_Z4init), "main:main");
 }
 
 #endif // YALX_ARCH_ARM64

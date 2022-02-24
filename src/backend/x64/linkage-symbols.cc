@@ -15,6 +15,8 @@ const String *const name = reinterpret_cast<const String *>(&name##_stub)
 DECLARE_STATIC_STRING(kLibc_memcpy, "_memcpy");
 DECLARE_STATIC_STRING(kLibc_memset, "_memset");
 
+DECLARE_STATIC_STRING(kRt_pkg_init_once, "_pkg_init_once");
+
 LinkageSymbols::LinkageSymbols(base::Arena *arena)
 : arena_(arena)
 , symbols_(arena) {
