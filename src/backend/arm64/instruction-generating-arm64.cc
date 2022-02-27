@@ -5,6 +5,7 @@
 #include "backend/constants-pool.h"
 #include "backend/instruction.h"
 #include "arm64/asm-arm64.h"
+#include "ir/condition.h"
 #include "ir/metadata.h"
 #include "ir/operator.h"
 #include "ir/runtime.h"
@@ -190,6 +191,11 @@ private:
     InstructionOperand *Allocate(ir::Value *value, Policy policy, uint32_t imm_bits = 0);
     InstructionOperand *Constant(ir::Value *value, uint32_t imm_bits);
     
+    ConstantOperand *Word16Mask(uint16_t mask) {
+        const auto id = const_pool_->FindOrInsertWord16(mask);
+        return new (arena_) ConstantOperand(ConstantOperand::kNumber, id);
+    }
+    
     void Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty);
     void MoveMachineWords(Instruction::Code load_op, Instruction::Code store_op, InstructionOperand *dest,
                           InstructionOperand *src, MachineRepresentation rep, MachineRepresentation scratch_rep);
@@ -334,7 +340,48 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
                 return;
             }
             // TODO: condition br
-            UNREACHABLE();
+            auto cond = instr->InputValue(0);
+            auto if_true = blocks_[instr->OutputControl(0)];
+            auto if_false = blocks_[instr->OutputControl(1)];
+            auto label = new (arena_) ReloactionOperand(nullptr/*symbol_name*/, if_true);
+            auto output = new (arena_) ReloactionOperand(nullptr, if_false);
+            if (cond->Is(ir::Operator::kICmp)) {
+                switch (ir::OperatorWith<ir::IConditionId>::Data(cond->op()).value) {
+                    case ir::IConditionId::k_eq:
+                        current()->NewO(Arm64B_ne, output);
+                        break;
+                    case ir::IConditionId::k_ne:
+                        current()->NewO(Arm64B_eq, output);
+                        break;
+                    case ir::IConditionId::k_slt:
+                    case ir::IConditionId::k_ult:
+                        current()->NewO(Arm64B_ge, output);
+                        break;
+                    case ir::IConditionId::k_sle:
+                    case ir::IConditionId::k_ule:
+                        current()->NewO(Arm64B_gt, output);
+                        break;
+                    case ir::IConditionId::k_sgt:
+                    case ir::IConditionId::k_ugt:
+                        current()->NewO(Arm64B_le, output);
+                        break;
+                    case ir::IConditionId::k_sge:
+                    case ir::IConditionId::k_uge:
+                        current()->NewO(Arm64B_lt, output);
+                        break;
+                    default:
+                        UNREACHABLE();
+                        break;
+                }
+                current()->NewI(ArchJmp, label);
+                current()->New(ArchNop);
+                current()->AddSuccessor(if_false);
+                current()->AddSuccessor(if_true);
+                if_false->AddPredecessors(current());
+                if_true->AddPredecessors(current());
+            } else if (cond->Is(ir::Operator::kFCmp)) {
+                
+            }
         } break;
             
         case ir::Operator::kLoadEffectField: {
@@ -343,6 +390,25 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             
         case ir::Operator::kLoadEffectAddress: {
             UNREACHABLE();
+        } break;
+            
+        case ir::Operator::kICmp: {
+            auto lhs = Allocate(instr->InputValue(0), kReg);
+            auto rhs = Allocate(instr->InputValue(1), kRoI, 12/*imm_bits*/);
+            switch (ToMachineRepresentation(instr->type())) {
+                case MachineRepresentation::kWord8:
+                case MachineRepresentation::kWord16:
+                case MachineRepresentation::kWord32:
+                    current()->NewII(Arm64Cmp32, lhs, rhs);
+                    break;
+                case MachineRepresentation::kWord64:
+                    current()->NewII(Arm64Cmp, lhs, rhs);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+            
         } break;
             
         case ir::Operator::kAdd: {

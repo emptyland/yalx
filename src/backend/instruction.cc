@@ -153,5 +153,12 @@ Instruction *InstructionBlock::NewIO2(Instruction::Code op, Instruction::Operand
     return instr;
 }
 
+Instruction *InstructionBlock::NewII(Instruction::Code op, Instruction::Operand *in1, Instruction::Operand *in2) {
+    InstructionOperand *operands[] = {in1, in2};
+    auto instr = Instruction::New(arena_, op, operands, 2/*inputs_count*/, 0/*outputs_count*/);
+    instructions_.push_back(instr);
+    return instr;
+}
+
 } // namespace backend
 } // namespace yalx

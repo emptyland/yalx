@@ -97,6 +97,12 @@ namespace backend {
     V(Arm64Poke)                              \
     V(Arm64PokePair)                          \
     V(Arm64Peek)                              \
+    V(Arm64B_eq)                              \
+    V(Arm64B_ne)                              \
+    V(Arm64B_lt)                              \
+    V(Arm64B_le)                              \
+    V(Arm64B_gt)                              \
+    V(Arm64B_ge)                              \
     V(Arm64Float32Cmp)                        \
     V(Arm64Float32Add)                        \
     V(Arm64Float32Sub)                        \
