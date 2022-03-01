@@ -36,6 +36,7 @@ struct stack_pool stack_pool;
 
 
 // External symbol from generated code
+// 1347046214, 1465142347, 1195658056
 extern uint32_t yalx_magic_number1;
 extern uint32_t yalx_magic_number2;
 extern uint32_t yalx_magic_number3;
@@ -446,7 +447,9 @@ done:
     pthread_mutex_unlock(&pkg_init_mutex);
     printf("pkg init...%s\n", plain_name);
     free(symbol);
-    call_returning_vals(buf, sizeof(buf), init_fun);
+    if (init_fun) {
+        call_returning_vals(buf, sizeof(buf), init_fun);
+    }
 }
 
 int pkg_initialized_count() { return pkg_init_records.size; }

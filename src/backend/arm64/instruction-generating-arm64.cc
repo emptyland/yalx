@@ -353,7 +353,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         case ir::Operator::kICmp: {
             auto lhs = Allocate(instr->InputValue(0), kReg);
             auto rhs = Allocate(instr->InputValue(1), kRoI, 12/*imm_bits*/);
-            switch (ToMachineRepresentation(instr->type())) {
+            switch (ToMachineRepresentation(instr->InputValue(0)->type())) {
                 case MachineRepresentation::kWord8:
                 case MachineRepresentation::kWord16:
                 case MachineRepresentation::kWord32:
@@ -372,7 +372,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         case ir::Operator::kFCmp: {
             auto lhs = Allocate(instr->InputValue(0), kReg);
             auto rhs = Allocate(instr->InputValue(1), kReg);
-            switch (ToMachineRepresentation(instr->type())) {
+            switch (ToMachineRepresentation(instr->InputValue(0)->type())) {
                 case MachineRepresentation::kFloat32:
                     current()->NewII(Arm64Float32Cmp, lhs, rhs);
                     break;
@@ -786,10 +786,9 @@ void Arm64FunctionInstructionSelector::ConditionBr(ir::Value *instr) {
                     break;
                 case ir::FConditionId::k_one:
                     current()->NewO(Arm64B_eq, output); // equal
-                    current()->NewO(Arm64B_vs, output); // unordered
                     break;
                 case ir::FConditionId::k_olt:
-                    current()->NewO(Arm64B_cs, output); // greater equal or undorderd
+                    current()->NewO(Arm64B_pl, output); // greater equal or undorderd
                     break;
                 case ir::FConditionId::k_ole:
                     current()->NewO(Arm64B_hi, output); // greater or undorderd
