@@ -189,6 +189,8 @@ public:
     
     bool IsConstant() const;
     
+    bool IsTerminator() const { return value() == kBr || value() == kRet; }
+    
     friend class OperatorsFactory;
 protected:
     Operator(Value value, uint32_t properties, int value_in, int control_in, int value_out, int control_out);

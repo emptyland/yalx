@@ -18,6 +18,14 @@ fun issue4(a: int, b: int) -> doo(a, b, a + b)
 
 fun issue5() -> 1,2,3,4
 
+fun issue6(a: int, b: int) -> 
+    if (a > b) {
+        val r,_,_,_ = issue5()
+        r + a + b
+    } else {
+        -1
+    }
+
 fun foo() -> 1,2,1.1
 
 fun doo(a: int, b: int, c: int) -> a + b + c

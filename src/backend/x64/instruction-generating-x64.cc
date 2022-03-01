@@ -201,7 +201,7 @@ public:
     DEF_PTR_GETTER(InstructionFunction, bundle);
     
     void Prepare() {
-        bundle_ = new (arena_) InstructionFunction(arena_, symbols_->Symbolize(fun_->full_name()));
+        bundle_ = new (arena_) InstructionFunction(arena_, symbols_->Mangle(fun_->full_name()));
         for (auto bb : fun_->blocks()) {
             bb->RemoveDeads(); // Remove deads again for phi_node_users
             auto ib = bundle_->NewBlock(labels_->NextLable());
@@ -419,7 +419,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             
         case ir::Operator::kLoadFunAddr: {
             auto fun = ir::OperatorWith<const ir::Function *>::Data(val->op());
-            auto symbol = symbols_->Symbolize(fun->full_name());
+            auto symbol = symbols_->Mangle(fun->full_name());
             bundle()->AddExternalSymbol(fun->full_name()->ToSlice(), symbol);
             
             auto opd = Allocate(val, kAny);
@@ -615,7 +615,7 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
     auto adjust = ImmediateOperand::Word32(arena_, static_cast<int>(current_stack_size));
     calling_stack_adjust_.push_back(adjust);
     current()->NewIO(X64Add, operands_.registers()->stack_pointer(), adjust);
-    auto rel = new (arena_) ReloactionOperand(symbols_->Symbolize(callee->full_name()), nullptr);
+    auto rel = new (arena_) ReloactionOperand(symbols_->Mangle(callee->full_name()), nullptr);
     current()->NewI(ArchCall, rel);
     current()->NewIO(X64Sub, operands_.registers()->stack_pointer(), adjust);
 }

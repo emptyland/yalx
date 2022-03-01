@@ -532,7 +532,7 @@ void X64CodeGenerator::EmitAll() {
     
     if (!const_pool_->string_pool().empty()) {
         printer_->Writeln("# Yalx-String constants");
-        auto symbol = symbols_->Symbolize(module_->full_name());
+        auto symbol = symbols_->Mangle(module_->full_name());
         printer_->Println(".global %s_Lksz", symbol->data());
         printer_->Println("%s_Lksz:", symbol->data());
         printer_->Indent(1)->Println(".long %zd", const_pool_->string_pool().size());
