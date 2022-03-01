@@ -26,6 +26,15 @@ fun issue6(a: int, b: int) ->
         -1
     }
 
+fun issue7(a: f32, b: f32) ->
+    if (a < b) {
+        -1
+    } else if (a > b) {
+        1
+    } else {
+        0
+    }
+
 fun foo() -> 1,2,1.1
 
 fun doo(a: int, b: int, c: int) -> a + b + c

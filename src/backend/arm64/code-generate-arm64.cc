@@ -216,6 +216,42 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             printer()->Writeln("");
             break;
             
+        case Arm64B_vs:
+            printer()->Write("b.vs ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_mi:
+            printer()->Write("b.mi ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_ne:
+            printer()->Write("b.ne ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_nv:
+            printer()->Write("b.nv ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_pl:
+            printer()->Write("b.pl ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_vc:
+            printer()->Write("b.vc ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+
         case Arm64Ldr:
         case Arm64LdrS:
         case Arm64LdrD:
