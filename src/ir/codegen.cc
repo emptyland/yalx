@@ -1787,6 +1787,7 @@ private:
             b()->NewNode(ss.Position(), Types::Void, ops()->Ret(0));
         }
         fun->UpdateIdsOfBlocks();
+        ProcessAnnotationDeclaration(ast->annotations(), fun);
         return fun;
     }
     
@@ -1875,6 +1876,14 @@ private:
         }
         
         return Returning(b()->NewNode(ss.Position(), Types::UInt8, op, lhs, rhs));
+    }
+    
+    void ProcessAnnotationDeclaration(const cpl::AnnotationDeclaration *annos, Function *fun) {
+        if (!annos) {
+            return;
+        }
+        //annos->annotations()
+        UNREACHABLE();
     }
     
     bool ShouldCaptureVal(NamespaceScope *scope, Value *val) {

@@ -188,6 +188,22 @@ namespace backend {
     V(Arm64Float64InsertHighWord32)           \
     V(Arm64Float64MoveU64)                    \
     V(Arm64U64MoveFloat64)                    \
+    V(Arm64FloatSelect_cs)                    \
+    V(Arm64FloatSelect_cc)                    \
+    V(Arm64FloatSelect_mi)                    \
+    V(Arm64FloatSelect_pl)                    \
+    V(Arm64FloatSelect_vs)                    \
+    V(Arm64FloatSelect_vc)                    \
+    V(Arm64FloatSelect_hi)                    \
+    V(Arm64FloatSelect_ls)                    \
+    V(Arm64FloatSelect_al)                    \
+    V(Arm64FloatSelect_nv)                    \
+    V(Arm64FloatSelect_eq)                    \
+    V(Arm64FloatSelect_ne)                    \
+    V(Arm64FloatSelect_lt)                    \
+    V(Arm64FloatSelect_le)                    \
+    V(Arm64FloatSelect_gt)                    \
+    V(Arm64FloatSelect_ge)                    \
     V(Arm64LdrS)                              \
     V(Arm64StrS)                              \
     V(Arm64LdrD)                              \

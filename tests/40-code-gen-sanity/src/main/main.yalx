@@ -18,6 +18,7 @@ fun issue4(a: int, b: int) -> doo(a, b, a + b)
 
 fun issue5() -> 1,2,3,4
 
+@Compiler(nativeHandle=true)
 fun issue6(a: int, b: int) -> 
     if (a > b) {
         val r,_,_,_ = issue5()
