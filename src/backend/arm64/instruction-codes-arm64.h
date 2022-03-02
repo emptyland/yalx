@@ -113,6 +113,22 @@ namespace backend {
     V(Arm64B_le)                              \
     V(Arm64B_gt)                              \
     V(Arm64B_ge)                              \
+    V(Arm64Select_cs)                         \
+    V(Arm64Select_cc)                         \
+    V(Arm64Select_mi)                         \
+    V(Arm64Select_pl)                         \
+    V(Arm64Select_vs)                         \
+    V(Arm64Select_vc)                         \
+    V(Arm64Select_hi)                         \
+    V(Arm64Select_ls)                         \
+    V(Arm64Select_al)                         \
+    V(Arm64Select_nv)                         \
+    V(Arm64Select_eq)                         \
+    V(Arm64Select_ne)                         \
+    V(Arm64Select_lt)                         \
+    V(Arm64Select_le)                         \
+    V(Arm64Select_gt)                         \
+    V(Arm64Select_ge)                         \
     V(Arm64Float32Cmp)                        \
     V(Arm64Float32Add)                        \
     V(Arm64Float32Sub)                        \

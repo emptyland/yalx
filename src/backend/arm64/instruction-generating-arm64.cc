@@ -188,6 +188,9 @@ private:
     void CallDirectly(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
     void ConditionBr(ir::Value *instr);
+    void BooleanValue(ir::Value *instr, InstructionOperand *opd);
+    void ConditionSelect(ir::Value *instr, InstructionOperand *opd, InstructionOperand *true_val,
+                         InstructionOperand *false_val);
     
     InstructionOperand *Allocate(ir::Value *value, Policy policy, uint32_t imm_bits = 0);
     InstructionOperand *Constant(ir::Value *value, uint32_t imm_bits);
@@ -203,8 +206,17 @@ private:
     void MoveMachineFloat(Instruction::Code load_op, Instruction::Code store_op, InstructionOperand *dest,
                           InstructionOperand *src, MachineRepresentation rep);
     
-    bool IsPredecessorCompare() const {
-        return prev_instr_ && (prev_instr_->Is(ir::Operator::kICmp) || prev_instr_->Is(ir::Operator::kFCmp));
+    bool IsSuccessorConditionBr(ir::Value *cond) {
+        assert(cond->Is(ir::Operator::kICmp) || cond->Is(ir::Operator::kFCmp));
+        const auto i = instruction_position_ + 1;
+        if (current_block_) {
+            for (auto [bb, ib] : blocks_) {
+                if (current() == ib && i < bb->instructions_size()) {
+                    return bb->instruction(i)->Is(ir::Operator::kBr) && bb->instruction(i)->InputValue(0) == cond;
+                }
+            }
+        }
+        return false;
     }
     
     static size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto);
@@ -366,7 +378,9 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
                     UNREACHABLE();
                     break;
             }
-            // TODO:
+            if (!IsSuccessorConditionBr(instr)) {
+                BooleanValue(instr, Allocate(instr, kReg));
+            }
         } break;
             
         case ir::Operator::kFCmp: {
@@ -383,7 +397,9 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
                     UNREACHABLE();
                     break;
             }
-            // TODO:
+            if (!IsSuccessorConditionBr(instr)) {
+                BooleanValue(instr, Allocate(instr, kReg));
+            }
         } break;
             
         case ir::Operator::kAdd: {
@@ -857,6 +873,123 @@ void Arm64FunctionInstructionSelector::ConditionBr(ir::Value *instr) {
 //    current()->AddSuccessor(if_true);
 //    if_false->AddPredecessors(current());
 //    if_true->AddPredecessors(current());
+}
+
+void Arm64FunctionInstructionSelector::BooleanValue(ir::Value *instr, InstructionOperand *opd) {
+    auto false_val = new (arena_) RegisterOperand(arm64::xzr.code(), MachineRepresentation::kWord8);
+    auto true_val = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord8);
+    Move(true_val, ImmediateOperand::Word8(arena_, 1), instr->type());
+    ConditionSelect(instr, opd, true_val, false_val);
+}
+
+void Arm64FunctionInstructionSelector::ConditionSelect(ir::Value *instr, InstructionOperand *opd,
+                                                       InstructionOperand *true_val,
+                                                       InstructionOperand *false_val) {
+    assert(instr->Is(ir::Operator::kICmp) || instr->Is(ir::Operator::kFCmp));
+    if (instr->Is(ir::Operator::kICmp)) {
+        switch (ir::OperatorWith<ir::IConditionId>::Data(instr->op()).value) {
+            case ir::IConditionId::k_eq:
+                current()->NewIO(Arm64Select_eq, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_ne:
+                current()->NewIO(Arm64Select_ne, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_slt:
+                current()->NewIO(Arm64Select_lt, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_ult:
+                current()->NewIO(Arm64Select_ls, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_sle:
+                current()->NewIO(Arm64Select_le, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_ule:
+                current()->NewIO(Arm64Select_hi, opd, false_val, true_val);
+                break;
+            case ir::IConditionId::k_sgt:
+                current()->NewIO(Arm64Select_gt, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_ugt:
+                current()->NewIO(Arm64Select_hi, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_sge:
+                current()->NewIO(Arm64Select_ge, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_uge:
+                current()->NewIO(Arm64Select_ge, opd, true_val, false_val);
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+    } else {
+        assert(instr->Is(ir::Operator::kFCmp));
+        auto unordered = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord8);
+        switch (ir::OperatorWith<ir::FConditionId>::Data(instr->op()).value) {
+                // oeq: yields true if both operands are not a QNAN and op1 is equal to op2.
+            case ir::FConditionId::k_oeq:
+                current()->NewIO(Arm64Select_eq, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_one:
+                current()->NewIO(Arm64Select_ne, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_olt:
+                current()->NewIO(Arm64Select_lt, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_ole:
+                current()->NewIO(Arm64Select_le, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_ogt:
+                current()->NewIO(Arm64Select_hi, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_oge:
+                current()->NewIO(Arm64Select_pl, opd, true_val, false_val);
+                break;
+                // ord: yields true if both operands are not a QNAN.
+            case ir::FConditionId::k_ord:
+                current()->NewIO(Arm64Select_vc, opd, true_val, false_val);
+                break;
+                // ueq: yields true if either operand is a QNAN or op1 is equal to op2.
+            case ir::FConditionId::k_ueq:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_eq, opd, true_val, unordered);
+                break;
+                // une: yields true if either operand is a QNAN or op1 is not equal to op2.
+            case ir::FConditionId::k_une:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_ne, opd, true_val, unordered);
+                break;
+            case ir::FConditionId::k_ult:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_lt, opd, true_val, unordered);
+                break;
+            case ir::FConditionId::k_ule:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_le, opd, true_val, unordered);
+                break;
+            case ir::FConditionId::k_ugt:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_hi, opd, true_val, unordered);
+                break;
+            case ir::FConditionId::k_uge:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_pl, opd, true_val, unordered);
+                break;
+                // uno: yields true if either operand is a QNAN.
+            case ir::FConditionId::k_uno:
+                current()->NewIO(Arm64Select_vs, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_never:
+                Move(opd, false_val, instr->type());
+                break;
+            case ir::FConditionId::k_always:
+                Move(opd, true_val, instr->type());
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+    }
 }
 
 InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value, Policy policy, uint32_t imm_bits) {

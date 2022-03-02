@@ -251,6 +251,86 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
+            
+        case Arm64Select_al:
+            printer()->Write("csel.al ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_cc:
+            printer()->Write("csel.cc ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_cs:
+            printer()->Write("csel.cs ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_eq:
+            printer()->Write("csel.eq ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_ge:
+            printer()->Write("csel.ge ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_gt:
+            printer()->Write("csel.gt ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_hi:
+            printer()->Write("csel.hi ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_le:
+            printer()->Write("csel.le ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_ls:
+            printer()->Write("csel.ls ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_lt:
+            printer()->Write("csel.lt ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_vs:
+            printer()->Write("csel.vs ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_mi:
+            printer()->Write("csel.mi ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_ne:
+            printer()->Write("csel.ne ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_nv:
+            printer()->Write("csel.nv ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_pl:
+            printer()->Write("csel.pl ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Select_vc:
+            printer()->Write("csel.vc ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
 
         case Arm64Ldr:
         case Arm64LdrS:
@@ -275,6 +355,24 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
                 printer()->Write("stur ");
             } else {
                 printer()->Write("str ");
+            }
+            EmitOperands(instr->InputAt(0), instr->OutputAt(0));
+            break;
+            
+        case Arm64Strb:
+            if (DCHECK_NOTNULL(instr->OutputAt(0)->AsLocation())->k() < 0) {
+                printer()->Write("sturb ");
+            } else {
+                printer()->Write("strb ");
+            }
+            EmitOperands(instr->InputAt(0), instr->OutputAt(0));
+            break;
+            
+        case Arm64Strh:
+            if (DCHECK_NOTNULL(instr->OutputAt(0)->AsLocation())->k() < 0) {
+                printer()->Write("sturh ");
+            } else {
+                printer()->Write("strh ");
             }
             EmitOperands(instr->InputAt(0), instr->OutputAt(0));
             break;

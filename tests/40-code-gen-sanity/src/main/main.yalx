@@ -35,6 +35,8 @@ fun issue7(a: f32, b: f32) ->
         0
     }
 
+fun issue8(a: int, b: int) -> a < b
+
 fun foo() -> 1,2,1.1
 
 fun doo(a: int, b: int, c: int) -> a + b + c
