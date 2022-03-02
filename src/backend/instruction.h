@@ -23,6 +23,7 @@ enum InstructionCode {
     ArchJmp,
     ArchCall,
     ArchUnreachable,
+    ArchSafepoint,
 #define DEFINE_ENUM(name) name,
     X64_ARCH_OPCODE_LIST(DEFINE_ENUM)
     ARM64_ARCH_OPCODE_LIST(DEFINE_ENUM)

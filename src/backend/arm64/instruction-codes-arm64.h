@@ -97,6 +97,16 @@ namespace backend {
     V(Arm64Poke)                              \
     V(Arm64PokePair)                          \
     V(Arm64Peek)                              \
+    V(Arm64B_cs)                              \
+    V(Arm64B_cc)                              \
+    V(Arm64B_mi)                              \
+    V(Arm64B_pl)                              \
+    V(Arm64B_vs)                              \
+    V(Arm64B_vc)                              \
+    V(Arm64B_hi)                              \
+    V(Arm64B_ls)                              \
+    V(Arm64B_al)                              \
+    V(Arm64B_nv)                              \
     V(Arm64B_eq)                              \
     V(Arm64B_ne)                              \
     V(Arm64B_lt)                              \

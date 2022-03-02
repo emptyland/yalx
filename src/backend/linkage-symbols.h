@@ -13,9 +13,9 @@ class LinkageSymbols final {
 public:
     LinkageSymbols(base::Arena *arena);
     
-    const String *Symbolize(const String *name)  { return Symbolize(name->ToSlice()); }
-    const String *Symbolize(const char *z, size_t n) { return Symbolize(std::string_view(z, n)); }
-    const String *Symbolize(std::string_view name);
+    const String *Mangle(const String *name)  { return Mangle(name->ToSlice()); }
+    const String *Mangle(const char *z, size_t n) { return Mangle(std::string_view(z, n)); }
+    const String *Mangle(std::string_view name);
     
     static void Build(std::string *buf, std::string_view name);
     

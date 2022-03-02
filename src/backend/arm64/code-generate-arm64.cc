@@ -150,6 +150,71 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             printer()->Writeln("");
             break;
             
+        case ArchJmp:
+            printer()->Write("b ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_al:
+            printer()->Write("b.al ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_cc:
+            printer()->Write("b.cc ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_cs:
+            printer()->Write("b.cs ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_eq:
+            printer()->Write("b.eq ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_ge:
+            printer()->Write("b.ge ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_gt:
+            printer()->Write("b.gt ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_hi:
+            printer()->Write("b.hi ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_le:
+            printer()->Write("b.le ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_ls:
+            printer()->Write("b.ls ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case Arm64B_lt:
+            printer()->Write("b.lt ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
             
         case Arm64Ldr:
         case Arm64LdrS:
@@ -207,6 +272,18 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
         case Arm64AddOff:
             printer()->Write("add ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), kPageOff);
+            break;
+            
+        case Arm64Cmp32:
+        case Arm64Cmp:
+            printer()->Write("cmp ");
+            EmitOperands(instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Float32Cmp:
+        case Arm64Float64Cmp:
+            printer()->Write("fcmp ");
+            EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
             
         case Arm64Add:
@@ -478,7 +555,7 @@ void Arm64CodeGenerator::EmitAll() {
     
     if (!const_pool_->string_pool().empty()) {
         printer_->Writeln("; Yalx-String constants");
-        auto symbol = symbols_->Symbolize(module_->full_name());
+        auto symbol = symbols_->Mangle(module_->full_name());
         printer_->Println(".global %s_Lksz", symbol->data());
         printer_->Println("%s_Lksz:", symbol->data());
         printer_->Indent(1)->Println(".long %zd", const_pool_->string_pool().size());

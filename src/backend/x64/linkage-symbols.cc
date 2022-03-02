@@ -22,7 +22,7 @@ LinkageSymbols::LinkageSymbols(base::Arena *arena)
 , symbols_(arena) {
 }
 
-const String *LinkageSymbols::Symbolize(std::string_view name) {
+const String *LinkageSymbols::Mangle(std::string_view name) {
     if (auto iter = symbols_.find(name); iter != symbols_.end()) {
         return iter->second;
     }

@@ -166,7 +166,7 @@ public:
     DEF_PTR_GETTER(InstructionFunction, bundle);
     
     void Prepare() {
-        bundle_ = new (arena_) InstructionFunction(arena_, symbols_->Symbolize(fun_->full_name()));
+        bundle_ = new (arena_) InstructionFunction(arena_, symbols_->Mangle(fun_->full_name()));
         for (auto bb : fun_->blocks()) {
             bb->RemoveDeads(); // Remove deads again for phi_node_users
             auto ib = bundle_->NewBlock(labels_->NextLable());
@@ -187,6 +187,7 @@ private:
     
     void CallDirectly(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
+    void ConditionBr(ir::Value *instr);
     
     InstructionOperand *Allocate(ir::Value *value, Policy policy, uint32_t imm_bits = 0);
     InstructionOperand *Constant(ir::Value *value, uint32_t imm_bits);
@@ -202,15 +203,8 @@ private:
     void MoveMachineFloat(Instruction::Code load_op, Instruction::Code store_op, InstructionOperand *dest,
                           InstructionOperand *src, MachineRepresentation rep);
     
-    bool CanDirectlyMove(InstructionOperand *dest, InstructionOperand *src) {
-        assert(dest->IsRegister() || dest->IsLocation());
-        if (dest->IsRegister() || src->IsRegister()) {
-            return true;
-        }
-        if (dest->IsLocation()) {
-            return src->IsImmediate();
-        }
-        return false;
+    bool IsPredecessorCompare() const {
+        return prev_instr_ && (prev_instr_->Is(ir::Operator::kICmp) || prev_instr_->Is(ir::Operator::kFCmp));
     }
     
     static size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto);
@@ -226,6 +220,7 @@ private:
     OperandAllocator operands_;
     InstructionFunction *bundle_ = nullptr;
     InstructionBlock *current_block_ = nullptr;
+    ir::Value *prev_instr_ = nullptr;
     int instruction_position_ = 0;
     ImmediateOperand *stack_total_size_ = nullptr;
     ImmediateOperand *stack_used_size_ = nullptr;
@@ -302,9 +297,17 @@ void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
     for (auto user : bb->phi_node_users()) {
         Allocate(user.phi, kMoR);
     }
+    
     for (auto instr : bb->instructions()) {
         operands_.ReleaseDeads(instruction_position_);
         tmps_.clear();
+        if (instr->op()->IsTerminator()) {
+            for (auto user : bb->phi_node_users()) {
+                auto phi_slot = DCHECK_NOTNULL(operands_.Allocated(user.phi));
+                auto dest = Allocate(user.dest, kAny);
+                Move(phi_slot, dest, user.phi->type());
+            }
+        }
         Select(instr);
         for (auto tmp : tmps_) { operands_.Free(tmp); }
         for (const auto &borrow : borrowed_registers_) {
@@ -317,13 +320,10 @@ void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
                 operands_.Free(borrow.target);
             }
         }
+        prev_instr_ = instr;
         instruction_position_++;
     }
-    for (auto user : bb->phi_node_users()) {
-        auto phi_slot = DCHECK_NOTNULL(operands_.Allocated(user.phi));
-        auto dest = Allocate(user.dest, kAny);
-        Move(phi_slot, dest, user.phi->type());
-    }
+    
     current_block_ = nullptr;
 }
 
@@ -333,55 +333,13 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             if (instr->op()->value_in() == 0) {
                 auto ib = blocks_[instr->OutputControl(0)];
                 auto label = new (arena_) ReloactionOperand(nullptr/*symbol_name*/, ib);
-                current()->NewI(ArchJmp, label);
+                current()->NewO(ArchJmp, label);
                 current()->New(ArchNop);
                 current()->AddSuccessor(ib);
                 ib->AddPredecessors(current());
                 return;
             }
-            // TODO: condition br
-            auto cond = instr->InputValue(0);
-            auto if_true = blocks_[instr->OutputControl(0)];
-            auto if_false = blocks_[instr->OutputControl(1)];
-            auto label = new (arena_) ReloactionOperand(nullptr/*symbol_name*/, if_true);
-            auto output = new (arena_) ReloactionOperand(nullptr, if_false);
-            if (cond->Is(ir::Operator::kICmp)) {
-                switch (ir::OperatorWith<ir::IConditionId>::Data(cond->op()).value) {
-                    case ir::IConditionId::k_eq:
-                        current()->NewO(Arm64B_ne, output);
-                        break;
-                    case ir::IConditionId::k_ne:
-                        current()->NewO(Arm64B_eq, output);
-                        break;
-                    case ir::IConditionId::k_slt:
-                    case ir::IConditionId::k_ult:
-                        current()->NewO(Arm64B_ge, output);
-                        break;
-                    case ir::IConditionId::k_sle:
-                    case ir::IConditionId::k_ule:
-                        current()->NewO(Arm64B_gt, output);
-                        break;
-                    case ir::IConditionId::k_sgt:
-                    case ir::IConditionId::k_ugt:
-                        current()->NewO(Arm64B_le, output);
-                        break;
-                    case ir::IConditionId::k_sge:
-                    case ir::IConditionId::k_uge:
-                        current()->NewO(Arm64B_lt, output);
-                        break;
-                    default:
-                        UNREACHABLE();
-                        break;
-                }
-                current()->NewI(ArchJmp, label);
-                current()->New(ArchNop);
-                current()->AddSuccessor(if_false);
-                current()->AddSuccessor(if_true);
-                if_false->AddPredecessors(current());
-                if_true->AddPredecessors(current());
-            } else if (cond->Is(ir::Operator::kFCmp)) {
-                
-            }
+            ConditionBr(instr);
         } break;
             
         case ir::Operator::kLoadEffectField: {
@@ -408,7 +366,24 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
                     UNREACHABLE();
                     break;
             }
+            // TODO:
+        } break;
             
+        case ir::Operator::kFCmp: {
+            auto lhs = Allocate(instr->InputValue(0), kReg);
+            auto rhs = Allocate(instr->InputValue(1), kReg);
+            switch (ToMachineRepresentation(instr->type())) {
+                case MachineRepresentation::kFloat32:
+                    current()->NewII(Arm64Float32Cmp, lhs, rhs);
+                    break;
+                case MachineRepresentation::kFloat64:
+                    current()->NewII(Arm64Float64Cmp, lhs, rhs);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+            // TODO:
         } break;
             
         case ir::Operator::kAdd: {
@@ -449,7 +424,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             
         case ir::Operator::kLoadFunAddr: {
             auto fun = ir::OperatorWith<const ir::Function *>::Data(instr->op());
-            auto symbol = symbols_->Symbolize(fun->full_name());
+            auto symbol = symbols_->Mangle(fun->full_name());
             bundle()->AddExternalSymbol(fun->full_name()->ToSlice(), symbol);
             
             auto opd = Allocate(instr, kAny);
@@ -471,6 +446,10 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             break;
             
         case ir::Operator::kReturningVal:
+            // Just Ignore this ir code
+            break;
+            
+        case ir::Operator::kPhi:
             // Just Ignore this ir code
             break;
             
@@ -636,7 +615,7 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
                      operands_.registers()->stack_pointer(),
                      operands_.registers()->stack_pointer(),
                      adjust);
-    auto rel = new (arena_) ReloactionOperand(symbols_->Symbolize(callee->full_name()), nullptr);
+    auto rel = new (arena_) ReloactionOperand(symbols_->Mangle(callee->full_name()), nullptr);
     current()->NewI(ArchCall, rel);
     current()->NewIO(Arm64Sub,
                      operands_.registers()->stack_pointer(),
@@ -735,6 +714,150 @@ void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
     
     auto rel = new (arena_) ReloactionOperand(symbol, nullptr);
     current()->NewI(ArchCall, rel);
+}
+
+void Arm64FunctionInstructionSelector::ConditionBr(ir::Value *instr) {
+    auto cond = instr->InputValue(0);
+    auto if_true = blocks_[instr->OutputControl(0)];
+    auto if_false = blocks_[instr->OutputControl(1)];
+    auto label = new (arena_) ReloactionOperand(nullptr/*symbol_name*/, if_true);
+    auto output = new (arena_) ReloactionOperand(nullptr, if_false);
+    if (cond->Is(ir::Operator::kICmp)) {
+        if (prev_instr_ != cond) {
+            auto cond_val = Allocate(cond, kReg);
+            auto zero = ImmediateOperand::Word8(arena_, 0);
+            current()->NewII(Arm64Cmp32, cond_val, zero);
+            current()->NewO(Arm64B_eq, output);
+        } else {
+            switch (ir::OperatorWith<ir::IConditionId>::Data(cond->op()).value) {
+                case ir::IConditionId::k_eq:
+                    current()->NewO(Arm64B_ne, output);
+                    break;
+                case ir::IConditionId::k_ne:
+                    current()->NewO(Arm64B_eq, output);
+                    break;
+                case ir::IConditionId::k_slt:
+                    current()->NewO(Arm64B_ge, output);
+                    break;
+                case ir::IConditionId::k_ult:
+                    current()->NewO(Arm64B_eq, output);
+                    current()->NewO(Arm64B_hi, output); // unsigned higher
+                    break;
+                case ir::IConditionId::k_sle:
+                    current()->NewO(Arm64B_gt, output);
+                    break;
+                case ir::IConditionId::k_ule:
+                    current()->NewO(Arm64B_hi, output); // unsigned higher
+                    break;
+                case ir::IConditionId::k_sgt:
+                    current()->NewO(Arm64B_le, output);
+                    break;
+                case ir::IConditionId::k_ugt:
+                    current()->NewO(Arm64B_ls, output); // unsigned lower or same
+                    break;
+                case ir::IConditionId::k_sge:
+                    current()->NewO(Arm64B_lt, output);
+                    break;
+                case ir::IConditionId::k_uge:
+                    current()->NewO(Arm64B_eq, label);
+                    current()->NewO(Arm64B_ls, output); // unsigned lower or same
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        }
+    } else if (cond->Is(ir::Operator::kFCmp)) {
+        if (prev_instr_ != cond) {
+            auto cond_val = Allocate(cond, kReg);
+            auto zero = ImmediateOperand::Word8(arena_, 0);
+            current()->NewII(Arm64Cmp32, cond_val, zero);
+            current()->NewO(Arm64B_eq, output);
+        } else {
+            //      NZCV
+            // NaN: 0011
+            // EQ:  0110
+            // LT:  1000
+            // GT:  0010
+            switch (ir::OperatorWith<ir::FConditionId>::Data(cond->op()).value) {
+                    // oeq: yields true if both operands are not a QNAN and op1 is equal to op2.
+                case ir::FConditionId::k_oeq:
+                    current()->NewO(Arm64B_ne, output); // not equal or unordered
+                    break;
+                case ir::FConditionId::k_one:
+                    current()->NewO(Arm64B_eq, output); // equal
+                    current()->NewO(Arm64B_vs, output); // unordered
+                    break;
+                case ir::FConditionId::k_olt:
+                    current()->NewO(Arm64B_cs, output); // greater equal or undorderd
+                    break;
+                case ir::FConditionId::k_ole:
+                    current()->NewO(Arm64B_hi, output); // greater or undorderd
+                    break;
+                case ir::FConditionId::k_ogt:
+                    current()->NewO(Arm64B_le, output); // less equal or undordered
+                    break;
+                case ir::FConditionId::k_oge:
+                    current()->NewO(Arm64B_lt, output); // less or undordered
+                    break;
+                // ord: yields true if both operands are not a QNAN.
+                case ir::FConditionId::k_ord:
+                    current()->NewO(Arm64B_vs, output); // unordered
+                    break;
+                // ueq: yields true if either operand is a QNAN or op1 is equal to op2.
+                case ir::FConditionId::k_ueq:
+                    current()->NewO(Arm64B_vs, label); // unordered
+                    current()->NewO(Arm64B_ne, output); // not equal or unordered
+                    break;
+                // une: yields true if either operand is a QNAN or op1 is not equal to op2.
+                case ir::FConditionId::k_une:
+                    current()->NewO(Arm64B_vs, label); // unordered
+                    current()->NewO(Arm64B_eq, output); // equal
+                    break;
+                case ir::FConditionId::k_ult:
+                    current()->NewO(Arm64B_vs, label); // unordered
+                    current()->NewO(Arm64B_ge, output); // greater or equal
+                    break;
+                case ir::FConditionId::k_ule:
+                    current()->NewO(Arm64B_vs, label); // unordered
+                    current()->NewO(Arm64B_hi, output); // greater or undorderd
+                    break;
+                case ir::FConditionId::k_ugt:
+                    current()->NewO(Arm64B_vs, label); // unordered
+                    current()->NewO(Arm64B_le, output); // less equal or undordered
+                    break;
+                case ir::FConditionId::k_uge:
+                    current()->NewO(Arm64B_vs, label); // unordered
+                    current()->NewO(Arm64B_lt, output);
+                    break;
+                // uno: yields true if either operand is a QNAN.
+                case ir::FConditionId::k_uno:
+                    current()->NewO(Arm64B_vc, output);
+                    break;
+                case ir::FConditionId::k_never:
+                    current()->NewO(ArchJmp, output);
+                    break;
+                case ir::FConditionId::k_always:
+                    current()->NewO(Arm64B_al, output);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        }
+    } else {
+        auto cond_val = Allocate(cond, kReg);
+        auto zero = ImmediateOperand::Word8(arena_, 0);
+        current()->NewII(Arm64Cmp, cond_val, zero);
+        current()->NewO(Arm64B_eq, output);
+    }
+    
+//    current()->NewO(ArchJmp, label);
+//    current()->New(ArchNop);
+//    current()->AddSuccessor(if_false);
+//    current()->AddSuccessor(if_true);
+//    if_false->AddPredecessors(current());
+//    if_true->AddPredecessors(current());
 }
 
 InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value, Policy policy, uint32_t imm_bits) {
