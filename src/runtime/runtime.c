@@ -460,3 +460,14 @@ int pkg_has_initialized(const char *const plain_name) {
     pthread_mutex_unlock(&pkg_init_mutex);
     return span.value != NULL;
 }
+
+
+void *reserve_handle_returning_vals(u32_t size) {
+    assert(thread_local_mach != NULL);
+    thread_local_mach->returning_vals = realloc(thread_local_mach->returning_vals, size);
+    thread_local_mach->returning_vals_size = size;
+    return thread_local_mach->returning_vals;
+}
+
+
+struct coroutine *current_root() { return thread_local_mach->running; }

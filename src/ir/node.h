@@ -69,6 +69,9 @@ public:
         kOverride,
     };
     
+    constexpr static const uint32_t kNeverReturnBit = 1u;
+    constexpr static const uint32_t kNativeHandleBit = 1u << 1;
+    
     BasicBlock *NewBlock(const String *name);
     
     DEF_PTR_GETTER(const String, name);
@@ -80,6 +83,14 @@ public:
     DEF_VAL_GETTER(Decoration, decoration);
     DEF_ARENA_VECTOR_GETTER(Value *, paramater);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
+    
+    bool is_never_return() const { return properties_ & kNeverReturnBit; }
+    bool is_native_handle() const { return properties_ & kNativeHandleBit; }
+    
+    void SetPropertiesBits(uint32_t bits) {
+        properties_ &= ~bits;
+        properties_ |= bits;
+    }
     
     void MoveToLast(BasicBlock *blk) {
         if (auto iter = std::find(blocks_.begin(), blocks_.end(), blk); iter != blocks_.end()) {
@@ -113,6 +124,7 @@ private:
     base::Arena *const arena_;
     PrototypeModel *const prototype_;
     Decoration const decoration_;
+    uint32_t properties_ = 0;
     BasicBlock *entry_ = nullptr;
     base::ArenaVector<Value *> paramaters_;
     base::ArenaVector<BasicBlock *> blocks_;

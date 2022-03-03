@@ -11,6 +11,11 @@ using String = base::ArenaString;
 
 class LinkageSymbols final {
 public:
+    enum Kind {
+        kOriginal,
+        kNativeHandle,
+    };
+
     LinkageSymbols(base::Arena *arena);
     
     const String *Mangle(const String *name)  { return Mangle(name->ToSlice()); }
@@ -37,6 +42,8 @@ extern const String *const kLibc_memcpy;
 extern const String *const kLibc_memset;
 
 extern const String *const kRt_pkg_init_once;
+extern const String *const kRt_reserve_handle_returning_vals;
+extern const String *const kRt_current_root;
 
 } // namespace backend
 } // namespace yalx

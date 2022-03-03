@@ -621,6 +621,11 @@ void Arm64CodeGenerator::EmitAll() {
         
         FunctionGenerator gen(this, iter->second);
         gen.EmitAll();
+
+        if (iter->second->native_handle()) {
+            FunctionGenerator g2(this, iter->second->native_handle());
+            g2.EmitAll();
+        }
     }
     
     for (auto clazz : module_->structures()) {
@@ -630,6 +635,11 @@ void Arm64CodeGenerator::EmitAll() {
             
             FunctionGenerator gen(this, iter->second);
             gen.EmitAll();
+
+            if (iter->second->native_handle()) {
+                FunctionGenerator g2(this, iter->second->native_handle());
+                g2.EmitAll();
+            }
         }
     }
         

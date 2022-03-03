@@ -286,6 +286,7 @@ public:
     InstructionFunction(base::Arena *arena, const String *symbol);
     
     DEF_PTR_GETTER(const String, symbol);
+    DEF_PTR_PROP_RW(InstructionFunction, native_handle);
     DEF_VAL_GETTER(SymbolMap, external_symbols);
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, block);
     
@@ -297,6 +298,7 @@ public:
 private:
     const String *const symbol_;
     base::Arena *const arena_;
+    InstructionFunction *native_handle_ = nullptr;
     SymbolMap external_symbols_;
     base::ArenaVector<InstructionBlock *> blocks_;
 }; // class InstructionFunction

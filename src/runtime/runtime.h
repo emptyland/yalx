@@ -110,9 +110,14 @@ int trampoline(void);
 void coroutine_finalize_stub(void);
 void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
 
+// runtime libs called by generated code
 void pkg_init_once(void *init_fun, const char *const plain_name);
 int pkg_initialized_count();
 int pkg_has_initialized(const char *const plain_name);
+
+void *reserve_handle_returning_vals(u32_t size);
+
+struct coroutine *current_root();
 
 // generated entry symbol: main:main.main(): unit
 void y2zmain_main(void);

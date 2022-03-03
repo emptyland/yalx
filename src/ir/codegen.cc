@@ -1878,14 +1878,33 @@ private:
         return Returning(b()->NewNode(ss.Position(), Types::UInt8, op, lhs, rhs));
     }
     
-    void ProcessAnnotationDeclaration(const cpl::AnnotationDeclaration *annos, Function *fun) {
-        if (!annos) {
+    void ProcessAnnotationDeclaration(const cpl::AnnotationDeclaration *decl, Function *fun) {
+        if (!decl) {
             return;
         }
-        //annos->annotations()
-        UNREACHABLE();
+        for (auto anno : decl->annotations()) {
+            if (!anno->name()->prefix_name() ||
+                !anno->name()->prefix_name()->Equal(cpl::kYalxName) ||
+                !anno->name()->name()->Equal(cpl::kAnnoCompilerName)) {
+                continue;
+            }
+
+            for (auto field : anno->fields()) {
+                if (field->IsNested() || !field->name()) {
+                    continue;
+                }
+
+                if (field->name()->Equal(cpl::kAnnoNativeHandleProperty)) {
+                    if (auto val = field->value()->AsBoolLiteral()) {
+                        fun->SetPropertiesBits(val->value() ? Function::kNativeHandleBit : 0);
+                    }
+                } else {
+                    // TODO...
+                }
+            }
+        }
     }
-    
+
     bool ShouldCaptureVal(NamespaceScope *scope, Value *val) {
         if (scope->IsFileUnitScope() || scope->IsStructureScope()) {
             return false;
