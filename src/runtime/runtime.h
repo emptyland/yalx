@@ -28,6 +28,10 @@ extern "C" {
 #define MEM_INIT_ZAG 0xcccccccc
 #define MEM_FREE_ZAG 0xfeedfeed
 
+#define YALX_MAGIC_NUMBER1 1347046214
+#define YALX_MAGIC_NUMBER2 1465142347
+#define YALX_MAGIC_NUMBER3 1195658056
+
 // Yalx internal primitive types:
 typedef int8_t   i8_t;
 typedef uint8_t  u8_t;

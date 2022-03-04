@@ -422,6 +422,8 @@ public:
         
         Users(Value *owns);
         
+        uint32_t size() const { return users_size_; }
+        
         iterator begin() { return iterator{this, 0, nullptr}; }
         iterator end() { return iterator{this, last_index(), last_node()}; }
     private:

@@ -6,6 +6,8 @@
 #include "ir/base-test.h"
 #include "ir/node.h"
 #include "base/io.h"
+#include "runtime/object/yalx-string.h"
+#include "runtime/heap/heap.h"
 #include "runtime/runtime.h"
 #include <gtest/gtest.h>
 
@@ -45,6 +47,9 @@ TEST_F(Arm64CodeGeneratorTest, Sanity) {
     printf("%s\n", buf.c_str());
     //char zz[] = "\360\237\230\244Name";
     //printd("%s %o%o", zz, 0xf0, 0x9f);
+//    std::string sym;
+//    LinkageSymbols::Build(&sym, "yalx/lang:lang.println");
+//    printd("%s", sym.data());
 }
 
 #ifdef YALX_ARCH_ARM64

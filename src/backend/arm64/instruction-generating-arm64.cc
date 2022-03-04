@@ -308,12 +308,15 @@ void Arm64FunctionInstructionSelector::TearDownHandleFrame(RegisterOperand *sp, 
     auto x2 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[2], MachineRepresentation::kWord64);
     auto returning_vals_size = ImmediateOperand::Word32(arena_, RoundUp(ReturningValSizeInBytes(fun_->prototype()),
                                                                         kStackConf->stack_alignment_size()));
-    current()->NewIO(Arm64Mov, x0, returning_vals_size);
-    // bl reserve_handle_returning_vals -> x0: address
-    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_reserve_handle_returning_vals));
-    current()->NewIO(Arm64Mov, x1, sp); // mov x1, sp
-    current()->NewIO(Arm64Mov, x2, returning_vals_size); // mov x2, #returning_vals_size
-    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kLibc_memcpy)); // bl memcpy(x0, x1, x2)
+    
+    if (returning_vals_size->word32() > 0) {
+        current()->NewIO(Arm64Mov, x0, returning_vals_size);
+        // bl reserve_handle_returning_vals -> x0: address
+        current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_reserve_handle_returning_vals));
+        current()->NewIO(Arm64Mov, x1, sp); // mov x1, sp
+        current()->NewIO(Arm64Mov, x2, returning_vals_size); // mov x2, #returning_vals_size
+        current()->NewI(ArchCall, bundle()->AddExternalSymbol(kLibc_memcpy)); // bl memcpy(x0, x1, x2)
+    }
     
     int offset = stack_sp_fp_location_->k();
     for (int i = 19; i < 29; i += 2) {
@@ -719,9 +722,11 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     auto callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
     std::vector<ir::Value *> returning_vals;
     returning_vals.push_back(instr);
-    for (auto edge : instr->users()) {
-        if (edge.user->Is(ir::Operator::kReturningVal)) {
-            returning_vals.push_back(edge.user);
+    if (instr->users().size() > 0) {
+        for (auto edge : instr->users()) {
+            if (edge.user->Is(ir::Operator::kReturningVal)) {
+                returning_vals.push_back(edge.user);
+            }
         }
     }
     if (returning_vals.size() > 1) {

@@ -1,7 +1,8 @@
 package main
 
+@yalx.Compiler(nativeHandle=true)
 fun main() {
-
+    display("Hello, World")
 }
 
 fun issue1(): int {
@@ -44,3 +45,6 @@ native fun issue9(a: int, b: string): int
 fun foo() -> 1,2,1.1
 
 fun doo(a: int, b: int, c: int) -> a + b + c
+
+@yalx.Compiler(nativeStubName="yalx_Zplang_Zolang_Zdprintln_stub")
+native fun display(s: string)

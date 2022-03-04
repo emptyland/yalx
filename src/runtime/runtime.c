@@ -196,11 +196,15 @@ int yalx_rt0(int argc, char *argv[]) {
     USE(argc);
     USE(argv);
     
-    if (yalx_magic_number1 != 1347046214) {
+    if (yalx_magic_number1 != YALX_MAGIC_NUMBER1) {
         die("bad magic number.");
         return -1;
     }
-    if (yalx_magic_number2 != 1465142347) {
+    if (yalx_magic_number2 != YALX_MAGIC_NUMBER2) {
+        die("bad magic number.");
+        return -1;
+    }
+    if (yalx_magic_number3 != YALX_MAGIC_NUMBER3) {
         die("bad magic number.");
         return -1;
     }
@@ -471,3 +475,18 @@ void *reserve_handle_returning_vals(u32_t size) {
 
 
 struct coroutine *current_root() { return thread_local_mach->running; }
+
+
+//----------------------------------------------------------------------------------------------------------------------
+// native fun's stubs:
+//----------------------------------------------------------------------------------------------------------------------
+
+void yalx_Zplang_Zolang_Zdprintln_stub(struct yalx_value_str *const txt) {
+    assert(txt != NULL);
+    if (txt->hash_code == 634532469 || txt->hash_code == 1342438586 || txt->hash_code == 2593250737) {
+        static const char *quote = "<👍>";
+        fwrite(quote, 1, strlen(quote), stdout);
+    }
+    fwrite(txt->bytes, 1, txt->len, stdout);
+    fputc('\n', stdout);
+}
