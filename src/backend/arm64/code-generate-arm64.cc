@@ -93,6 +93,7 @@ public:
     }
     
     void EmitAll() {
+        //printd("%s", fun_->symbol()->data());
         printer()->Write(".global ")->Writeln(fun_->symbol()->ToSlice());
         printer()->Write(fun_->symbol()->ToSlice())->Writeln(":");
         
@@ -339,6 +340,15 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
                 printer()->Write("ldur ");
             } else {
                 printer()->Write("ldr ");
+            }
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case Arm64Ldrb:
+            if (DCHECK_NOTNULL(instr->InputAt(0)->AsLocation())->k() < 0) {
+                printer()->Write("ldurb ");
+            } else {
+                printer()->Write("ldrb ");
             }
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
@@ -596,8 +606,8 @@ void Arm64CodeGenerator::EmitAll() {
     
     std::set<std::string_view> external_symbols;
     for (auto [name, fun] : funs_) {
-        for (auto [raw, symbol] : fun->external_symbols()) {
-            external_symbols.insert(symbol->ToSlice());
+        for (auto [symbol, rel] : fun->external_symbols()) {
+            external_symbols.insert(symbol);
         }
     }
     
@@ -606,6 +616,7 @@ void Arm64CodeGenerator::EmitAll() {
         printer_->Write(".global ");
         int i = 0;
         for (auto symbol : external_symbols) {
+            assert(symbol.size() == strlen(symbol.data()));
             if (i++ > 0) {
                 printer_->Write(", ");
             }
@@ -651,7 +662,9 @@ void Arm64CodeGenerator::EmitAll() {
             auto kval = const_pool_->string_pool()[i];
             printer_->Println("Lkzs.%zd:", i);
             // TODO process unicode
-            printer_->Indent(1)->Println(".asciz \"%s\"", kval->data());
+            //printer_->Indent(1)->Println(".asciz \"%s\"", kval->data());
+            printer_->Indent(1)
+                ->Write(".asciz \"")->EscapingWrite(kval->ToSlice())->Writeln("\"");
         }
     }
     

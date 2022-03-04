@@ -4,6 +4,7 @@
 #include "backend/instruction.h"
 #include "compiler/compiler.h"
 #include "ir/base-test.h"
+#include "ir/node.h"
 #include "base/io.h"
 #include "runtime/runtime.h"
 #include <gtest/gtest.h>
@@ -24,6 +25,8 @@ public:
             return;
         }
         ASSERT_TRUE(modules.find(name) != modules.end());
+        //modules[name]->PrintTo(printer);
+        
         base::ArenaMap<std::string_view, backend::InstructionFunction *> funs(arena());
         cpl::Compiler::SelectArm64InstructionCode(arena(), modules[name], &const_pool_, &symbols_, 1, &funs);
         cpl::Compiler::GenerateArm64InstructionCode(funs, modules[name], &const_pool_, &symbols_, printer);
@@ -40,6 +43,8 @@ TEST_F(Arm64CodeGeneratorTest, Sanity) {
     CodeGen("tests/40-code-gen-sanity", "main:main", &printer, &ok);
     ASSERT_TRUE(ok);
     printf("%s\n", buf.c_str());
+    //char zz[] = "\360\237\230\244Name";
+    //printd("%s %o%o", zz, 0xf0, 0x9f);
 }
 
 #ifdef YALX_ARCH_ARM64

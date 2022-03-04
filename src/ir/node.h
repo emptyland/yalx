@@ -81,6 +81,7 @@ public:
     DEF_PTR_GETTER(BasicBlock, entry);
     DEF_PTR_GETTER(PrototypeModel, prototype);
     DEF_VAL_GETTER(Decoration, decoration);
+    DEF_PTR_PROP_RW(const String, native_stub_name);
     DEF_ARENA_VECTOR_GETTER(Value *, paramater);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
     
@@ -125,6 +126,7 @@ private:
     PrototypeModel *const prototype_;
     Decoration const decoration_;
     uint32_t properties_ = 0;
+    const String *native_stub_name_ = nullptr;
     BasicBlock *entry_ = nullptr;
     base::ArenaVector<Value *> paramaters_;
     base::ArenaVector<BasicBlock *> blocks_;
@@ -257,6 +259,11 @@ public:
     void RemovePhiUsersOfDeads();
     
     void AddInstruction(Value *value);
+    
+    int FindInstruction(Value *value) const {
+        auto it = std::find(instructions_.begin(), instructions_.end(), value);
+        return it == instructions_.end() ? -1 : it - instructions_.begin();
+    }
     
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
     friend class Function;

@@ -129,6 +129,33 @@ PrintingWriter *PrintingWriter::Println(const char *fmt, ...) {
     return Writeln(str);
 }
 
+PrintingWriter *PrintingWriter::EscapingWrite(std::string_view str) {
+    for (size_t i = 0; i < str.length(); i++) {
+        const auto ch = str[i];
+        switch (ch) {
+            case '"':
+                file_->Append("\\\"");
+                break;
+                
+            case '\n':
+                file_->Append("\\n");
+                break;
+                
+            case '\r':
+                file_->Append("\\r");
+                break;
+
+            default:
+                if (ch < 0 || ch > 127) {
+                    Print("\\%o", ch);
+                } else {
+                    file_->Append(std::string_view(&str[i], 1));
+                }
+                break;
+        }
+    }
+    return this;
+}
 
 SequentialFile *NewMemorySequentialFile(const std::string &buf) {
     return new MemorySequentialFile(buf);

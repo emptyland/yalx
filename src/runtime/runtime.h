@@ -97,6 +97,17 @@ void die(const char *fmt, ...);
 
 void dbg_class_output(const struct yalx_class *klass);
 
+struct yalx_returning_vals {
+    u32_t total_size;
+    u32_t offset;
+};
+
+int yalx_return_i32(struct yalx_returning_vals *state, i32_t value);
+int yalx_return_u32(struct yalx_returning_vals *state, u32_t value);
+int yalx_return_cstring(struct yalx_returning_vals *state, const char *const z, size_t n);
+int yalx_return(const void *const p, size_t n);
+
+
 // implements in test-stub-[Arch].s
 int asm_stub1(int, int);
 int asm_stub2(const struct yalx_str *);

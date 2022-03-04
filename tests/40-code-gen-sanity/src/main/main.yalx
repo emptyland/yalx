@@ -38,6 +38,9 @@ fun issue7(a: f32, b: f32) ->
 
 fun issue8(a: int, b: int) -> a < b
 
+@yalx.Compiler(nativeStubName="issue9_stub")
+native fun issue9(a: int, b: string): int
+
 fun foo() -> 1,2,1.1
 
 fun doo(a: int, b: int, c: int) -> a + b + c

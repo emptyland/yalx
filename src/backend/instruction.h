@@ -281,7 +281,7 @@ private:
 
 class InstructionFunction final : public base::ArenaObject {
 public:
-    using SymbolMap = base::ArenaUnorderedMap<std::string_view, const String *>;
+    using SymbolMap = base::ArenaUnorderedMap<std::string_view, ReloactionOperand *>;
     
     InstructionFunction(base::Arena *arena, const String *symbol);
     
@@ -292,8 +292,13 @@ public:
     
     inline InstructionBlock *NewBlock(int label);
     
-    void AddExternalSymbol(std::string_view name, const String *symbol) {
-        external_symbols_[name] = symbol;
+    ReloactionOperand *AddExternalSymbol(const String *symbol, bool fetch_address = false) {
+        if (auto iter = external_symbols_.find(symbol->ToSlice()); iter != external_symbols_.end()) {
+            return iter->second;
+        }
+        auto rel = new (arena_) ReloactionOperand(symbol, nullptr, fetch_address);
+        external_symbols_[symbol->ToSlice()] = rel;
+        return rel;
     }
 private:
     const String *const symbol_;

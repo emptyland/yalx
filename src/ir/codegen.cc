@@ -1257,7 +1257,7 @@ public:
     
     int VisitEqual(cpl::Equal *node) override {
         Operator *candidate[] = {
-            ops()->FCmp(FCondition::ueq),
+            ops()->FCmp(FCondition::oeq),
             ops()->ICmp(ICondition::eq),
         };
         return EmitComparsion(node, RuntimeLib::StringEQ, candidate, arraysize(candidate));
@@ -1265,7 +1265,7 @@ public:
     
     int VisitNotEqual(cpl::NotEqual *node) override {
         Operator *candidate[] = {
-            ops()->FCmp(FCondition::une),
+            ops()->FCmp(FCondition::one),
             ops()->ICmp(ICondition::ne),
         };
         return EmitComparsion(node, RuntimeLib::StringNE, candidate, arraysize(candidate));
@@ -1273,7 +1273,7 @@ public:
     
     int VisitLess(cpl::Less *node) override {
         Operator *candidate[3] = {
-            ops()->FCmp(FCondition::ult),
+            ops()->FCmp(FCondition::olt),
             ops()->ICmp(ICondition::slt),
             ops()->ICmp(ICondition::ult),
         };
@@ -1282,7 +1282,7 @@ public:
     
     int VisitLessEqual(cpl::LessEqual *node) override {
         Operator *candidate[3] = {
-            ops()->FCmp(FCondition::ule),
+            ops()->FCmp(FCondition::ole),
             ops()->ICmp(ICondition::sle),
             ops()->ICmp(ICondition::ule),
         };
@@ -1291,7 +1291,7 @@ public:
     
     int VisitGreater(cpl::Greater *node) override {
         Operator *candidate[3] = {
-            ops()->FCmp(FCondition::ugt),
+            ops()->FCmp(FCondition::ogt),
             ops()->ICmp(ICondition::sgt),
             ops()->ICmp(ICondition::ugt),
         };
@@ -1300,7 +1300,7 @@ public:
     
     int VisitGreaterEqual(cpl::GreaterEqual *node) override {
         Operator *candidate[3] = {
-            ops()->FCmp(FCondition::uge),
+            ops()->FCmp(FCondition::oge),
             ops()->ICmp(ICondition::sge),
             ops()->ICmp(ICondition::uge),
         };
@@ -1372,6 +1372,9 @@ public:
     }
     
     static Function::Decoration ToDecoration(const cpl::FunctionDeclaration *ast) {
+        if (ast->decoration() == cpl::FunctionDeclaration::kNative) {
+            return Function::kNative;
+        }
         if (!ast->body()) {
             return Function::kAbstract;
         }
@@ -1766,6 +1769,7 @@ private:
             fun->mutable_paramaters()->push_back(arg);
         }
         if (!ast->body()) {
+            ProcessAnnotationDeclaration(ast->annotations(), fun);
             return fun;
         }
         
@@ -1897,6 +1901,10 @@ private:
                 if (field->name()->Equal(cpl::kAnnoNativeHandleProperty)) {
                     if (auto val = field->value()->AsBoolLiteral()) {
                         fun->SetPropertiesBits(val->value() ? Function::kNativeHandleBit : 0);
+                    }
+                } else if (field->name()->Equal(cpl::kAnnoNativeStubNameProperty)) {
+                    if (auto val = field->value()->AsStringLiteral()) {
+                        fun->set_native_stub_name(val->value()->Duplicate(arena()));
                     }
                 } else {
                     // TODO...

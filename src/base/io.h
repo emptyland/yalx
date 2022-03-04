@@ -68,6 +68,8 @@ public:
         return this;
     }
     
+    PrintingWriter *EscapingWrite(std::string_view str);
+    
     PrintingWriter *Write(std::string_view str) {
         auto rs = file_->Append(str);
         assert(rs.ok());

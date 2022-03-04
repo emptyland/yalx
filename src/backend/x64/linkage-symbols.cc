@@ -7,7 +7,7 @@ namespace backend {
 #define DECLARE_STATIC_STRING(name, literal) \
 static StaticString<sizeof(literal)> name##_stub { \
     0, \
-    sizeof(literal), \
+    sizeof(literal) - 1, \
     literal, \
 }; \
 const String *const name = reinterpret_cast<const String *>(&name##_stub)
