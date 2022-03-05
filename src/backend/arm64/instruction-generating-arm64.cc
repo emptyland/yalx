@@ -59,6 +59,7 @@ static const int kAllocatableDoubleRegisters[] = {
 static const int kGeneralArgumentsRegisters[] = {
     arm64::x0.code(),
     arm64::x1.code(),
+    arm64::x2.code(),
     arm64::x3.code(),
     arm64::x4.code(),
     arm64::x5.code(),
@@ -176,6 +177,12 @@ public:
     }
     
     void Run();
+    
+    // The handle of C code calling yalx code
+    void BuildNativeHandle();
+    
+    // The stub of yalx code calling C code
+    void BuildNativeStub();
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arm64FunctionInstructionSelector);
 private:
@@ -188,6 +195,9 @@ private:
     void CallDirectly(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
     void ConditionBr(ir::Value *instr);
+    void BooleanValue(ir::Value *instr, InstructionOperand *opd);
+    void ConditionSelect(ir::Value *instr, InstructionOperand *opd, InstructionOperand *true_val,
+                         InstructionOperand *false_val);
     
     InstructionOperand *Allocate(ir::Value *value, Policy policy, uint32_t imm_bits = 0);
     InstructionOperand *Constant(ir::Value *value, uint32_t imm_bits);
@@ -203,11 +213,35 @@ private:
     void MoveMachineFloat(Instruction::Code load_op, Instruction::Code store_op, InstructionOperand *dest,
                           InstructionOperand *src, MachineRepresentation rep);
     
-    bool IsPredecessorCompare() const {
-        return prev_instr_ && (prev_instr_->Is(ir::Operator::kICmp) || prev_instr_->Is(ir::Operator::kFCmp));
+    bool IsSuccessorConditionBr(ir::Value *cond) {
+        assert(cond->Is(ir::Operator::kICmp) || cond->Is(ir::Operator::kFCmp));
+        //const auto i = instruction_position_ + 1;
+        if (current_block_) {
+            for (auto [bb, ib] : blocks_) {
+                if (current() == ib) {
+                    const auto i = bb->FindInstruction(cond);
+                    if (i >= 0 && i < bb->instructions_size() - 1) {
+                        auto instr = bb->instruction(i + 1);
+                        return instr->Is(ir::Operator::kBr)
+                            && instr->op()->value_in() == 1
+                            && instr->InputValue(0) == cond;
+                    }
+                }
+            }
+        }
+        return false;
     }
     
+    void SetUpHandleFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr);
+    void TearDownHandleFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr);
+    void CallOriginalFun();
+    
+    void SetUpStubFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr);
+    void TearDownStubFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr);
+    void CallNativeStub();
+    
     static size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto);
+    static size_t ParametersSizeInBytes(const ir::Function *fun);
     static size_t OverflowParametersSizeInBytes(const ir::Function *fun);
 
     base::Arena *const arena_;
@@ -230,6 +264,171 @@ private:
     std::vector<OperandAllocator::BorrowedRecord> borrowed_registers_;
     std::vector<ImmediateOperand *> calling_stack_adjust_;
 }; // class Arm64FunctionInstructionSelector
+
+void Arm64FunctionInstructionSelector::BuildNativeHandle() {
+    std::string buf;
+    LinkageSymbols::BuildNativeHandle(&buf, fun_->full_name()->ToSlice());
+    bundle_ = new (arena_) InstructionFunction(arena_, String::New(arena_, buf));
+    current_block_ = bundle()->NewBlock(labels_->NextLable());
+    auto sp = operands_.registers()->stack_pointer();
+    auto fp = operands_.registers()->frame_pointer();
+    auto lr = new (arena_) RegisterOperand(arm64::lr.code(), MachineRepresentation::kWord64);
+    SetUpHandleFrame(sp, fp, lr);
+    CallOriginalFun();
+    TearDownHandleFrame(sp, fp, lr);
+}
+
+void Arm64FunctionInstructionSelector::SetUpHandleFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr) {
+    auto stack_size = RoundUp(ReturningValSizeInBytes(fun_->prototype()) + ParametersSizeInBytes(fun_),
+                              kStackConf->stack_alignment_size());
+
+    stack_total_size_ = ImmediateOperand::Word32(arena_, stack_size + 96);
+    // sub sp, sp, stack-total-size
+    current()->NewIO(Arm64Sub, sp, sp, stack_total_size_);
+    stack_sp_fp_location_ = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::sp.code(), -1, stack_size + 80);
+    // stp sp, lr, [sp, location]
+    current()->NewIO(Arm64Stp, stack_sp_fp_location_, fp, lr);
+
+    int offset = stack_sp_fp_location_->k();
+    for (int i = 19; i < 29; i += 2) {
+        offset -= kPointerSize * 2;
+        auto slot = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::sp.code(), -1, offset);
+        auto p0 = new (arena_) RegisterOperand(i, MachineRepresentation::kWord64);
+        auto p1 = new (arena_) RegisterOperand(i + 1, MachineRepresentation::kWord64);
+        current()->NewIO(Arm64Stp, slot, p0, p1);
+    }
+    // add fp, sp, stack-used-size
+    stack_used_size_ = ImmediateOperand::Word32(arena_, stack_size);
+    current()->NewIO(Arm64Add, fp, sp, stack_used_size_);
+}
+
+void Arm64FunctionInstructionSelector::TearDownHandleFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr) {
+    auto x0 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[0], MachineRepresentation::kWord64);
+    auto x1 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[1], MachineRepresentation::kWord64);
+    auto x2 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[2], MachineRepresentation::kWord64);
+    auto returning_vals_size = ImmediateOperand::Word32(arena_, RoundUp(ReturningValSizeInBytes(fun_->prototype()),
+                                                                        kStackConf->stack_alignment_size()));
+    
+    if (returning_vals_size->word32() > 0) {
+        current()->NewIO(Arm64Mov, x0, returning_vals_size);
+        // bl reserve_handle_returning_vals -> x0: address
+        current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_reserve_handle_returning_vals));
+        current()->NewIO(Arm64Mov, x1, sp); // mov x1, sp
+        current()->NewIO(Arm64Mov, x2, returning_vals_size); // mov x2, #returning_vals_size
+        current()->NewI(ArchCall, bundle()->AddExternalSymbol(kLibc_memcpy)); // bl memcpy(x0, x1, x2)
+    }
+    
+    int offset = stack_sp_fp_location_->k();
+    for (int i = 19; i < 29; i += 2) {
+        offset -= kPointerSize * 2;
+        auto slot = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::sp.code(), -1, offset);
+        auto p0 = new (arena_) RegisterOperand(i, MachineRepresentation::kWord64);
+        auto p1 = new (arena_) RegisterOperand(i + 1, MachineRepresentation::kWord64);
+        current()->NewIO2(Arm64Ldp, p0, p1, slot);
+    }
+    current()->NewIO2(Arm64Ldp, fp, lr, stack_sp_fp_location_);
+    current()->NewIO(Arm64Add, sp, sp, stack_total_size_); // sub sp, sp, stack-total-size
+    current()->New(ArchRet);
+}
+
+void Arm64FunctionInstructionSelector::CallOriginalFun() {
+    std::vector<std::tuple<InstructionOperand *, InstructionOperand *, ir::Value *>> args;
+    
+    int general_index = 0, float_index = 0;
+    for (auto param : fun_->paramaters()) {
+        auto slot = operands_.AllocateStackSlot(param->type(), StackSlotAllocator::kLinear);
+        RegisterOperand *src = nullptr;
+        auto rep = ToMachineRepresentation(param->type());
+        if (param->type().IsFloating()) {
+            src = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[general_index++], rep);
+        } else {
+            src = new (arena_) RegisterOperand(kFloatArgumentsRegisters[float_index++], rep);
+        }
+        Move(slot, src, param->type());
+        args.push_back(std::make_tuple(slot, src, param));
+    }
+    auto rel = bundle()->AddExternalSymbol(kRt_current_root);
+    current()->NewI(ArchCall, rel); // bl _current_root
+    auto x0 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[0], MachineRepresentation::kWord64);
+    auto root = new (arena_) RegisterOperand(kRootRegister, MachineRepresentation::kWord64);
+    current()->NewIO(Arm64Mov, root, x0);
+    
+    for (auto [bak, origin, param] : args) {
+        Move(origin, bak, param->type());
+        operands_.Free(bak);
+    }
+
+    auto sym = symbols_->Mangle(fun_->full_name());
+    rel = new (arena_) ReloactionOperand(sym, nullptr);
+    current()->NewI(ArchCall, rel); // bl [original_fun]
+}
+
+void Arm64FunctionInstructionSelector::BuildNativeStub() {
+    bundle_ = new (arena_) InstructionFunction(arena_, symbols_->Mangle(fun_->full_name()));
+    current_block_ = bundle()->NewBlock(labels_->NextLable());
+    auto sp = operands_.registers()->stack_pointer();
+    auto fp = operands_.registers()->frame_pointer();
+    auto lr = new (arena_) RegisterOperand(arm64::lr.code(), MachineRepresentation::kWord64);
+    SetUpStubFrame(sp, fp, lr);
+    CallNativeStub();
+    TearDownStubFrame(sp, fp, lr);
+}
+
+void Arm64FunctionInstructionSelector::CallNativeStub() {
+    const String *native_stub_symbol = nullptr;
+    if (fun_->native_stub_name()) {
+        std::string buf("_");
+        buf.append(fun_->native_stub_name()->ToString());
+        native_stub_symbol = String::New(arena_, buf);
+    } else {
+        std::string buf;
+        LinkageSymbols::BuildNativeStub(&buf, fun_->full_name()->ToSlice());
+        native_stub_symbol = String::New(arena_, buf);
+    }
+    current()->NewI(ArchCall, bundle()->AddExternalSymbol(native_stub_symbol));
+}
+
+void Arm64FunctionInstructionSelector::SetUpStubFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr) {
+    stack_total_size_ = ImmediateOperand::Word32(arena_, kPointerSize * 2);
+    // sub sp, sp, stack-total-size
+    current()->NewIO(Arm64Sub, sp, sp, stack_total_size_);
+    stack_sp_fp_location_ = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::sp.code(), -1, kPointerSize * 2);
+    // stp sp, lr, [sp, location]
+    current()->NewIO(Arm64Stp, stack_sp_fp_location_, fp, lr);
+    
+    // add fp, sp, stack-used-size
+    stack_used_size_ = ImmediateOperand::Word32(arena_, 0);
+    current()->NewIO(Arm64Add, fp, sp, stack_used_size_);
+}
+
+void Arm64FunctionInstructionSelector::TearDownStubFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr) {
+    const auto returning_vals_size = RoundUp(ReturningValSizeInBytes(fun_->prototype()),
+                                             kStackConf->stack_alignment_size());
+    auto x0 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[0], MachineRepresentation::kWord64);
+    auto x1 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[1], MachineRepresentation::kWord64);
+    auto x2 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[2], MachineRepresentation::kWord64);
+    auto root = new (arena_) RegisterOperand(kRootRegister, MachineRepresentation::kWord64);
+    
+    if (returning_vals_size > 0) {
+        // call reserve_handle_returning_vals: x0 -> returning_address
+        current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_reserve_handle_returning_vals));
+        current()->NewIO(Arm64Mov, x1, x0);
+        // fp - 16 - returning_vals_size
+        auto imm = ImmediateOperand::Word32(arena_, kPointerSize * 2);
+        assert(imm->word32() % kStackConf->stack_alignment_size() == 0);
+        current()->NewIO(Arm64Sub, x0, fp, imm); // x0 = fp - 16 - returning_vals_size
+        imm = ImmediateOperand::Word32(arena_, returning_vals_size);
+        current()->NewIO(Arm64Mov, x2, imm);
+        current()->NewI(ArchCall, bundle()->AddExternalSymbol(kLibc_memcpy));
+    }
+
+    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_current_root)); // x0 -> root
+    current()->NewIO(Arm64Mov, root, x0);
+
+    current()->NewIO2(Arm64Ldp, fp, lr, stack_sp_fp_location_);
+    current()->NewIO(Arm64Add, sp, sp, stack_total_size_); // sub sp, sp, stack-total-size
+    current()->New(ArchRet);
+}
 
 void Arm64FunctionInstructionSelector::Run() {
     auto blk = blocks_[fun_->entry()];
@@ -366,7 +565,9 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
                     UNREACHABLE();
                     break;
             }
-            // TODO:
+            if (!IsSuccessorConditionBr(instr)) {
+                BooleanValue(instr, Allocate(instr, kReg));
+            }
         } break;
             
         case ir::Operator::kFCmp: {
@@ -383,7 +584,9 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
                     UNREACHABLE();
                     break;
             }
-            // TODO:
+            if (!IsSuccessorConditionBr(instr)) {
+                BooleanValue(instr, Allocate(instr, kReg));
+            }
         } break;
             
         case ir::Operator::kAdd: {
@@ -428,7 +631,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             bundle()->AddExternalSymbol(fun->full_name()->ToSlice(), symbol);
             
             auto opd = Allocate(instr, kAny);
-            auto rel = new (arena_) ReloactionOperand(symbol, nullptr, true/*fetch_address*/);
+            auto rel = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
             Move(opd, rel, instr->type());
         } break;
             
@@ -521,9 +724,11 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     auto callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
     std::vector<ir::Value *> returning_vals;
     returning_vals.push_back(instr);
-    for (auto edge : instr->users()) {
-        if (edge.user->Is(ir::Operator::kReturningVal)) {
-            returning_vals.push_back(edge.user);
+    if (instr->users().size() > 0) {
+        for (auto edge : instr->users()) {
+            if (edge.user->Is(ir::Operator::kReturningVal)) {
+                returning_vals.push_back(edge.user);
+            }
         }
     }
     if (returning_vals.size() > 1) {
@@ -850,13 +1055,123 @@ void Arm64FunctionInstructionSelector::ConditionBr(ir::Value *instr) {
         current()->NewII(Arm64Cmp, cond_val, zero);
         current()->NewO(Arm64B_eq, output);
     }
-    
-//    current()->NewO(ArchJmp, label);
-//    current()->New(ArchNop);
-//    current()->AddSuccessor(if_false);
-//    current()->AddSuccessor(if_true);
-//    if_false->AddPredecessors(current());
-//    if_true->AddPredecessors(current());
+}
+
+void Arm64FunctionInstructionSelector::BooleanValue(ir::Value *instr, InstructionOperand *opd) {
+    auto false_val = new (arena_) RegisterOperand(arm64::xzr.code(), MachineRepresentation::kWord8);
+    auto true_val = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord8);
+    Move(true_val, ImmediateOperand::Word8(arena_, 1), instr->type());
+    ConditionSelect(instr, opd, true_val, false_val);
+}
+
+void Arm64FunctionInstructionSelector::ConditionSelect(ir::Value *instr, InstructionOperand *opd,
+                                                       InstructionOperand *true_val,
+                                                       InstructionOperand *false_val) {
+    assert(instr->Is(ir::Operator::kICmp) || instr->Is(ir::Operator::kFCmp));
+    if (instr->Is(ir::Operator::kICmp)) {
+        switch (ir::OperatorWith<ir::IConditionId>::Data(instr->op()).value) {
+            case ir::IConditionId::k_eq:
+                current()->NewIO(Arm64Select_eq, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_ne:
+                current()->NewIO(Arm64Select_ne, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_slt:
+                current()->NewIO(Arm64Select_lt, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_ult:
+                current()->NewIO(Arm64Select_ls, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_sle:
+                current()->NewIO(Arm64Select_le, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_ule:
+                current()->NewIO(Arm64Select_hi, opd, false_val, true_val);
+                break;
+            case ir::IConditionId::k_sgt:
+                current()->NewIO(Arm64Select_gt, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_ugt:
+                current()->NewIO(Arm64Select_hi, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_sge:
+                current()->NewIO(Arm64Select_ge, opd, true_val, false_val);
+                break;
+            case ir::IConditionId::k_uge:
+                current()->NewIO(Arm64Select_ge, opd, true_val, false_val);
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+    } else {
+        assert(instr->Is(ir::Operator::kFCmp));
+        auto unordered = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord8);
+        switch (ir::OperatorWith<ir::FConditionId>::Data(instr->op()).value) {
+                // oeq: yields true if both operands are not a QNAN and op1 is equal to op2.
+            case ir::FConditionId::k_oeq:
+                current()->NewIO(Arm64Select_eq, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_one:
+                current()->NewIO(Arm64Select_ne, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_olt:
+                current()->NewIO(Arm64Select_lt, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_ole:
+                current()->NewIO(Arm64Select_le, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_ogt:
+                current()->NewIO(Arm64Select_hi, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_oge:
+                current()->NewIO(Arm64Select_pl, opd, true_val, false_val);
+                break;
+                // ord: yields true if both operands are not a QNAN.
+            case ir::FConditionId::k_ord:
+                current()->NewIO(Arm64Select_vc, opd, true_val, false_val);
+                break;
+                // ueq: yields true if either operand is a QNAN or op1 is equal to op2.
+            case ir::FConditionId::k_ueq:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_eq, opd, true_val, unordered);
+                break;
+                // une: yields true if either operand is a QNAN or op1 is not equal to op2.
+            case ir::FConditionId::k_une:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_ne, opd, true_val, unordered);
+                break;
+            case ir::FConditionId::k_ult:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_lt, opd, true_val, unordered);
+                break;
+            case ir::FConditionId::k_ule:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_le, opd, true_val, unordered);
+                break;
+            case ir::FConditionId::k_ugt:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_hi, opd, true_val, unordered);
+                break;
+            case ir::FConditionId::k_uge:
+                current()->NewIO(Arm64Select_vs, unordered, true_val, false_val);
+                current()->NewIO(Arm64Select_pl, opd, true_val, unordered);
+                break;
+                // uno: yields true if either operand is a QNAN.
+            case ir::FConditionId::k_uno:
+                current()->NewIO(Arm64Select_vs, opd, true_val, false_val);
+                break;
+            case ir::FConditionId::k_never:
+                Move(opd, false_val, instr->type());
+                break;
+            case ir::FConditionId::k_always:
+                Move(opd, true_val, instr->type());
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+    }
 }
 
 InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value, Policy policy, uint32_t imm_bits) {
@@ -1331,6 +1646,15 @@ size_t Arm64FunctionInstructionSelector::ReturningValSizeInBytes(const ir::Proto
     return size_in_bytes;
 }
 
+size_t Arm64FunctionInstructionSelector::ParametersSizeInBytes(const ir::Function *fun) {
+    size_t size_in_bytes = 0;
+    for (auto param : fun->paramaters()) {
+        auto size = RoundUp(param->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
+        size_in_bytes += size;
+    }
+    return size_in_bytes;
+}
+
 size_t Arm64FunctionInstructionSelector::OverflowParametersSizeInBytes(const ir::Function *fun) {
     size_t size_in_bytes = 0;
     int float_count = kNumberOfFloatArgumentsRegisters;
@@ -1384,9 +1708,28 @@ void Arm64InstructionGenerator::Run() {
 void Arm64InstructionGenerator::GenerateFun(ir::StructureModel *owns, ir::Function *fun) {
     Arm64FunctionInstructionSelector selector(arena_, const_pool_, symbols_, lables_.get(), owns, fun,
                                               optimizing_level_ > 0 /*use_registers_allocation*/);
-    selector.Prepare();
-    selector.Run();
-    funs_[fun->full_name()->ToSlice()] = selector.bundle();
+    switch (fun->decoration()) {
+        case ir::Function::kDefault:
+            selector.Prepare();
+            selector.Run();
+            funs_[fun->full_name()->ToSlice()] = selector.bundle();
+            break;
+        case ir::Function::kNative:
+            selector.BuildNativeStub();
+            funs_[fun->full_name()->ToSlice()] = selector.bundle();
+            break;
+        case ir::Function::kAbstract:
+        default:
+            break;
+    }
+    
+    
+    if (fun->is_native_handle()) {
+        Arm64FunctionInstructionSelector builder(arena_, const_pool_, symbols_, lables_.get(), owns, fun,
+                                                 optimizing_level_ > 0 /*use_registers_allocation*/);
+        builder.BuildNativeHandle();
+        selector.bundle()->set_native_handle(builder.bundle());
+    }
 }
 
 void Arm64InstructionGenerator::PrepareGlobalValues() {

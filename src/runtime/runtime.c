@@ -196,11 +196,15 @@ int yalx_rt0(int argc, char *argv[]) {
     USE(argc);
     USE(argv);
     
-    if (yalx_magic_number1 != 1347046214) {
+    if (yalx_magic_number1 != YALX_MAGIC_NUMBER1) {
         die("bad magic number.");
         return -1;
     }
-    if (yalx_magic_number2 != 1465142347) {
+    if (yalx_magic_number2 != YALX_MAGIC_NUMBER2) {
+        die("bad magic number.");
+        return -1;
+    }
+    if (yalx_magic_number3 != YALX_MAGIC_NUMBER3) {
         die("bad magic number.");
         return -1;
     }
@@ -459,4 +463,30 @@ int pkg_has_initialized(const char *const plain_name) {
     hash_table_value_span_t span = yalx_get_string_key(&pkg_init_records, plain_name);
     pthread_mutex_unlock(&pkg_init_mutex);
     return span.value != NULL;
+}
+
+
+void *reserve_handle_returning_vals(u32_t size) {
+    assert(thread_local_mach != NULL);
+    thread_local_mach->returning_vals = realloc(thread_local_mach->returning_vals, size);
+    thread_local_mach->returning_vals_size = size;
+    return thread_local_mach->returning_vals;
+}
+
+
+struct coroutine *current_root() { return thread_local_mach->running; }
+
+
+//----------------------------------------------------------------------------------------------------------------------
+// native fun's stubs:
+//----------------------------------------------------------------------------------------------------------------------
+
+void yalx_Zplang_Zolang_Zdprintln_stub(struct yalx_value_str *const txt) {
+    assert(txt != NULL);
+    if (txt->hash_code == 634532469 || txt->hash_code == 1342438586 || txt->hash_code == 2593250737) {
+        static const char *quote = "<👍>";
+        fwrite(quote, 1, strlen(quote), stdout);
+    }
+    fwrite(txt->bytes, 1, txt->len, stdout);
+    fputc('\n', stdout);
 }

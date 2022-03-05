@@ -37,6 +37,10 @@ public:
     DISALLOW_ALL_CONSTRUCTORS(Constants);
 }; // class Constants
 
+constexpr static char kYalxName[] = "yalx";
+constexpr static char kAnnoCompilerName[] = "Compiler";
+constexpr static char kAnnoNativeHandleProperty[] = "nativeHandle";
+constexpr static char kAnnoNativeStubNameProperty[] = "nativeStubName";
 
 constexpr static char kLangPackageFullName[] = "yalx/lang:lang";
 constexpr static char kAnyClassName[] = "Any";

@@ -113,6 +113,22 @@ namespace backend {
     V(Arm64B_le)                              \
     V(Arm64B_gt)                              \
     V(Arm64B_ge)                              \
+    V(Arm64Select_cs)                         \
+    V(Arm64Select_cc)                         \
+    V(Arm64Select_mi)                         \
+    V(Arm64Select_pl)                         \
+    V(Arm64Select_vs)                         \
+    V(Arm64Select_vc)                         \
+    V(Arm64Select_hi)                         \
+    V(Arm64Select_ls)                         \
+    V(Arm64Select_al)                         \
+    V(Arm64Select_nv)                         \
+    V(Arm64Select_eq)                         \
+    V(Arm64Select_ne)                         \
+    V(Arm64Select_lt)                         \
+    V(Arm64Select_le)                         \
+    V(Arm64Select_gt)                         \
+    V(Arm64Select_ge)                         \
     V(Arm64Float32Cmp)                        \
     V(Arm64Float32Add)                        \
     V(Arm64Float32Sub)                        \
@@ -172,6 +188,22 @@ namespace backend {
     V(Arm64Float64InsertHighWord32)           \
     V(Arm64Float64MoveU64)                    \
     V(Arm64U64MoveFloat64)                    \
+    V(Arm64FloatSelect_cs)                    \
+    V(Arm64FloatSelect_cc)                    \
+    V(Arm64FloatSelect_mi)                    \
+    V(Arm64FloatSelect_pl)                    \
+    V(Arm64FloatSelect_vs)                    \
+    V(Arm64FloatSelect_vc)                    \
+    V(Arm64FloatSelect_hi)                    \
+    V(Arm64FloatSelect_ls)                    \
+    V(Arm64FloatSelect_al)                    \
+    V(Arm64FloatSelect_nv)                    \
+    V(Arm64FloatSelect_eq)                    \
+    V(Arm64FloatSelect_ne)                    \
+    V(Arm64FloatSelect_lt)                    \
+    V(Arm64FloatSelect_le)                    \
+    V(Arm64FloatSelect_gt)                    \
+    V(Arm64FloatSelect_ge)                    \
     V(Arm64LdrS)                              \
     V(Arm64StrS)                              \
     V(Arm64LdrD)                              \

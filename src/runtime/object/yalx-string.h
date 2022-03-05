@@ -11,7 +11,7 @@ extern "C" {
 #define IN_POOL_STR_LEN 64
 
 // Global heap
-struct heap;
+extern struct heap;
 
 struct yalx_value_str {
     YALX_VALUE_HEADER;

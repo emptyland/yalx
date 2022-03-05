@@ -7,7 +7,7 @@ namespace backend {
 #define DECLARE_STATIC_STRING(name, literal) \
 static StaticString<sizeof(literal)> name##_stub { \
     0, \
-    sizeof(literal), \
+    sizeof(literal) - 1, \
     literal, \
 }; \
 const String *const name = reinterpret_cast<const String *>(&name##_stub)
@@ -16,6 +16,8 @@ DECLARE_STATIC_STRING(kLibc_memcpy, "_memcpy");
 DECLARE_STATIC_STRING(kLibc_memset, "_memset");
 
 DECLARE_STATIC_STRING(kRt_pkg_init_once, "_pkg_init_once");
+DECLARE_STATIC_STRING(kRt_reserve_handle_returning_vals, "_reserve_handle_returning_vals");
+DECLARE_STATIC_STRING(kRt_current_root, "_current_root");
 
 LinkageSymbols::LinkageSymbols(base::Arena *arena)
 : arena_(arena)

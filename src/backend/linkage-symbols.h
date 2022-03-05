@@ -11,12 +11,25 @@ using String = base::ArenaString;
 
 class LinkageSymbols final {
 public:
+    enum Kind {
+        kOriginal,
+        kNativeHandle,
+    };
+
     LinkageSymbols(base::Arena *arena);
     
     const String *Mangle(const String *name)  { return Mangle(name->ToSlice()); }
     const String *Mangle(const char *z, size_t n) { return Mangle(std::string_view(z, n)); }
     const String *Mangle(std::string_view name);
     
+    static void BuildNativeStub(std::string *buf, std::string_view name) {
+        Build(buf, name);
+        buf->append("_stub");
+    }
+    static void BuildNativeHandle(std::string *buf, std::string_view name) {
+        Build(buf, name);
+        buf->append("_had");
+    }
     static void Build(std::string *buf, std::string_view name);
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(LinkageSymbols);
@@ -37,6 +50,8 @@ extern const String *const kLibc_memcpy;
 extern const String *const kLibc_memset;
 
 extern const String *const kRt_pkg_init_once;
+extern const String *const kRt_reserve_handle_returning_vals;
+extern const String *const kRt_current_root;
 
 } // namespace backend
 } // namespace yalx

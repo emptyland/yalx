@@ -439,8 +439,8 @@ void X64CodeGenerator::EmitAll() {
     
     std::set<std::string_view> external_symbols;
     for (auto [name, fun] : funs_) {
-        for (auto [raw, symbol] : fun->external_symbols()) {
-            external_symbols.insert(symbol->ToSlice());
+        for (auto [symbol, rel] : fun->external_symbols()) {
+            external_symbols.insert(symbol);
         }
     }
     

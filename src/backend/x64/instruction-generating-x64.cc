@@ -420,10 +420,9 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
         case ir::Operator::kLoadFunAddr: {
             auto fun = ir::OperatorWith<const ir::Function *>::Data(val->op());
             auto symbol = symbols_->Mangle(fun->full_name());
-            bundle()->AddExternalSymbol(fun->full_name()->ToSlice(), symbol);
-            
+            auto rel = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
             auto opd = Allocate(val, kAny);
-            auto rel = new (arena_) ReloactionOperand(symbol, nullptr);
+
             Move(opd, rel, val->type());
         } break;
             
@@ -653,7 +652,8 @@ InstructionOperand *X64FunctionInstructionSelector::CopyArgumentValue(Instructio
     auto to = operands_.AllocateStackSlot(OperandAllocator::kVal, ty.ReferenceSizeInBytes(),
                                           StackSlotAllocator::kFit);
     if (ty.ReferenceSizeInBytes() > 64) {
-        bundle_->AddExternalSymbol("memcpy", kLibc_memcpy);
+        auto rel = bundle_->AddExternalSymbol(kLibc_memcpy);
+        USE(rel);
         
         // TODO: use memcpy
         UNREACHABLE();

@@ -69,6 +69,9 @@ public:
         kOverride,
     };
     
+    constexpr static const uint32_t kNeverReturnBit = 1u;
+    constexpr static const uint32_t kNativeHandleBit = 1u << 1;
+    
     BasicBlock *NewBlock(const String *name);
     
     DEF_PTR_GETTER(const String, name);
@@ -78,8 +81,17 @@ public:
     DEF_PTR_GETTER(BasicBlock, entry);
     DEF_PTR_GETTER(PrototypeModel, prototype);
     DEF_VAL_GETTER(Decoration, decoration);
+    DEF_PTR_PROP_RW(const String, native_stub_name);
     DEF_ARENA_VECTOR_GETTER(Value *, paramater);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
+    
+    bool is_never_return() const { return properties_ & kNeverReturnBit; }
+    bool is_native_handle() const { return properties_ & kNativeHandleBit; }
+    
+    void SetPropertiesBits(uint32_t bits) {
+        properties_ &= ~bits;
+        properties_ |= bits;
+    }
     
     void MoveToLast(BasicBlock *blk) {
         if (auto iter = std::find(blocks_.begin(), blocks_.end(), blk); iter != blocks_.end()) {
@@ -113,6 +125,8 @@ private:
     base::Arena *const arena_;
     PrototypeModel *const prototype_;
     Decoration const decoration_;
+    uint32_t properties_ = 0;
+    const String *native_stub_name_ = nullptr;
     BasicBlock *entry_ = nullptr;
     base::ArenaVector<Value *> paramaters_;
     base::ArenaVector<BasicBlock *> blocks_;
@@ -245,6 +259,11 @@ public:
     void RemovePhiUsersOfDeads();
     
     void AddInstruction(Value *value);
+    
+    int FindInstruction(Value *value) const {
+        auto it = std::find(instructions_.begin(), instructions_.end(), value);
+        return it == instructions_.end() ? -1 : it - instructions_.begin();
+    }
     
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
     friend class Function;
@@ -402,6 +421,8 @@ public:
         };
         
         Users(Value *owns);
+        
+        uint32_t size() const { return users_size_; }
         
         iterator begin() { return iterator{this, 0, nullptr}; }
         iterator end() { return iterator{this, last_index(), last_node()}; }

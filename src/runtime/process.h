@@ -83,6 +83,8 @@ struct machine {
     struct stack_pool stack_pool;
     struct coroutine waitting_head;
     struct coroutine parking_head;
+    address_t returning_vals;
+    u32_t     returning_vals_size;
     // TODO:
 }; // struct machine
 
