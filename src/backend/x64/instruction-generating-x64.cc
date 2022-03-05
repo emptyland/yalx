@@ -594,13 +594,13 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
     auto current_stack_size = operands_.slots()->stack_size();
     for (auto rv : returning_vals) {
         if (rv->type().kind() != ir::Type::kVoid) {
-            operands_.AllocateStackSlot(rv, StackSlotAllocator::kLinear);
+            operands_.AllocateStackSlot(rv, 0/*padding_size*/, StackSlotAllocator::kLinear);
         }
     }
     
     if (overflow_args_size > 0) {
         for (auto arg : overflow_args) {
-            auto opd = operands_.AllocateStackSlot(arg->type(), StackSlotAllocator::kLinear);
+            auto opd = operands_.AllocateStackSlot(arg->type(), 0/*padding_size*/, StackSlotAllocator::kLinear);
             tmps_.push_back(opd);
             Move(opd, Allocate(arg, kAny), arg->type());
         }
@@ -650,7 +650,7 @@ InstructionOperand *X64FunctionInstructionSelector::CopyArgumentValue(Instructio
     assert(!ty.IsPointer());
     
     auto to = operands_.AllocateStackSlot(OperandAllocator::kVal, ty.ReferenceSizeInBytes(),
-                                          StackSlotAllocator::kFit);
+                                          0/*padding_size*/, StackSlotAllocator::kFit);
     if (ty.ReferenceSizeInBytes() > 64) {
         auto rel = bundle_->AddExternalSymbol(kLibc_memcpy);
         USE(rel);

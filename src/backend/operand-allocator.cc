@@ -72,7 +72,7 @@ void OperandAllocator::Prepare(ir::Function *fun) {
 InstructionOperand *OperandAllocator::Allocate(ir::Value *value) {
     switch (policy_) {
         case kStackOnly:
-            return AllocateStackSlot(value, StackSlotAllocator::kFit);
+            return AllocateStackSlot(value, 0/*padding_size*/,  StackSlotAllocator::kFit);
             
         case kRegisterFirst:
             return TryAllocateRegisterFirst(value);
@@ -110,17 +110,17 @@ InstructionOperand *OperandAllocator::Allocate(ir::Type ty) {
 
 InstructionOperand *OperandAllocator::Allocate(OperandMark mark, size_t size, ir::Model *model) {
     if (policy_ == kStackOnly) {
-        return AllocateStackSlot(mark, size, StackSlotAllocator::kFit, model);
+        return AllocateStackSlot(mark, size, 0/*padding_size*/, StackSlotAllocator::kFit, model);
     }
     switch (mark) {
         case kVal: {
             if (size > 8 || model) {
-                return AllocateStackSlot(mark, size, StackSlotAllocator::kFit, model);
+                return AllocateStackSlot(mark, size, 0/*padding_size*/, StackSlotAllocator::kFit, model);
             }
             if (auto opd = AllocateReigster(mark, size)) {
                 return opd;
             }
-            return AllocateStackSlot(mark, size, StackSlotAllocator::kFit, model);
+            return AllocateStackSlot(mark, size, 0/*padding_size*/, StackSlotAllocator::kFit, model);
         } break;
         case kPtr:
         case kF32:
@@ -129,7 +129,7 @@ InstructionOperand *OperandAllocator::Allocate(OperandMark mark, size_t size, ir
             if (auto opd = AllocateReigster(mark, size)) {
                 return opd;
             }
-            return AllocateStackSlot(mark, size, StackSlotAllocator::kFit, model);
+            return AllocateStackSlot(mark, size, 0/*padding_size*/, StackSlotAllocator::kFit, model);
         } break;
         default:
             UNREACHABLE();
@@ -139,69 +139,76 @@ InstructionOperand *OperandAllocator::Allocate(OperandMark mark, size_t size, ir
 
 InstructionOperand *OperandAllocator::TryAllocateRegisterFirst(ir::Value *value) {
     if (value->type().kind() == ir::Type::kValue && !value->type().IsPointer()) {
-        return AllocateStackSlot(value, StackSlotAllocator::kFit);
+        return AllocateStackSlot(value, 0/*padding_size*/, StackSlotAllocator::kFit);
     }
     if (auto opd = AllocateReigster(value)) {
         return opd;
     }
-    return AllocateStackSlot(value, StackSlotAllocator::kFit);
+    return AllocateStackSlot(value, 0/*padding_size*/, StackSlotAllocator::kFit);
 }
 
-LocationOperand *OperandAllocator::AllocateStackSlot(ir::Value *value, StackSlotAllocator::Policy policy) {
+LocationOperand *OperandAllocator::AllocateStackSlot(ir::Value *value, size_t padding_size,
+                                                     StackSlotAllocator::Policy policy) {
     LocationOperand *slot = nullptr;
     switch (value->type().kind()) {
         case ir::Type::kValue:
             if (value->type().IsPointer()) {
-                slot = AllocateStackSlot(kPtr, kPointerSize, policy);
+                slot = AllocateStackSlot(kPtr, kPointerSize, padding_size, policy);
             } else {
-                slot = AllocateStackSlot(kVal, value->type().model()->PlacementSizeInBytes(), policy,
+                slot = AllocateStackSlot(kVal, value->type().model()->PlacementSizeInBytes(),
+                                         padding_size,
+                                         policy,
                                          value->type().model());
             }
             break;
         case ir::Type::kString:
         case ir::Type::kReference:
-            slot = AllocateStackSlot(kRef, kPointerSize, policy);
+            slot = AllocateStackSlot(kRef, kPointerSize, padding_size, policy);
             break;
         default:
-            slot = AllocateStackSlot(kVal, value->type().bytes(), policy);
+            slot = AllocateStackSlot(kVal, value->type().bytes(), padding_size, policy);
             break;
     }
     allocated_[value] = slot;
     return slot;
 }
 
-LocationOperand *OperandAllocator::AllocateStackSlot(ir::Type ty, StackSlotAllocator::Policy policy) {
+LocationOperand *OperandAllocator::AllocateStackSlot(ir::Type ty, size_t padding_size,
+                                                     StackSlotAllocator::Policy policy) {
     LocationOperand *slot = nullptr;
     switch (ty.kind()) {
         case ir::Type::kValue:
             if (ty.IsPointer()) {
-                slot = AllocateStackSlot(kPtr, kPointerSize, policy);
+                slot = AllocateStackSlot(kPtr, kPointerSize, padding_size, policy);
             } else {
-                slot = AllocateStackSlot(kVal, ty.model()->PlacementSizeInBytes(), policy, ty.model());
+                slot = AllocateStackSlot(kVal, ty.model()->PlacementSizeInBytes(), padding_size, policy, ty.model());
             }
             break;
         case ir::Type::kString:
         case ir::Type::kReference:
-            slot = AllocateStackSlot(kRef, kPointerSize, policy);
+            slot = AllocateStackSlot(kRef, kPointerSize, padding_size, policy);
             break;
         default:
-            slot = AllocateStackSlot(kVal, ty.bytes(), policy);
+            slot = AllocateStackSlot(kVal, ty.bytes(), padding_size, policy);
             break;
     }
     return slot;
 }
 
-LocationOperand *OperandAllocator::AllocateStackSlot(OperandMark mark, size_t size, StackSlotAllocator::Policy policy,
+LocationOperand *OperandAllocator::AllocateStackSlot(OperandMark mark,
+                                                     size_t size,
+                                                     size_t padding_size,
+                                                     StackSlotAllocator::Policy policy,
                                                      ir::Model *model) {
     switch (mark) {
         case kPtr:
-            return slots_.AllocateValSlot(kPointerSize, policy, model);
+            return slots_.AllocateValSlot(kPointerSize, padding_size, policy, model);
         case kVal:
         case kF32:
         case kF64:
-            return slots_.AllocateValSlot(size, policy, model);
+            return slots_.AllocateValSlot(size, padding_size, policy, model);
         case kRef:
-            return slots_.AllocateRefSlot(policy);
+            return slots_.AllocateRefSlot(padding_size, policy);
         default:
             UNREACHABLE();
             break;
@@ -470,7 +477,8 @@ void RegisterSavingScope::SaveAll() {
 //            moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
 //        }
         //moving_delegate_->MoveTo(bak, rd.opd, rd.val);
-        auto bak = allocator_->AllocateStackSlot(DCHECK_NOTNULL(rd.val)->type(), StackSlotAllocator::kFit);
+        auto bak = allocator_->AllocateStackSlot(DCHECK_NOTNULL(rd.val)->type(), 0/*padding_size*/,
+                                                 StackSlotAllocator::kFit);
         moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
         backup_.push_back({rd.val, bak, rd.opd});
     }
@@ -480,7 +488,7 @@ void RegisterSavingScope::SaveAll() {
         }
         
         //if (allocator_->WillBeLive(rd.val, position_ + 1)) {
-        auto bak = allocator_->AllocateStackSlot(rd.val->type(), StackSlotAllocator::kFit);
+        auto bak = allocator_->AllocateStackSlot(rd.val->type(), 0/*padding_size*/, StackSlotAllocator::kFit);
         moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
         backup_.push_back({rd.val, bak, rd.opd});
         //}

@@ -29,7 +29,7 @@ TEST_F(OperandAllocatorTest, Sanity) {
 }
 
 TEST_F(OperandAllocatorTest, Allocation) {
-    auto opd = operands_.AllocateStackSlot(OperandAllocator::kVal, 4, StackSlotAllocator::kFit);
+    auto opd = operands_.AllocateStackSlot(OperandAllocator::kVal, 4, 0, StackSlotAllocator::kFit);
     ASSERT_TRUE(opd->IsLocation());
     ASSERT_EQ(Arm64Mode_MRI, opd->AsLocation()->mode());
     ASSERT_EQ(29, opd->AsLocation()->register0_id());

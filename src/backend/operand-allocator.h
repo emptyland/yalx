@@ -48,9 +48,11 @@ public:
     InstructionOperand *Allocate(ir::Type ty);
     InstructionOperand *Allocate(OperandMark mark, size_t size, ir::Model *model = nullptr);
     
-    LocationOperand *AllocateStackSlot(ir::Value *value, StackSlotAllocator::Policy policy);
-    LocationOperand *AllocateStackSlot(ir::Type ty, StackSlotAllocator::Policy policy);
-    LocationOperand *AllocateStackSlot(OperandMark mark, size_t size,
+    LocationOperand *AllocateStackSlot(ir::Value *value, size_t padding_size, StackSlotAllocator::Policy policy);
+    LocationOperand *AllocateStackSlot(ir::Type ty, size_t padding_size, StackSlotAllocator::Policy policy);
+    LocationOperand *AllocateStackSlot(OperandMark mark,
+                                       size_t size,
+                                       size_t padding_size,
                                        StackSlotAllocator::Policy policy,
                                        ir::Model *model = nullptr);
     

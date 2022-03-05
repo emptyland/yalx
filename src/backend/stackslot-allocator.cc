@@ -27,31 +27,37 @@ StackSlotAllocator::StackSlotAllocator(const StackConfiguration *conf, base::Are
     MarkUsed(0, conf_->saved_size());
 }
 
-LocationOperand *StackSlotAllocator::AllocateValSlot(size_t size, Policy policy, ir::Model *model) {
-    return Allocate(size, false/*is_ref*/, policy, model);
+LocationOperand *StackSlotAllocator::AllocateValSlot(size_t size, size_t padding_size, Policy policy, ir::Model *model) {
+    return Allocate(padding_size, size, false/*is_ref*/, policy, model);
 }
 
-LocationOperand *StackSlotAllocator::AllocateRefSlot(Policy policy) {
-    return Allocate(kPointerSize, true/*is_ref*/, policy, nullptr/*model*/);
+LocationOperand *StackSlotAllocator::AllocateRefSlot(size_t padding_size, Policy policy) {
+    return Allocate(padding_size, kPointerSize, true/*is_ref*/, policy, nullptr/*model*/);
 }
 
-LocationOperand *StackSlotAllocator::Allocate(size_t size, bool is_ref, Policy policy, ir::Model *model) {
+LocationOperand *StackSlotAllocator::Allocate(size_t padding_size, size_t size, bool is_ref, Policy policy,
+                                              ir::Model *model) {
     StackSlot slot;
-    slot.size    = RoundUp(size, conf_->slot_alignment_size());
-    slot.is_ref  = is_ref;
-    slot.model   = model;
+    assert(size < (1u << 17));
+    assert(padding_size < (1u << 5));
+    slot.size = RoundUp(size + padding_size, conf_->slot_alignment_size());
+    slot.padding_size = padding_size;
+    slot.is_ref = is_ref;
+    slot.model = model;
     
     int offset = 0;
     auto fit = (policy == kFit) ? FindFirstFitSpace(&offset, slot.size) : false;
     if (!fit) {
         offset = stack_size_;
     }
-    slot.operand = new (arena_) LocationOperand(conf_->addressing_mode(), conf_->id_of_fp(), -1, -offset - slot.size);
+    slot.operand = new (arena_) LocationOperand(conf_->addressing_mode(), conf_->id_of_fp(), -1,
+                                                -offset - slot.size);
     if (!fit) {
         UpdateStackSize(slot.size);
     }
     InsertSlot(slot);
-    MarkUsed(-slot.operand->k() - slot.size, slot.size);
+    //MarkUsed(-slot.operand->k() - slot.size, slot.size);
+    MarkUsed(offset, slot.size);
     return slot.operand;
 }
 

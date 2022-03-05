@@ -43,7 +43,8 @@ private:
 
 struct StackSlot {
     LocationOperand *operand;
-    int size: 30;
+    int size: 26;
+    int padding_size: 4;
     int is_ref: 2;
     ir::Model *model;
 };
@@ -60,14 +61,14 @@ public:
     DEF_VAL_GETTER(uint32_t, max_stack_size);
     DEF_VAL_GETTER(uint32_t, stack_size);
     
-    LocationOperand *AllocateValSlot(size_t size, Policy policy = kFit, ir::Model *model = nullptr);
-    LocationOperand *AllocateRefSlot(Policy policy = kFit);
+    LocationOperand *AllocateValSlot(size_t size, size_t padding_size, Policy policy = kFit, ir::Model *model = nullptr);
+    LocationOperand *AllocateRefSlot(size_t padding_size, Policy policy = kFit);
 
     void FreeSlot(LocationOperand *operand);
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(StackSlotAllocator);
 private:
-    LocationOperand *Allocate(size_t size, bool is_ref, Policy policy, ir::Model *model);
+    LocationOperand *Allocate(size_t padding_size, size_t size, bool is_ref, Policy policy, ir::Model *model);
     // int LatestOffset() const;
     
     void InsertSlot(const StackSlot &slot);

@@ -48,9 +48,7 @@ static const char *RegisterName(MachineRepresentation rep, int id) {
         case MachineRepresentation::kWord8:
         case MachineRepresentation::kWord16:
         case MachineRepresentation::kWord32:
-            if (id == 27) {
-                return "cp";
-            } else if (id == 29) {
+            if (id == 29) {
                 return "fp";
             } else if (id == 30) {
                 return "lr";
@@ -59,9 +57,7 @@ static const char *RegisterName(MachineRepresentation rep, int id) {
             }
             return kRegisterWord32Names[id];
         case MachineRepresentation::kWord64:
-            if (id == 27) {
-                return "cp";
-            } else if (id == 29) {
+            if (id == 29) {
                 return "fp";
             } else if (id == 30) {
                 return "lr";
@@ -113,6 +109,7 @@ private:
     void EmitOperands(InstructionOperand *opd0, InstructionOperand *opd1, RelocationStyle style = kDefault);
     void EmitOperands(InstructionOperand *opd0, InstructionOperand *opd1, InstructionOperand *opd2,
                       RelocationStyle style = kDefault);
+    void EmitOperands(InstructionOperand *opd0, InstructionOperand *opd1, InstructionOperand *opd2, const char *cond);
     
     base::PrintingWriter *Incoming() { return printer()->Indent(1); }
     base::PrintingWriter *printer() { return owns_->printer_; }
@@ -254,83 +251,83 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             break;
             
         case Arm64Select_al:
-            printer()->Write("csel.al ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "AL");
             break;
             
         case Arm64Select_cc:
-            printer()->Write("csel.cc ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "CC");
             break;
             
         case Arm64Select_cs:
-            printer()->Write("csel.cs ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "CS");
             break;
             
         case Arm64Select_eq:
-            printer()->Write("csel.eq ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "EQ");
             break;
             
         case Arm64Select_ge:
-            printer()->Write("csel.ge ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "GE");
             break;
             
         case Arm64Select_gt:
-            printer()->Write("csel.gt ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "GT");
             break;
             
         case Arm64Select_hi:
-            printer()->Write("csel.hi ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "HI");
             break;
             
         case Arm64Select_le:
-            printer()->Write("csel.le ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "LE");
             break;
             
         case Arm64Select_ls:
-            printer()->Write("csel.ls ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "LS");
             break;
             
         case Arm64Select_lt:
-            printer()->Write("csel.lt ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "LT");
             break;
             
         case Arm64Select_vs:
-            printer()->Write("csel.vs ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "VS");
             break;
             
         case Arm64Select_mi:
-            printer()->Write("csel.mi ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "MI");
             break;
             
         case Arm64Select_ne:
-            printer()->Write("csel.ne ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "NE");
             break;
             
         case Arm64Select_nv:
-            printer()->Write("csel.nv ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "NV");
             break;
             
         case Arm64Select_pl:
-            printer()->Write("csel.pl ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "PL");
             break;
             
         case Arm64Select_vc:
-            printer()->Write("csel.vc ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            printer()->Write("csel ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "VC");
             break;
 
         case Arm64Ldr:
@@ -467,6 +464,16 @@ void Arm64CodeGenerator::FunctionGenerator::EmitOperands(InstructionOperand *opd
 }
 
 void Arm64CodeGenerator::FunctionGenerator::EmitOperands(InstructionOperand *opd0, InstructionOperand *opd1,
+                                                         InstructionOperand *opd2, const char *cond) {
+    EmitOperand(opd0, kDefault);
+    printer()->Write(", ");
+    EmitOperand(opd1, kDefault);
+    printer()->Write(", ");
+    EmitOperand(opd2, kDefault);
+    printer()->Println(", %s", cond);
+}
+
+void Arm64CodeGenerator::FunctionGenerator::EmitOperands(InstructionOperand *opd0, InstructionOperand *opd1,
                                                          RelocationStyle style) {
     EmitOperand(opd0, style);
     printer()->Write(", ");
@@ -580,10 +587,8 @@ Arm64CodeGenerator::Arm64CodeGenerator(const base::ArenaMap<std::string_view, In
 void Arm64CodeGenerator::EmitAll() {
     printer_->Writeln(".section __TEXT,__text,regular,pure_instructions");
 #ifdef YALX_OS_DARWIN
-    printer_->Writeln(".build_version macos, 12, 0 sdk_version 12, 1");
+    printer_->Writeln(".build_version macos, 11, 3 sdk_version 12, 1");
 #endif // YALX_OS_DARWIN
-    printer_->Writeln("; libc symbols:");
-    printer_->Writeln(".global _memcpy,_memset");
     
     for (size_t i = 0; i < module_->source_position_table().file_names_size(); i++) {
         auto file_name = module_->source_position_table().file_name(i);
@@ -603,7 +608,7 @@ void Arm64CodeGenerator::EmitAll() {
         ->Write(" ")
         ->Write("\"")->Write(name)->Writeln("\"");
     }
-    
+#if 0
     std::set<std::string_view> external_symbols;
     for (auto [name, fun] : funs_) {
         for (auto [symbol, rel] : fun->external_symbols()) {
@@ -624,7 +629,7 @@ void Arm64CodeGenerator::EmitAll() {
         }
         printer_->Write("\n");
     }
-    
+#endif // #if 0
     printer_->Writeln(".p2align 2")->Write("\n")->Writeln("; functions");
     for (auto fun : module_->funs()) {
         auto iter = funs_.find(fun->full_name()->ToSlice());
@@ -670,8 +675,8 @@ void Arm64CodeGenerator::EmitAll() {
     
     if (!const_pool_->numbers().empty()) {
         printer_->Writeln("; Number constants");
-        printer_->Writeln(".section __TEXT,__literal8,8byte_literals");
-        printer_->Writeln(".p2align 4");
+        printer_->Writeln(".section __TEXT,__const");
+        printer_->Writeln(".p2align 2");
         
         // "Knnn.%zd"
         for (const auto &[slot, id] : const_pool_->numbers()) {
@@ -716,6 +721,7 @@ void Arm64CodeGenerator::EmitAll() {
         printer_->Println(".global %s_Lksz", symbol->data());
         printer_->Println("%s_Lksz:", symbol->data());
         printer_->Indent(1)->Println(".long %zd", const_pool_->string_pool().size());
+        printer_->Indent(1)->Writeln(".long 0 ; padding for struct lksz_header");
         for (size_t i = 0; i < const_pool_->string_pool().size(); i++) {
             printer_->Indent(1)->Println(".quad Lkzs.%zd", i);
         }
@@ -723,6 +729,7 @@ void Arm64CodeGenerator::EmitAll() {
         printer_->Println(".global %s_Kstr", symbol->data());
         printer_->Println("%s_Kstr:", symbol->data());
         printer_->Indent(1)->Println(".long %zd", const_pool_->string_pool().size());
+        printer_->Indent(1)->Writeln(".long 0 ; padding for struct kstr_header");
         for (size_t i = 0; i < const_pool_->string_pool().size(); i++) {
             printer_->Println("Kstr.%zd:", i);
             printer_->Indent(1)->Println(".quad 0", i);

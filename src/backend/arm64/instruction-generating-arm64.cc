@@ -336,7 +336,7 @@ void Arm64FunctionInstructionSelector::CallOriginalFun() {
     
     int general_index = 0, float_index = 0;
     for (auto param : fun_->paramaters()) {
-        auto slot = operands_.AllocateStackSlot(param->type(), StackSlotAllocator::kLinear);
+        auto slot = operands_.AllocateStackSlot(param->type(), 0/*padding_size*/, StackSlotAllocator::kLinear);
         RegisterOperand *src = nullptr;
         auto rep = ToMachineRepresentation(param->type());
         if (param->type().IsFloating()) {
@@ -479,7 +479,7 @@ void Arm64FunctionInstructionSelector::AssociateParameters(InstructionBlock *blo
             auto arg = operands_.AllocateReigster(param, kGeneralArgumentsRegisters[index]);
             assert(arg != nullptr);
             if (param->type().kind() == ir::Type::kValue && !param->type().IsPointer()) {
-                auto opd = operands_.AllocateStackSlot(param->type(), StackSlotAllocator::kLinear);
+                auto opd = operands_.AllocateStackSlot(param->type(), 0/*padding_size*/, StackSlotAllocator::kLinear);
                 Move(opd, arg, param->type());
                 operands_.Associate(param, opd);
             }
@@ -628,8 +628,6 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         case ir::Operator::kLoadFunAddr: {
             auto fun = ir::OperatorWith<const ir::Function *>::Data(instr->op());
             auto symbol = symbols_->Mangle(fun->full_name());
-            bundle()->AddExternalSymbol(fun->full_name()->ToSlice(), symbol);
-            
             auto opd = Allocate(instr, kAny);
             auto rel = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
             Move(opd, rel, instr->type());
@@ -795,15 +793,24 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     }
     
     auto current_stack_size = operands_.slots()->stack_size();
+    bool first = true;
     for (auto rv : returning_vals) {
-        if (rv->type().kind() != ir::Type::kVoid) {
-            operands_.AllocateStackSlot(rv, StackSlotAllocator::kLinear);
+    //for (auto i = 0; i < returning_vals.size(); i++) {
+        //auto rv = returning_vals[i];
+        if (rv->type().kind() == ir::Type::kVoid) {
+            continue;
         }
+        size_t padding_size = 0;
+        if (first) {
+            padding_size = RoundUp(current_stack_size, kStackConf->stack_alignment_size()) - current_stack_size;
+            first = false;
+        }
+        operands_.AllocateStackSlot(rv, padding_size, StackSlotAllocator::kLinear);
     }
     
     if (overflow_args_size > 0) {
         for (auto arg : overflow_args) {
-            auto opd = operands_.AllocateStackSlot(arg->type(), StackSlotAllocator::kLinear);
+            auto opd = operands_.AllocateStackSlot(arg->type(), 0/*padding_size*/, StackSlotAllocator::kLinear);
             tmps_.push_back(opd);
             Move(opd, Allocate(arg, kAny), arg->type());
         }

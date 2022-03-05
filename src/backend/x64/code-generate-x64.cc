@@ -490,7 +490,7 @@ void X64CodeGenerator::EmitAll() {
     
     if (!const_pool_->numbers().empty()) {
         printer_->Writeln("# Number constants");
-        printer_->Writeln(".section __TEXT,__literal8,8byte_literals");
+        printer_->Writeln(".section __TEXT,__const");
         printer_->Writeln(".p2align 4");
         
         // "Knnn.%zd"
@@ -536,6 +536,7 @@ void X64CodeGenerator::EmitAll() {
         printer_->Println(".global %s_Lksz", symbol->data());
         printer_->Println("%s_Lksz:", symbol->data());
         printer_->Indent(1)->Println(".long %zd", const_pool_->string_pool().size());
+        printer_->Indent(1)->Writeln(".long 0 # padding for struct lksz_header");
         for (size_t i = 0; i < const_pool_->string_pool().size(); i++) {
             printer_->Indent(1)->Println(".quad Lkzs.%zd", i);
         }
@@ -543,6 +544,7 @@ void X64CodeGenerator::EmitAll() {
         printer_->Println(".global %s_Kstr", symbol->data());
         printer_->Println("%s_Kstr:", symbol->data());
         printer_->Indent(1)->Println(".long %zd", const_pool_->string_pool().size());
+        printer_->Indent(1)->Writeln(".long 0 # padding for struct kstr_header");
         for (size_t i = 0; i < const_pool_->string_pool().size(); i++) {
             printer_->Println("Kstr.%zd:", i);
             printer_->Indent(1)->Println(".quad 0", i);

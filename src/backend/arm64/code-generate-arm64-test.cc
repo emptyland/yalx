@@ -8,6 +8,7 @@
 #include "base/io.h"
 #include "runtime/object/yalx-string.h"
 #include "runtime/heap/heap.h"
+#include "runtime/process.h"
 #include "runtime/runtime.h"
 #include <gtest/gtest.h>
 
@@ -60,6 +61,12 @@ void main_Zomain_Zdissue1();
 void main_Zomain_Zdissue5();
 void main_Zomain_Zdfoo();
 void main_Zomain_Zd_Z4init();
+void issue9_stub(i32_t a, yalx_value_str *s) {
+    printd("%d", a);
+    // TODO
+}
+void main_Zomain_Zdmain_had();
+void main_Zomain_Zdissue6_had(i32_t a, i32_t b);
 } // extern "C"
 
 #endif // YALX_ARCH_ARM64
@@ -87,6 +94,20 @@ TEST_F(Arm64CodeGeneratorTest, PkgInitOnce) {
 //    int buf[4] = {0};
 //    call_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zd_Z4init));
     pkg_init_once(reinterpret_cast<void *>(&main_Zomain_Zd_Z4init), "main:main");
+}
+
+// issue9_stub
+TEST_F(Arm64CodeGeneratorTest, CallNativeHandle) {
+    main_Zomain_Zdmain_had();
+    
+    
+    main_Zomain_Zdissue6_had(1,2);
+    auto vals = reinterpret_cast<int *>(thread_local_mach->returning_vals);
+    ASSERT_EQ(-1, vals[3]);
+    
+    main_Zomain_Zdissue6_had(2,1);
+    vals = reinterpret_cast<int *>(thread_local_mach->returning_vals);
+    ASSERT_EQ(4, vals[3]);
 }
 
 #endif // YALX_ARCH_ARM64
