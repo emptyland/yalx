@@ -102,9 +102,17 @@ void die(const char *fmt, ...);
 void dbg_class_output(const struct yalx_class *klass);
 
 struct yalx_returning_vals {
-    u32_t total_size;
+    struct yalx_returning_vals *prev;
+    address_t *fun_addr;
+    u16_t total_size;
+    u16_t allocated;
     u32_t offset;
+    address_t buf;
+    char inline_buf[16];
 };
+
+int yalx_enter_returning_scope(struct yalx_returning_vals *state, size_t reserved_size, address_t fun_addr);
+int yalx_exit_returning_scope(struct yalx_returning_vals *state);
 
 int yalx_return_i32(struct yalx_returning_vals *state, i32_t value);
 int yalx_return_u32(struct yalx_returning_vals *state, u32_t value);
@@ -130,6 +138,10 @@ void pkg_init_once(void *init_fun, const char *const plain_name);
 int pkg_initialized_count();
 int pkg_has_initialized(const char *const plain_name);
 
+void associate_stub_returning_vals(struct yalx_returning_vals *state,
+                                   address_t returning_addr,
+                                   size_t reserved_size,
+                                   address_t fun_addr);
 void *reserve_handle_returning_vals(u32_t size);
 
 struct coroutine *current_root();

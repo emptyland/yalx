@@ -27,6 +27,7 @@ MachineRepresentation ToMachineRepresentation(const ir::Type ty) {
         case ir::Type::kFloat64:
             return MachineRepresentation::kFloat64;
         case ir::Type::kReference:
+        case ir::Type::kString:
             return MachineRepresentation::kWord64;
         case ir::Type::kValue:
             return ty.IsPointer() ? MachineRepresentation::kWord64 : MachineRepresentation::kNone;

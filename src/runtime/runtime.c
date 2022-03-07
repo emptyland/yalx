@@ -392,6 +392,34 @@ int yalx_name_symbolize(const char *const plain_name, char symbol[], size_t size
     return (int)(p - symbol);
 }
 
+int yalx_enter_returning_scope(struct yalx_returning_vals *state, size_t reserved_size, address_t fun_addr) {
+    struct coroutine *co = CURRENT_COROUTINE;
+    assert(co->returning_vals != state);
+    state->prev = co->returning_vals;
+    co->returning_vals = state;
+    
+    state->offset = 0;
+    state->fun_addr = fun_addr;
+    state->total_size = (u16_t)reserved_size;
+    if (reserved_size > 16) {
+        state->allocated = 1;
+        state->buf = (address_t)malloc(reserved_size);
+    } else {
+        state->allocated = 0;
+        state->buf = state->inline_buf;
+    }
+    dbg_init_zag(state->buf, state->total_size);
+}
+
+int yalx_exit_returning_scope(struct yalx_returning_vals *state) {
+    struct coroutine *const co = CURRENT_COROUTINE;
+    assert(co->returning_vals == state);
+    if (state->allocated) {
+        free(state->buf);
+    }
+    co->returning_vals = state->prev;
+}
+
 struct lksz_header {
     int number_of_strings;
     const char *const sz[1];
@@ -465,12 +493,28 @@ int pkg_has_initialized(const char *const plain_name) {
     return span.value != NULL;
 }
 
+void associate_stub_returning_vals(struct yalx_returning_vals *state,
+                                   address_t returning_addr,
+                                   size_t reserved_size,
+                                   address_t fun_addr) {
+    struct coroutine *const co = CURRENT_COROUTINE;
+    assert(co->returning_vals != state);
+    state->prev = co->returning_vals;
+    co->returning_vals = state;
+    
+    state->offset = 0;
+    state->allocated = 0;
+    state->total_size = (u16_t)reserved_size;
+    state->buf = returning_addr;
+    state->fun_addr = fun_addr;
+    dbg_init_zag(state->buf, state->total_size);
+}
 
 void *reserve_handle_returning_vals(u32_t size) {
     assert(thread_local_mach != NULL);
-    thread_local_mach->returning_vals = realloc(thread_local_mach->returning_vals, size);
-    thread_local_mach->returning_vals_size = size;
-    return thread_local_mach->returning_vals;
+    struct coroutine *const co = CURRENT_COROUTINE;
+    assert(size == co->returning_vals->total_size);
+    return co->returning_vals->buf;
 }
 
 

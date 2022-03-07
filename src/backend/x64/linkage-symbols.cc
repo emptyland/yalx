@@ -18,6 +18,8 @@ DECLARE_STATIC_STRING(kLibc_memset, "_memset");
 DECLARE_STATIC_STRING(kRt_pkg_init_once, "_pkg_init_once");
 DECLARE_STATIC_STRING(kRt_reserve_handle_returning_vals, "_reserve_handle_returning_vals");
 DECLARE_STATIC_STRING(kRt_current_root, "_current_root");
+DECLARE_STATIC_STRING(kRt_yalx_exit_returning_scope, "_yalx_exit_returning_scope");
+DECLARE_STATIC_STRING(kRt_associate_stub_returning_vals, "_associate_stub_returning_vals");
 
 LinkageSymbols::LinkageSymbols(base::Arena *arena)
 : arena_(arena)

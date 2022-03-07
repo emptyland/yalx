@@ -401,8 +401,7 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             
         case Arm64Adr:
             printer()->Write("adr ");
-            EmitOperand(instr->OutputAt(0));
-            printer()->Writeln("");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
         
         case Arm64Adrp:

@@ -52,6 +52,8 @@ extern const String *const kLibc_memset;
 extern const String *const kRt_pkg_init_once;
 extern const String *const kRt_reserve_handle_returning_vals;
 extern const String *const kRt_current_root;
+extern const String *const kRt_yalx_exit_returning_scope;
+extern const String *const kRt_associate_stub_returning_vals;
 
 } // namespace backend
 } // namespace yalx

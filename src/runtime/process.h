@@ -71,6 +71,7 @@ struct coroutine {
     address_t n_sp;
     address_t n_fp;
     address_t stub; // stub address for none-c0 coroutine
+    struct yalx_returning_vals *returning_vals;
 }; // struct coroutine
 
 
@@ -83,8 +84,6 @@ struct machine {
     struct stack_pool stack_pool;
     struct coroutine waitting_head;
     struct coroutine parking_head;
-    address_t returning_vals;
-    u32_t     returning_vals_size;
     // TODO:
 }; // struct machine
 
@@ -118,6 +117,8 @@ int yalx_init_coroutine(const coid_t id, struct coroutine *co, struct stack *sta
 
 void yalx_free_coroutine(struct coroutine *co);
 
+
+#define CURRENT_COROUTINE (!thread_local_mach->running ? &c0 : thread_local_mach->running)
 
 #ifdef __cplusplus
 }

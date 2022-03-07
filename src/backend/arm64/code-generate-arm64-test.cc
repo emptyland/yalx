@@ -98,16 +98,19 @@ TEST_F(Arm64CodeGeneratorTest, PkgInitOnce) {
 
 // issue9_stub
 TEST_F(Arm64CodeGeneratorTest, CallNativeHandle) {
+    yalx_returning_vals state;
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    auto vals = reinterpret_cast<int *>(state.buf);
+    
     main_Zomain_Zdmain_had();
-    
-    
+
     main_Zomain_Zdissue6_had(1,2);
-    auto vals = reinterpret_cast<int *>(thread_local_mach->returning_vals);
     ASSERT_EQ(-1, vals[3]);
     
     main_Zomain_Zdissue6_had(2,1);
-    vals = reinterpret_cast<int *>(thread_local_mach->returning_vals);
     ASSERT_EQ(4, vals[3]);
+    
+    yalx_exit_returning_scope(&state);
 }
 
 #endif // YALX_ARCH_ARM64
