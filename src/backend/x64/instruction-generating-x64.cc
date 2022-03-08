@@ -4,10 +4,12 @@
 #include "backend/linkage-symbols.h"
 #include "backend/instruction.h"
 #include "x64/asm-x64.h"
+#include "ir/condition.h"
 #include "ir/metadata.h"
+#include "ir/operator.h"
+#include "ir/runtime.h"
 #include "ir/node.h"
 #include "ir/type.h"
-#include "ir/operator.h"
 #include "base/arena-utils.h"
 #include "base/lazy-instance.h"
 
@@ -160,6 +162,7 @@ class X64FunctionInstructionSelector final {
 public:
     enum Policy {
         kMoR, // in memory or register
+        kRoI, // register or immediate
         kRel, // can be relocation
         kAny, // can be a immediate number
     };
@@ -220,7 +223,7 @@ public:
         
         ProcessParameters(blk);
         for (auto blk : fun_->blocks()) {
-            ProcessBasicBlock(blk);
+            SelectBasicBlock(blk);
         }
         
         const auto stack_size = RoundUp(operands_.slots()->max_stack_size(), kStackConf->stack_alignment_size());
@@ -230,41 +233,20 @@ public:
             adjust->Set32(stack_size - adjust->word32());
         }
     }
-    
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(X64FunctionInstructionSelector);
 private:
     InstructionBlock *current() { return DCHECK_NOTNULL(current_block_); }
     
-    void ProcessBasicBlock(ir::BasicBlock *bb) {
-        current_block_ = blocks_[bb];
-        for (auto user : bb->phi_node_users()) {
-            Allocate(user.phi, kMoR);
-        }
-        for (auto instr : bb->instructions()) {
-            operands_.ReleaseDeads(instruction_position_);
-            tmps_.clear();
-            Select(instr);
-            for (auto tmp : tmps_) { operands_.Free(tmp); }
-            instruction_position_++;
-        }
-        for (auto user : bb->phi_node_users()) {
-            auto phi_slot = DCHECK_NOTNULL(operands_.Allocated(user.phi));
-            auto dest = Allocate(user.dest, kAny);
-            Move(phi_slot, dest, user.phi->type());
-        }
-        current_block_ = nullptr;
-    }
-    
-    
-    void Select(ir::Value *val);
-    void CallDirectly(ir::Value *val);
+    void SelectBasicBlock(ir::BasicBlock *bb);
+    void Select(ir::Value *instr);
+    void CallDirectly(ir::Value *instr);
+    void ConditionBr(ir::Value *instr);
     void ProcessParameters(InstructionBlock *block);
     InstructionOperand *CopyArgumentValue(InstructionBlock *block, ir::Type ty, InstructionOperand *from);
     
     InstructionOperand *Allocate(ir::Value *value, Policy policy/*, bool *is_tmp = nullptr*/);
-    
     InstructionOperand *Constant(ir::Value *value);
-    
     void Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty);
     
     bool CanDirectlyMove(InstructionOperand *dest, InstructionOperand *src) {
@@ -278,61 +260,22 @@ private:
         return false;
     }
     
-    static size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto) {
-        size_t size_in_bytes = 0;
-        for (auto ty : proto->return_types()) {
-            if (ty.kind() == ir::Type::kVoid) {
-                continue;
-            }
-            size_in_bytes = RoundUp(size_in_bytes, kStackConf->slot_alignment_size());
-            size_in_bytes += ty.ReferenceSizeInBytes();
+    static Policy MatchPolicy(InstructionOperand *opd) {
+        if (opd->kind() == InstructionOperand::kRegister) {
+            return kAny;
         }
-        return size_in_bytes;
+        if (opd->kind() == InstructionOperand::kLocation) {
+            return kRoI;
+        }
+        UNREACHABLE();
+        return kAny;
     }
     
-    static size_t OverflowParametersSizeInBytes(const ir::Function *fun) {
-        size_t size_in_bytes = 0;
-        int float_count = kNumberOfFloatArgumentsRegisters;
-        int general_count = kNumberOfGeneralArgumentsRegisters;
-        //bool overflow = false;
-        for (auto param : fun->paramaters()) {
-            if (param->type().IsFloating()) {
-                if (--float_count < 0) {
-                    auto size = RoundUp(param->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
-                    size_in_bytes += size;
-                }
-            } else {
-                if (--general_count < 0) {
-                    auto size = RoundUp(param->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
-                    size_in_bytes += size;
-                }
-            }
-        }
-        return size_in_bytes;
-    }
+    static size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto);
+    static size_t OverflowParametersSizeInBytes(const ir::Function *fun);
+    static size_t OverflowArgumentsSizeInBytes(ir::Value *call, std::vector<ir::Value *> *overflow);
     
-    static size_t OverflowArgumentsSizeInBytes(ir::Value *call, std::vector<ir::Value *> *overflow) {
-        size_t size_in_bytes = 0;
-        int float_count = kNumberOfFloatArgumentsRegisters;
-        int general_count = kNumberOfGeneralArgumentsRegisters;
-        for (int i = 0; i < call->op()->value_in(); i++) {
-            auto arg = call->InputValue(i);
-            if (arg->type().IsFloating()) {
-                if (--float_count < 0) {
-                    auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
-                    size_in_bytes += size;
-                    overflow->push_back(arg);
-                }
-            } else {
-                if (--general_count < 0) {
-                    auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
-                    size_in_bytes += size;
-                    overflow->push_back(arg);
-                }
-            }
-        }
-        return size_in_bytes;
-    }
+    bool IsSuccessorConditionBr(ir::Value *cond);
     
     base::Arena *const arena_;
     ir::StructureModel *const owns_;
@@ -344,18 +287,55 @@ private:
     OperandAllocator operands_;
     InstructionFunction *bundle_ = nullptr;
     InstructionBlock *current_block_ = nullptr;
+    ir::Value *prev_instr_ = nullptr;
     int instruction_position_ = 0;
     ImmediateOperand *stack_size_ = nullptr;
     std::map<ir::BasicBlock *, InstructionBlock *> blocks_;
     std::vector<InstructionOperand *> tmps_;
+    std::vector<OperandAllocator::BorrowedRecord> borrowed_registers_;
     std::vector<ImmediateOperand *> calling_stack_adjust_;
 }; // class X64FunctionInstructionSelector
 
-void X64FunctionInstructionSelector::Select(ir::Value *val) {
-    switch (val->op()->value()) {
+void X64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
+    current_block_ = blocks_[bb];
+    for (auto user : bb->phi_node_users()) {
+        Allocate(user.phi, kMoR);
+    }
+    
+    for (auto instr : bb->instructions()) {
+        operands_.ReleaseDeads(instruction_position_);
+        tmps_.clear();
+        if (instr->op()->IsTerminator()) {
+            for (auto user : bb->phi_node_users()) {
+                auto phi_slot = DCHECK_NOTNULL(operands_.Allocated(user.phi));
+                auto dest = Allocate(user.dest, kAny);
+                Move(phi_slot, dest, user.phi->type());
+            }
+        }
+        Select(instr);
+        for (auto tmp : tmps_) { operands_.Free(tmp); }
+        for (const auto &borrow : borrowed_registers_) {
+            
+            if (borrow.original) {
+                Move(borrow.old, borrow.bak, borrow.original->type());
+                operands_.Associate(borrow.original, borrow.old);
+            } else {
+                operands_.Free(borrow.bak);
+                operands_.Free(borrow.target);
+            }
+        }
+        prev_instr_ = instr;
+        instruction_position_++;
+    }
+    
+    current_block_ = nullptr;
+}
+
+void X64FunctionInstructionSelector::Select(ir::Value *instr) {
+    switch (instr->op()->value()) {
         case ir::Operator::kBr: {
-            if (val->op()->value_in() == 0) {
-                auto ib = blocks_[val->OutputControl(0)];
+            if (instr->op()->value_in() == 0) {
+                auto ib = blocks_[instr->OutputControl(0)];
                 auto label = new (arena_) ReloactionOperand(nullptr/*symbol_name*/, ib);
                 current()->NewI(ArchJmp, label);
                 current()->New(ArchNop);
@@ -363,8 +343,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
                 ib->AddPredecessors(current());
                 return;
             }
-            // TODO: condition br
-            UNREACHABLE();
+            ConditionBr(instr);
         } break;
             
         case ir::Operator::kLoadEffectField: {
@@ -375,12 +354,54 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             UNREACHABLE();
         } break;
             
+        case ir::Operator::kICmp: {
+            auto lhs = Allocate(instr->InputValue(0), kMoR);
+            auto rhs = Allocate(instr->InputValue(1), MatchPolicy(lhs));
+            switch (ToMachineRepresentation(instr->InputValue(0)->type())) {
+                case MachineRepresentation::kWord8:
+                    current()->NewII(X64Cmp8, lhs, rhs);
+                case MachineRepresentation::kWord16:
+                    current()->NewII(X64Cmp16, lhs, rhs);
+                case MachineRepresentation::kWord32:
+                    current()->NewII(X64Cmp32, lhs, rhs);
+                    break;
+                case MachineRepresentation::kWord64:
+                    current()->NewII(X64Cmp, lhs, rhs);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+            if (!IsSuccessorConditionBr(instr)) {
+                //BooleanValue(instr, Allocate(instr, kReg));
+            }
+        } break;
+            
+        case ir::Operator::kFCmp: {
+            auto lhs = Allocate(instr->InputValue(0), kMoR);
+            auto rhs = Allocate(instr->InputValue(1), MatchPolicy(lhs));
+            switch (ToMachineRepresentation(instr->InputValue(0)->type())) {
+                case MachineRepresentation::kFloat32:
+                    current()->NewII(SSEFloat32Cmp, lhs, rhs);
+                    break;
+                case MachineRepresentation::kFloat64:
+                    current()->NewII(SSEFloat64Cmp, lhs, rhs);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+            if (!IsSuccessorConditionBr(instr)) {
+                //BooleanValue(instr, Allocate(instr, kReg));
+            }
+        } break;
+            
         case ir::Operator::kAdd: {
-            auto opd = Allocate(val, kMoR);
-            auto lhs = Allocate(val->InputValue(0), kAny);
-            auto rhs = Allocate(val->InputValue(1), kAny);
-            Move(opd, lhs, val->type());
-            switch (ToMachineRepresentation(val->type())) {
+            auto opd = Allocate(instr, kMoR);
+            auto lhs = Allocate(instr->InputValue(0), kAny);
+            auto rhs = Allocate(instr->InputValue(1), MatchPolicy(opd));
+            Move(opd, lhs, instr->type());
+            switch (ToMachineRepresentation(instr->type())) {
                 case MachineRepresentation::kWord8:
                     current()->NewIO(X64Add8, opd, rhs);
                     break;
@@ -400,11 +421,11 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
         } break;
             
         case ir::Operator::kFAdd: {
-            auto opd = Allocate(val, kMoR);
-            auto lhs = Allocate(val->InputValue(0), kAny);
-            auto rhs = Allocate(val->InputValue(1), kAny);
-            Move(opd, lhs, val->type());
-            switch (ToMachineRepresentation(val->type())) {
+            auto opd = Allocate(instr, kMoR);
+            auto lhs = Allocate(instr->InputValue(0), kAny);
+            auto rhs = Allocate(instr->InputValue(1), MatchPolicy(opd));
+            Move(opd, lhs, instr->type());
+            switch (ToMachineRepresentation(instr->type())) {
                 case MachineRepresentation::kFloat32:
                     current()->NewIO(SSEFloat32Add, opd, rhs);
                     break;
@@ -418,17 +439,16 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
         } break;
             
         case ir::Operator::kLoadFunAddr: {
-            auto fun = ir::OperatorWith<const ir::Function *>::Data(val->op());
+            auto fun = ir::OperatorWith<const ir::Function *>::Data(instr->op());
             auto symbol = symbols_->Mangle(fun->full_name());
             auto rel = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
-            auto opd = Allocate(val, kAny);
-
-            Move(opd, rel, val->type());
+            auto opd = Allocate(instr, kAny);
+            Move(opd, rel, instr->type());
         } break;
             
         case ir::Operator::kClosure: {
             // TODO:
-            
+            UNREACHABLE();
         } break;;
             
         case ir::Operator::kCallRuntime: {
@@ -437,13 +457,16 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
         } break;
             
         case ir::Operator::kCallDirectly:
-            CallDirectly(val);
+            CallDirectly(instr);
             break;
             
         case ir::Operator::kReturningVal:
             // Just Ignore this ir code
             break;
             
+        case ir::Operator::kPhi:
+            // Just Ignore this ir code
+            break;
             //
             // +------------------+
             // | returning val[0] | <- bp + 16 + overflow-args-size + returning-val-size
@@ -478,12 +501,12 @@ void X64FunctionInstructionSelector::Select(ir::Value *val) {
             // padding = 8   returning-vals = 12 offset = 24
             // padding = 12  returning-vals = 4  offset = 28
             //for (int i = 0; i < val->op()->value_in(); i++) {
-            for (int i = val->op()->value_in() - 1; i >= 0; i--) {
+            for (int i = instr->op()->value_in() - 1; i >= 0; i--) {
                 auto ty = fun_->prototype()->return_type(i);
                 if (ty.kind() == ir::Type::kVoid) {
                     continue;
                 }
-                auto ret = Allocate(val->InputValue(i), kAny);
+                auto ret = Allocate(instr->InputValue(i), kAny);
                 auto opd = new (arena_) LocationOperand(X64Mode_MRI, rbp.code(), 0, returning_val_offset);
                 returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
                 Move(opd, ret, ty);
@@ -619,6 +642,140 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
     current()->NewIO(X64Sub, operands_.registers()->stack_pointer(), adjust);
 }
 
+void X64FunctionInstructionSelector::ConditionBr(ir::Value *instr) {
+    auto cond = instr->InputValue(0);
+    auto if_true = blocks_[instr->OutputControl(0)];
+    auto if_false = blocks_[instr->OutputControl(1)];
+    auto label = new (arena_) ReloactionOperand(nullptr/*symbol_name*/, if_true);
+    auto output = new (arena_) ReloactionOperand(nullptr, if_false);
+    if (cond->Is(ir::Operator::kICmp)) {
+        if (prev_instr_ != cond) {
+            auto cond_val = Allocate(cond, kMoR);
+            auto zero = ImmediateOperand::Word8(arena_, 0);
+            current()->NewII(X64Cmp8, cond_val, zero);
+            current()->NewO(X64Je, output);
+        } else {
+            switch (ir::OperatorWith<ir::IConditionId>::Data(cond->op()).value) {
+                case ir::IConditionId::k_eq:
+                    current()->NewO(X64Jne, output);
+                    break;
+                case ir::IConditionId::k_ne:
+                    current()->NewO(X64Je, output);
+                    break;
+                case ir::IConditionId::k_slt:
+                    current()->NewO(X64Jge, output);
+                    break;
+                case ir::IConditionId::k_ult:
+                    current()->NewO(X64Jae, output); // Above use by unsigned
+                    break;
+                case ir::IConditionId::k_sle:
+                    current()->NewO(X64Jg, output);
+                    break;
+                case ir::IConditionId::k_ule:
+                    current()->NewO(X64Ja, output); // Above use by unsigned
+                    break;
+                case ir::IConditionId::k_sgt:
+                    current()->NewO(X64Jle, output);
+                    break;
+                case ir::IConditionId::k_ugt:
+                    current()->NewO(X64Jbe, output); // Blow use by unsigned
+                    break;
+                case ir::IConditionId::k_sge:
+                    current()->NewO(X64Jl, output);
+                    break;
+                case ir::IConditionId::k_uge:
+                    current()->NewO(X64Jb, output); // Blow use by unsigned
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        }
+    } else if (cond->Is(ir::Operator::kFCmp)) {
+        if (prev_instr_ != cond) {
+            auto cond_val = Allocate(cond, kMoR);
+            auto zero = ImmediateOperand::Word8(arena_, 0);
+            current()->NewII(X64Cmp8, cond_val, zero);
+            current()->NewO(X64Je, output);
+        } else {
+            switch (ir::OperatorWith<ir::FConditionId>::Data(cond->op()).value) {
+                    // oeq: yields true if both operands are not a QNAN and op1 is equal to op2.
+                case ir::FConditionId::k_oeq:
+                    current()->NewO(X64Jne, output);
+                    break;
+                case ir::FConditionId::k_one:
+                    current()->NewO(X64Je, output);
+                    break;
+                case ir::FConditionId::k_olt:
+                    current()->NewO(X64Jge, output);
+                    break;
+                case ir::FConditionId::k_ole:
+                    current()->NewO(X64Jg, output);
+                    break;
+                case ir::FConditionId::k_ogt:
+                    current()->NewO(X64Jle, output);
+                    break;
+                case ir::FConditionId::k_oge:
+                    current()->NewO(X64Jl, output);
+                    break;
+                    // ord: yields true if both operands are not a QNAN.
+                case ir::FConditionId::k_ord:
+                    current()->NewO(X64Jpe, output); // Parity odd is ordered
+                    break;
+                    // Unordered compare
+                    // flags     ZF  PF  CF
+                    // ----------------------
+                    // unordered  1   1   1
+                    // greater    0   0   0
+                    // less       0   0   1
+                    // equal      1   0   0
+                    // ueq: yields true if either operand is a QNAN or op1 is equal to op2.
+                case ir::FConditionId::k_ueq:
+                    current()->NewO(X64Jne, output);
+                    current()->NewO(X64Jp, output);
+                    break;
+                    // une: yields true if either operand is a QNAN or op1 is not equal to op2.
+                case ir::FConditionId::k_une:
+                    current()->NewO(X64Jne, label);
+                    current()->NewO(X64Jp, label);
+                    current()->NewO(ArchJmp, output);
+                    break;
+                case ir::FConditionId::k_ult:
+                    current()->NewO(X64Jae, output);
+                    break;
+                case ir::FConditionId::k_ule:
+                    current()->NewO(X64Ja, output);
+                    break;
+                case ir::FConditionId::k_ugt:
+                    current()->NewO(X64Jbe, output);
+                    break;
+                case ir::FConditionId::k_uge:
+                    current()->NewO(X64Jb, output);
+                    break;
+                    // uno: yields true if either operand is a QNAN.
+                case ir::FConditionId::k_uno:
+                    current()->NewO(X64Jpo, output); // Parity even is ordered
+                    break;
+                case ir::FConditionId::k_never:
+                    current()->NewO(ArchJmp, output);
+                    break;
+                case ir::FConditionId::k_always:
+                    current()->NewO(ArchJmp, label);
+                    current()->New(ArchNop);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        }
+    } else {
+        auto cond_val = Allocate(cond, kMoR);
+        auto zero = ImmediateOperand::Word8(arena_, 0);
+        current()->NewII(X64Cmp8, cond_val, zero);
+        current()->NewO(X64Je, output);
+    }
+}
+
 void X64FunctionInstructionSelector::ProcessParameters(InstructionBlock *block) {
     auto returning_val_size = ReturningValSizeInBytes(fun_->prototype());
     int number_of_float_args = kNumberOfFloatArgumentsRegisters;
@@ -693,12 +850,44 @@ InstructionOperand *X64FunctionInstructionSelector::Allocate(ir::Value *value, P
     switch (policy) {
         case kMoR: {
             if (value->op()->IsConstant()) {
-                InstructionOperand *opd = operands_.Allocate(value->type());
+                auto opd = operands_.Allocate(value->type());
                 auto imm = Constant(value);
                 Move(opd, imm, value->type());
                 tmps_.push_back(opd);
                 return opd;
             }
+        } break;
+            
+        case kRoI: {
+            if (value->op()->IsConstant()) {
+                auto kval = Constant(value);
+                if (kval->IsImmediate()) {
+                    return kval;
+                }
+                auto bak = operands_.Allocate(value->type());
+                if (bak->IsRegister()) {
+                    Move(bak, kval, value->type());
+                    tmps_.push_back(bak);
+                    return bak;
+                }
+                assert(bak->IsLocation());
+                auto brd = operands_.BorrowRegister(value, bak);
+                Move(bak, brd.target, value->type()); // Saving
+                Move(brd.target, kval, value->type());
+                borrowed_registers_.push_back(brd);
+                return brd.target;
+            }
+            auto opd = operands_.Allocate(value->type());
+            if (opd->IsRegister()) {
+                operands_.Associate(value, opd);
+                return opd;
+            }
+            assert(opd->IsLocation());
+            auto brd = operands_.BorrowRegister(value, opd);
+            Move(opd, brd.target, value->type()); // Saving
+            borrowed_registers_.push_back(brd);
+            return brd.target;
+            
         } break;
             
         case kRel: {
@@ -843,12 +1032,22 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             
         case ir::Type::kValue: {
             if (ty.IsPointer()) {
+                auto tmp = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
                 if (CanDirectlyMove(dest, src)) {
-                    current()->NewIO(X64Movq, dest, src);
+                    if (auto rel = src->AsReloaction(); rel != nullptr && rel->fetch_address()) {
+                        current()->NewIO(X64Lea, tmp, rel);
+                        current()->NewIO(X64Movq, dest, tmp);
+                    } else {
+                        current()->NewIO(X64Movq, dest, src);
+                    }
                 } else {
-                    auto tmp = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
-                    current()->NewIO(X64Movq, tmp, src);
-                    current()->NewIO(X64Movq, dest, tmp);
+                    if (auto rel = src->AsReloaction(); rel != nullptr && rel->fetch_address()) {
+                        current()->NewIO(X64Lea, tmp, rel);
+                        current()->NewIO(X64Movq, dest, tmp);
+                    } else {
+                        current()->NewIO(X64Movq, tmp, src);
+                        current()->NewIO(X64Movq, dest, tmp);
+                    }
                 }
                 return;
             }
@@ -862,6 +1061,82 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             UNREACHABLE();
             break;
     }
+}
+
+size_t X64FunctionInstructionSelector::ReturningValSizeInBytes(const ir::PrototypeModel *proto) {
+    size_t size_in_bytes = 0;
+    for (auto ty : proto->return_types()) {
+        if (ty.kind() == ir::Type::kVoid) {
+            continue;
+        }
+        size_in_bytes = RoundUp(size_in_bytes, kStackConf->slot_alignment_size());
+        size_in_bytes += ty.ReferenceSizeInBytes();
+    }
+    return size_in_bytes;
+}
+
+size_t X64FunctionInstructionSelector::OverflowParametersSizeInBytes(const ir::Function *fun) {
+    size_t size_in_bytes = 0;
+    int float_count = kNumberOfFloatArgumentsRegisters;
+    int general_count = kNumberOfGeneralArgumentsRegisters;
+    //bool overflow = false;
+    for (auto param : fun->paramaters()) {
+        if (param->type().IsFloating()) {
+            if (--float_count < 0) {
+                auto size = RoundUp(param->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
+                size_in_bytes += size;
+            }
+        } else {
+            if (--general_count < 0) {
+                auto size = RoundUp(param->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
+                size_in_bytes += size;
+            }
+        }
+    }
+    return size_in_bytes;
+}
+
+size_t X64FunctionInstructionSelector::OverflowArgumentsSizeInBytes(ir::Value *call,
+                                                                    std::vector<ir::Value *> *overflow) {
+    size_t size_in_bytes = 0;
+    int float_count = kNumberOfFloatArgumentsRegisters;
+    int general_count = kNumberOfGeneralArgumentsRegisters;
+    for (int i = 0; i < call->op()->value_in(); i++) {
+        auto arg = call->InputValue(i);
+        if (arg->type().IsFloating()) {
+            if (--float_count < 0) {
+                auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
+                size_in_bytes += size;
+                overflow->push_back(arg);
+            }
+        } else {
+            if (--general_count < 0) {
+                auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
+                size_in_bytes += size;
+                overflow->push_back(arg);
+            }
+        }
+    }
+    return size_in_bytes;
+}
+
+bool X64FunctionInstructionSelector::IsSuccessorConditionBr(ir::Value *cond) {
+    assert(cond->Is(ir::Operator::kICmp) || cond->Is(ir::Operator::kFCmp));
+    //const auto i = instruction_position_ + 1;
+    if (current_block_) {
+        for (auto [bb, ib] : blocks_) {
+            if (current() == ib) {
+                const auto i = bb->FindInstruction(cond);
+                if (i >= 0 && i < bb->instructions_size() - 1) {
+                    auto instr = bb->instruction(i + 1);
+                    return instr->Is(ir::Operator::kBr)
+                    && instr->op()->value_in() == 1
+                    && instr->InputValue(0) == cond;
+                }
+            }
+        }
+    }
+    return false;
 }
 
 X64InstructionGenerator::X64InstructionGenerator(base::Arena *arena, ir::Module *module, ConstantsPool *const_pool,

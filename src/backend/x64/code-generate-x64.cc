@@ -147,6 +147,12 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             printer()->Writeln("");
             break;
             
+        case ArchJmp:
+            printer()->Write("jmp ");
+            EmitOperand(instr->OutputAt(0), kIndirectly);
+            printer()->Writeln("");
+            break;
+            
         case X64Add8:
             printer()->Write("addb ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
@@ -217,6 +223,16 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
+        case X64Lea32:
+            printer()->Write("leal ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Lea:
+            printer()->Write("leaq ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
         case X64Push:
             printer()->Write("pushq ");
             EmitOperand(instr->InputAt(0));
@@ -228,7 +244,167 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
+            
+        case X64Cmp8:
+            printer()->Write("cmpb ");
+            EmitOperands(instr->InputAt(1), instr->InputAt(0));
+            break;
+            
+        case X64Cmp16:
+            printer()->Write("cmpw ");
+            EmitOperands(instr->InputAt(1), instr->InputAt(0));
+            break;
+            
+        case X64Cmp32:
+            printer()->Write("cmpl ");
+            EmitOperands(instr->InputAt(1), instr->InputAt(0));
+            break;
+            
+        case X64Cmp:
+            printer()->Write("cmpq ");
+            EmitOperands(instr->InputAt(1), instr->InputAt(0));
+            break;
+            
+        case X64Ja:
+            printer()->Write("ja ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jae:
+            printer()->Write("jae ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jb:
+            printer()->Write("jb ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jbe:
+            printer()->Write("jbe ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jl:
+            printer()->Write("jl ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jle:
+            printer()->Write("jle ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jg:
+            printer()->Write("jg ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jge:
+            printer()->Write("jge ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Je:
+            printer()->Write("je ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jne:
+            printer()->Write("jne ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jp:
+            printer()->Write("jp ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jpe:
+            printer()->Write("jpe ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jpo:
+            printer()->Write("jpo ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jc:
+            printer()->Write("jc ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jo:
+            printer()->Write("jo ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Js:
+            printer()->Write("js ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jz:
+            printer()->Write("jz ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Jna:
+        case X64Jnb:
+        case X64Jnc:
+        case X64Jng:
+        case X64Jnl:
+        case X64Jno:
+        case X64Jnp:
+        case X64Jns:
+        case X64Jnz:
+        case X64Jnae:
+        case X64Jnbe:
+        case X64Jnge:
+        case X64Jnle:
+            UNREACHABLE();
+            break;
 
+            // SSE:
+            
+        case SSEFloat32Cmp:
+            printer()->Write("ucmiss ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case SSEFloat64Cmp:
+            printer()->Write("ucmisd ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case SSEFloat32Add:
+            printer()->Write("addss ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case SSEFloat64Add:
+            printer()->Write("addsd ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
         default:
             UNREACHABLE();
             break;
