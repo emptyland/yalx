@@ -16,6 +16,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+//#define _XOPEN_SOURCE
+//#include <ucontext.h>
 
 int ncpus = 0;
 

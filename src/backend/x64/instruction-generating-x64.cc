@@ -243,8 +243,10 @@ private:
     void CallDirectly(ir::Value *instr);
     void ConditionBr(ir::Value *instr);
     void ProcessParameters(InstructionBlock *block);
+    void BooleanValue(ir::Value *instr, InstructionOperand *opd);
+    void ConditionSelect(ir::Value *instr, InstructionOperand *opd, InstructionOperand *true_val,
+                         InstructionOperand *false_val);
     InstructionOperand *CopyArgumentValue(InstructionBlock *block, ir::Type ty, InstructionOperand *from);
-    
     InstructionOperand *Allocate(ir::Value *value, Policy policy/*, bool *is_tmp = nullptr*/);
     InstructionOperand *Constant(ir::Value *value);
     void Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty);
@@ -337,7 +339,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             if (instr->op()->value_in() == 0) {
                 auto ib = blocks_[instr->OutputControl(0)];
                 auto label = new (arena_) ReloactionOperand(nullptr/*symbol_name*/, ib);
-                current()->NewI(ArchJmp, label);
+                current()->NewO(ArchJmp, label);
                 current()->New(ArchNop);
                 current()->AddSuccessor(ib);
                 ib->AddPredecessors(current());
@@ -373,7 +375,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
                     break;
             }
             if (!IsSuccessorConditionBr(instr)) {
-                //BooleanValue(instr, Allocate(instr, kReg));
+                BooleanValue(instr, Allocate(instr, kMoR));
             }
         } break;
             
@@ -392,7 +394,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
                     break;
             }
             if (!IsSuccessorConditionBr(instr)) {
-                //BooleanValue(instr, Allocate(instr, kReg));
+                BooleanValue(instr, Allocate(instr, kMoR));
             }
         } break;
             
@@ -548,9 +550,11 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
     auto callee = ir::OperatorWith<ir::Function *>::Data(val->op());
     std::vector<ir::Value *> returning_vals;
     returning_vals.push_back(val);
-    for (auto edge : val->users()) {
-        if (edge.user->Is(ir::Operator::kReturningVal)) {
-            returning_vals.push_back(edge.user);
+    if (val->users().size() > 0) {
+        for (auto edge : val->users()) {
+            if (edge.user->Is(ir::Operator::kReturningVal)) {
+                returning_vals.push_back(edge.user);
+            }
         }
     }
     if (returning_vals.size() > 1) {
@@ -640,6 +644,115 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
     auto rel = new (arena_) ReloactionOperand(symbols_->Mangle(callee->full_name()), nullptr);
     current()->NewI(ArchCall, rel);
     current()->NewIO(X64Sub, operands_.registers()->stack_pointer(), adjust);
+}
+
+void X64FunctionInstructionSelector::BooleanValue(ir::Value *instr, InstructionOperand *opd) {
+    assert(instr->Is(ir::Operator::kICmp) || instr->Is(ir::Operator::kFCmp));
+    if (instr->Is(ir::Operator::kICmp)) {
+        switch (ir::OperatorWith<ir::IConditionId>::Data(instr->op()).value) {
+            case ir::IConditionId::k_eq:
+                current()->NewO(X64Sete, opd);
+                break;
+            case ir::IConditionId::k_ne:
+                current()->NewO(X64Setne, opd);
+                break;
+            case ir::IConditionId::k_slt:
+                current()->NewO(X64Setl, opd);
+                break;
+            case ir::IConditionId::k_ult:
+                current()->NewO(X64Setb, opd);
+                break;
+            case ir::IConditionId::k_sle:
+                current()->NewO(X64Setle, opd);
+                break;
+            case ir::IConditionId::k_ule:
+                current()->NewO(X64Setbe, opd);
+                break;
+            case ir::IConditionId::k_sgt:
+                current()->NewO(X64Setg, opd);
+                break;
+            case ir::IConditionId::k_ugt:
+                current()->NewO(X64Seta, opd);
+                break;
+            case ir::IConditionId::k_sge:
+                current()->NewO(X64Setge, opd);
+                break;
+            case ir::IConditionId::k_uge:
+                current()->NewO(X64Setae, opd);
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+    } else {
+        assert(instr->Is(ir::Operator::kFCmp));
+        auto unordered = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord8);
+        switch (ir::OperatorWith<ir::FConditionId>::Data(instr->op()).value) {
+                // oeq: yields true if both operands are not a QNAN and op1 is equal to op2.
+            case ir::FConditionId::k_oeq:
+                current()->NewO(X64Sete, opd);
+                break;
+            case ir::FConditionId::k_one:
+                current()->NewO(X64Setne, opd);
+                break;
+            case ir::FConditionId::k_olt:
+                current()->NewO(X64Sete, opd);
+                break;
+            case ir::FConditionId::k_ole:
+                current()->NewO(X64Sete, opd);
+                break;
+            case ir::FConditionId::k_ogt:
+                current()->NewO(X64Sete, opd);
+                break;
+            case ir::FConditionId::k_oge:
+                current()->NewO(X64Sete, opd);
+                break;
+                // ord: yields true if both operands are not a QNAN.
+            case ir::FConditionId::k_ord:
+                current()->NewO(X64Sete, opd);
+                break;
+                // ueq: yields true if either operand is a QNAN or op1 is equal to op2.
+            case ir::FConditionId::k_ueq:
+                current()->NewO(X64Sete, opd);
+                break;
+                // une: yields true if either operand is a QNAN or op1 is not equal to op2.
+            case ir::FConditionId::k_une:
+                current()->NewO(X64Sete, opd);
+                break;
+            case ir::FConditionId::k_ult:
+                current()->NewO(X64Sete, opd);
+                break;
+            case ir::FConditionId::k_ule:
+                current()->NewO(X64Sete, opd);
+                break;
+            case ir::FConditionId::k_ugt:
+                current()->NewO(X64Sete, opd);
+                break;
+            case ir::FConditionId::k_uge:
+                current()->NewO(X64Sete, opd);
+                break;
+                // uno: yields true if either operand is a QNAN.
+            case ir::FConditionId::k_uno:
+                current()->NewO(X64Sete, opd);
+                break;
+            case ir::FConditionId::k_never:
+                if (opd->IsRegister()) {
+                    current()->NewIO(X64Xor, opd, opd);
+                } else {
+                    current()->NewIO(X64Movb, opd, ImmediateOperand::Word8(arena_, 0));
+                }
+                break;
+            case ir::FConditionId::k_always:
+                current()->NewIO(X64Movb, opd, ImmediateOperand::Word8(arena_, 1));
+                if (opd->IsRegister()) {
+                    current()->NewIO(X64And, opd, ImmediateOperand::Word8(arena_, 0xff));
+                }
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+    }
 }
 
 void X64FunctionInstructionSelector::ConditionBr(ir::Value *instr) {
@@ -1069,8 +1182,7 @@ size_t X64FunctionInstructionSelector::ReturningValSizeInBytes(const ir::Prototy
         if (ty.kind() == ir::Type::kVoid) {
             continue;
         }
-        size_in_bytes = RoundUp(size_in_bytes, kStackConf->slot_alignment_size());
-        size_in_bytes += ty.ReferenceSizeInBytes();
+        size_in_bytes += RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
     }
     return size_in_bytes;
 }

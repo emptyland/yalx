@@ -1698,8 +1698,7 @@ size_t Arm64FunctionInstructionSelector::ReturningValSizeInBytes(const ir::Proto
         if (ty.kind() == ir::Type::kVoid) {
             continue;
         }
-        size_in_bytes = RoundUp(size_in_bytes, kStackConf->slot_alignment_size());
-        size_in_bytes += ty.ReferenceSizeInBytes();
+        size_in_bytes += RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
     }
     return size_in_bytes;
 }

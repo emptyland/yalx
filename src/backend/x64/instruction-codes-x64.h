@@ -71,6 +71,36 @@ namespace backend {
     V(X64Jpe)                               \
     V(X64Jpo)                               \
     V(X64Js)                                \
+    V(X64Seta)                              \
+    V(X64Setae)                             \
+    V(X64Setb)                              \
+    V(X64Setbe)                             \
+    V(X64Setc)                              \
+    V(X64Sete)                              \
+    V(X64Setz)                              \
+    V(X64Setg)                              \
+    V(X64Setge)                             \
+    V(X64Setl)                              \
+    V(X64Setle)                             \
+    V(X64Setna)                             \
+    V(X64Setnae)                            \
+    V(X64Setnb)                             \
+    V(X64Setnbe)                            \
+    V(X64Setnc)                             \
+    V(X64Setne)                             \
+    V(X64Setng)                             \
+    V(X64Setnge)                            \
+    V(X64Setnl)                             \
+    V(X64Setnle)                            \
+    V(X64Setno)                             \
+    V(X64Setnp)                             \
+    V(X64Setns)                             \
+    V(X64Setnz)                             \
+    V(X64Seto)                              \
+    V(X64Setp)                              \
+    V(X64Setpe)                             \
+    V(X64Setpo)                             \
+    V(X64Sets)                              \
     V(X64Udiv)                              \
     V(X64Udiv32)                            \
     V(X64Not)                               \

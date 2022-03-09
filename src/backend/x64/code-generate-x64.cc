@@ -267,103 +267,103 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             
         case X64Ja:
             printer()->Write("ja ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jae:
             printer()->Write("jae ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jb:
             printer()->Write("jb ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jbe:
             printer()->Write("jbe ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jl:
             printer()->Write("jl ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jle:
             printer()->Write("jle ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jg:
             printer()->Write("jg ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jge:
             printer()->Write("jge ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Je:
             printer()->Write("je ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jne:
             printer()->Write("jne ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jp:
             printer()->Write("jp ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jpe:
             printer()->Write("jpe ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jpo:
             printer()->Write("jpo ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jc:
             printer()->Write("jc ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jo:
             printer()->Write("jo ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Js:
             printer()->Write("js ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jz:
             printer()->Write("jz ");
-            EmitOperand(instr->InputAt(0));
+            EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
@@ -382,17 +382,136 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
         case X64Jnle:
             UNREACHABLE();
             break;
+            
+        case X64Seta:
+            printer()->Write("seta ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setae:
+            printer()->Write("setae ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setb:
+            printer()->Write("setb ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setbe:
+            printer()->Write("setbe ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setl:
+            printer()->Write("setl ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setle:
+            printer()->Write("setle ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setg:
+            printer()->Write("setg ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setge:
+            printer()->Write("setge ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Sete:
+            printer()->Write("sete ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setne:
+            printer()->Write("setne ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setp:
+            printer()->Write("setp ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setpe:
+            printer()->Write("setpe ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setpo:
+            printer()->Write("setpo ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setc:
+            printer()->Write("setc ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Seto:
+            printer()->Write("seto ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Sets:
+            printer()->Write("sets ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setz:
+            printer()->Write("setz ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
+            
+        case X64Setna:
+        case X64Setnb:
+        case X64Setnc:
+        case X64Setng:
+        case X64Setnl:
+        case X64Setno:
+        case X64Setnp:
+        case X64Setns:
+        case X64Setnz:
+        case X64Setnae:
+        case X64Setnbe:
+        case X64Setnge:
+        case X64Setnle:
+            UNREACHABLE();
+            break;
+
 
             // SSE:
             
         case SSEFloat32Cmp:
             printer()->Write("ucmiss ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            EmitOperands(instr->InputAt(1), instr->InputAt(0));
             break;
             
         case SSEFloat64Cmp:
             printer()->Write("ucmisd ");
-            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            EmitOperands(instr->InputAt(1), instr->InputAt(0));
             break;
             
         case SSEFloat32Add:
@@ -551,11 +670,12 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
         case InstructionOperand::kReloaction: {
             auto opd = operand->AsReloaction();
             if (opd->label()) {
-                if (style == kIndirectly) {
-                    printer()->Print("*Lblk%d", opd->label()->label());
-                } else {
-                    printer()->Print("Lblk%d", opd->label()->label());
-                }
+//                if (style == kIndirectly) {
+//                    printer()->Print("Lblk%d", opd->label()->label());
+//                } else {
+//                    printer()->Print("Lblk%d", opd->label()->label());
+//                }
+                printer()->Print("Lblk%d", opd->label()->label());
             } else {
                 assert(opd->symbol_name() != nullptr);
                 if (style == kIndirectly) {
