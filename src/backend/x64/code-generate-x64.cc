@@ -505,12 +505,12 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             // SSE:
             
         case SSEFloat32Cmp:
-            printer()->Write("ucmiss ");
+            printer()->Write("ucomiss ");
             EmitOperands(instr->InputAt(1), instr->InputAt(0));
             break;
             
         case SSEFloat64Cmp:
-            printer()->Write("ucmisd ");
+            printer()->Write("ucomisd ");
             EmitOperands(instr->InputAt(1), instr->InputAt(0));
             break;
             
@@ -638,10 +638,10 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
             
         case InstructionOperand::kConstant: {
             auto opd = operand->AsConstant();
-            if (opd->kind() == ConstantOperand::kString) {
+            if (opd->type() == ConstantOperand::kString) {
                 printer()->Print("Kstr.%d(%%rip)", opd->symbol_id());
             } else {
-                assert(opd->kind() == ConstantOperand::kNumber);
+                assert(opd->type() == ConstantOperand::kNumber);
                 printer()->Print("Knnn.%d(%%rip)", opd->symbol_id());
             }
         } break;
@@ -733,26 +733,6 @@ void X64CodeGenerator::EmitAll() {
         ->Write("\"")->Write(name)->Writeln("\"");
     }
     
-    std::set<std::string_view> external_symbols;
-    for (auto [name, fun] : funs_) {
-        for (auto [symbol, rel] : fun->external_symbols()) {
-            external_symbols.insert(symbol);
-        }
-    }
-    
-    if (!external_symbols.empty()) {
-        printer_->Writeln("# External symbols:");
-        printer_->Write(".global ");
-        int i = 0;
-        for (auto symbol : external_symbols) {
-            if (i++ > 0) {
-                printer_->Write(", ");
-            }
-            printer_->Write(symbol);
-        }
-        printer_->Write("\n");
-    }
-    
     printer_->Writeln(".p2align 4, 0x90")->Write("\n")->Writeln("# functions");
     for (auto fun : module_->funs()) {
         auto iter = funs_.find(fun->full_name()->ToSlice());
@@ -760,6 +740,11 @@ void X64CodeGenerator::EmitAll() {
         
         FunctionGenerator gen(this, iter->second);
         gen.EmitAll();
+        
+        if (iter->second->native_handle()) {
+            FunctionGenerator g2(this, iter->second->native_handle());
+            g2.EmitAll();
+        }
     }
     
     for (auto clazz : module_->structures()) {
@@ -769,6 +754,11 @@ void X64CodeGenerator::EmitAll() {
             
             FunctionGenerator gen(this, iter->second);
             gen.EmitAll();
+            
+            if (iter->second->native_handle()) {
+                FunctionGenerator g2(this, iter->second->native_handle());
+                g2.EmitAll();
+            }
         }
     }
         

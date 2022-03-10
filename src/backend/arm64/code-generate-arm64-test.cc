@@ -61,7 +61,7 @@ void main_Zomain_Zdissue1();
 void main_Zomain_Zdissue5();
 void main_Zomain_Zdfoo();
 void main_Zomain_Zd_Z4init();
-void issue9_stub(i32_t a, yalx_value_str *s) {
+void issue9_stub(i32_t a, yalx_str_handle s) {
     printd("%d", a);
     // TODO
 }

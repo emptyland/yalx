@@ -527,12 +527,13 @@ struct coroutine *current_root() { return thread_local_mach->running; }
 // native fun's stubs:
 //----------------------------------------------------------------------------------------------------------------------
 
-void yalx_Zplang_Zolang_Zdprintln_stub(struct yalx_value_str *const txt) {
+void yalx_Zplang_Zolang_Zdprintln_stub(yalx_str_handle txt) {
     assert(txt != NULL);
-    if (txt->hash_code == 634532469 || txt->hash_code == 1342438586 || txt->hash_code == 2593250737) {
+    const u32_t hash_code = yalx_str_hash_code(txt);
+    if (hash_code == 634532469 || hash_code == 1342438586 || hash_code == 2593250737) {
         static const char *quote = "<👍>";
         fwrite(quote, 1, strlen(quote), stdout);
     }
-    fwrite(txt->bytes, 1, txt->len, stdout);
+    fwrite(yalx_str_bytes(txt), 1, yalx_str_len(txt), stdout);
     fputc('\n', stdout);
 }

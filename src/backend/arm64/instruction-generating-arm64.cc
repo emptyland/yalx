@@ -341,9 +341,9 @@ void Arm64FunctionInstructionSelector::CallOriginalFun() {
         RegisterOperand *src = nullptr;
         auto rep = ToMachineRepresentation(param->type());
         if (param->type().IsFloating()) {
-            src = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[general_index++], rep);
-        } else {
             src = new (arena_) RegisterOperand(kFloatArgumentsRegisters[float_index++], rep);
+        } else {
+            src = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[general_index++], rep);
         }
         Move(slot, src, param->type());
         args.push_back(std::make_tuple(slot, src, param));

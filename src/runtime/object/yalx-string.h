@@ -20,6 +20,12 @@ struct yalx_value_str {
     char  bytes[0];
 }; // struct yalx_value_str
 
+typedef struct yalx_value_str **yalx_str_handle;
+
+static inline char *yalx_str_bytes(yalx_str_handle had) { return (*had)->bytes; }
+static inline u32_t yalx_str_hash_code(yalx_str_handle had) { return (*had)->hash_code; }
+static inline u32_t yalx_str_len(yalx_str_handle had) { return (*had)->len; }
+
 // New string object: short string should be in pool
 struct yalx_value_str *yalx_new_string(struct heap *heap, const char *z, size_t n);
 
