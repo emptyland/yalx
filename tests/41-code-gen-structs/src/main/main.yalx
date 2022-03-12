@@ -1,0 +1,6 @@
+package main
+
+import "issue02"
+
+// stub code
+fun main() {}

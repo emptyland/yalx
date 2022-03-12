@@ -45,12 +45,7 @@ TEST_F(Arm64CodeGeneratorTest, Sanity) {
     bool ok = true;
     CodeGen("tests/40-code-gen-sanity", "main:main", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
-    //char zz[] = "\360\237\230\244Name";
-    //printd("%s %o%o", zz, 0xf0, 0x9f);
-//    std::string sym;
-//    LinkageSymbols::Build(&sym, "yalx/lang:lang.println");
-//    printd("%s", sym.data());
+    //printf("%s\n", buf.c_str());
 }
 
 #ifdef YALX_ARCH_ARM64
@@ -114,6 +109,15 @@ TEST_F(Arm64CodeGeneratorTest, CallNativeHandle) {
 }
 
 #endif // YALX_ARCH_ARM64
+
+TEST_F(Arm64CodeGeneratorTest, StructsGenerating) {
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    CodeGen("tests/41-code-gen-structs", "issue02:issue02", &printer, &ok);
+    ASSERT_TRUE(ok);
+    printf("%s\n", buf.c_str());
+}
 
 } // namespace backend
 } // namespace yalx

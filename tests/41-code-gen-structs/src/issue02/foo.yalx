@@ -1,0 +1,9 @@
+package issue02
+
+struct Foo(val x: int, val y: int, val name: string) {
+    fun doIt() -> display(name)
+    fun doThat() -> display("doThat")
+}
+
+@yalx.Compiler(nativeStubName="yalx_Zplang_Zolang_Zdprintln_stub")
+native fun display(s: string)

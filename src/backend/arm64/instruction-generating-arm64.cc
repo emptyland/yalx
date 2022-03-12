@@ -213,6 +213,9 @@ private:
                           InstructionOperand *src, MachineRepresentation rep, MachineRepresentation scratch_rep);
     void MoveMachineFloat(Instruction::Code load_op, Instruction::Code store_op, InstructionOperand *dest,
                           InstructionOperand *src, MachineRepresentation rep);
+    void MoveMemory(InstructionOperand *dest, InstructionOperand *src, int32_t size);
+    void CopyMemoryFast(int register0_id, int register1_id, int adjust0, int adjust1, int32_t size);
+    
     
     bool IsSuccessorConditionBr(ir::Value *cond) {
         assert(cond->Is(ir::Operator::kICmp) || cond->Is(ir::Operator::kFCmp));
@@ -384,7 +387,7 @@ LocationOperand *Arm64FunctionInstructionSelector::CallNativeStub() {
         returning_vals_scope = operands_.AllocateStackSlot(OperandAllocator::kVal, sizeof(yalx_returning_vals), 0,
                                                            StackSlotAllocator::kLinear);
     }
-    std::vector<std::tuple<InstructionOperand *, InstructionOperand *, ir::Value *>> args;
+    std::vector<std::tuple<LocationOperand *, InstructionOperand *, ir::Value *>> args;
     if (returning_vals_size > 0) {
         int general_index = 0, float_index = 0;
         for (auto param : fun_->paramaters()) {
@@ -394,11 +397,11 @@ LocationOperand *Arm64FunctionInstructionSelector::CallNativeStub() {
             assert(rep != MachineRepresentation::kNone);
             assert(rep != MachineRepresentation::kBit);
             if (param->type().IsFloating()) {
-                src = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[general_index++], rep);
-                assert(general_index < kNumberOfGeneralArgumentsRegisters);
-            } else {
                 src = new (arena_) RegisterOperand(kFloatArgumentsRegisters[float_index++], rep);
                 assert(float_index < kNumberOfFloatArgumentsRegisters);
+            } else {
+                src = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[general_index++], rep);
+                assert(general_index < kNumberOfGeneralArgumentsRegisters);
             }
             Move(slot, src, param->type());
             args.push_back(std::make_tuple(slot, src, param));
@@ -418,7 +421,26 @@ LocationOperand *Arm64FunctionInstructionSelector::CallNativeStub() {
         current()->NewIO(Arm64Mov, x2, ImmediateOperand::Word32(arena_, returning_vals_size));
         current()->NewIO(Arm64Adr, x3, bundle()->AddExternalSymbol(bundle()->symbol()));
         current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_associate_stub_returning_vals));
-        
+    } else {
+        int general_index = 0, float_index = 0;
+        for (auto param : fun_->paramaters()) {
+            if (!param->type().IsReference()) {
+                if (param->type().IsFloating()) {
+                    float_index++;
+                } else {
+                    general_index++;
+                }
+                continue;
+            }
+            auto slot = operands_.AllocateStackSlot(param->type(), 0/*padding_size*/, StackSlotAllocator::kLinear);
+            auto rep = ToMachineRepresentation(param->type());
+            assert(rep != MachineRepresentation::kNone);
+            assert(rep != MachineRepresentation::kBit);
+            auto src = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[general_index++], rep);
+            assert(general_index <= kNumberOfGeneralArgumentsRegisters);
+            Move(slot, src, param->type());
+            args.push_back(std::make_tuple(slot, src, param));
+        }
     }
 
     const String *native_stub_symbol = nullptr;
@@ -432,9 +454,15 @@ LocationOperand *Arm64FunctionInstructionSelector::CallNativeStub() {
         native_stub_symbol = String::New(arena_, buf);
     }
     
+    auto fp = operands_.registers()->frame_pointer();
     for (auto [bak, origin, param] : args) {
-        assert(returning_vals_size > 0);
-        Move(origin, bak, param->type());
+        if (param->type().IsReference()) {
+            assert(bak->register0_id() == fp->register_id());
+            assert(bak->k() < 0);
+            current()->NewIO(Arm64Sub, origin, fp, ImmediateOperand::Word32(arena_, -bak->k()));
+        } else {
+            Move(origin, bak, param->type());
+        }
     }
     current()->NewI(ArchCall, bundle()->AddExternalSymbol(native_stub_symbol));
     return returning_vals_scope;
@@ -593,11 +621,39 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         } break;
             
         case ir::Operator::kLoadEffectField: {
-            UNREACHABLE();
+            UNREACHABLE(); // TODO:
         } break;
             
         case ir::Operator::kLoadEffectAddress: {
-            UNREACHABLE();
+            UNREACHABLE(); // TODO:
+        } break;
+        
+        case ir::Operator::kStoreInlineField:
+        case ir::Operator::kStoreAccessField: {
+            auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+            assert(handle->IsField());
+            auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+            //auto opd = Allocate(instr, kAny);
+            
+            auto opd = Allocate(instr->InputValue(0), kReg);
+            auto value = Allocate(instr->InputValue(1), kAny);
+            // str value, [opd, #offset]
+            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI,
+                                                    opd->AsRegister()->register_id(), -1, field->offset);
+            Move(loc, value, instr->InputValue(1)->type());
+            operands_.Associate(instr, opd);
+        } break;
+            
+        case ir::Operator::kLoadInlineField:
+        case ir::Operator::kLoadAccessField: {
+            auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+            assert(handle->IsField());
+            auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+            
+            auto opd = Allocate(instr->InputValue(0), kReg);
+            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, opd->AsRegister()->register_id(), -1, field->offset);
+            auto value = Allocate(instr, kAny);
+            Move(value, loc, instr->InputValue(0)->type());
         } break;
             
         case ir::Operator::kICmp: {
@@ -868,22 +924,24 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         
     }
     
-    current_stack_size += ReturningValSizeInBytes(callee->prototype());
+    const auto returning_vals_size_in_bytes = ReturningValSizeInBytes(callee->prototype());
+    current_stack_size += returning_vals_size_in_bytes;
     current_stack_size += overflow_args_size;
     current_stack_size = RoundUp(current_stack_size, kStackConf->stack_alignment_size());
     
-    auto adjust = ImmediateOperand::Word32(arena_, static_cast<int>(current_stack_size));
-    calling_stack_adjust_.push_back(adjust);
-    current()->NewIO(Arm64Add,
-                     operands_.registers()->stack_pointer(),
-                     operands_.registers()->stack_pointer(),
-                     adjust);
+    ImmediateOperand *adjust = nullptr;
+    if (returning_vals_size_in_bytes > 0) {
+        adjust = ImmediateOperand::Word32(arena_, static_cast<int>(current_stack_size));
+        calling_stack_adjust_.push_back(adjust);
+        current()->NewIO(Arm64Add, operands_.registers()->stack_pointer(), operands_.registers()->stack_pointer(),
+                         adjust);
+    }
     auto rel = new (arena_) ReloactionOperand(symbols_->Mangle(callee->full_name()), nullptr);
     current()->NewI(ArchCall, rel);
-    current()->NewIO(Arm64Sub,
-                     operands_.registers()->stack_pointer(),
-                     operands_.registers()->stack_pointer(),
-                     adjust);
+    if (returning_vals_size_in_bytes > 0) {
+        current()->NewIO(Arm64Sub, operands_.registers()->stack_pointer(), operands_.registers()->stack_pointer(),
+                         adjust);
+    }
 }
 
 void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
@@ -1513,9 +1571,7 @@ void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, Instructio
                                  MachineRepresentation::kWord64);
                 return;
             }
-            
-            // TODO:
-            UNREACHABLE();
+            MoveMemory(dest, src, ty.ReferenceSizeInBytes());
         } break;
             
             
@@ -1691,6 +1747,87 @@ void Arm64FunctionInstructionSelector::MoveMachineFloat(Instruction::Code load_o
         UNREACHABLE();
     }
 }
+
+void Arm64FunctionInstructionSelector::CopyMemoryFast(int register0_id, int register1_id,
+                                                      int adjust0,
+                                                      int adjust1,
+                                                      int32_t size) {
+    const auto wide_count = size / 8;
+    int32_t offset = 0;
+    for (auto i = 0; i < wide_count; i++) {
+        offset = i * 8;
+        auto dest_loc = new (arena_) LocationOperand(Arm64Mode_MRI, register0_id, -1, adjust0 + offset);
+        auto src_loc = new (arena_) LocationOperand(Arm64Mode_MRI, register1_id, -1, adjust1 + offset);
+        Move(dest_loc, src_loc, ir::Types::Word64);
+    }
+    const auto remain = size % 8;
+    if (remain > 0) {
+        auto dest_loc = new (arena_) LocationOperand(Arm64Mode_MRI, register0_id, -1, adjust0 + offset);
+        auto src_loc = new (arena_) LocationOperand(Arm64Mode_MRI, register1_id, -1, adjust1 + offset);
+        switch (remain) {
+            case 1:
+                Move(dest_loc, src_loc, ir::Types::Word8);
+                break;
+            case 2:
+                Move(dest_loc, src_loc, ir::Types::Word16);
+                break;
+            case 4:
+                Move(dest_loc, src_loc, ir::Types::Word32);
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+        
+    }
+}
+
+void Arm64FunctionInstructionSelector::MoveMemory(InstructionOperand *dest, InstructionOperand *src, int32_t size) {
+    if (dest->IsRegister()) {
+        if (auto origin = src->AsRegister()) {
+            CopyMemoryFast(dest->AsRegister()->register_id(), origin->register_id(), 0, 0, size);
+        } else if (auto origin = src->AsLocation()) {
+            assert(origin->mode() == Arm64Mode_MRI);
+            CopyMemoryFast(dest->AsRegister()->register_id(), origin->register0_id(), 0, origin->k(), size);
+        } else if (auto origin = src->AsReloaction()) {
+            auto address = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord64);
+            current()->NewIO(Arm64Adrp, address, origin);
+            current()->NewIO(Arm64AddOff, address, address, origin);
+            CopyMemoryFast(dest->AsRegister()->register_id(), address->register_id(), 0, 0, size);
+        } else {
+            UNREACHABLE();
+        }
+    } else if (auto target = dest->AsLocation()) {
+        assert(target->mode() == Arm64Mode_MRI);
+        if (auto origin = src->AsRegister()) {
+            CopyMemoryFast(target->register0_id(), origin->register_id(), target->k(), 0, size);
+        } else if (auto origin = src->AsLocation()) {
+            assert(origin->mode() == Arm64Mode_MRI);
+            CopyMemoryFast(target->register0_id(), origin->register0_id(), target->k(), origin->k(), size);
+        } else if (auto origin = src->AsReloaction()) {
+            auto address = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord64);
+            current()->NewIO(Arm64Adrp, address, origin);
+            current()->NewIO(Arm64AddOff, address, address, origin);
+            CopyMemoryFast(target->register0_id(), address->register_id(), target->k(), 0, size);
+        }
+    } else if (auto target = dest->AsReloaction()) {
+        auto address0 = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord64);
+        current()->NewIO(Arm64Adrp, address0, dest);
+        current()->NewIO(Arm64AddOff, address0, address0, dest);
+        if (auto origin = src->AsRegister()) {
+            CopyMemoryFast(address0->register_id(), origin->register_id(), 0, 0, size);
+        } else if (auto origin = src->AsLocation()) {
+            assert(origin->mode() == Arm64Mode_MRI);
+            CopyMemoryFast(address0->register_id(), origin->register0_id(), 0, origin->k(), size);
+        } else if (auto origin = src->AsReloaction()) {
+            UNREACHABLE();
+        }
+    } else {
+        UNREACHABLE();
+    }
+}
+
+
 
 size_t Arm64FunctionInstructionSelector::ReturningValSizeInBytes(const ir::PrototypeModel *proto) {
     size_t size_in_bytes = 0;

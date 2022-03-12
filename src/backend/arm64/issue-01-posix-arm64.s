@@ -91,7 +91,7 @@ Lblk4:
     add sp, sp, #16
     bl _main_Zomain_Zddoo
     sub sp, sp, #16
-    ldur w19, [fp, #-56]
+    ldur w19, [fp, #-52]
     str w19, [fp, #28]
     ldp fp, lr, [sp, #64]
     add sp, sp, #80
@@ -99,21 +99,21 @@ Lblk4:
 .global _main_Zomain_Zdissue3
 _main_Zomain_Zdissue3:
 Lblk5:
-    sub sp, sp, #96
-    stp fp, lr, [sp, #80]
-    add fp, sp, #80
+    sub sp, sp, #80
+    stp fp, lr, [sp, #64]
+    add fp, sp, #64
     add w2, w0, w1
     stur w0, [fp, #-36]
     stur w1, [fp, #-40]
     mov w0, w1
     mov w1, w0
-    add sp, sp, #32
+    add sp, sp, #16
     bl _main_Zomain_Zddoo
-    sub sp, sp, #32
-    ldur w19, [fp, #-60]
+    sub sp, sp, #16
+    ldur w19, [fp, #-52]
     str w19, [fp, #28]
-    ldp fp, lr, [sp, #80]
-    add sp, sp, #96
+    ldp fp, lr, [sp, #64]
+    add sp, sp, #80
     ret
 .global _main_Zomain_Zdissue4
 _main_Zomain_Zdissue4:
@@ -260,26 +260,32 @@ Lblk20:
     cmp w0, w1
     mov w19, #1
     csel w2, w19, wzr, LT
-    strb w2, [fp, #31]
+    strb w2, [fp, #28]
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
     ret
 .global _main_Zomain_Zdissue9
 _main_Zomain_Zdissue9:
 Lblk21:
-    sub sp, sp, #16
-    stp fp, lr, [sp, #16]
-    add fp, sp, #0
-    bl _issue9_stub
-    bl _reserve_handle_returning_vals
-    mov x1, x0
-    sub x0, fp, #16
+    sub sp, sp, #144
+    stp fp, lr, [sp, #128]
+    add fp, sp, #128
+    stur w0, [fp, #-84]
+    stur x1, [fp, #-92]
+    sub x0, fp, #80
+    add x1, fp, #16
     mov x2, #16
-    bl _memcpy
+    adr x3, _main_Zomain_Zdissue9
+    bl _associate_stub_returning_vals
+    ldur w0, [fp, #-84]
+    sub x1, fp, #92
+    bl _issue9_stub
+    sub x0, fp, #80
+    bl _yalx_exit_returning_scope
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #16]
-    add sp, sp, #16
+    ldp fp, lr, [sp, #128]
+    add sp, sp, #144
     ret
 .global _main_Zomain_Zdfoo
 _main_Zomain_Zdfoo:
@@ -313,14 +319,16 @@ Lblk23:
 .global _main_Zomain_Zddisplay
 _main_Zomain_Zddisplay:
 Lblk24:
-    sub sp, sp, #16
-    stp fp, lr, [sp, #16]
-    add fp, sp, #0
+    sub sp, sp, #64
+    stp fp, lr, [sp, #48]
+    add fp, sp, #48
+    stur x0, [fp, #-40]
+    sub x0, fp, #40
     bl _yalx_Zplang_Zolang_Zdprintln_stub
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #16]
-    add sp, sp, #16
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
     ret
 _yalx_Zplang_Zolang_Zd_Z4init:
     ret

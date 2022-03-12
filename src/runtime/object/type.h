@@ -33,6 +33,7 @@ struct yalx_class {
     struct yalx_str location;
     uint32_t n_annotations;
     //yalx_annotation_t *annotation;
+    void *reserved0;
     uint32_t n_fields;
     struct yalx_class_field *fields;
     struct yalx_class_method *ctor;
