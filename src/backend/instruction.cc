@@ -66,7 +66,8 @@ bool InstructionOperand::Equals(const InstructionOperand *other) const {
         case kReloaction: {
             auto lhs = AsReloaction();
             auto rhs = other->AsReloaction();
-            return lhs->label() == rhs->label() && lhs->symbol_name() == rhs->symbol_name();
+            return lhs->label() == rhs->label() && lhs->symbol_name() == rhs->symbol_name() &&
+                lhs->fetch_address() == rhs->fetch_address();
         } break;
         default:
             UNREACHABLE();

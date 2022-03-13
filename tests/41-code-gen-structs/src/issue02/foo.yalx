@@ -4,6 +4,7 @@ package issue02
 fun issue1() {
     val foo = Foo(1, 2, "name")
     val i = foo.x + foo.y
+    display(foo.name)
 }
 
 struct Foo(val x: int, val y: int, val name: string) {

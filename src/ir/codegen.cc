@@ -248,6 +248,10 @@ public:
             if (!ctor) {
                 return -1;
             }
+//            printd("%s", ctor->full_name()->data());
+//            if (node->IsStructDefinition()) {
+//                FixupStructConstructor(ctor->prototype());
+//            }
             clazz->set_constructor(ctor);
             Model::Method method {
                 .fun = ctor,
@@ -265,6 +269,15 @@ public:
         clazz->UpdatePlacementSizeInBytes();
         return Returning(Unit());
     }
+    
+//    void FixupStructConstructor(PrototypeModel *proto) {
+//        auto this_ty = proto->param(0);
+//        if (this_ty.kind() == Type::kValue && !this_ty.IsPointer()) {
+//            printd("hit");
+//        } else {
+//            printd("noop");
+//        }
+//    }
     
     int VisitObjectDeclaration(cpl::ObjectDeclaration *node) override {
         SourcePositionTable::Scope ss_root(CURRENT_SOUCE_POSITION(node));
@@ -471,15 +484,21 @@ public:
             auto self = DCHECK_NOTNULL(args[0]->type().model());
             if (self->declaration() == Model::kInterface) {
                 op = ops()->CallAbstract(handle, 1/*value_out*/, value_in);
-            } else if (self->declaration() == Model::kClass) {
+            } else if (self->declaration() == Model::kClass ||
+                       self->declaration() == Model::kStruct) {
+//                if (self->declaration() == Model::kStruct && !args[0]->type().IsPointer()) {
+//                    args[0] = b()->NewNode(root_ss.Position(), Type::Val(args[0]->type().model(), true),
+//                                           ops()->LoadAddress(), args[0]);
+//                }
                 if (down_cast<StructureModel>(self)->In_vtab(handle)) {
                     op = ops()->CallVirtual(handle, 1/*value_out*/, value_in);
                 } else {
                     op = ops()->CallHandle(handle, 1/*value_out*/, value_in);
                 }
             } else {
-                assert(self->declaration() == Model::kStruct);
-                op = ops()->CallHandle(handle, 1/*value_out*/, value_in);
+                UNREACHABLE();
+//                assert(self->declaration() == Model::kStruct);
+//                op = ops()->CallHandle(handle, 1/*value_out*/, value_in);
             }
             
             std::vector<Value *> results;
@@ -527,6 +546,9 @@ public:
                 type = Type::Ref(clazz);
             }
             auto ob = b()->NewNode(root_ss.Position(), type, op);
+            if (clazz->constraint() == Model::kVal) {
+                ob = b()->NewNode(root_ss.Position(), Type::Val(clazz, true), ops()->LoadAddress(), ob);
+            }
             
             auto proto = clazz->constructor()->prototype();
             auto value_in = static_cast<int>(proto->params_size());

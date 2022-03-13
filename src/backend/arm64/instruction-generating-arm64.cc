@@ -16,6 +16,7 @@
 #include "base/lazy-instance.h"
 #include "base/arena-utils.h"
 #include "base/format.h"
+#include "base/io.h"
 
 namespace yalx {
 namespace backend {
@@ -741,6 +742,28 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             Move(opd, rel, instr->type());
         } break;
             
+        case ir::Operator::kLoadAddress: {
+            auto input = Allocate(instr->InputValue(0), kAny);
+            if (input->IsRegister()) {
+                operands_.Associate(instr, input);
+                return;
+            }
+            auto opd = Allocate(instr, kMoR);
+            if (auto loc = input->AsLocation()) {
+                assert(loc->mode() == Arm64Mode_MRI);
+                auto bp = new (arena_) RegisterOperand(loc->register0_id(), MachineRepresentation::kWord64);
+                if (auto dest = opd->AsRegister()) {
+                    current()->NewIO(Arm64Add, dest, bp, ImmediateOperand::Word32(arena_, loc->k()));
+                } else if (auto dest = opd->AsLocation()) {
+                    auto scratch = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+                    current()->NewIO(Arm64Add, scratch, bp, ImmediateOperand::Word32(arena_, loc->k()));
+                    current()->NewIO(Arm64Str, dest, scratch);
+                } else {
+                    UNREACHABLE();
+                }
+            }
+        } break;
+            
         case ir::Operator::kStackAlloc:
             operands_.AllocateStackSlot(instr, 0, StackSlotAllocator::kFit);
             break;
@@ -754,6 +777,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             CallRuntime(instr);
             break;
             
+        case ir::Operator::kCallHandle:
         case ir::Operator::kCallDirectly:
             CallDirectly(instr);
             break;
@@ -825,15 +849,30 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         } break;
             
         default: {
+        #ifndef NDEBUG
+            ir::PrintingContext ctx(0);
+            std::string buf;
+            auto file = base::NewMemoryWritableFile(&buf);
+            base::PrintingWriter printer(file, true);
+            instr->PrintTo(&ctx, &printer);
+            printd("%s", buf.c_str());
+        #endif
             UNREACHABLE();
-//            ir::PrintingContext ctx(0);
-//            instr->PrintTo(&ctx, base::PrintingWriter *printer)
         } break;
     }
 }
 
 void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
-    auto callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
+    ir::Function *callee = nullptr;
+    //auto callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
+    if (instr->Is(ir::Operator::kCallDirectly)) {
+        callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
+    } else {
+        assert(instr->Is(ir::Operator::kCallHandle));
+        auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+        auto method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
+        callee = method->fun;
+    }
     std::vector<ir::Value *> returning_vals;
     returning_vals.push_back(instr);
     if (instr->users().size() > 0) {
@@ -896,6 +935,7 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         } else {
             if (general_index < kNumberOfGeneralArgumentsRegisters) {
                 if (saving_scope.Include(kGeneralArgumentsRegisters[general_index], true/*general*/)) {
+                    //printd("%s %d", arg->type().ToString().data(), arg->type().IsPointer());
                     auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
                                                                           kGeneralArgumentsRegisters[general_index]));
                     Move(dest, args[i], arg->type());
@@ -1527,6 +1567,9 @@ InstructionOperand *Arm64FunctionInstructionSelector::Constant(ir::Value *value,
 
 void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty) {
     assert(dest->IsRegister() || dest->IsLocation());
+    if (dest->Equals(src)) {
+        return;
+    }
     switch (ty.kind()) {
         case ir::Type::kInt8:
             MoveMachineWords(Arm64Ldrsb, Arm64Strb, dest, src, MachineRepresentation::kWord8,
