@@ -617,13 +617,6 @@ private:
                                                     IncompletableDefinition *base_of,
                                                     Calling *super_calling) {
         auto prototype = new (arena_) FunctionPrototype(arena_, false/*vargs*/, node->source_position());
-        Type *type = nullptr;
-        if (node->IsStructDefinition()) {
-            type = new (arena_) StructType(arena_, node->AsStructDefinition(), node->source_position());
-        } else {
-            type = new (arena_) ClassType(arena_, node->AsClassDefinition(), node->source_position());
-        }
-        prototype->mutable_return_types()->push_back(type);
 
         for (auto param : node->parameters()) {
             VariableDeclaration::Item *var = nullptr;
@@ -686,7 +679,7 @@ private:
         }
         
         auto ret = new (arena_) class Return(arena_, node->source_position());
-        ret->mutable_returnning_vals()->push_back(this_id);
+        //ret->mutable_returnning_vals()->push_back(unit_);
         body->mutable_statements()->push_back(ret);
         return fun;
     }
@@ -1010,7 +1003,7 @@ private:
             if (!ast) {
                 return -1;
             }
-            if (ast->IsClassDefinition() || ast->IsStructDefinition()) {
+            if (ast->IsClassDefinition() || ast->IsStructDefinition()) { // Is call constructor
                 auto def = down_cast<IncompletableDefinition>(ast);
                 std::vector<Type *> args;
                 for (auto arg : node->args()) {

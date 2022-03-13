@@ -535,7 +535,7 @@ public:
             std::vector<Value *> results;
             args.insert(args.begin(), ob);
             EmitCall(op, proto, std::move(args), &results, root_ss.Position());
-            return Returning(results);
+            return Returning(ob);
             
         }
         UNREACHABLE();
@@ -1108,7 +1108,69 @@ public:
     int VisitOr(cpl::Or *node) override { UNREACHABLE(); }
     int VisitAnd(cpl::And *node) override { UNREACHABLE(); }
     
-    int VisitDot(cpl::Dot *node) override { UNREACHABLE(); }
+    int VisitDot(cpl::Dot *node) override {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        Symbol symbol = Symbol::NotFound();
+        if (auto id = node->primary()->AsIdentifier()) {
+            auto file_scope = location_->NearlyFileUnitScope();
+            symbol = file_scope->FindExportSymbol(id->name()->ToSlice(), node->field()->ToSlice());
+        }
+        Value *val = nullptr;
+        if (symbol.IsFound()) {
+            assert(symbol.owns->IsFileUnitScope());
+            switch (symbol.kind) {
+                case Symbol::kValue:
+                    val = b()->NewNode(root_ss.Position(), symbol.core.value->type(), ops()->LoadGlobal(),
+                                       symbol.core.value);
+                    break;
+                case Symbol::kFun:
+                    UNREACHABLE(); // TODO: closure
+                    break;
+                case Symbol::kHandle: // TODO: closure
+                    UNREACHABLE();
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } else {
+            Value *primary = nullptr;
+            if (ReduceReturningOnlyOne(node->primary(), &primary) < 0) {
+                return -1;
+            }
+            auto model = GetTypeSpecifiedModel(primary->type());
+            auto handle = DCHECK_NOTNULL(model->FindMemberOrNull(node->field()->ToSlice()));
+            if (handle->IsField())  {
+                Operator *op = nullptr;
+                if (primary->type().IsReference()) {
+                    op = ops()->LoadEffectField(handle);
+                } else if (primary->type().IsPointer()) {
+                    op = ops()->LoadAccessField(handle);
+                } else {
+                    op = ops()->LoadInlineField(handle);
+                }
+                auto field = std::get<const Model::Field *>(model->GetMember(handle));
+                val = b()->NewNode(root_ss.Position(), field->type, op, primary);
+            } else {
+                UNREACHABLE();
+                // TODO: closure
+            }
+        }
+        return Returning(val);
+    }
+    
+    Model *GetTypeSpecifiedModel(const Type &type) {
+        switch (type.kind()) {
+            case Type::kValue:
+            case Type::kString:
+            case Type::kReference:
+                return type.model();
+            default:
+                UNREACHABLE(); // TODO:
+                break;
+        }
+    }
+    
     int VisitNot(cpl::Not *node) override { UNREACHABLE(); }
     
     int VisitRecv(cpl::Recv *node) override { UNREACHABLE(); }

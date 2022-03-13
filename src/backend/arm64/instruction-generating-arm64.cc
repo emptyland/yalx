@@ -11,6 +11,7 @@
 #include "ir/runtime.h"
 #include "ir/node.h"
 #include "ir/type.h"
+#include "ir/utils.h"
 #include "runtime/runtime.h"
 #include "base/lazy-instance.h"
 #include "base/arena-utils.h"
@@ -740,6 +741,10 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             Move(opd, rel, instr->type());
         } break;
             
+        case ir::Operator::kStackAlloc:
+            operands_.AllocateStackSlot(instr, 0, StackSlotAllocator::kFit);
+            break;
+            
         case ir::Operator::kClosure: {
             // TODO:
             UNREACHABLE();
@@ -819,9 +824,11 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             current()->New(ArchRet);
         } break;
             
-        default:
+        default: {
             UNREACHABLE();
-            break;
+//            ir::PrintingContext ctx(0);
+//            instr->PrintTo(&ctx, <#base::PrintingWriter *printer#>)
+        } break;
     }
 }
 

@@ -1,5 +1,11 @@
 package issue02
 
+
+fun issue1() {
+    val foo = Foo(1, 2, "name")
+    val i = foo.x + foo.y
+}
+
 struct Foo(val x: int, val y: int, val name: string) {
     fun doIt() -> display(name)
     fun doThat() -> display("doThat")
