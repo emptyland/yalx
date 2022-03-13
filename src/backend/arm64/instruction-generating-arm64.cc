@@ -827,7 +827,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         default: {
             UNREACHABLE();
 //            ir::PrintingContext ctx(0);
-//            instr->PrintTo(&ctx, <#base::PrintingWriter *printer#>)
+//            instr->PrintTo(&ctx, base::PrintingWriter *printer)
         } break;
     }
 }
