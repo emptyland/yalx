@@ -125,6 +125,14 @@ private:
         }
     }
     
+    void DestinyDead(ir::Value *value, int ir_position) {
+        if (auto iter = live_ranges_.find(value); iter != live_ranges_.end()) {
+            if (iter->second.stop_position < ir_position) {
+                iter->second.stop_position = ir_position;
+            }
+        }
+    }
+    
     struct RegisterRecord {
         RegisterOperand    *opd;
         InstructionOperand *bak;

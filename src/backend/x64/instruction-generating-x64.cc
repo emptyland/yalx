@@ -147,7 +147,7 @@ struct X64RegisterConfigurationInitializer {
 struct X64StackConfigurationInitializer {
     static StackConfiguration *New(void *chunk) {
         return new (chunk) StackConfiguration(X64Mode_MRI,
-                                              32, // saved size
+                                              0, // saved size
                                               4,  // slot alignment size
                                               16, // stack alignment size
                                               rbp.code(),
@@ -603,6 +603,64 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             UNREACHABLE();
         } break;
             
+        case ir::Operator::kStoreAccessField:
+        case ir::Operator::kStoreInlineField: {
+            auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+            assert(handle->IsField());
+            auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+            //auto opd = Allocate(instr, kAny);
+            
+            auto opd = Allocate(instr->InputValue(0), kMoR);
+            auto value = Allocate(instr->InputValue(1), kAny);
+            if (auto reg = opd->AsRegister()) {
+                auto loc = new (arena_) LocationOperand(X64Mode_MRI, reg->register_id(), -1, field->offset);
+                Move(loc, value, instr->InputValue(1)->type());
+            } else if (auto mem = opd->AsLocation()) {
+                assert(mem->mode() == X64Mode_MRI);
+                auto loc = new (arena_) LocationOperand(X64Mode_MRI, mem->register0_id(), -1, field->offset);
+                Move(loc, value, instr->InputValue(1)->type());
+            }
+            operands_.Associate(instr, opd);
+        } break;
+            
+        case ir::Operator::kLoadAccessField:
+        case ir::Operator::kLoadInlineField: {
+            auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+            assert(handle->IsField());
+            auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+            
+            auto opd = Allocate(instr->InputValue(0), kMoR);
+            auto value = Allocate(instr, kAny);
+            if (auto reg = opd->AsRegister()) {
+                auto loc = new (arena_) LocationOperand(X64Mode_MRI, reg->register_id(), -1, field->offset);
+                Move(value, loc, field->type);
+            } else if (auto mem = opd->AsLocation()) {
+                assert(mem->mode() == X64Mode_MRI);
+                auto loc = new (arena_) LocationOperand(X64Mode_MRI, mem->register0_id(), -1, field->offset);
+                Move(value, loc, field->type);
+            }
+        } break;
+            
+        case ir::Operator::kLoadAddress: {
+            assert(instr->type().IsPointer());
+            auto input = Allocate(instr->InputValue(0), kAny);
+            if (input->IsRegister()) {
+                auto opd = Allocate(instr, kAny);
+                current()->NewIO(X64Movq, opd, input);
+            } else if (input->IsLocation()) {
+                auto opd = Allocate(instr, kAny);
+                if (opd->IsRegister()) {
+                    current()->NewIO(X64Lea, opd, input);
+                } else{
+                    auto scratch = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+                    current()->NewIO(X64Lea, scratch, input);
+                    Move(opd, scratch, ir::Types::Word64);
+                }
+            } else {
+                UNREACHABLE();
+            }
+        } break;
+            
         case ir::Operator::kICmp: {
             auto lhs = Allocate(instr->InputValue(0), kMoR);
             auto rhs = Allocate(instr->InputValue(1), MatchPolicy(lhs));
@@ -694,16 +752,21 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             auto opd = Allocate(instr, kAny);
             Move(opd, rel, instr->type());
         } break;
+
+        case ir::Operator::kStackAlloc:
+            operands_.AllocateStackSlot(instr, 0, StackSlotAllocator::kFit);
+            break;
             
         case ir::Operator::kClosure: {
             // TODO:
             UNREACHABLE();
         } break;;
-            
+
         case ir::Operator::kCallRuntime:
             CallRuntime(instr);
             break;
-            
+        
+        case ir::Operator::kCallHandle:
         case ir::Operator::kCallDirectly:
             CallDirectly(instr);
             break;
@@ -792,12 +855,20 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
 // --------------
 //    saved RBP   | 0
 // --------------
-void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
-    auto callee = ir::OperatorWith<ir::Function *>::Data(val->op());
+void X64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
+    ir::Function *callee = nullptr;
+    if (instr->Is(ir::Operator::kCallDirectly)) {
+        callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
+    } else {
+        assert(instr->Is(ir::Operator::kCallHandle));
+        auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+        auto method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
+        callee = method->fun;
+    }
     std::vector<ir::Value *> returning_vals;
-    returning_vals.push_back(val);
-    if (val->users().size() > 0) {
-        for (auto edge : val->users()) {
+    returning_vals.push_back(instr);
+    if (instr->users().size() > 0) {
+        for (auto edge : instr->users()) {
             if (edge.user->Is(ir::Operator::kReturningVal)) {
                 returning_vals.push_back(edge.user);
             }
@@ -812,8 +883,8 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
     RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
     size_t overflow_args_size = 0;
     int general_index = 0, float_index = 0;
-    for (int i = 0; i < val->op()->value_in(); i++) {
-        auto arg = val->InputValue(i);
+    for (int i = 0; i < instr->op()->value_in(); i++) {
+        auto arg = instr->InputValue(i);
         const auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
@@ -838,8 +909,8 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
     saving_scope.SaveAll();
 
     general_index = 0, float_index = 0;
-    for (int i = 0; i < val->op()->value_in(); i++) {
-        auto arg = val->InputValue(i);
+    for (int i = 0; i < instr->op()->value_in(); i++) {
+        auto arg = instr->InputValue(i);
         auto opd = Allocate(arg, kAny);
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
@@ -865,10 +936,17 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *val) {
     }
     
     auto current_stack_size = operands_.slots()->stack_size();
+    bool first = true;
     for (auto rv : returning_vals) {
-        if (rv->type().kind() != ir::Type::kVoid) {
-            operands_.AllocateStackSlot(rv, 0/*padding_size*/, StackSlotAllocator::kLinear);
+        if (rv->type().kind() == ir::Type::kVoid) {
+            continue;
         }
+        size_t padding_size = 0;
+        if (first) {
+            padding_size = RoundUp(current_stack_size, kStackConf->stack_alignment_size()) - current_stack_size;
+            first = false;
+        }
+        operands_.AllocateStackSlot(rv, padding_size, StackSlotAllocator::kLinear);
     }
     
     if (overflow_args_size > 0) {
@@ -1414,6 +1492,9 @@ InstructionOperand *X64FunctionInstructionSelector::Constant(ir::Value *value) {
 
 void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty) {
     assert(dest->IsRegister() || dest->IsLocation());
+    if (dest->Equals(src)) {
+        return;
+    }
     switch (ty.kind()) {
         case ir::Type::kInt8:
         case ir::Type::kUInt8:
@@ -1507,7 +1588,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
                 }
                 return;
             }
-            
+
             // TODO:
             UNREACHABLE();
         } break;

@@ -864,7 +864,6 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
 
 void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     ir::Function *callee = nullptr;
-    //auto callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
     if (instr->Is(ir::Operator::kCallDirectly)) {
         callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
     } else {
@@ -949,8 +948,6 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     auto current_stack_size = operands_.slots()->stack_size();
     bool first = true;
     for (auto rv : returning_vals) {
-    //for (auto i = 0; i < returning_vals.size(); i++) {
-        //auto rv = returning_vals[i];
         if (rv->type().kind() == ir::Type::kVoid) {
             continue;
         }

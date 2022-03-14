@@ -1,6 +1,6 @@
 package issue02
 
-
+@yalx.Compiler(nativeHandle=true)
 fun issue1() {
     val foo = Foo(1, 2, "name")
     val i = foo.x + foo.y

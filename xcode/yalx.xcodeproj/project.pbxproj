@@ -65,6 +65,7 @@
 		23667C3127B2532E00612546 /* machine-type.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23667C3027B2532E00612546 /* machine-type.cc */; };
 		23667C3227B2532E00612546 /* machine-type.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23667C3027B2532E00612546 /* machine-type.cc */; };
 		236C1FD827BD17CC009C93B2 /* issue-01-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 236C1FD727BD17CC009C93B2 /* issue-01-posix-x64.s */; };
+		236C793327DEF56A0037FB13 /* issue-02-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 236C793227DEF56A0037FB13 /* issue-02-posix-x64.s */; };
 		236CC7B627BF383F00754BC0 /* hash-table.c in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B527BF383F00754BC0 /* hash-table.c */; };
 		236CC7B727BF383F00754BC0 /* hash-table.c in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B527BF383F00754BC0 /* hash-table.c */; };
 		236CC7B927BF754D00754BC0 /* hash-table-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B827BF754D00754BC0 /* hash-table-test.cc */; };
@@ -377,6 +378,7 @@
 		23667C2D27B235D700612546 /* operand-allocator-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "operand-allocator-test.cc"; path = "../src/backend/operand-allocator-test.cc"; sourceTree = "<group>"; };
 		23667C3027B2532E00612546 /* machine-type.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "machine-type.cc"; path = "../src/backend/machine-type.cc"; sourceTree = "<group>"; };
 		236C1FD727BD17CC009C93B2 /* issue-01-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-01-posix-x64.s"; path = "../src/backend/x64/issue-01-posix-x64.s"; sourceTree = "<group>"; };
+		236C793227DEF56A0037FB13 /* issue-02-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-02-posix-x64.s"; path = "../src/backend/x64/issue-02-posix-x64.s"; sourceTree = "<group>"; };
 		236CC7B427BF343C00754BC0 /* hash-table.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "hash-table.h"; path = "../src/runtime/hash-table.h"; sourceTree = "<group>"; };
 		236CC7B527BF383F00754BC0 /* hash-table.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "hash-table.c"; path = "../src/runtime/hash-table.c"; sourceTree = "<group>"; };
 		236CC7B827BF754D00754BC0 /* hash-table-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "hash-table-test.cc"; path = "../src/runtime/hash-table-test.cc"; sourceTree = "<group>"; };
@@ -565,6 +567,7 @@
 				23C1345C27A4DD8400C0DEB4 /* instruction-generating-x64.h */,
 				23C1346327A4EFD800C0DEB4 /* instruction-codes-x64.h */,
 				236C1FD727BD17CC009C93B2 /* issue-01-posix-x64.s */,
+				236C793227DEF56A0037FB13 /* issue-02-posix-x64.s */,
 			);
 			name = X64;
 			sourceTree = "<group>";
@@ -1163,6 +1166,7 @@
 				233236E2269ECAFA0078406C /* node-test.cc in Sources */,
 				23C1345627A3F23C00C0DEB4 /* constants-pool-test.cc in Sources */,
 				23D5A68D2667861900635ADB /* boot-posix-x64.s in Sources */,
+				236C793327DEF56A0037FB13 /* issue-02-posix-x64.s in Sources */,
 				23FA86AD26A26CC9001CC777 /* scope-test.cc in Sources */,
 				23D5A65E266718ED00635ADB /* all-tests.cc in Sources */,
 			);

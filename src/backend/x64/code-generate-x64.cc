@@ -247,22 +247,22 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             
         case X64Cmp8:
             printer()->Write("cmpb ");
-            EmitOperands(instr->InputAt(1), instr->InputAt(0));
+            EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
             
         case X64Cmp16:
             printer()->Write("cmpw ");
-            EmitOperands(instr->InputAt(1), instr->InputAt(0));
+            EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
             
         case X64Cmp32:
             printer()->Write("cmpl ");
-            EmitOperands(instr->InputAt(1), instr->InputAt(0));
+            EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
             
         case X64Cmp:
             printer()->Write("cmpq ");
-            EmitOperands(instr->InputAt(1), instr->InputAt(0));
+            EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
             
         case X64Ja:

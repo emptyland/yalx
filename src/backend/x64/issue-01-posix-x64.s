@@ -105,7 +105,7 @@ Lblk5:
     addq $16, %rsp
     callq _main_Zomain_Zddoo
     subq $16, %rsp
-    movl -48(%rbp), %r13d
+    movl -52(%rbp), %r13d
     movl %r13d, 28(%rbp)
     addq $64, %rsp
     popq %rbp
@@ -115,17 +115,17 @@ _main_Zomain_Zdissue4:
 Lblk6:
     pushq %rbp
     movq %rsp, %rbp
-    subq $48, %rsp
+    subq $80, %rsp
     movl %edi, %eax
     addl %esi, %eax
     movl %eax, -36(%rbp)
     movl -36(%rbp), %edx
-    addq $0, %rsp
+    addq $32, %rsp
     callq _main_Zomain_Zddoo
-    subq $0, %rsp
-    movl -40(%rbp), %r13d
+    subq $32, %rsp
+    movl -52(%rbp), %r13d
     movl %r13d, 28(%rbp)
-    addq $48, %rsp
+    addq $80, %rsp
     popq %rbp
     retq
 .global _main_Zomain_Zdissue5
@@ -146,20 +146,20 @@ _main_Zomain_Zdissue6:
 Lblk8:
     pushq %rbp
     movq %rsp, %rbp
-    subq $64, %rsp
-    cmpl %edi, %esi
+    subq $80, %rsp
+    cmpl %esi, %edi
     jle Lblk10
 Lblk9:
     movl %eax, -36(%rbp)
     movl %esi, -40(%rbp)
     movl %edi, -44(%rbp)
-    addq $0, %rsp
+    addq $16, %rsp
     callq _main_Zomain_Zdissue5
-    subq $0, %rsp
+    subq $16, %rsp
     movl -36(%rbp), %eax
     movl -40(%rbp), %ecx
     movl -44(%rbp), %edx
-    movl -48(%rbp), %esi
+    movl -52(%rbp), %esi
     addl %edx, %esi
     movl %esi, %edx
     addl %ecx, %edx
@@ -172,7 +172,7 @@ Lblk10:
     nop
 Lblk11:
     movl %eax, 28(%rbp)
-    addq $64, %rsp
+    addq $80, %rsp
     popq %rbp
     retq
 .global _main_Zomain_Zdissue6_had
@@ -245,7 +245,7 @@ Lblk20:
     pushq %rbp
     movq %rsp, %rbp
     subq $32, %rsp
-    cmpl %edi, %esi
+    cmpl %esi, %edi
     setl %al
     movb %al, 28(%rbp)
     addq $32, %rsp

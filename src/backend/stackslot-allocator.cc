@@ -24,7 +24,9 @@ StackSlotAllocator::StackSlotAllocator(const StackConfiguration *conf, base::Are
 , max_stack_size_(conf->saved_size())
 , stack_size_(conf->saved_size()) {
     UpdateStackSize(0);
-    MarkUsed(0, conf_->saved_size());
+    if (conf_->saved_size() > 0) {
+        MarkUsed(0, conf_->saved_size());
+    }
 }
 
 LocationOperand *StackSlotAllocator::AllocateValSlot(size_t size, size_t padding_size, Policy policy, ir::Model *model) {

@@ -21,6 +21,7 @@ OperandAllocator::OperandAllocator(const StackConfiguration *sconf,
 
 void OperandAllocator::Prepare(ir::Function *fun) {
     int position = 0;
+    std::map<ir::Value *, ir::Value *> ptr_associated_vals;
     for (auto blk : fun->blocks()) {
         for (auto user : blk->phi_node_users()) {
             Alive(user.phi, position);
@@ -31,6 +32,16 @@ void OperandAllocator::Prepare(ir::Function *fun) {
             }
             for (int i = 0; i < instr->op()->value_in(); i++) {
                 Alive(instr->InputValue(i), position);
+            }
+            // special process pointer operator
+            if (instr->Is(ir::Operator::kStackAlloc)) {
+                if (instr->users().size() > 0) {
+                    for (auto used : instr->users()) {
+                        if (used.user->Is(ir::Operator::kLoadAddress)) {
+                            ptr_associated_vals[used.user] = instr;
+                        }
+                    }
+                }
             }
             position++;
         }
@@ -43,9 +54,23 @@ void OperandAllocator::Prepare(ir::Function *fun) {
             if (instr->type().kind() != ir::Type::kVoid) {
                 Dead(instr, position);
             }
+            
+        #define PROCESS_PTR_ASSOCIATED_VAL(val) \
+            if ((val)->Is(ir::Operator::kLoadAddress)) { \
+                if (auto iter = ptr_associated_vals.find((val)); iter != ptr_associated_vals.end()) { \
+                    DestinyDead(iter->second, position); \
+                } \
+            }
             for (int k = 0; k < instr->op()->value_in(); k++) {
                 Dead(instr->InputValue(k), position);
+                // special process pointer operator
+                PROCESS_PTR_ASSOCIATED_VAL(instr->InputValue(k));
             }
+            // special process pointer operator
+            PROCESS_PTR_ASSOCIATED_VAL(instr);
+            
+        #undef PROCESS_PTR_ASSOCIATED_VAL
+
             position--;
         }
     }
@@ -467,16 +492,6 @@ void RegisterSavingScope::SaveAll() {
         if (general_exclude_.find(rid) != general_exclude_.end()) {
             continue;
         }
-        
-//        LocationOperand *bak = nullptr;
-//        if (!rd.val) {
-//            bak = allocator_->AllocateStackSlot(OperandAllocator::kVal, kPointerSize, StackSlotAllocator::kFit);
-//            moving_delegate_->MoveTo(bak, rd.opd, ir::Types::Word64);
-//        } else {
-//            bak = allocator_->AllocateStackSlot(rd.val->type(), StackSlotAllocator::kFit);
-//            moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
-//        }
-        //moving_delegate_->MoveTo(bak, rd.opd, rd.val);
         auto bak = allocator_->AllocateStackSlot(DCHECK_NOTNULL(rd.val)->type(), 0/*padding_size*/,
                                                  StackSlotAllocator::kFit);
         moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());

@@ -4,6 +4,7 @@
 #include "backend/instruction.h"
 #include "compiler/compiler.h"
 #include "ir/base-test.h"
+#include "ir/node.h"
 #include "base/io.h"
 #include "runtime/object/yalx-string.h"
 #include "runtime/heap/heap.h"
@@ -30,13 +31,16 @@ public:
         base::ArenaMap<std::string_view, backend::InstructionFunction *> funs(arena());
         cpl::Compiler::SelectX64InstructionCode(arena(), modules[name], &const_pool_, &symbols_, 1, &funs);
         cpl::Compiler::GenerateX64InstructionCode(funs, modules[name], &const_pool_, &symbols_, printer);
+        
+        std::string buf;
+        base::PrintingWriter pp(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+        modules[name]->PrintTo(&pp);
+        printf("%s\n", buf.data());
     }
 protected:
     ConstantsPool const_pool_;
     LinkageSymbols symbols_;
 }; // class X64InstructionGeneratorTest
-
-#ifdef YALX_ARCH_X64
 
 extern "C" {
 void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
@@ -50,15 +54,25 @@ void issue9_stub(i32_t a, yalx_str_handle s) {
 }
 void main_Zomain_Zdmain_had();
 void main_Zomain_Zdissue6_had(i32_t a, i32_t b);
-} // extern "C"
 
-#endif // YALX_ARCH_X64
+void issue02_Zoissue02_Zd_Z4init();
+void issue02_Zoissue02_Zdissue1_had();
+} // extern "C"
 
 TEST_F(X64CodeGeneratorTest, Sanity) {
     std::string buf;
     base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
     bool ok = true;
     CodeGen("tests/40-code-gen-sanity", "main:main", &printer, &ok);
+    ASSERT_TRUE(ok);
+    printf("%s\n", buf.c_str());
+}
+
+TEST_F(X64CodeGeneratorTest, StructsGenerating) {
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    CodeGen("tests/41-code-gen-structs", "issue02:issue02", &printer, &ok);
     ASSERT_TRUE(ok);
     printf("%s\n", buf.c_str());
 }
@@ -95,13 +109,18 @@ TEST_F(X64CodeGeneratorTest, CallNativeHandle) {
     
     main_Zomain_Zdmain_had();
     
-    main_Zomain_Zdissue6_had(1,2);
+    main_Zomain_Zdissue6_had(1, 2);
     ASSERT_EQ(-1, vals[3]);
     
-    main_Zomain_Zdissue6_had(2,1);
+    main_Zomain_Zdissue6_had(2, 1);
     ASSERT_EQ(4, vals[3]);
     
     yalx_exit_returning_scope(&state);
+}
+
+TEST_F(X64CodeGeneratorTest, StackAllocStruct) {
+    pkg_init_once(reinterpret_cast<void *>(&issue02_Zoissue02_Zd_Z4init), "issue02:issue02");
+    issue02_Zoissue02_Zdissue1_had();
 }
 
 #endif // YALX_ARCH_X64
