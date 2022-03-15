@@ -698,143 +698,20 @@ X64CodeGenerator::X64CodeGenerator(const base::ArenaMap<std::string_view, Instru
                                    ConstantsPool *const_pool,
                                    LinkageSymbols *symbols,
                                    base::PrintingWriter *printer)
-: funs_(funs)
-, module_(module)
-, const_pool_(const_pool)
-, symbols_(symbols)
-, printer_(printer) {
-
+: GnuAsmGenerator(funs, module, const_pool, symbols, printer) {
+    set_comment("#");
+    set_text_p2align("4, 0x90");
 }
 
-void X64CodeGenerator::EmitAll() {
-    printer_->Writeln(".section __TEXT,__text,regular,pure_instructions");
-#ifdef YALX_OS_DARWIN
-    printer_->Writeln(".build_version macos, 11, 0 sdk_version 12, 1");
-#endif // YALX_OS_DARWIN
-    printer_->Writeln("# libc symbols:");
-    printer_->Writeln(".global _memcpy,_memset");
+X64CodeGenerator::~X64CodeGenerator() {}
+
+void X64CodeGenerator::EmitFunction(InstructionFunction *fun) {
+    FunctionGenerator gen(this, fun);
+    gen.EmitAll();
     
-    for (size_t i = 0; i < module_->source_position_table().file_names_size(); i++) {
-        auto file_name = module_->source_position_table().file_name(i);
-        auto begin = file_name->data();
-        auto end   = file_name->data() + file_name->size();
-        std::string_view dir("./");
-        std::string_view name = file_name->ToSlice();
-        for (auto p = end - 1; p >= begin; p--) {
-            if (*p == '/' || *p == '\\') {
-                name = std::string_view(p + 1);
-                dir  = std::string_view(begin, p - begin);
-                break;
-            }
-        }
-        printer_->Print(".file %zd ", i+1)
-        ->Write("\"")->Write(dir)->Write("\"")
-        ->Write(" ")
-        ->Write("\"")->Write(name)->Writeln("\"");
-    }
-    
-    printer_->Writeln(".p2align 4, 0x90")->Write("\n")->Writeln("# functions");
-    for (auto fun : module_->funs()) {
-        auto iter = funs_.find(fun->full_name()->ToSlice());
-        assert(iter != funs_.end());
-        
-        FunctionGenerator gen(this, iter->second);
-        gen.EmitAll();
-        
-        if (iter->second->native_handle()) {
-            FunctionGenerator g2(this, iter->second->native_handle());
-            g2.EmitAll();
-        }
-    }
-    
-    for (auto clazz : module_->structures()) {
-        for (auto method : clazz->methods()) {
-            auto iter = funs_.find(method.fun->full_name()->ToSlice());
-            assert(iter != funs_.end());
-            
-            FunctionGenerator gen(this, iter->second);
-            gen.EmitAll();
-            
-            if (iter->second->native_handle()) {
-                FunctionGenerator g2(this, iter->second->native_handle());
-                g2.EmitAll();
-            }
-        }
-    }
-        
-    // string constants:
-    if (!const_pool_->string_pool().empty()) {
-        printer_->Writeln("# CString constants");
-        printer_->Writeln(".section __TEXT,__cstring,cstring_literals");
-        for (size_t i = 0; i < const_pool_->string_pool().size(); i++) {
-            auto kval = const_pool_->string_pool()[i];
-            printer_->Println("Lkzs.%zd:", i);
-            // TODO process unicode
-            printer_->Indent(1)->Println(".asciz \"%s\"", kval->data());
-        }
-    }
-    
-    if (!const_pool_->numbers().empty()) {
-        printer_->Writeln("# Number constants");
-        printer_->Writeln(".section __TEXT,__const");
-        printer_->Writeln(".p2align 4");
-        
-        // "Knnn.%zd"
-        for (const auto &[slot, id] : const_pool_->numbers()) {
-            printer_->Println("Knnn.%zd:", id)->Indent(1);
-            switch (slot.kind) {
-                case MachineRepresentation::kWord8:
-                    printer_->Println(".byte %" PRId8, slot.value<int8_t>());
-                    break;
-                case MachineRepresentation::kWord16:
-                    printer_->Println(".short %" PRId16, slot.value<int16_t>());
-                    break;
-                case MachineRepresentation::kWord32:
-                    printer_->Println(".long %" PRId32, slot.value<int16_t>());
-                    break;
-                case MachineRepresentation::kFloat32:
-                    printer_->Println(".long 0x%08" PRIx32 "    # float.%f", slot.value<uint32_t>(),
-                                      slot.value<float>());
-                    break;
-                case MachineRepresentation::kWord64:
-                    printer_->Println(".long %" PRId64, slot.value<int64_t>());
-                    break;
-                case MachineRepresentation::kFloat64:
-                    printer_->Println(".long 0x%016" PRIx64 "    # double.%f", slot.value<uint64_t>(),
-                                      slot.value<double>());
-                    break;
-                default:
-                    UNREACHABLE();
-                    break;
-            }
-        }
-    }
-    
-    // TODO: Classes metadata
-    
-    
-    printer_->Writeln(".section __DATA,__data");
-    printer_->Writeln(".p2align 4");
-    
-    if (!const_pool_->string_pool().empty()) {
-        printer_->Writeln("# Yalx-String constants");
-        auto symbol = symbols_->Mangle(module_->full_name());
-        printer_->Println(".global %s_Lksz", symbol->data());
-        printer_->Println("%s_Lksz:", symbol->data());
-        printer_->Indent(1)->Println(".long %zd", const_pool_->string_pool().size());
-        printer_->Indent(1)->Writeln(".long 0 # padding for struct lksz_header");
-        for (size_t i = 0; i < const_pool_->string_pool().size(); i++) {
-            printer_->Indent(1)->Println(".quad Lkzs.%zd", i);
-        }
-        
-        printer_->Println(".global %s_Kstr", symbol->data());
-        printer_->Println("%s_Kstr:", symbol->data());
-        printer_->Indent(1)->Println(".long %zd", const_pool_->string_pool().size());
-        printer_->Indent(1)->Writeln(".long 0 # padding for struct kstr_header");
-        for (size_t i = 0; i < const_pool_->string_pool().size(); i++) {
-            printer_->Println("Kstr.%zd:", i);
-            printer_->Indent(1)->Println(".quad 0", i);
-        }
+    if (fun->native_handle()) {
+        FunctionGenerator g2(this, fun->native_handle());
+        g2.EmitAll();
     }
 }
 

@@ -193,6 +193,8 @@ public:
     DEF_ARENA_VECTOR_GETTER(InterfaceModel *, interface);
     DEF_ARENA_VECTOR_GETTER(Field, field);
     DEF_ARENA_VECTOR_GETTER(Method, method);
+    const base::ArenaVector<Handle *> &vtab() const { return vtab_; }
+    const base::ArenaVector<Handle *> &itab() const { return itab_; }
     
     const base::ArenaMap<std::string_view, Handle *> &member_handles() { return members_; }
     

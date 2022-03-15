@@ -133,6 +133,8 @@
 		23C3356F27A82DB500319862 /* stackslot-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3356D27A82DB500319862 /* stackslot-allocator.cc */; };
 		23C3543726A1B7E7006607D1 /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3543626A1B7E7006607D1 /* scope.cc */; };
 		23C3543826A1B7E7006607D1 /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C3543626A1B7E7006607D1 /* scope.cc */; };
+		23CF342527E037DC0095441B /* gnu-asm-generator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23CF342427E037DC0095441B /* gnu-asm-generator.cc */; };
+		23CF342627E037DC0095441B /* gnu-asm-generator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23CF342427E037DC0095441B /* gnu-asm-generator.cc */; };
 		23D4A4462680D17D0090C631 /* any.h in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68426676DEF00635ADB /* any.h */; };
 		23D4A4472680D17D0090C631 /* number.c in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0B26806D8B00D52154 /* number.c */; };
 		23D4A4482680D17D0090C631 /* number.h in Sources */ = {isa = PBXBuildFile; fileRef = 232FDB0A26806CDB00D52154 /* number.h */; };
@@ -449,6 +451,8 @@
 		23CAA1DD26667586000EF129 /* checking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = checking.h; path = ../src/runtime/checking.h; sourceTree = "<group>"; };
 		23CAA1DE2666790B000EF129 /* scheduler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scheduler.h; path = ../src/runtime/scheduler.h; sourceTree = "<group>"; };
 		23CAA1DF2666799F000EF129 /* scheduler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scheduler.cc; path = ../src/runtime/scheduler.cc; sourceTree = "<group>"; };
+		23CF342327E036FF0095441B /* gnu-asm-generator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "gnu-asm-generator.h"; path = "../src/backend/gnu-asm-generator.h"; sourceTree = "<group>"; };
+		23CF342427E037DC0095441B /* gnu-asm-generator.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "gnu-asm-generator.cc"; path = "../src/backend/gnu-asm-generator.cc"; sourceTree = "<group>"; };
 		23D4A43F2680D1440090C631 /* all-tests-arm64 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "all-tests-arm64"; sourceTree = BUILT_PRODUCTS_DIR; };
 		23D5A645266718B400635ADB /* all-tests-x64 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "all-tests-x64"; sourceTree = BUILT_PRODUCTS_DIR; };
 		23D5A67D26672FE000635ADB /* test-stub-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "test-stub-posix-x64.s"; path = "../src/runtime/test-stub-posix-x64.s"; sourceTree = "<group>"; };
@@ -522,6 +526,8 @@
 				23C1344827A3CE9400C0DEB4 /* instruction.h */,
 				23667C3027B2532E00612546 /* machine-type.cc */,
 				23C1344C27A3E3B400C0DEB4 /* machine-type.h */,
+				23CF342427E037DC0095441B /* gnu-asm-generator.cc */,
+				23CF342327E036FF0095441B /* gnu-asm-generator.h */,
 				23C1345527A3F23C00C0DEB4 /* constants-pool-test.cc */,
 				23C1345227A3E8CE00C0DEB4 /* constants-pool.cc */,
 				23C1345127A3E86200C0DEB4 /* constants-pool.h */,
@@ -970,6 +976,7 @@
 				23D4A4672680D17D0090C631 /* arena-utils.h in Sources */,
 				23FA869D26A01091001CC777 /* type.cc in Sources */,
 				23FA86AB26A161DF001CC777 /* codegen.cc in Sources */,
+				23CF342627E037DC0095441B /* gnu-asm-generator.cc in Sources */,
 				239735D027B551A500FAD063 /* linkage-symbols-test.cc in Sources */,
 				23D4A4682680D17D0090C631 /* arena-test.cc in Sources */,
 				231C4B90268DA7D200D4AC62 /* yalx-string-posix-arm64.s in Sources */,
@@ -1094,6 +1101,7 @@
 				23D5A673266718F900635ADB /* sha256-test.cc in Sources */,
 				23F6C24B278FC85B00899C4F /* runtime.cc in Sources */,
 				23667C3127B2532E00612546 /* machine-type.cc in Sources */,
+				23CF342527E037DC0095441B /* gnu-asm-generator.cc in Sources */,
 				23C1346127A4E30B00C0DEB4 /* instruction-test.cc in Sources */,
 				23D5A674266718F900635ADB /* sha256.c in Sources */,
 				230C47D627B6A51200312896 /* instruction-generating-x64-test.cc in Sources */,

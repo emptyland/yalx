@@ -1,7 +1,6 @@
 .section __TEXT,__text,regular,pure_instructions
 .build_version macos, 11, 0 sdk_version 12, 1
 # libc symbols:
-.global _memcpy,_memset
 .file 1 "tests/41-code-gen-structs/src/issue02" "foo.yalx"
 .p2align 4, 0x90
 
@@ -155,23 +154,169 @@ Lkzs.1:
     .asciz "yalx/lang:lang"
 Lkzs.2:
     .asciz "name"
+Lkzs.3:
+    .asciz "fun (issue02:issue02.Foo)->(void)"
+Lkzs.4:
+    .asciz "doIt"
+Lkzs.5:
+    .asciz "fun (issue02:issue02.Foo,i32,i32,string)->(void)"
+Lkzs.6:
+    .asciz "Foo$constructor"
+Lkzs.7:
+    .asciz "x"
+Lkzs.8:
+    .asciz "y"
+Lkzs.9:
+    .asciz "Foo"
+Lkzs.10:
+    .asciz "issue02:issue02.Foo"
+.section __DATA,__data
+.p2align 4
+# classes:
+.global _issue02_Zoissue02_ZdFoo$class
+_issue02_Zoissue02_ZdFoo$class:
+    .quad 0 # id
+    .byte 1 # constraint
+    .byte 0 # padding
+    .byte 0
+    .byte 0
+    .long 8 # reference_size
+    .long 32 # instance_size
+    .long 0 # padding
+    .quad 0 # super
+    .quad Lkzs.9 # name
+    .long 3 # name
+    .long 0 # padding
+    .quad Lkzs.10 # location
+    .long 19 # location
+    .long 0 # padding
+    .long 0 # n_annotations
+    .long 0 # padding
+    .quad 0 # reserved0
+    .long 3 # n_fields
+    .long 0 # padding
+    .quad _issue02_Zoissue02_ZdFoo$fields # fields
+    .quad _issue02_Zoissue02_ZdFoo$ctor # ctor
+    .long 3 # n_methods
+    .long 0 # padding
+    .quad _issue02_Zoissue02_ZdFoo$methods # methods
+    .long 0 # n_vtab
+    .long 0 # n_itab
+    .quad 0 # vtab
+    .quad 0 # itab
+_issue02_Zoissue02_ZdFoo$fields:
+    # Foo::x
+    .long 0 # access|constraint
+    .long 0 # n_annotations
+    .quad 0 # reserved0
+    .quad Lkzs.7 # name
+    .long 1 # name
+    .long 0 # padding
+    .quad 0 # type
+    .long 16 # offset_of_head
+    .long 0 # padding
+    # Foo::y
+    .long 0 # access|constraint
+    .long 0 # n_annotations
+    .quad 0 # reserved0
+    .quad Lkzs.8 # name
+    .long 1 # name
+    .long 0 # padding
+    .quad 0 # type
+    .long 20 # offset_of_head
+    .long 0 # padding
+    # Foo::name
+    .long 0 # access|constraint
+    .long 0 # n_annotations
+    .quad 0 # reserved0
+    .quad Lkzs.2 # name
+    .long 4 # name
+    .long 0 # padding
+    .quad 0 # type
+    .long 24 # offset_of_head
+    .long 0 # padding
+_issue02_Zoissue02_ZdFoo$methods:
+    # Foo::doIt
+    .long 0 # index
+    .long 0 # access|is_native|is_override|...
+    .long 0 # n_annotations
+    .long 0 # padding
+    .quad 0 # reserved0
+    .quad Lkzs.4 # name
+    .long 4 # name
+    .long 0 # padding
+    .quad Lkzs.3 # prototype_desc
+    .long 33 # prototype_desc
+    .long 0 # padding
+    .quad _issue02_Zoissue02_ZdFoo_ZddoIt # entry
+    # Foo::doThat
+    .long 1 # index
+    .long 0 # access|is_native|is_override|...
+    .long 0 # n_annotations
+    .long 0 # padding
+    .quad 0 # reserved0
+    .quad Lkzs.0 # name
+    .long 6 # name
+    .long 0 # padding
+    .quad Lkzs.3 # prototype_desc
+    .long 33 # prototype_desc
+    .long 0 # padding
+    .quad _issue02_Zoissue02_ZdFoo_ZddoThat # entry
+_issue02_Zoissue02_ZdFoo$ctor:
+    # Foo::Foo$constructor
+    .long 2 # index
+    .long 0 # access|is_native|is_override|...
+    .long 0 # n_annotations
+    .long 0 # padding
+    .quad 0 # reserved0
+    .quad Lkzs.6 # name
+    .long 15 # name
+    .long 0 # padding
+    .quad Lkzs.5 # prototype_desc
+    .long 48 # prototype_desc
+    .long 0 # padding
+    .quad _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor # entry
 .section __DATA,__data
 .p2align 4
 # Yalx-String constants
 .global _issue02_Zoissue02_Lksz
 _issue02_Zoissue02_Lksz:
-    .long 3
+    .long 11
     .long 0 # padding for struct lksz_header
     .quad Lkzs.0
     .quad Lkzs.1
     .quad Lkzs.2
+    .quad Lkzs.3
+    .quad Lkzs.4
+    .quad Lkzs.5
+    .quad Lkzs.6
+    .quad Lkzs.7
+    .quad Lkzs.8
+    .quad Lkzs.9
+    .quad Lkzs.10
 .global _issue02_Zoissue02_Kstr
 _issue02_Zoissue02_Kstr:
-    .long 3
+    .long 11
     .long 0 # padding for struct kstr_header
 Kstr.0:
     .quad 0
 Kstr.1:
     .quad 0
 Kstr.2:
+    .quad 0
+Kstr.3:
+    .quad 0
+Kstr.4:
+    .quad 0
+Kstr.5:
+    .quad 0
+Kstr.6:
+    .quad 0
+Kstr.7:
+    .quad 0
+Kstr.8:
+    .quad 0
+Kstr.9:
+    .quad 0
+Kstr.10:
     .quad 0

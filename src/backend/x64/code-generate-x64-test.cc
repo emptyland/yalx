@@ -7,10 +7,16 @@
 #include "ir/node.h"
 #include "base/io.h"
 #include "runtime/object/yalx-string.h"
+#include "runtime/object/type.h"
 #include "runtime/heap/heap.h"
 #include "runtime/process.h"
 #include "runtime/runtime.h"
 #include <gtest/gtest.h>
+#include <unistd.h>
+#if defined(YALX_OS_DARWIN)
+#include <sys/sysctl.h>
+#endif
+#include <dlfcn.h>
 
 namespace yalx {
 namespace backend {
@@ -76,6 +82,16 @@ TEST_F(X64CodeGeneratorTest, StructsGenerating) {
     ASSERT_TRUE(ok);
     printf("%s\n", buf.c_str());
 }
+
+TEST_F(X64CodeGeneratorTest, StructsMetadata) {
+    
+    yalx_class *clazz = static_cast<yalx_class *>(dlsym(RTLD_MAIN_ONLY, "issue02_Zoissue02_ZdFoo$class"));
+    ASSERT_EQ(3, clazz->n_fields);
+    ASSERT_STREQ("x", clazz->fields[0].name.z);
+    ASSERT_STREQ("y", clazz->fields[1].name.z);
+    ASSERT_STREQ("name", clazz->fields[2].name.z);
+}
+
 
 #ifdef YALX_ARCH_X64
 

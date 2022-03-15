@@ -53,6 +53,7 @@ struct yalx_class_field {
     
     uint32_t n_annotations;
     //yalx_annotation *annotation;
+    void *reserved0;
     struct yalx_str name;
     struct yalx_class *type;
     uint32_t offset_of_head;
@@ -72,6 +73,7 @@ struct yalx_class_method {
     uint32_t vtab_index: 24;
     uint32_t n_annotations;
     //yalx_annotation *annotation;
+    void *reserved0;
     struct yalx_str name;
     struct yalx_str prototype_desc;
     address_t entry;
