@@ -144,6 +144,8 @@ void associate_stub_returning_vals(struct yalx_returning_vals *state,
                                    address_t fun_addr);
 void *reserve_handle_returning_vals(u32_t size);
 
+struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz);
+
 struct coroutine *current_root();
 
 // generated entry symbol: main:main.main(): unit

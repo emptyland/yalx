@@ -519,6 +519,14 @@ void *reserve_handle_returning_vals(u32_t size) {
     return co->returning_vals->buf;
 }
 
+struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz) {
+    struct allocate_result result = yalx_heap_allocate(&heap, clazz, clazz->instance_size, 0);
+    if (result.status != ALLOCATE_OK) {
+        assert(!"TODO: throw Exception");
+        return NULL; // TODO: throw Exception
+    }
+    return result.object;
+}
 
 struct coroutine *current_root() { return thread_local_mach->running; }
 

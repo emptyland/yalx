@@ -596,11 +596,66 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
         } break;
             
         case ir::Operator::kLoadEffectField: {
-            UNREACHABLE();
+            auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+            assert(handle->IsField());
+            auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+            
+            auto opd = Allocate(instr->InputValue(0), kMoR);
+            auto value = Allocate(instr, kMoR);
+            if (auto reg = opd->AsRegister()) {
+                auto loc = new (arena_) LocationOperand(X64Mode_MRI, reg->register_id(), -1, field->offset);
+                Move(value, loc, field->type);
+            } else {
+                assert(opd->IsLocation());
+                auto mem = opd->AsLocation();
+                auto bak = operands_.Allocate(ir::Types::Word64);
+                if (auto base = bak->AsRegister()) {
+                    current()->NewIO(X64Lea, base, mem);
+                    auto loc = new (arena_) LocationOperand(X64Mode_MRI, base->register_id(), -1, field->offset);
+                    Move(value, loc, field->type);
+                    operands_.Free(bak);
+                } else {
+                    assert(bak->IsLocation());
+                    auto brd = operands_.BorrowRegister(ir::Types::Word64, bak);
+                    Move(bak, brd.target, ir::Types::Word64);
+                    borrowed_registers_.push_back(brd);
+                    current()->NewIO(X64Lea, brd.target, mem);
+                    auto loc = new (arena_) LocationOperand(X64Mode_MRI, brd.target->register_id(), -1, field->offset);
+                    Move(value, loc, field->type);
+                }
+            }
         } break;
             
-        case ir::Operator::kLoadEffectAddress: {
-            UNREACHABLE();
+        case ir::Operator::kStoreEffectField: {
+            auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+            assert(handle->IsField());
+            auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+            auto opd = Allocate(instr->InputValue(0), kMoR);
+            auto value = Allocate(instr->InputValue(1), kAny);
+            
+            if (auto reg = opd->AsRegister()) {
+                auto loc = new (arena_) LocationOperand(X64Mode_MRI, reg->register_id(), -1, field->offset);
+                Move(loc, value, instr->InputValue(1)->type());
+            } else {
+                assert(opd->IsLocation());
+                auto mem = opd->AsLocation();
+                auto bak = operands_.Allocate(ir::Types::Word64);
+                if (auto base = bak->AsRegister()) {
+                    current()->NewIO(X64Lea, base, mem);
+                    auto loc = new (arena_) LocationOperand(X64Mode_MRI, base->register_id(), -1, field->offset);
+                    Move(loc, value, field->type);
+                    operands_.Free(bak);
+                } else {
+                    assert(bak->IsLocation());
+                    auto brd = operands_.BorrowRegister(ir::Types::Word64, bak);
+                    Move(bak, brd.target, ir::Types::Word64);
+                    borrowed_registers_.push_back(brd);
+                    current()->NewIO(X64Lea, brd.target, mem);
+                    auto loc = new (arena_) LocationOperand(X64Mode_MRI, brd.target->register_id(), -1, field->offset);
+                    Move(loc, value, field->type);
+                }
+            }
+            operands_.Associate(instr, opd);
         } break;
             
         case ir::Operator::kStoreAccessField:
@@ -658,6 +713,20 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
                 }
             } else {
                 UNREACHABLE();
+            }
+        } break;
+            
+        case ir::Operator::kRefAssertedTo: {
+            auto input = instr->InputValue(0);
+            assert(input->type().IsReference());
+            assert(instr->type().IsReference());
+            auto opd = Allocate(instr, kMoR);
+            auto from_ty = input->type().model();
+            auto to_ty = instr->type().model();
+            if (from_ty == to_ty || from_ty->IsBaseOf(to_ty)) {
+                Move(opd, Allocate(input, kAny), instr->type());
+            } else {
+                UNREACHABLE(); // TODO: check it
             }
         } break;
             
@@ -756,6 +825,45 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
         case ir::Operator::kStackAlloc:
             operands_.AllocateStackSlot(instr, 0, StackSlotAllocator::kFit);
             break;
+            
+        case ir::Operator::kHeapAlloc: {
+            auto model = ir::OperatorWith<const ir::Model *>::Data(instr->op());
+
+            RegisterOperand *opd = nullptr;
+            OperandAllocator::BorrowedRecord borrowed = {nullptr,nullptr,nullptr,nullptr};
+            if (operands_.IsGeneralRegisterAlive(kRAX)) {
+                auto bak = Allocate(instr, kMoR);
+                borrowed = operands_.BorrowRegister(instr, bak);
+                Move(bak, borrowed.target, instr->type());
+                opd = borrowed.target;
+            } else {
+                opd = operands_.AllocateReigster(instr, kRAX);
+            }
+            RegisterOperand *arg0 = nullptr;
+            if (operands_.IsGeneralRegisterAlive(Argv_0.code())) {
+                auto bak = operands_.AllocateStackSlot(ir::Types::Word64, 0, StackSlotAllocator::kFit);
+                auto brd = operands_.BorrowRegister(instr, bak);
+                Move(bak, brd.target, ir::Types::Word64);
+                borrowed_registers_.push_back(brd);
+                arg0 = brd.target;
+            } else {
+                arg0 = new (arena_) RegisterOperand(Argv_0.code(), MachineRepresentation::kWord64);
+            }
+            std::string symbol;
+            LinkageSymbols::Build(&symbol, model->full_name()->ToSlice());
+            symbol.append("$class");
+            auto rel = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
+            current()->NewIO(X64Lea, arg0, rel);
+            rel = bundle()->AddExternalSymbol(kRt_heap_alloc);
+            current()->NewI(ArchCall, rel);
+            if (borrowed.target) {
+                assert(opd == borrowed.target);
+                auto scratch = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+                Move(scratch, borrowed.bak, ir::Types::Word64);
+                Move(borrowed.bak, opd, ir::Types::Word64);
+                Move(opd, scratch, ir::Types::Word64);
+            }
+        } break;
             
         case ir::Operator::kClosure: {
             // TODO:
@@ -1718,6 +1826,7 @@ void X64InstructionGenerator::GenerateFun(ir::StructureModel *owns, ir::Function
                                             optimizing_level_ > 0 /*use_registers_allocation*/);
     switch (fun->decoration()) {
         case ir::Function::kDefault:
+        case ir::Function::kOverride:
             selector.Prepare();
             selector.Run();
             funs_[fun->full_name()->ToSlice()] = selector.bundle();

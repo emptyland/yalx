@@ -12,5 +12,9 @@ struct Foo(val x: int, val y: int, val name: string) {
     fun doThat() -> display("doThat")
 }
 
+class Bar(val x: int, val y: int, val name: string) {
+    override fun toString() -> name
+}
+
 @yalx.Compiler(nativeStubName="yalx_Zplang_Zolang_Zdprintln_stub")
 native fun display(s: string)

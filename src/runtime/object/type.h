@@ -41,8 +41,8 @@ struct yalx_class {
     struct yalx_class_method *methods;
     uint32_t n_vtab;
     uint32_t n_itab;
-    struct yalx_class_method **vtab;
-    struct yalx_class_method **itab;
+    address_t *vtab;
+    address_t *itab;
 }; // struct yalx_class
 
 

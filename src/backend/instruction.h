@@ -300,6 +300,16 @@ public:
         external_symbols_[symbol->ToSlice()] = rel;
         return rel;
     }
+    
+    ReloactionOperand *AddExternalSymbol(const std::string_view symbol, bool fetch_address = false) {
+        if (auto iter = external_symbols_.find(symbol); iter != external_symbols_.end()) {
+            return iter->second;
+        }
+        auto ass = String::New(arena_, symbol);
+        auto rel = new (arena_) ReloactionOperand(ass, nullptr, fetch_address);
+        external_symbols_[ass->ToSlice()] = rel;
+        return rel;
+    }
 private:
     const String *const symbol_;
     base::Arena *const arena_;

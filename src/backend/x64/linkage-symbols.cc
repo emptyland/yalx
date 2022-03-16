@@ -4,13 +4,6 @@
 namespace yalx {
 namespace backend {
 
-#define DECLARE_STATIC_STRING(name, literal) \
-static StaticString<sizeof(literal)> name##_stub { \
-    0, \
-    sizeof(literal) - 1, \
-    literal, \
-}; \
-const String *const name = reinterpret_cast<const String *>(&name##_stub)
 
 DECLARE_STATIC_STRING(kLibc_memcpy, "_memcpy");
 DECLARE_STATIC_STRING(kLibc_memset, "_memset");
@@ -20,6 +13,7 @@ DECLARE_STATIC_STRING(kRt_reserve_handle_returning_vals, "_reserve_handle_return
 DECLARE_STATIC_STRING(kRt_current_root, "_current_root");
 DECLARE_STATIC_STRING(kRt_yalx_exit_returning_scope, "_yalx_exit_returning_scope");
 DECLARE_STATIC_STRING(kRt_associate_stub_returning_vals, "_associate_stub_returning_vals");
+DECLARE_STATIC_STRING(kRt_heap_alloc, "_heap_alloc");
 
 LinkageSymbols::LinkageSymbols(base::Arena *arena)
 : arena_(arena)

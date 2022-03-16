@@ -59,6 +59,23 @@ private:
     const uint32_t len_;
     char buf_[0];
 }; // class ArenaString
+
+
+// Static stub for AreanString
+template<int N>
+struct StaticString {
+    uint32_t hash_val;
+    uint32_t len;
+    char buf[N];
+}; // struct StaticString
+
+#define DECLARE_STATIC_STRING(name, literal) \
+static ::yalx::base::StaticString<sizeof(literal)> name##_stub { \
+    0, \
+    sizeof(literal) - 1, \
+    literal, \
+}; \
+const ::yalx::base::ArenaString *const name = reinterpret_cast<const ::yalx::base::ArenaString *>(&name##_stub)
     
 
 ////////////////////////////////////////////////////////////////////////////////

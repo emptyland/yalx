@@ -254,6 +254,30 @@ void GnuAsmGenerator::EmitMetadata() {
             LinkageSymbols::Build(&symbol, method.fun->full_name()->ToSlice());
             printer_->Indent(1)->Println(".quad %s %s entry", symbol.c_str(), comment_);
         }
+        
+        if (!clazz->vtab().empty()) {
+            std::string symbol;
+            LinkageSymbols::Build(&symbol, clazz->full_name()->ToSlice());
+            symbol.append("$vtab");
+            printer_->Println("%s:", symbol.c_str());
+        }
+        for (auto handle : clazz->vtab()) {
+            auto method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
+            auto symbol = symbols_->Mangle(method->fun->full_name());
+            printer_->Indent(1)->Println(".quad %s", symbol->data());
+        }
+        
+        if (!clazz->itab().empty()) {
+            std::string symbol;
+            LinkageSymbols::Build(&symbol, clazz->full_name()->ToSlice());
+            symbol.append("$itab");
+            printer_->Println("%s:", symbol.c_str());
+        }
+        for (auto handle : clazz->itab()) {
+            auto method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
+            auto symbol = symbols_->Mangle(method->fun->full_name());
+            printer_->Indent(1)->Println(".quad %s", symbol->data());
+        }
     }
 }
 

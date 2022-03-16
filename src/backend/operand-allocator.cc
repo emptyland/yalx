@@ -324,7 +324,9 @@ RegisterOperand *OperandAllocator::AllocateReigster(OperandMark mark, size_t siz
 
 void OperandAllocator::Associate(ir::Value *value, InstructionOperand *operand) {
     if (auto iter = allocated_.find(value); iter != allocated_.end()) {
-        Free(iter->second);
+        if (operand != iter->second) {
+            Free(iter->second);
+        }
     }
     allocated_[value] = operand;
     if (auto reg = operand->AsRegister()) {
