@@ -38,10 +38,10 @@ public:
         cpl::Compiler::SelectX64InstructionCode(arena(), modules[name], &const_pool_, &symbols_, 1, &funs);
         cpl::Compiler::GenerateX64InstructionCode(funs, modules[name], &const_pool_, &symbols_, printer);
         
-        std::string buf;
-        base::PrintingWriter pp(base::NewMemoryWritableFile(&buf), true/*ownership*/);
-        modules[name]->PrintTo(&pp);
-        printf("%s\n", buf.data());
+//        std::string buf;
+//        base::PrintingWriter pp(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+//        modules[name]->PrintTo(&pp);
+//        printf("%s\n", buf.data());
     }
 protected:
     ConstantsPool const_pool_;

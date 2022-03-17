@@ -3,6 +3,8 @@
 #include "ir/operator.h"
 #include "ir/type.h"
 #include "ir/node.h"
+#include "ir/utils.h"
+#include "base/io.h"
 
 namespace yalx {
 namespace backend {
@@ -381,13 +383,18 @@ void OperandAllocator::Free(InstructionOperand *operand) {
 bool OperandAllocator::WillBeDead(ir::Value *value, int position) const {
     assert(position >= 0);
     assert(position < dead_records_.size());
-    auto rd = dead_records_[position];
-    for (size_t i = rd.index; i < rd.index + rd.size; i++) {
-        if (value == deads_[i]) {
-            return true;
+
+    auto iter = live_ranges_.find(value);
+    if (iter == live_ranges_.end()) {
+        auto rd = dead_records_[position];
+        for (size_t i = rd.index; i < rd.index + rd.size; i++) {
+            if (value == deads_[i]) {
+                return true;
+            }
         }
+        return false;
     }
-    return false;
+    return position >= iter->second.stop_position;
 }
 
 void OperandAllocator::ReleaseDeads(int position) {
@@ -494,21 +501,33 @@ void RegisterSavingScope::SaveAll() {
         if (general_exclude_.find(rid) != general_exclude_.end()) {
             continue;
         }
-        auto bak = allocator_->AllocateStackSlot(DCHECK_NOTNULL(rd.val)->type(), 0/*padding_size*/,
-                                                 StackSlotAllocator::kFit);
-        moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
-        backup_.push_back({rd.val, bak, rd.opd});
+        
+        if (allocator_->WillBeLive(rd.val, position_ + 1)) {
+            auto bak = allocator_->AllocateStackSlot(DCHECK_NOTNULL(rd.val)->type(), 0/*padding_size*/,
+                                                     StackSlotAllocator::kFit);
+            moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
+            backup_.push_back({rd.val, bak, rd.opd});
+            
+//            {
+//                std::string buf;
+//                auto file = base::NewMemoryWritableFile(&buf);
+//                ir::PrintingContext ctx(0);
+//                base::PrintingWriter printer(file, true);
+//                rd.val->PrintTo(&ctx, &printer);
+//                printf("val: %s", buf.c_str());
+//            }
+        }
     }
     for (auto [rid, rd] : allocator_->active_float_registers_) {
         if (float_exclude_.find(rid) != float_exclude_.end()) {
             continue;
         }
         
-        //if (allocator_->WillBeLive(rd.val, position_ + 1)) {
-        auto bak = allocator_->AllocateStackSlot(rd.val->type(), 0/*padding_size*/, StackSlotAllocator::kFit);
-        moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
-        backup_.push_back({rd.val, bak, rd.opd});
-        //}
+        if (allocator_->WillBeLive(rd.val, position_ + 1)) {
+            auto bak = allocator_->AllocateStackSlot(rd.val->type(), 0/*padding_size*/, StackSlotAllocator::kFit);
+            moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
+            backup_.push_back({rd.val, bak, rd.opd});
+        }
     }
     for (auto bak : backup_) {
         if (bak.val) {
@@ -526,8 +545,11 @@ void RegisterSavingScope::Exit() {
         DCHECK_NOTNULL(bak.val);
         if (allocator_->WillBeLive(bak.val, position_ + 1)) {
             auto opd = allocator_->Allocate(bak.val->type());
+            //auto opd = DCHECK_NOTNULL(allocator_->AllocateReigster(bak.val->type(), bak.old->register_id()));
             moving_delegate_->MoveTo(opd, bak.current, bak.val->type());
             allocator_->Associate(bak.val, opd);
+        } else {
+            //printd("dead");
         }
     }
     moving_delegate_->Finalize();

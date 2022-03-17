@@ -828,41 +828,22 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             
         case ir::Operator::kHeapAlloc: {
             auto model = ir::OperatorWith<const ir::Model *>::Data(instr->op());
-
-            RegisterOperand *opd = nullptr;
-            OperandAllocator::BorrowedRecord borrowed = {nullptr,nullptr,nullptr,nullptr};
-            if (operands_.IsGeneralRegisterAlive(kRAX)) {
-                auto bak = Allocate(instr, kMoR);
-                borrowed = operands_.BorrowRegister(instr, bak);
-                Move(bak, borrowed.target, instr->type());
-                opd = borrowed.target;
-            } else {
-                opd = operands_.AllocateReigster(instr, kRAX);
-            }
-            RegisterOperand *arg0 = nullptr;
-            if (operands_.IsGeneralRegisterAlive(Argv_0.code())) {
-                auto bak = operands_.AllocateStackSlot(ir::Types::Word64, 0, StackSlotAllocator::kFit);
-                auto brd = operands_.BorrowRegister(instr, bak);
-                Move(bak, brd.target, ir::Types::Word64);
-                borrowed_registers_.push_back(brd);
-                arg0 = brd.target;
-            } else {
-                arg0 = new (arena_) RegisterOperand(Argv_0.code(), MachineRepresentation::kWord64);
-            }
+            
+            RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+            saving_scope.SaveAll();
+            
             std::string symbol;
             LinkageSymbols::Build(&symbol, model->full_name()->ToSlice());
             symbol.append("$class");
             auto rel = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
+            auto arg0 = new (arena_) RegisterOperand(Argv_0.code(), MachineRepresentation::kWord64);
             current()->NewIO(X64Lea, arg0, rel);
             rel = bundle()->AddExternalSymbol(kRt_heap_alloc);
             current()->NewI(ArchCall, rel);
-            if (borrowed.target) {
-                assert(opd == borrowed.target);
-                auto scratch = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
-                Move(scratch, borrowed.bak, ir::Types::Word64);
-                Move(borrowed.bak, opd, ir::Types::Word64);
-                Move(opd, scratch, ir::Types::Word64);
-            }
+            
+            auto ret0 = new (arena_) RegisterOperand(rax.code(), MachineRepresentation::kWord64);
+            auto opd = Allocate(instr, kMoR);
+            Move(opd, ret0, instr->type());
         } break;
             
         case ir::Operator::kClosure: {
@@ -1014,6 +995,7 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
             general_index++;
         }
     }
+    //printd("callee: %s", callee->full_name()->data());
     saving_scope.SaveAll();
 
     general_index = 0, float_index = 0;
@@ -1023,20 +1005,26 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
                 if (saving_scope.Include(kFloatArgumentsRegisters[float_index], false/*general*/)) {
-                    auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
-                                                                          kFloatArgumentsRegisters[float_index]));
+//                    auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
+//                                                                          kFloatArgumentsRegisters[float_index]));
+//                    Move(dest, opd, arg->type());
+//                    operands_.Associate(arg, dest);
+                    auto dest = new (arena_) RegisterOperand(kFloatArgumentsRegisters[float_index],
+                                                             ToMachineRepresentation(arg->type()));
                     Move(dest, opd, arg->type());
-                    operands_.Associate(arg, dest);
                 }
             }
             float_index++;
         } else {
             if (general_index < kNumberOfGeneralArgumentsRegisters) {
                 if (saving_scope.Include(kGeneralArgumentsRegisters[general_index], true/*general*/)) {
-                    auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
-                                                                          kGeneralArgumentsRegisters[general_index]));
+//                    auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
+//                                                                          kGeneralArgumentsRegisters[general_index]));
+//                    Move(dest, opd, arg->type());
+//                    operands_.Associate(arg, dest);
+                    auto dest = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[general_index],
+                                                             ToMachineRepresentation(arg->type()));
                     Move(dest, opd, arg->type());
-                    operands_.Associate(arg, dest);
                 }
             }
             general_index++;
@@ -1139,6 +1127,7 @@ void X64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
             }
         }
     }
+    //printd("callee: %s", symbol->data());
     saving_scope.SaveAll();
     
     general_index = 0, float_index = 0;
@@ -1606,6 +1595,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
     switch (ty.kind()) {
         case ir::Type::kInt8:
         case ir::Type::kUInt8:
+        case ir::Type::kWord8:
             if (CanDirectlyMove(dest, src)) {
                 current()->NewIO(X64Movb, dest, src);
             } else {
@@ -1617,6 +1607,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             
         case ir::Type::kInt16:
         case ir::Type::kUInt16:
+        case ir::Type::kWord16:
             if (CanDirectlyMove(dest, src)) {
                 current()->NewIO(X64Movw, dest, src);
             } else {
@@ -1628,6 +1619,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             
         case ir::Type::kInt32:
         case ir::Type::kUInt32:
+        case ir::Type::kWord32:
             if (CanDirectlyMove(dest, src)) {
                 current()->NewIO(X64Movl, dest, src);
             } else {
@@ -1639,6 +1631,7 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
             
         case ir::Type::kInt64:
         case ir::Type::kUInt64:
+        case ir::Type::kWord64:
         case ir::Type::kReference:
         case ir::Type::kString:
             if (CanDirectlyMove(dest, src)) {

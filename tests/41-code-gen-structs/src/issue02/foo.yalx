@@ -5,6 +5,9 @@ fun issue1() {
     val foo = Foo(1, 2, "name")
     val i = foo.x + foo.y
     display(foo.name)
+    val bar = Bar(2, 3, "bar")
+    val j = bar.x + bar.y
+    display(bar.name)
 }
 
 struct Foo(val x: int, val y: int, val name: string) {
