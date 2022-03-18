@@ -85,7 +85,7 @@ TEST_F(X64CodeGeneratorTest, StructsGenerating) {
 
 TEST_F(X64CodeGeneratorTest, StructsMetadata) {
     
-    yalx_class *clazz = static_cast<yalx_class *>(dlsym(RTLD_MAIN_ONLY, "issue02_Zoissue02_ZdFoo$class"));
+    auto clazz = yalx_find_class("issue02:issue02.Foo");
     ASSERT_EQ(3, clazz->n_fields);
     ASSERT_STREQ("x", clazz->fields[0].name.z);
     ASSERT_STREQ("y", clazz->fields[1].name.z);

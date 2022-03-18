@@ -95,6 +95,8 @@ static inline void dbg_free_zag(void *chunk, size_t n) { fill_memory_zag(chunk, 
 
 void *yalx_zalloc(size_t n);
 
+char *yalx_symbol_mangle(const char *const plain_name, const char *postfix);
+
 int yalx_name_symbolize(const char *const plain_name, char symbol[], size_t size);
 
 void die(const char *fmt, ...);
@@ -119,6 +121,7 @@ int yalx_return_u32(struct yalx_returning_vals *state, u32_t value);
 int yalx_return_cstring(struct yalx_returning_vals *state, const char *const z, size_t n);
 int yalx_return(const void *const p, size_t n);
 
+const struct yalx_class *yalx_find_class(const char *const plain_name);
 
 // implements in test-stub-[Arch].s
 int asm_stub1(int, int);

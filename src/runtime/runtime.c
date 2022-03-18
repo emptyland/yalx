@@ -339,6 +339,22 @@ void *yalx_zalloc(size_t n) {
     return chunk;
 }
 
+char *yalx_symbol_mangle(const char *const plain_name, const char *postfix) {
+    const extra_len = !postfix ? 0 : strlen(postfix);
+    char *symbol = NULL;
+    size_t buf_size = 98 + extra_len;
+    int mangled_size = 0;
+    do {
+        free(symbol);
+        buf_size <<= 1;
+        symbol = (char *)realloc(symbol, buf_size);
+        mangled_size = yalx_name_symbolize(plain_name, symbol, buf_size);
+    } while(mangled_size < 0);
+    memcpy(symbol + mangled_size - 1, postfix, extra_len);
+    symbol[mangled_size + extra_len] = 0;
+    return symbol;
+}
+
 int yalx_name_symbolize(const char *const plain_name, char symbol[], size_t size) {
     char *p = symbol;
     const char *const limit = p + size;
@@ -420,6 +436,15 @@ int yalx_exit_returning_scope(struct yalx_returning_vals *state) {
         free(state->buf);
     }
     co->returning_vals = state->prev;
+}
+
+const struct yalx_class *yalx_find_class(const char *const plain_name) {
+    assert(plain_name != NULL);
+    assert(plain_name[0] != 0);
+    const char *const symbol = yalx_symbol_mangle(plain_name, "$class");
+    const struct yalx_class *const clazz = (struct yalx_class *)dlsym(RTLD_MAIN_ONLY, symbol + 1);
+    free(symbol);
+    return clazz;
 }
 
 struct lksz_header {
