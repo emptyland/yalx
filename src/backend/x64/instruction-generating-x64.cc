@@ -813,7 +813,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
                     break;
             }
         } break;
-            
+
         case ir::Operator::kLoadFunAddr: {
             auto fun = ir::OperatorWith<const ir::Function *>::Data(instr->op());
             auto symbol = symbols_->Mangle(fun->full_name());

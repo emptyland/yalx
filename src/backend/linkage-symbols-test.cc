@@ -27,5 +27,12 @@ TEST_F(LinkageSymbolsTest, Sanity) {
     ASSERT_STREQ("_memcpy", kLibc_memcpy->data());
 }
 
+// _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
+// _yalx_Zplang_Zolang_ZdAny_Zdfinalize
+// _yalx_Zplang_Zolang_ZdAny_ZdhashCode
+// _yalx_Zplang_Zolang_ZdAny_Zdid
+// _yalx_Zplang_Zolang_ZdAny_ZdisEmpty
+// _yalx_Zplang_Zolang_Zd_Z4init
+
 } // namespace backend
 } // namespace yalx

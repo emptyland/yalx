@@ -54,15 +54,26 @@ void main_Zomain_Zd_Z4init();
 void main_Zomain_Zdissue1();
 void main_Zomain_Zdissue5();
 void main_Zomain_Zdfoo();
-void issue9_stub(i32_t a, yalx_str_handle s) {
-    printf("%d\n", a);
-    // TODO
-}
 void main_Zomain_Zdmain_had();
 void main_Zomain_Zdissue6_had(i32_t a, i32_t b);
 
 void issue02_Zoissue02_Zd_Z4init();
 void issue02_Zoissue02_Zdissue1_had();
+void issue02_Zoissue02_Zdissue2_had();
+
+void issue9_stub(i32_t a, yalx_str_handle s) {
+    printf("%d\n", a);
+    // TODO
+}
+
+void assert_string_stub(yalx_str_handle a, yalx_str_handle b) {
+    ASSERT_STREQ(yalx_str_bytes(a), yalx_str_bytes(b));
+}
+
+void assert_int_stub(i32_t a, i32_t b) {
+    ASSERT_EQ(a, b);
+}
+
 } // extern "C"
 
 TEST_F(X64CodeGeneratorTest, Sanity) {
@@ -71,7 +82,7 @@ TEST_F(X64CodeGeneratorTest, Sanity) {
     bool ok = true;
     CodeGen("tests/40-code-gen-sanity", "main:main", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
 }
 
 TEST_F(X64CodeGeneratorTest, StructsGenerating) {
@@ -83,13 +94,20 @@ TEST_F(X64CodeGeneratorTest, StructsGenerating) {
     printf("%s\n", buf.c_str());
 }
 
-TEST_F(X64CodeGeneratorTest, StructsMetadata) {
+TEST_F(X64CodeGeneratorTest, FooMetadata) {
     
     auto clazz = yalx_find_class("issue02:issue02.Foo");
+    ASSERT_TRUE(clazz != NULL);
     ASSERT_EQ(3, clazz->n_fields);
     ASSERT_STREQ("x", clazz->fields[0].name.z);
     ASSERT_STREQ("y", clazz->fields[1].name.z);
     ASSERT_STREQ("name", clazz->fields[2].name.z);
+    
+    ASSERT_STREQ("doIt", clazz->methods[0].name.z);
+    ASSERT_STREQ("fun (issue02:issue02.Foo)->(void)", clazz->methods[0].prototype_desc.z);
+
+    ASSERT_STREQ("doThat", clazz->methods[1].name.z);
+    
 }
 
 
@@ -134,9 +152,10 @@ TEST_F(X64CodeGeneratorTest, CallNativeHandle) {
     yalx_exit_returning_scope(&state);
 }
 
-TEST_F(X64CodeGeneratorTest, StackAllocStruct) {
+TEST_F(X64CodeGeneratorTest, StackAndHeapAllocStruct) {
     pkg_init_once(reinterpret_cast<void *>(&issue02_Zoissue02_Zd_Z4init), "issue02:issue02");
     issue02_Zoissue02_Zdissue1_had();
+    issue02_Zoissue02_Zdissue2_had();
 }
 
 #endif // YALX_ARCH_X64

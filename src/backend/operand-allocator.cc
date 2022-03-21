@@ -483,7 +483,8 @@ void RegisterSavingScope::AddExclude(ir::Value *exclude, int designate, int posi
     auto opd = allocator_->Allocated(exclude);
     if (opd) {
         if (auto reg = opd->AsRegister()) {
-            if (reg->register_id() == designate) {
+            if (reg->register_id() == designate &&
+                allocator_->WillBeDead(exclude, position + 1)) {
                 if (!exclude->type().IsFloating()) {
                     general_exclude_.insert(designate);
                 } else {

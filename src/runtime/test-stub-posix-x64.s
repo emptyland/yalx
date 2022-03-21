@@ -99,6 +99,55 @@ co_dummy_entry1:
     popq %rbp
     ret
 
+// _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
+// _yalx_Zplang_Zolang_ZdAny_Zdfinalize
+// _yalx_Zplang_Zolang_ZdAny_ZdhashCode
+// _yalx_Zplang_Zolang_ZdAny_Zdid
+// _yalx_Zplang_Zolang_ZdAny_ZdisEmpty
+// _yalx_Zplang_Zolang_Zd_Z4init
+
+.global _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
+.weak_definition _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
+_yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor:
+    retq
+
+.global _yalx_Zplang_Zolang_ZdAny_Zdfinalize
+.weak_definition _yalx_Zplang_Zolang_ZdAny_Zdfinalize
+_yalx_Zplang_Zolang_ZdAny_Zdfinalize:
+    retq
+
+.global _yalx_Zplang_Zolang_ZdAny_ZdhashCode
+.weak_definition _yalx_Zplang_Zolang_ZdAny_ZdhashCode
+_yalx_Zplang_Zolang_ZdAny_ZdhashCode:
+    pushq %rbp
+    movq %rsp, %rbp
+    movl $0, 28(%rbp)
+    popq %rbp
+    ret
+
+.global _yalx_Zplang_Zolang_ZdAny_Zdid
+.weak_definition _yalx_Zplang_Zolang_ZdAny_Zdid
+_yalx_Zplang_Zolang_ZdAny_Zdid:
+    pushq %rbp
+    movq %rsp, %rbp
+    movl $0, 28(%rbp)
+    popq %rbp
+    ret
+
+.global _yalx_Zplang_Zolang_ZdAny_ZdisEmpty
+.weak_definition _yalx_Zplang_Zolang_ZdAny_ZdisEmpty
+_yalx_Zplang_Zolang_ZdAny_ZdisEmpty:
+    pushq %rbp
+    movq %rsp, %rbp
+    movl $0, 28(%rbp)
+    popq %rbp
+    ret
+
+.global _yalx_Zplang_Zolang_Zd_Z4init
+.weak_definition _yalx_Zplang_Zolang_Zd_Z4init
+_yalx_Zplang_Zolang_Zd_Z4init:
+    retq
+
 //----------------------------------------------------------------------------------------------------------------------
 // yalx.lang.debugOutput(a: any)
 //----------------------------------------------------------------------------------------------------------------------

@@ -4,13 +4,23 @@ package issue02
 fun issue1() {
     val foo = Foo(1, 2, "name")
     val i = foo.x + foo.y
-    display(foo.name)
+    assertInt(3, i)
+    assertString("name", foo.name)
     val bar = Bar(2, 3, "bar")
     val j = bar.x + bar.y
-    display(bar.name)
+    assertInt(5, j)
+    assertString("bar", bar.name)
 }
 
-struct Foo(val x: int, val y: int, val name: string) {
+@yalx.Compiler(nativeHandle=true)
+fun issue2() {
+    val foo = Foo(1, 2, "name")
+    assertString("name", foo.name)
+    foo.name = "Doom"
+    assertString("Doom", foo.name)
+}
+
+struct Foo(val x: int, val y: int, var name: string) {
     fun doIt() -> display(name)
     fun doThat() -> display("doThat")
 }
@@ -21,3 +31,9 @@ class Bar(val x: int, val y: int, val name: string) {
 
 @yalx.Compiler(nativeStubName="yalx_Zplang_Zolang_Zdprintln_stub")
 native fun display(s: string)
+
+@yalx.Compiler(nativeStubName="assert_string_stub")
+native fun assertString(a: string, b: string)
+
+@yalx.Compiler(nativeStubName="assert_int_stub")
+native fun assertInt(a: int, b: int)

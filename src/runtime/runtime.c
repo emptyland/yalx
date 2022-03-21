@@ -350,8 +350,7 @@ char *yalx_symbol_mangle(const char *const plain_name, const char *postfix) {
         symbol = (char *)realloc(symbol, buf_size);
         mangled_size = yalx_name_symbolize(plain_name, symbol, buf_size);
     } while(mangled_size < 0);
-    memcpy(symbol + mangled_size - 1, postfix, extra_len);
-    symbol[mangled_size + extra_len] = 0;
+    strncat(symbol, postfix, mangled_size);
     return symbol;
 }
 
@@ -443,6 +442,7 @@ const struct yalx_class *yalx_find_class(const char *const plain_name) {
     assert(plain_name[0] != 0);
     const char *const symbol = yalx_symbol_mangle(plain_name, "$class");
     const struct yalx_class *const clazz = (struct yalx_class *)dlsym(RTLD_MAIN_ONLY, symbol + 1);
+    //puts(symbol);
     free(symbol);
     return clazz;
 }
