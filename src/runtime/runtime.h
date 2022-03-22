@@ -151,6 +151,8 @@ struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz);
 
 struct coroutine *current_root();
 
+void throw_it(struct yalx_value_any *exception); // implements in boot-[Arch].s
+
 // generated entry symbol: main:main.main(): unit
 void y2zmain_main(void);
 

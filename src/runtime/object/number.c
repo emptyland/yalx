@@ -112,3 +112,13 @@ struct yalx_value_number_w *yalx_new_big_boxing_number(struct heap *heap, const 
     w->box.u64 = 0;
     return w;
 }
+
+
+void yalx_Zplang_Zolang_ZdI32_ZdtoString_stub(yalx_ref_handle self) {
+    assert(!"TODO");
+}
+
+void yalx_Zplang_Zolang_ZdU32_ZdtoString_stub(yalx_ref_handle self) {
+    assert(!"TODO");
+}
+

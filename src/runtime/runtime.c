@@ -133,6 +133,8 @@ static void dev_print_struct_fields() {}
 
 #endif
 
+extern struct yalx_class builtin_classes[MAX_BUILTIN_TYPES];
+
 int yalx_runtime_init() {
     
 #if defined(YALX_OS_DARWIN)
@@ -183,6 +185,22 @@ int yalx_runtime_init() {
     yalx_add_machine_to_processor(&procs[0], &m0);
     
     yalx_init_scheduler(&scheduler);
+    
+    
+    // FIXME:
+    const struct yalx_class *ty = yalx_find_class("yalx/lang:lang.Any");
+    if (!ty) {
+        die("Any class not found");
+        return -1;
+    }
+    memcpy(&builtin_classes[Type_any], ty, sizeof(*ty));
+    
+    ty = yalx_find_class("yalx/lang:lang.String");
+    if (!ty) {
+        die("String class not found");
+        return -1;
+    }
+    memcpy(&builtin_classes[Type_string], ty, sizeof(*ty));
     
     dev_print_struct_fields();
     return 0;
@@ -569,4 +587,9 @@ void yalx_Zplang_Zolang_Zdprintln_stub(yalx_str_handle txt) {
     }
     fwrite(yalx_str_bytes(txt), 1, yalx_str_len(txt), stdout);
     fputc('\n', stdout);
+}
+
+
+void yalx_Zplang_Zolang_Zdunwind_stub() {
+    assert(!"TODO:");
 }

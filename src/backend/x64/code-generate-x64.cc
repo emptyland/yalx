@@ -192,6 +192,16 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             printer()->Write("subq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
+            
+        case X64And32:
+            printer()->Write("andl ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64And:
+            printer()->Write("andq ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
 
         case X64Movb:
             printer()->Write("movb ");
@@ -210,6 +220,71 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             
         case X64Movq:
             printer()->Write("movq ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movsxbw:
+            printer()->Write("movsbw ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movzxbw:
+            printer()->Write("movzbw ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movsxbl:
+            printer()->Write("movsbl ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movzxbl:
+            printer()->Write("movzbl ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movsxbq:
+            printer()->Write("movsbl ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movzxbq:
+            printer()->Write("movzbl ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movsxlq:
+            printer()->Write("movslq ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movsxwb:
+            printer()->Write("movswb ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movsxwl:
+            printer()->Write("movswl ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movsxwq:
+            printer()->Write("movswq ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movzxwb:
+            printer()->Write("movzwb ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movzxwl:
+            printer()->Write("movzwl ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case X64Movzxwq:
+            printer()->Write("movzwq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             

@@ -57,7 +57,10 @@ struct coroutine_id {
 };
 typedef struct coroutine_id coid_t;
 
-
+struct unwind_node {
+    struct unwind_node *prev;
+    address_t fp;
+};
 
 struct coroutine {
     QUEUE_HEADER(struct coroutine);
@@ -72,6 +75,7 @@ struct coroutine {
     address_t n_fp;
     address_t stub; // stub address for none-c0 coroutine
     struct yalx_returning_vals *returning_vals;
+    struct unwind_node *top_unwind_point; // unwind for exception handler
 }; // struct coroutine
 
 

@@ -47,11 +47,14 @@ void GnuAsmGenerator::EmitAll() {
     
     for (auto clazz : module_->structures()) {
         for (auto method : clazz->methods()) {
-            auto iter = funs_.find(method.fun->full_name()->ToSlice());
-            assert(iter != funs_.end());
-            EmitFunction(iter->second);
             const_pool_->FindOrInsertString(method.fun->prototype()->name());
             const_pool_->FindOrInsertString(method.fun->name());
+            
+            auto iter = funs_.find(method.fun->full_name()->ToSlice());
+            if (iter == funs_.end()) {
+                continue;
+            }
+            EmitFunction(iter->second);
         }
         for (auto field : clazz->fields()) {
             const_pool_->FindOrInsertString(field.name);

@@ -5,9 +5,20 @@ class Throwable(
     val message: string,
     val linked: Throwable?
 ) {
-    
+    private val backtrace = unwind()
+
     override fun toString() -> message
 }
 
 @Lang
 class Exception(message: string, linked: Exception?) : Throwable(message, linked)
+
+
+struct BacktraceFrame(
+    val address: u64,
+    val function: string,
+    val file: string,
+    val line: u32
+)
+
+native fun unwind(): BacktraceFrame[]

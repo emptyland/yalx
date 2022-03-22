@@ -189,11 +189,15 @@ namespace backend {
     V(AVXFloat64Neg)                        \
     V(AVXFloat32Abs)                        \
     V(AVXFloat32Neg)                        \
+    V(X64Movsxbw)                           \
+    V(X64Movzxbw)                           \
     V(X64Movsxbl)                           \
     V(X64Movzxbl)                           \
     V(X64Movsxbq)                           \
     V(X64Movzxbq)                           \
     V(X64Movb)                              \
+    V(X64Movsxwb)                           \
+    V(X64Movzxwb)                           \
     V(X64Movsxwl)                           \
     V(X64Movzxwl)                           \
     V(X64Movsxwq)                           \

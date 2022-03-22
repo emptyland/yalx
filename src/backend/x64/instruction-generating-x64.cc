@@ -10,10 +10,12 @@
 #include "ir/runtime.h"
 #include "ir/node.h"
 #include "ir/type.h"
+#include "ir/utils.h"
 #include "runtime/runtime.h"
 #include "base/lazy-instance.h"
 #include "base/arena-utils.h"
 #include "base/format.h"
+#include "base/io.h"
 
 namespace yalx {
 
@@ -286,6 +288,20 @@ private:
         }
         UNREACHABLE();
         return kAny;
+    }
+    
+    void TypingNormalize(InstructionOperand **a, InstructionOperand **b, ir::Type type) {
+        TypingNormalize(a, type);
+        TypingNormalize(b, type);
+    }
+    
+    void TypingNormalize(InstructionOperand **a, ir::Type type) {
+        auto rep = ToMachineRepresentation(type);
+        if (auto rl = (*a)->AsRegister()) {
+            if (rl->rep() != rep) {
+                *a = new (arena_) RegisterOperand(rl->register_id(), rep);
+            }
+        }
     }
     
     static size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto);
@@ -813,6 +829,207 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
                     break;
             }
         } break;
+            
+        case ir::Operator::kBitCastTo: {
+            auto opd = Allocate(instr, kMoR);
+            auto input = Allocate(instr->InputValue(0), kAny);
+            Move(opd, input, instr->type());
+        } break;
+            
+        case ir::Operator::kTruncTo: {
+            auto opd = Allocate(instr, kMoR);
+            auto input = Allocate(instr->InputValue(0), kAny);
+            TypingNormalize(&opd, &input, instr->type());
+            Move(opd, input, instr->type());
+            switch (ToMachineRepresentation(instr->type())) {
+                case MachineRepresentation::kWord8:
+                    TypingNormalize(&opd, ir::Types::Word32);
+                    current()->NewIO(X64And32, opd, ImmediateOperand::Word32(arena_, 0xff));
+                    break;
+                case MachineRepresentation::kWord16:
+                    TypingNormalize(&opd, ir::Types::Word32);
+                    current()->NewIO(X64And32, opd, ImmediateOperand::Word32(arena_, 0xffff));
+                    break;
+                default:
+                    break;
+            }
+        } break;
+            
+        case ir::Operator::kSextTo:{
+            auto opd = Allocate(instr, kMoR);
+            auto input = Allocate(instr->InputValue(0), kAny);
+            auto rep = ToMachineRepresentation(instr->type());
+            RegisterOperand *tmp = opd->IsRegister() ? nullptr : operands_.registers()->GeneralScratch0(rep);
+            switch (rep) {
+                case MachineRepresentation::kWord16: {
+                    assert(instr->InputValue(0)->type().bytes() == 1); // must be a byte
+                    if (tmp) {
+                        current()->NewIO(X64Movsxbw, tmp, input);
+                        Move(opd, tmp, instr->type());
+                    } else {
+                        current()->NewIO(X64Movsxbw, opd, input);
+                    }
+                } break;
+                case MachineRepresentation::kWord32: {
+                    assert(instr->InputValue(0)->type().bytes() <= 2); // must be a byte or word
+                    InstructionCode code = ArchUnreachable;
+                    switch (ToMachineRepresentation(instr->InputValue(0)->type())) {
+                        case MachineRepresentation::kWord8:
+                            code = X64Movsxbl;
+                            break;
+                        case MachineRepresentation::kWord16:
+                            code = X64Movsxwl;
+                            break;
+                        default:
+                            UNREACHABLE();
+                            break;
+                    }
+                    if (tmp) {
+                        current()->NewIO(code, tmp, input);
+                        Move(opd, tmp, instr->type());
+                    } else {
+                        current()->NewIO(code, opd, input);
+                    }
+                } break;
+                case MachineRepresentation::kWord64: {
+                    assert(instr->InputValue(0)->type().bytes() <= 4); // must be a byte, word or dword
+                    InstructionCode code = ArchUnreachable;
+                    switch (ToMachineRepresentation(instr->InputValue(0)->type())) {
+                        case MachineRepresentation::kWord8:
+                            code = X64Movsxbq;
+                            break;
+                        case MachineRepresentation::kWord16:
+                            code = X64Movsxwq;
+                            break;
+                        case MachineRepresentation::kWord32:
+                            code = X64Movsxlq;
+                            break;
+                        default:
+                            UNREACHABLE();
+                            break;
+                    }
+                    if (tmp) {
+                        current()->NewIO(code, tmp, input);
+                        Move(opd, tmp, instr->type());
+                    } else {
+                        current()->NewIO(code, opd, input);
+                    }
+                } break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+            
+        case ir::Operator::kZextTo:{
+            auto opd = Allocate(instr, kMoR);
+            auto input = Allocate(instr->InputValue(0), kAny);
+            auto rep = ToMachineRepresentation(instr->type());
+            RegisterOperand *tmp = opd->IsRegister() ? nullptr : operands_.registers()->GeneralScratch0(rep);
+            switch (rep) {
+                case MachineRepresentation::kWord16: {
+                    assert(instr->InputValue(0)->type().bytes() == 1); // must be a byte
+                    if (tmp) {
+                        current()->NewIO(X64Movzxbw, tmp, input);
+                        Move(opd, tmp, instr->type());
+                    } else {
+                        current()->NewIO(X64Movzxbw, opd, input);
+                    }
+                } break;
+                case MachineRepresentation::kWord32: {
+                    assert(instr->InputValue(0)->type().bytes() <= 2); // must be a byte or word
+                    InstructionCode code = ArchUnreachable;
+                    switch (ToMachineRepresentation(instr->InputValue(0)->type())) {
+                        case MachineRepresentation::kWord8:
+                            code = X64Movzxbl;
+                            break;
+                        case MachineRepresentation::kWord16:
+                            code = X64Movzxwl;
+                            break;
+                        default:
+                            UNREACHABLE();
+                            break;
+                    }
+                    if (tmp) {
+                        current()->NewIO(code, tmp, input);
+                        Move(opd, tmp, instr->type());
+                    } else {
+                        current()->NewIO(code, opd, input);
+                    }
+                } break;
+                case MachineRepresentation::kWord64: {
+                    assert(instr->InputValue(0)->type().bytes() <= 4); // must be a byte, word or dword
+                    InstructionCode code = ArchUnreachable;
+                    switch (ToMachineRepresentation(instr->InputValue(0)->type())) {
+                        case MachineRepresentation::kWord8:
+                            code = X64Movzxbq;
+                            break;
+                        case MachineRepresentation::kWord16:
+                            code = X64Movzxwq;
+                            break;
+                        case MachineRepresentation::kWord32:
+                            TypingNormalize(&opd, &input, ir::Types::Word32);
+                            Move(opd, input, ir::Types::Word32);
+                            //current()->NewIO(X64And, opd, ImmediateOperand::Word32(arena_, -1));
+                            return;
+                        default:
+                            UNREACHABLE();
+                            break;
+                    }
+                    if (tmp) {
+                        current()->NewIO(code, tmp, input);
+                        Move(opd, tmp, instr->type());
+                    } else {
+                        current()->NewIO(code, opd, input);
+                    }
+                } break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+            
+        case ir::Operator::kSIToFP: {
+            //UNREACHABLE();
+        } break;
+            
+        case ir::Operator::kUIToFP: {
+            //UNREACHABLE();
+        } break;
+            
+        case ir::Operator::kFPToSI: {
+            UNREACHABLE();
+        } break;
+            
+        case ir::Operator::kFPToUI: {
+            UNREACHABLE();
+        } break;
+            
+        case ir::Operator::kFPExtTo: {
+            auto opd = Allocate(instr, kMoR);
+            auto input = Allocate(instr->InputValue(0), kAny);
+            auto rep = ToMachineRepresentation(instr->type());
+            RegisterOperand *tmp = opd->IsRegister() ? nullptr : operands_.registers()->GeneralScratch0(rep);
+            if (tmp) {
+                current()->NewIO(SSEFloat32ToFloat64, tmp, input);
+                Move(opd, tmp, instr->type());
+            } else {
+                current()->NewIO(SSEFloat32ToFloat64, opd, input);
+            }
+        } break;
+            
+        case ir::Operator::kFPTruncTo: {
+            auto opd = Allocate(instr, kMoR);
+            auto input = Allocate(instr->InputValue(0), kAny);
+            auto rep = ToMachineRepresentation(instr->type());
+            RegisterOperand *tmp = opd->IsRegister() ? nullptr : operands_.registers()->GeneralScratch0(rep);
+            if (tmp) {
+                current()->NewIO(SSEFloat64ToFloat32, tmp, input);
+                Move(opd, tmp, instr->type());
+            } else {
+                current()->NewIO(SSEFloat64ToFloat32, opd, input);
+            }
+        } break;
 
         case ir::Operator::kLoadFunAddr: {
             auto fun = ir::OperatorWith<const ir::Function *>::Data(instr->op());
@@ -917,9 +1134,17 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             current()->New(ArchRet);
         } break;
             
-        default:
+        default: {
+    #ifndef NDEBUG
+            ir::PrintingContext ctx(0);
+            std::string buf;
+            auto file = base::NewMemoryWritableFile(&buf);
+            base::PrintingWriter printer(file, true);
+            instr->PrintTo(&ctx, &printer);
+            printd("%s", buf.c_str());
+    #endif
             UNREACHABLE();
-            break;
+        } break;
     }
 }
 

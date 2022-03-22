@@ -16,10 +16,10 @@ struct Number<T>(val value: T) {
 
 @Lang
 struct I32(value: i32): Number<i32>(value) {
-    fun toString(): string
+    native fun toString(): string
 }
 
 @Lang
 struct U32(value: u32): Number<u32>(value) {
-    fun toString(): string
+    native fun toString(): string
 }
