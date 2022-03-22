@@ -134,7 +134,7 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             
         case ArchDebugBreak:
         case ArchUnreachable:
-            printer()->Writeln("int 3");
+            printer()->Writeln("int3");
             break;
             
         case ArchRet:
