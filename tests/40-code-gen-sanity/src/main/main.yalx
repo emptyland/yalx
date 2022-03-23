@@ -42,9 +42,27 @@ fun issue8(a: int, b: int) -> a < b
 @yalx.Compiler(nativeStubName="issue9_stub")
 native fun issue9(a: int, b: string): int
 
+@yalx.Compiler(nativeStubName="issue10_stub")
+native fun issue10(): int, int, int, string
+
+@yalx.Compiler(nativeHandle=true)
+fun issue11() {
+    val a, b, c, d = issue10()
+    assertInt(1, a)
+    assertInt(2, b)
+    assertInt(3, c)
+    assertString("hello", d)
+}
+
 fun foo() -> 1,2,1.1
 
 fun doo(a: int, b: int, c: int) -> a + b + c
 
 @yalx.Compiler(nativeStubName="yalx_Zplang_Zolang_Zdprintln_stub")
 native fun display(s: string)
+
+@yalx.Compiler(nativeStubName="assert_string_stub")
+native fun assertString(a: string, b: string)
+
+@yalx.Compiler(nativeStubName="assert_int_stub")
+native fun assertInt(a: int, b: int)

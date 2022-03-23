@@ -32,6 +32,14 @@ extern "C" {
 #define YALX_MAGIC_NUMBER2 1465142347
 #define YALX_MAGIC_NUMBER3 1195658056
 
+
+#if defined(YALX_ARCH_X64) || defined(YALX_ARCH_ARM64)
+#define STACK_SLOT_ALIGNMENT 4
+#define STACK_SIZE_ALIGNMENT 16
+#else
+#error not suppport it
+#endif
+
 // Yalx internal primitive types:
 typedef int8_t   i8_t;
 typedef uint8_t  u8_t;
@@ -119,7 +127,8 @@ int yalx_exit_returning_scope(struct yalx_returning_vals *state);
 int yalx_return_i32(struct yalx_returning_vals *state, i32_t value);
 int yalx_return_u32(struct yalx_returning_vals *state, u32_t value);
 int yalx_return_cstring(struct yalx_returning_vals *state, const char *const z, size_t n);
-int yalx_return(const void *const p, size_t n);
+int yalx_return_ref(struct yalx_value_any *ref);
+int yalx_return(struct yalx_returning_vals *state, const void *const p, size_t n);
 
 const struct yalx_class *yalx_find_class(const char *const plain_name);
 

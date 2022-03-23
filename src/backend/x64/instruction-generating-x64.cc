@@ -460,10 +460,6 @@ LocationOperand *X64FunctionInstructionSelector::CallNativeStub() {
         }
         
         auto fp = operands_.registers()->frame_pointer();
-        //    void associate_stub_returning_vals(struct yalx_returning_vals *state,
-        //                                       address_t returning_addr,
-        //                                       size_t reserved_size,
-        //                                       address_t fun_addr);
         auto arg0 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[0], MachineRepresentation::kWord64);
         auto arg1 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[1], MachineRepresentation::kWord64);
         auto arg2 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[2], MachineRepresentation::kWord64);

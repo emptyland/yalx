@@ -455,6 +455,30 @@ int yalx_exit_returning_scope(struct yalx_returning_vals *state) {
     co->returning_vals = state->prev;
 }
 
+int yalx_return_i32(struct yalx_returning_vals *state, i32_t value) {
+    return yalx_return(state, &value, sizeof(value));
+}
+
+int yalx_return_u32(struct yalx_returning_vals *state, u32_t value) {
+    return yalx_return(state, &value, sizeof(value));
+}
+
+int yalx_return_cstring(struct yalx_returning_vals *state, const char *const z, size_t n) {
+    struct yalx_value_str *str = yalx_new_string(&heap, z, n);
+    return yalx_return(state, &str, sizeof(str));
+}
+
+int yalx_return(struct yalx_returning_vals *state, const void *const p, size_t n) {
+    size_t size = ROUND_UP(n, STACK_SLOT_ALIGNMENT);
+    if (state->offset + size > state->total_size) {
+        return -1;
+    }
+    address_t addr = (state->buf + state->total_size) - state->offset - n;
+    memcpy(addr, p, n);
+    state->offset += (u16_t)size;
+    return 0;
+}
+
 const struct yalx_class *yalx_find_class(const char *const plain_name) {
     assert(plain_name != NULL);
     assert(plain_name[0] != 0);
