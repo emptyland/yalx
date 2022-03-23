@@ -174,7 +174,7 @@ private:
             }
         }
     }
-    
+
     void PrepareClasses(Package *node) {
         for (auto file : node->source_files()) {
             error_feedback_->set_file_name(file->file_name()->ToString());
@@ -465,11 +465,7 @@ private:
         auto constructor = GeneratePrimaryConstructor(node, node->base_of(), node->super_calling());
         constructor->set_owns(node);
         node->set_primary_constructor(constructor);
-        if (!constructor || Reduce(constructor) < 0) {
-            return -1;
-        }
-        
-        
+
         // Into class scope:
         //std::map<std::string_view, Statement *> in_class_symols_;
         for (int i = 0; i < node->fields_size(); i++) {
@@ -519,6 +515,10 @@ private:
             Feedback()->Printf(node->source_position(), "Unimplement method: %s::%s%s",
                                ift->name()->data(), method->name()->data(), method->prototype()->signature()->data());
         }) > 0) {
+            return -1;
+        }
+        
+        if (!constructor || Reduce(constructor) < 0) {
             return -1;
         }
         return Returning(Unit());
@@ -676,6 +676,7 @@ private:
             for (auto expr : field.declaration->initilaizers()) {
                 ass->mutable_rvals()->push_back(expr);
             }
+            body->mutable_statements()->push_back(ass);
         }
         
         auto ret = new (arena_) class Return(arena_, node->source_position());
@@ -1189,7 +1190,7 @@ private:
         }
         for (auto i = 0; i < lvals.size(); i++) {
             bool unlinked = false;
-            if (!lvals[i]->Type()->Acceptable(rvals[i], &unlinked)) {
+            if (!DCHECK_NOTNULL(lvals[i]->Type())->Acceptable(rvals[i], &unlinked)) {
                 Feedback()->Printf(node->source_position(), "Unexpected lvals[%d] type `%s', %s",
                                    lvals[i]->Type()->ToString().c_str(), rvals[i]->ToString().c_str());
                 return -1;

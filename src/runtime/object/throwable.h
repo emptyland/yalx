@@ -12,7 +12,7 @@ extern "C" {
 struct backtrace_frame {
     YALX_VALUE_HEADER;
     address_t address;
-    struct yalx_value_str *fun;
+    struct yalx_value_str *function;
     struct yalx_value_str *file;
     u32_t line;
 }; // struct yalx_value_typed_array

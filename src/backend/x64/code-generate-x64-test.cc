@@ -61,6 +61,7 @@ void main_Zomain_Zdissue11_had();
 void issue02_Zoissue02_Zd_Z4init();
 void issue02_Zoissue02_Zdissue1_had();
 void issue02_Zoissue02_Zdissue2_had();
+void issue02_Zoissue02_Zdissue3_had();
 
 void issue9_stub(i32_t a, yalx_str_handle s) {
     printf("%d\n", a);
@@ -68,11 +69,10 @@ void issue9_stub(i32_t a, yalx_str_handle s) {
 }
 
 void issue10_stub() {
-    auto state = c0.returning_vals;
-    ASSERT_EQ(0, yalx_return_i32(state, 1));
-    ASSERT_EQ(0, yalx_return_i32(state, 2));
-    ASSERT_EQ(0, yalx_return_i32(state, 3));
-    ASSERT_EQ(0, yalx_return_cstring(state, "hello", 5));
+    ASSERT_EQ(0, yalx_return_i32(1));
+    ASSERT_EQ(0, yalx_return_i32(2));
+    ASSERT_EQ(0, yalx_return_i32(3));
+    ASSERT_EQ(0, yalx_return_cstring("hello", 5));
 }
 
 void assert_string_stub(yalx_str_handle a, yalx_str_handle b) {
@@ -91,7 +91,7 @@ TEST_F(X64CodeGeneratorTest, Sanity) {
     bool ok = true;
     CodeGen("tests/40-code-gen-sanity", "main:main", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
 }
 
 TEST_F(X64CodeGeneratorTest, YalxLang) {
@@ -178,6 +178,7 @@ TEST_F(X64CodeGeneratorTest, StackAndHeapAllocStruct) {
     pkg_init_once(reinterpret_cast<void *>(&issue02_Zoissue02_Zd_Z4init), "issue02:issue02");
     issue02_Zoissue02_Zdissue1_had();
     issue02_Zoissue02_Zdissue2_had();
+    issue02_Zoissue02_Zdissue3_had();
 }
 
 #endif // YALX_ARCH_X64

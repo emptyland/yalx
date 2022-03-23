@@ -14,7 +14,7 @@ class Throwable(
 class Exception(message: string, linked: Exception?) : Throwable(message, linked)
 
 
-struct BacktraceFrame(
+class BacktraceFrame(
     val address: u64,
     val function: string,
     val file: string,

@@ -160,9 +160,57 @@ Lblk9:
     addq $48, %rsp
     popq %rbp
     retq
+.global _issue02_Zoissue02_Zdissue3
+_issue02_Zoissue02_Zdissue3:
+Lblk10:
+    pushq %rbp
+    movq %rsp, %rbp
+    subq $16, %rsp
+    leaq _yalx_Zplang_Zolang_ZdException$class(%rip), %rdi
+    callq _heap_alloc
+    movq $0, %rcx
+    movq %rax, -8(%rbp)
+    movq -8(%rbp), %rdi
+    movq Kstr.5(%rip), %rsi
+    movq %rcx, %rdx
+    addq $0, %rsp
+    callq _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
+    subq $0, %rsp
+    movq -8(%rbp), %rax
+    movq 16(%rax), %rcx
+    movq Kstr.5(%rip), %rdi
+    movq %rcx, %rsi
+    addq $0, %rsp
+    callq _issue02_Zoissue02_ZdassertString
+    subq $0, %rsp
+    addq $16, %rsp
+    popq %rbp
+    retq
+.global _issue02_Zoissue02_Zdissue3_had
+_issue02_Zoissue02_Zdissue3_had:
+Lblk11:
+    pushq %rbp
+    movq %rsp, %rbp
+    subq $48, %rsp
+    movq %rbx, -8(%rbp)
+    movq %r12, -16(%rbp)
+    movq %r13, -24(%rbp)
+    movq %r14, -32(%rbp)
+    movq %r15, -40(%rbp)
+    callq _current_root
+    movq %rax, %r14
+    callq _issue02_Zoissue02_Zdissue3
+    movq -8(%rbp), %rbx
+    movq -16(%rbp), %r12
+    movq -24(%rbp), %r13
+    movq -32(%rbp), %r14
+    movq -40(%rbp), %r15
+    addq $48, %rsp
+    popq %rbp
+    retq
 .global _issue02_Zoissue02_Zddisplay
 _issue02_Zoissue02_Zddisplay:
-Lblk10:
+Lblk12:
     pushq %rbp
     movq %rsp, %rbp
     subq $16, %rsp
@@ -176,7 +224,7 @@ Lblk10:
     retq
 .global _issue02_Zoissue02_ZdassertString
 _issue02_Zoissue02_ZdassertString:
-Lblk11:
+Lblk13:
     pushq %rbp
     movq %rsp, %rbp
     subq $32, %rsp
@@ -192,7 +240,7 @@ Lblk11:
     retq
 .global _issue02_Zoissue02_ZdassertInt
 _issue02_Zoissue02_ZdassertInt:
-Lblk12:
+Lblk14:
     pushq %rbp
     movq %rsp, %rbp
     subq $0, %rsp
@@ -304,32 +352,34 @@ Lkzs.3:
 Lkzs.4:
     .asciz "Doom"
 Lkzs.5:
-    .asciz "fun (issue02:issue02.Bar)->(string)"
+    .asciz "Error"
 Lkzs.6:
-    .asciz "toString"
+    .asciz "fun (issue02:issue02.Bar)->(string)"
 Lkzs.7:
-    .asciz "fun (issue02:issue02.Bar,i32,i32,string)->(void)"
+    .asciz "toString"
 Lkzs.8:
-    .asciz "Bar$constructor"
+    .asciz "fun (issue02:issue02.Bar,i32,i32,string)->(void)"
 Lkzs.9:
-    .asciz "x"
+    .asciz "Bar$constructor"
 Lkzs.10:
-    .asciz "y"
+    .asciz "x"
 Lkzs.11:
-    .asciz "Bar"
+    .asciz "y"
 Lkzs.12:
-    .asciz "issue02:issue02.Bar"
+    .asciz "Bar"
 Lkzs.13:
-    .asciz "fun (issue02:issue02.Foo)->(void)"
+    .asciz "issue02:issue02.Bar"
 Lkzs.14:
-    .asciz "doIt"
+    .asciz "fun (issue02:issue02.Foo)->(void)"
 Lkzs.15:
-    .asciz "fun (issue02:issue02.Foo,i32,i32,string)->(void)"
+    .asciz "doIt"
 Lkzs.16:
-    .asciz "Foo$constructor"
+    .asciz "fun (issue02:issue02.Foo,i32,i32,string)->(void)"
 Lkzs.17:
-    .asciz "Foo"
+    .asciz "Foo$constructor"
 Lkzs.18:
+    .asciz "Foo"
+Lkzs.19:
     .asciz "issue02:issue02.Foo"
 .section __DATA,__data
 .p2align 4
@@ -345,10 +395,10 @@ _issue02_Zoissue02_ZdBar$class:
     .long 32 # instance_size
     .long 0 # padding
     .quad _issue02_Zoissue02_ZdBar$class # super
-    .quad Lkzs.11 # name
+    .quad Lkzs.12 # name
     .long 3 # name
     .long 0 # padding
-    .quad Lkzs.12 # location
+    .quad Lkzs.13 # location
     .long 19 # location
     .long 0 # padding
     .long 0 # n_annotations
@@ -370,7 +420,7 @@ _issue02_Zoissue02_ZdBar$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.9 # name
+    .quad Lkzs.10 # name
     .long 1 # name
     .long 0 # padding
     .quad 0 # type
@@ -380,7 +430,7 @@ _issue02_Zoissue02_ZdBar$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.10 # name
+    .quad Lkzs.11 # name
     .long 1 # name
     .long 0 # padding
     .quad 0 # type
@@ -403,10 +453,10 @@ _issue02_Zoissue02_ZdBar$methods:
     .long 0 # n_annotations
     .long 0 # padding
     .quad 0 # reserved0
-    .quad Lkzs.6 # name
+    .quad Lkzs.7 # name
     .long 8 # name
     .long 0 # padding
-    .quad Lkzs.5 # prototype_desc
+    .quad Lkzs.6 # prototype_desc
     .long 35 # prototype_desc
     .long 0 # padding
     .quad _issue02_Zoissue02_ZdBar_ZdtoString # entry
@@ -417,10 +467,10 @@ _issue02_Zoissue02_ZdBar$ctor:
     .long 0 # n_annotations
     .long 0 # padding
     .quad 0 # reserved0
-    .quad Lkzs.8 # name
+    .quad Lkzs.9 # name
     .long 15 # name
     .long 0 # padding
-    .quad Lkzs.7 # prototype_desc
+    .quad Lkzs.8 # prototype_desc
     .long 48 # prototype_desc
     .long 0 # padding
     .quad _issue02_Zoissue02_ZdBar_ZdBar_Z4constructor # entry
@@ -441,10 +491,10 @@ _issue02_Zoissue02_ZdFoo$class:
     .long 32 # instance_size
     .long 0 # padding
     .quad 0 # super
-    .quad Lkzs.17 # name
+    .quad Lkzs.18 # name
     .long 3 # name
     .long 0 # padding
-    .quad Lkzs.18 # location
+    .quad Lkzs.19 # location
     .long 19 # location
     .long 0 # padding
     .long 0 # n_annotations
@@ -466,7 +516,7 @@ _issue02_Zoissue02_ZdFoo$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.9 # name
+    .quad Lkzs.10 # name
     .long 1 # name
     .long 0 # padding
     .quad 0 # type
@@ -476,7 +526,7 @@ _issue02_Zoissue02_ZdFoo$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.10 # name
+    .quad Lkzs.11 # name
     .long 1 # name
     .long 0 # padding
     .quad 0 # type
@@ -499,10 +549,10 @@ _issue02_Zoissue02_ZdFoo$methods:
     .long 0 # n_annotations
     .long 0 # padding
     .quad 0 # reserved0
-    .quad Lkzs.14 # name
+    .quad Lkzs.15 # name
     .long 4 # name
     .long 0 # padding
-    .quad Lkzs.13 # prototype_desc
+    .quad Lkzs.14 # prototype_desc
     .long 33 # prototype_desc
     .long 0 # padding
     .quad _issue02_Zoissue02_ZdFoo_ZddoIt # entry
@@ -515,7 +565,7 @@ _issue02_Zoissue02_ZdFoo$methods:
     .quad Lkzs.0 # name
     .long 6 # name
     .long 0 # padding
-    .quad Lkzs.13 # prototype_desc
+    .quad Lkzs.14 # prototype_desc
     .long 33 # prototype_desc
     .long 0 # padding
     .quad _issue02_Zoissue02_ZdFoo_ZddoThat # entry
@@ -526,10 +576,10 @@ _issue02_Zoissue02_ZdFoo$ctor:
     .long 0 # n_annotations
     .long 0 # padding
     .quad 0 # reserved0
-    .quad Lkzs.16 # name
+    .quad Lkzs.17 # name
     .long 15 # name
     .long 0 # padding
-    .quad Lkzs.15 # prototype_desc
+    .quad Lkzs.16 # prototype_desc
     .long 48 # prototype_desc
     .long 0 # padding
     .quad _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor # entry
@@ -538,7 +588,7 @@ _issue02_Zoissue02_ZdFoo$ctor:
 # Yalx-String constants
 .global _issue02_Zoissue02_Lksz
 _issue02_Zoissue02_Lksz:
-    .long 19
+    .long 20
     .long 0 # padding for struct lksz_header
     .quad Lkzs.0
     .quad Lkzs.1
@@ -559,9 +609,10 @@ _issue02_Zoissue02_Lksz:
     .quad Lkzs.16
     .quad Lkzs.17
     .quad Lkzs.18
+    .quad Lkzs.19
 .global _issue02_Zoissue02_Kstr
 _issue02_Zoissue02_Kstr:
-    .long 19
+    .long 20
     .long 0 # padding for struct kstr_header
 Kstr.0:
     .quad 0
@@ -600,4 +651,6 @@ Kstr.16:
 Kstr.17:
     .quad 0
 Kstr.18:
+    .quad 0
+Kstr.19:
     .quad 0

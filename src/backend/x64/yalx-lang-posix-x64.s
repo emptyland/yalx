@@ -557,24 +557,31 @@ _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor:
 Lblk34:
     pushq %rbp
     movq %rsp, %rbp
-    subq $32, %rsp
+    subq $64, %rsp
     movq %rdi, %rax
     movq %rdx, -8(%rbp)
     movq %rsi, -16(%rbp)
     movq %rdi, -24(%rbp)
     movq %rax, %rdi
-    addq $0, %rsp
+    addq $32, %rsp
     callq _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
-    subq $0, %rsp
+    subq $32, %rsp
     movq -8(%rbp), %rcx
     movq -16(%rbp), %rdx
     movq -24(%rbp), %rsi
     movq %rdx, 16(%rsi)
     movq %rcx, 24(%rsi)
+    movq %rsi, -8(%rbp)
     addq $32, %rsp
+    callq _yalx_Zplang_Zolang_Zdunwind
+    subq $32, %rsp
+    movq -8(%rbp), %rax
+    movq -40(%rbp), %r13
+    movq %r13, 32(%rax)
+    addq $64, %rsp
     popq %rbp
     retq
-    addq $32, %rsp
+    addq $64, %rsp
     popq %rbp
     retq
 .global _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
@@ -601,15 +608,30 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor:
 Lblk36:
     pushq %rbp
     movq %rsp, %rbp
+    subq $48, %rsp
+    movq %rdi, %rax
+    movq %rcx, -8(%rbp)
+    movq %rdx, -16(%rbp)
+    movq %rsi, -24(%rbp)
+    movq %rdi, -32(%rbp)
+    movl %r8d, -36(%rbp)
+    movq %rax, %rdi
+    addq $0, %rsp
+    callq _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
     subq $0, %rsp
+    movq -8(%rbp), %rcx
+    movq -16(%rbp), %rdx
+    movq -24(%rbp), %rsi
+    movq -32(%rbp), %rdi
+    movl -36(%rbp), %r8d
     movq %rsi, 16(%rdi)
     movq %rdx, 24(%rdi)
     movq %rcx, 32(%rdi)
     movl %r8d, 40(%rdi)
-    addq $0, %rsp
+    addq $48, %rsp
     popq %rbp
     retq
-    addq $0, %rsp
+    addq $48, %rsp
     popq %rbp
     retq
 # CString constants
@@ -1668,14 +1690,14 @@ _yalx_Zplang_Zolang_ZdException$ctor:
 .global _yalx_Zplang_Zolang_ZdBacktraceFrame$class
 _yalx_Zplang_Zolang_ZdBacktraceFrame$class:
     .quad 0 # id
-    .byte 1 # constraint
+    .byte 0 # constraint
     .byte 0 # padding
     .byte 0
     .byte 0
     .long 8 # reference_size
     .long 48 # instance_size
     .long 0 # padding
-    .quad 0 # super
+    .quad _yalx_Zplang_Zolang_ZdBacktraceFrame$class # super
     .quad Lkzs.90 # name
     .long 14 # name
     .long 0 # padding

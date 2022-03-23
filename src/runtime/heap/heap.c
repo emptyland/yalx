@@ -279,3 +279,13 @@ void yalx_heap_visit_root(struct heap *heap, struct yalx_root_visitor *visitor) 
         }
     }
 }
+
+
+void post_write_barrier(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any *mutator) {
+    // TODO:
+}
+
+void post_write_barrier_batch(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any **mutators,
+                              size_t nitems) {
+    // TODO:
+}

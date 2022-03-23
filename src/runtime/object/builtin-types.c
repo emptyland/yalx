@@ -1,7 +1,9 @@
 #include "runtime/object/type.h"
 #include "runtime/object/any.h"
 #include "runtime/object/number.h"
+#include "runtime/object/arrays.h"
 #include "runtime/object/yalx-string.h"
+
 
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -277,6 +279,63 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .n_vtab = 0,
         // TODO:
     }, // F64
+    
+    [Type_typed_array] = {
+        .id = (uint64_t)Type_typed_array,
+        .constraint = K_CLASS,
+        .reference_size = sizeof(yalx_ref_t),
+        .instance_size = sizeof(struct yalx_value_typed_array),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("TypedArray"),
+        .location = YALX_STR("TypedArray"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL, // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // TypedArray
+    
+    [Type_refs_array] = {
+        .id = (uint64_t)Type_refs_array,
+        .constraint = K_CLASS,
+        .reference_size = sizeof(yalx_ref_t),
+        .instance_size = sizeof(struct yalx_value_refs_array),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("RefsArray"),
+        .location = YALX_STR("RefsArray"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL, // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // RefsArray
+    
+    [Type_dims_array] = {
+        .id = (uint64_t)Type_dims_array,
+        .constraint = K_CLASS,
+        .reference_size = sizeof(yalx_ref_t),
+        .instance_size = sizeof(struct yalx_value_dims_array),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("DimsArray"),
+        .location = YALX_STR("DimsArray"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL, // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // RefsArray
 };
 
 
@@ -298,3 +357,12 @@ const struct yalx_class *const F32_class = &builtin_classes[Type_F32];
 const struct yalx_class *const F64_class = &builtin_classes[Type_F64];
 
 const struct yalx_class *const string_class = &builtin_classes[Type_string];
+
+const struct yalx_class *const typed_array_class = &builtin_classes[Type_typed_array];
+const struct yalx_class *const refs_array_class = &builtin_classes[Type_refs_array];
+const struct yalx_class *const dims_array_class = &builtin_classes[Type_dims_array];
+
+
+const struct yalx_class *backtrace_frame_class = NULL;
+const struct yalx_class *throwable_class = NULL;
+const struct yalx_class *exception_class = NULL;

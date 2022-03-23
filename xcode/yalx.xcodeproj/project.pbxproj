@@ -49,6 +49,10 @@
 		233236E3269ECAFA0078406C /* node-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 233236E1269ECAFA0078406C /* node-test.cc */; };
 		2336A2912774168E00346372 /* codegen-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2336A2902774168E00346372 /* codegen-test.cc */; };
 		2336A2922774168E00346372 /* codegen-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2336A2902774168E00346372 /* codegen-test.cc */; };
+		233AB98027EB46DE00E68B90 /* arrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB97F27EB46DE00E68B90 /* arrays.c */; };
+		233AB98127EB46DE00E68B90 /* arrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB97F27EB46DE00E68B90 /* arrays.c */; };
+		233AB98327EB4C6100E68B90 /* unwind-posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB98227EB4C6100E68B90 /* unwind-posix.c */; };
+		233AB98427EB4C6100E68B90 /* unwind-posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB98227EB4C6100E68B90 /* unwind-posix.c */; };
 		2355560A278929C0003ADACE /* io-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23555609278929C0003ADACE /* io-test.cc */; };
 		2355560B278929C0003ADACE /* io-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23555609278929C0003ADACE /* io-test.cc */; };
 		2355560E278936EC003ADACE /* utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2355560D278936EC003ADACE /* utils.cc */; };
@@ -336,6 +340,8 @@
 		233236DE269EC2EF0078406C /* operator-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "operator-test.cc"; path = "../src/ir/operator-test.cc"; sourceTree = "<group>"; };
 		233236E1269ECAFA0078406C /* node-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "node-test.cc"; path = "../src/ir/node-test.cc"; sourceTree = "<group>"; };
 		2336A2902774168E00346372 /* codegen-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "codegen-test.cc"; path = "../src/ir/codegen-test.cc"; sourceTree = "<group>"; };
+		233AB97F27EB46DE00E68B90 /* arrays.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = arrays.c; path = ../src/runtime/object/arrays.c; sourceTree = "<group>"; };
+		233AB98227EB4C6100E68B90 /* unwind-posix.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "unwind-posix.c"; path = "../src/runtime/heap/unwind-posix.c"; sourceTree = "<group>"; };
 		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
 		2351F80E26648CB200D337EA /* runtime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = runtime.h; path = ../src/runtime/runtime.h; sourceTree = "<group>"; };
 		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
@@ -597,8 +603,9 @@
 				23D5A68026676B2600635ADB /* Object */,
 				23D5A67F26676B1F00635ADB /* Heap */,
 				2351F812266494AE00D337EA /* runtime-test.cc */,
-				2351F80E26648CB200D337EA /* runtime.h */,
 				2351F80F26648D4D00D337EA /* runtime.c */,
+				2351F80E26648CB200D337EA /* runtime.h */,
+				233AB98227EB4C6100E68B90 /* unwind-posix.c */,
 				2351F8112664939700D337EA /* macros.h */,
 				23A3AB5D2664DB9F00007658 /* stack-test.cc */,
 				23A3AB5A2664BAE800007658 /* stack.h */,
@@ -768,6 +775,7 @@
 				23D5A68426676DEF00635ADB /* any.h */,
 				231C4B8F268DA7D200D4AC62 /* any-posix-arm64.s */,
 				232FDB0D2680775600D52154 /* any-posix-x64.s */,
+				233AB97F27EB46DE00E68B90 /* arrays.c */,
 				23992DBA27E96B2200C3F334 /* arrays.h */,
 				232FDB0F26818CF900D52154 /* number-test.cc */,
 				232FDB0B26806D8B00D52154 /* number.c */,
@@ -919,6 +927,7 @@
 				23D4A4472680D17D0090C631 /* number.c in Sources */,
 				23B997DE26A468D500DD037B /* scope.cc in Sources */,
 				23C1345F27A4DDFA00C0DEB4 /* instruction-generating-x64.cc in Sources */,
+				233AB98427EB4C6100E68B90 /* unwind-posix.c in Sources */,
 				23D4A4482680D17D0090C631 /* number.h in Sources */,
 				232FDB1126818CF900D52154 /* number-test.cc in Sources */,
 				23D4A4492680D17D0090C631 /* type.h in Sources */,
@@ -926,6 +935,7 @@
 				23EDFA28269C45A400C8F1FE /* node.cc in Sources */,
 				23D4A44A2680D17D0090C631 /* builtin-types.c in Sources */,
 				23D4A44B2680D17D0090C631 /* type-test.cc in Sources */,
+				233AB98127EB46DE00E68B90 /* arrays.c in Sources */,
 				23D4A44C2680D17D0090C631 /* yalx-string.h in Sources */,
 				23C3543826A1B7E7006607D1 /* scope.cc in Sources */,
 				23D4A44D2680D17D0090C631 /* yalx-string.c in Sources */,
@@ -1095,6 +1105,7 @@
 				23D5A66D266718F900635ADB /* hash.h in Sources */,
 				23D5A66E266718F900635ADB /* io.h in Sources */,
 				23FA869C26A01091001CC777 /* type.cc in Sources */,
+				233AB98327EB4C6100E68B90 /* unwind-posix.c in Sources */,
 				23D5A66F266718F900635ADB /* io.cc in Sources */,
 				23D5A670266718F900635ADB /* lazy-instance.h in Sources */,
 				23C3356E27A82DB500319862 /* stackslot-allocator.cc in Sources */,
@@ -1137,6 +1148,7 @@
 				23D5A67A266718F900635ADB /* format.h in Sources */,
 				23D5A67B266718F900635ADB /* format.cc in Sources */,
 				23C1345E27A4DDFA00C0DEB4 /* instruction-generating-x64.cc in Sources */,
+				233AB98027EB46DE00E68B90 /* arrays.c in Sources */,
 				23EDFA27269C45A400C8F1FE /* node.cc in Sources */,
 				23D5A67C266718F900635ADB /* utils.h in Sources */,
 				239735C827B54BA300FAD063 /* code-generate-x64.cc in Sources */,

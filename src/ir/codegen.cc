@@ -2369,6 +2369,7 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
         case cpl::Type::kType_unit:
             return Types::Void;
         case cpl::Type::kType_none:
+            return Type::Ref(FindUdtOrNull(cpl::kAnyClassFullName), true/*nullable*/);
         case cpl::Type::kType_symbol:
         default:
             UNREACHABLE();

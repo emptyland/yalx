@@ -1,7 +1,6 @@
 #include "runtime/object/yalx-string.h"
 #include "runtime/object/type.h"
 #include "runtime/heap/heap.h"
-#include <assert.h>
 
 struct yalx_value_str *yalx_new_string(struct heap *heap, const char *z, size_t n) {
     struct string_pool_entry *space = yalx_ensure_space_kpool(heap, z, n);

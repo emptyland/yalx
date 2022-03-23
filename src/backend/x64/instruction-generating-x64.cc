@@ -11,6 +11,7 @@
 #include "ir/node.h"
 #include "ir/type.h"
 #include "ir/utils.h"
+#include "compiler/constants.h"
 #include "runtime/runtime.h"
 #include "base/lazy-instance.h"
 #include "base/arena-utils.h"
@@ -257,6 +258,7 @@ private:
     void SelectBasicBlock(ir::BasicBlock *bb);
     void Select(ir::Value *instr);
     void CallDirectly(ir::Value *instr);
+    void CallVirtual(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
     void ConditionBr(ir::Value *instr);
     void ProcessParameters(InstructionBlock *block);
@@ -735,10 +737,13 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             auto opd = Allocate(instr, kMoR);
             auto from_ty = input->type().model();
             auto to_ty = instr->type().model();
-            if (from_ty == to_ty || from_ty->IsBaseOf(to_ty)) {
+            if (from_ty == to_ty
+                || from_ty->IsBaseOf(to_ty)
+                || to_ty->full_name()->Equal(cpl::kAnyClassFullName)) {
                 Move(opd, Allocate(input, kAny), instr->type());
             } else {
-                UNREACHABLE(); // TODO: check it
+                Move(opd, Allocate(input, kAny), instr->type());
+                //UNREACHABLE(); // TODO: check it
             }
         } break;
             
@@ -1073,6 +1078,9 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             CallDirectly(instr);
             break;
             
+        case ir::Operator::kCallVirtual:
+            break;
+            
         case ir::Operator::kReturningVal:
             // Just Ignore this ir code
             break;
@@ -1226,10 +1234,6 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
                 if (saving_scope.Include(kFloatArgumentsRegisters[float_index], false/*general*/)) {
-//                    auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
-//                                                                          kFloatArgumentsRegisters[float_index]));
-//                    Move(dest, opd, arg->type());
-//                    operands_.Associate(arg, dest);
                     auto dest = new (arena_) RegisterOperand(kFloatArgumentsRegisters[float_index],
                                                              ToMachineRepresentation(arg->type()));
                     Move(dest, opd, arg->type());
@@ -1239,10 +1243,6 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         } else {
             if (general_index < kNumberOfGeneralArgumentsRegisters) {
                 if (saving_scope.Include(kGeneralArgumentsRegisters[general_index], true/*general*/)) {
-//                    auto dest = DCHECK_NOTNULL(operands_.AllocateReigster(arg->type(),
-//                                                                          kGeneralArgumentsRegisters[general_index]));
-//                    Move(dest, opd, arg->type());
-//                    operands_.Associate(arg, dest);
                     auto dest = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[general_index],
                                                              ToMachineRepresentation(arg->type()));
                     Move(dest, opd, arg->type());
@@ -1285,6 +1285,15 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     auto rel = new (arena_) ReloactionOperand(symbols_->Mangle(callee->full_name()), nullptr);
     current()->NewI(ArchCall, rel);
     current()->NewIO(X64Sub, operands_.registers()->stack_pointer(), adjust);
+}
+
+void X64FunctionInstructionSelector::CallVirtual(ir::Value *instr) {
+    auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+    auto method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
+    assert(method->in_vtab);
+    assert(instr->op()->value_in() >= 1);
+    
+    UNREACHABLE(); // TODO:
 }
 
 void X64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {

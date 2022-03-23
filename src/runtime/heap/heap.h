@@ -102,6 +102,11 @@ void string_pool_rehash(struct string_pool *pool, int slot_shift);
 
 struct allocate_result yalx_heap_allocate(struct heap *heap, const struct yalx_class *klass, size_t size, u32_t flags);
 
+void post_write_barrier(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any *mutator);
+
+void post_write_barrier_batch(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any **mutators,
+                              size_t nitems);
+
 #define yalx_bool_value(b) (heap.fast_boxing_numbers.bool_values[(b) ? 1 : 0])
 #define yalx_true_value() (heap.fast_boxing_numbers.bool_values[1])
 #define yalx_false_value() (heap.fast_boxing_numbers.bool_values[0])

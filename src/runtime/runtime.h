@@ -5,6 +5,7 @@
 #include "runtime/macros.h"
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,6 +40,12 @@ extern "C" {
 #else
 #error not suppport it
 #endif
+
+#define ANY_CLASS_NAME       "yalx/lang:lang.Any"
+#define STRING_CLASS_NAME    "yalx/lang:lang.String"
+#define THROWABLE_CLASS_NAME "yalx/lang:lang.Throwable"
+#define EXCEPTION_CLASS_NAME "yalx/lang:lang.Exception"
+#define BACKTRACE_FRAME_CLASS_NAME "yalx/lang:lang.BacktraceFrame"
 
 // Yalx internal primitive types:
 typedef int8_t   i8_t;
@@ -124,11 +131,47 @@ struct yalx_returning_vals {
 int yalx_enter_returning_scope(struct yalx_returning_vals *state, size_t reserved_size, address_t fun_addr);
 int yalx_exit_returning_scope(struct yalx_returning_vals *state);
 
-int yalx_return_i32(struct yalx_returning_vals *state, i32_t value);
-int yalx_return_u32(struct yalx_returning_vals *state, u32_t value);
-int yalx_return_cstring(struct yalx_returning_vals *state, const char *const z, size_t n);
-int yalx_return_ref(struct yalx_value_any *ref);
-int yalx_return(struct yalx_returning_vals *state, const void *const p, size_t n);
+void *yalx_return_reserved(size_t n);
+
+static inline int yalx_return_i32(i32_t value) {
+    i32_t *place = (i32_t *)yalx_return_reserved(sizeof(value));
+    if (!place) {
+        return -1;
+    }
+    *place = value;
+    return 0;
+}
+
+static inline int yalx_return_u32(u32_t value) {
+    u32_t *place = (u32_t *)yalx_return_reserved(sizeof(value));
+    if (!place) {
+        return -1;
+    }
+    *place = value;
+    return 0;
+}
+
+int yalx_return_cstring(const char *const z, size_t n);
+
+static inline int yalx_return_ref(struct yalx_value_any *ref) {
+    struct yalx_value_any **place = (struct yalx_value_any **)yalx_return_reserved(sizeof(ref));
+    if (!place) {
+        return -1;
+    }
+    *place = ref;
+    return 0;
+}
+
+static inline int yalx_return(const void *const p, size_t n) {
+    void *place = (u32_t *)yalx_return_reserved(n);
+    if (!place) {
+        return -1;
+    }
+    memcpy(place, p, n);
+    return 0;
+}
+
+void *yalx_return_reserved_do(struct yalx_returning_vals *state, size_t n);
 
 const struct yalx_class *yalx_find_class(const char *const plain_name);
 

@@ -20,6 +20,12 @@ fun issue2() {
     assertString("Doom", foo.name)
 }
 
+@yalx.Compiler(nativeHandle=true)
+fun issue3() {
+    val ex = Exception("Error", none)
+    assertString("Error", ex.message)
+}
+
 struct Foo(val x: int, val y: int, var name: string) {
     fun doIt() -> display(name)
     fun doThat() -> display("doThat")

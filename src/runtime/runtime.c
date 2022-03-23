@@ -186,21 +186,39 @@ int yalx_runtime_init() {
     
     yalx_init_scheduler(&scheduler);
     
-    
+
     // FIXME:
-    const struct yalx_class *ty = yalx_find_class("yalx/lang:lang.Any");
+    const struct yalx_class *ty = yalx_find_class(ANY_CLASS_NAME);
     if (!ty) {
         die("Any class not found");
         return -1;
     }
     memcpy(&builtin_classes[Type_any], ty, sizeof(*ty));
     
-    ty = yalx_find_class("yalx/lang:lang.String");
+    ty = yalx_find_class(STRING_CLASS_NAME);
     if (!ty) {
         die("String class not found");
         return -1;
     }
     memcpy(&builtin_classes[Type_string], ty, sizeof(*ty));
+    ty = yalx_find_class(THROWABLE_CLASS_NAME);
+    if (!ty) {
+        die("Throwable class not found");
+        return -1;
+    }
+    throwable_class = ty;
+    ty = yalx_find_class(EXCEPTION_CLASS_NAME);
+    if (!ty) {
+        die("Exception class not found");
+        return -1;
+    }
+    exception_class = ty;
+    ty = yalx_find_class(BACKTRACE_FRAME_CLASS_NAME);
+    if (!ty) {
+        die("BacktraceFrame class not found");
+        return -1;
+    }
+    backtrace_frame_class = ty;
     
     dev_print_struct_fields();
     return 0;
@@ -455,28 +473,30 @@ int yalx_exit_returning_scope(struct yalx_returning_vals *state) {
     co->returning_vals = state->prev;
 }
 
-int yalx_return_i32(struct yalx_returning_vals *state, i32_t value) {
-    return yalx_return(state, &value, sizeof(value));
-}
-
-int yalx_return_u32(struct yalx_returning_vals *state, u32_t value) {
-    return yalx_return(state, &value, sizeof(value));
-}
-
-int yalx_return_cstring(struct yalx_returning_vals *state, const char *const z, size_t n) {
-    struct yalx_value_str *str = yalx_new_string(&heap, z, n);
-    return yalx_return(state, &str, sizeof(str));
-}
-
-int yalx_return(struct yalx_returning_vals *state, const void *const p, size_t n) {
-    size_t size = ROUND_UP(n, STACK_SLOT_ALIGNMENT);
-    if (state->offset + size > state->total_size) {
+int yalx_return_cstring(const char *const z, size_t n) {
+    struct yalx_value_str **place = (struct yalx_value_str **)yalx_return_reserved(sizeof(struct yalx_value_str *));
+    if (!place) {
         return -1;
     }
-    address_t addr = (state->buf + state->total_size) - state->offset - n;
-    memcpy(addr, p, n);
-    state->offset += (u16_t)size;
+    *place = yalx_new_string(&heap, z, n);
     return 0;
+}
+
+void *yalx_return_reserved(size_t n) {
+    return yalx_return_reserved_do(CURRENT_COROUTINE->returning_vals, n);
+}
+
+//void *yalx_return_reserved_do(struct yalx_returning_vals *state, size_t n);
+
+void *yalx_return_reserved_do(struct yalx_returning_vals *state, size_t n) {
+    size_t size = ROUND_UP(n, STACK_SLOT_ALIGNMENT);
+    if (state->offset + size > state->total_size) {
+        return NULL;
+    }
+    address_t addr = (state->buf + state->total_size) - state->offset - n;
+    //memcpy(addr, p, n);
+    state->offset += (u16_t)size;
+    return addr;
 }
 
 const struct yalx_class *yalx_find_class(const char *const plain_name) {
@@ -614,6 +634,4 @@ void yalx_Zplang_Zolang_Zdprintln_stub(yalx_str_handle txt) {
 }
 
 
-void yalx_Zplang_Zolang_Zdunwind_stub() {
-    assert(!"TODO:");
-}
+
