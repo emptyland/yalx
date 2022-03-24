@@ -99,6 +99,7 @@ public:
     void EmitAll() {
         printer()->Write(".global ")->Writeln(fun_->symbol()->ToSlice());
         printer()->Write(fun_->symbol()->ToSlice())->Writeln(":");
+        printer()->Writeln(".cfi_startproc");
         
         position_ = 0;
         for (auto ib : fun_->blocks()) {
@@ -108,6 +109,8 @@ public:
                 position_++;
             }
         }
+        
+        printer()->Writeln(".cfi_endproc");
     }
 
 private:
@@ -146,6 +149,43 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperand(instr->InputAt(0), kIndirectly);
             printer()->Writeln("");
             break;
+            
+        case ArchFrameEnter:
+            printer()->Write("pushq ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            
+            printer()->Indent(1)->Writeln(".cfi_def_cfa_offset 16");
+            
+            printer()->Indent(1)->Write(".cfi_offset ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln(", -16");
+            
+            printer()->Indent(1)->Write("movq %rsp, ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            
+            printer()->Indent(1)->Write(".cfi_def_cfa_register ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+
+            if (auto size = instr->InputAt(0)->AsImmediate()->word32(); size > 0) {
+                printer()->Indent(1)->Println("subq $%d, %%rsp", size);
+            }
+            break;
+            
+        case ArchFrameExit: {
+            int has_adjust = 0;
+            if (auto size = instr->InputAt(0)->AsImmediate()->word32(); size > 0) {
+                printer()->Println("addq $%d, %%rsp", size);
+                has_adjust = 1;
+            }
+            printer()->Indent(has_adjust)->Write("popq ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+
+            printer()->Indent(1)->Writeln("retq");
+        } break;
             
         case ArchJmp:
             printer()->Write("jmp ");

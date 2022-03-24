@@ -40,6 +40,7 @@ namespace ir {
     V(StoreGlobal) \
     V(LazyValue) \
     V(LazyLoad) \
+    V(Catch) \
     V(LoadFunAddr) \
     V(LoadEffectAddress) \
     V(LoadAccessField) \

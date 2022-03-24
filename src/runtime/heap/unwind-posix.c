@@ -6,6 +6,7 @@
 #include "runtime/object/throwable.h"
 #include "runtime/object/arrays.h"
 #include <libunwind.h>
+#include <stdio.h>
 
 void yalx_Zplang_Zolang_Zdunwind_stub() {
     //struct back heap_alloc(backtrace_frame_class);
@@ -34,12 +35,20 @@ void yalx_Zplang_Zolang_Zdunwind_stub() {
 
         char name[256];
         if (unw_get_proc_name(&cursor, name, arraysize(name), &offset) == 0) {
-            frame->function = yalx_new_string(&heap, name, strlen(name));
+            size_t n = yalx_symbol_demangle_on_place(name, strlen(name));
+            frame->function = yalx_new_string(&heap, name, n);
         } else {
             frame->function = yalx_new_string(&heap, "<unknown>", 9);
         }
         frame->line = 0;
         frame->file = yalx_new_string(&heap, "<unknown>", 9);
+        
+//        {
+//            unw_word_t rbp, sp;
+//            int r1 = unw_get_reg(&cursor, UNW_X86_64_RBP, &rbp);
+//            int r2 = unw_get_reg(&cursor, UNW_REG_SP, &sp);
+//            printf("%s(): %d = %p, %d = %p, size = %d\n", frame->function->bytes, r1, rbp, r2, sp, rbp - sp);
+//        }
         
         if (size + 1 > capacity) {
             capacity <<= 1;

@@ -220,12 +220,15 @@ public:
     
     void Run() {
         auto blk = blocks_[fun_->entry()];
-        blk->NewI(X64Push, operands_.registers()->frame_pointer()); // push rbp
-        // movq rsp->rbp
-        blk->NewIO(X64Movq, operands_.registers()->frame_pointer(), operands_.registers()->stack_pointer());
+//        blk->NewI(X64Push, operands_.registers()->frame_pointer()); // push rbp
+//        // movq rsp->rbp
+//        blk->NewIO(X64Movq, operands_.registers()->frame_pointer(), operands_.registers()->stack_pointer());
+//        stack_size_ = ImmediateOperand::Word32(arena_, 0);
+//        blk->NewIO(X64Sub, operands_.registers()->stack_pointer(), stack_size_);
+  
         stack_size_ = ImmediateOperand::Word32(arena_, 0);
-        blk->NewIO(X64Sub, operands_.registers()->stack_pointer(), stack_size_);
-        
+        blk->NewIO(ArchFrameEnter, operands_.registers()->frame_pointer(), stack_size_);
+
         ProcessParameters(blk);
         for (auto blk : fun_->blocks()) {
             SelectBasicBlock(blk);
@@ -348,10 +351,12 @@ void X64FunctionInstructionSelector::BuildNativeHandle() {
 
 std::vector<std::tuple<LocationOperand *, RegisterOperand *>>
 X64FunctionInstructionSelector::SetUpHandleFrame(RegisterOperand *sp, RegisterOperand *fp) {
-    current()->NewI(X64Push, fp);
-    current()->NewIO(X64Movq, fp, sp);
+//    current()->NewI(X64Push, fp);
+//    current()->NewIO(X64Movq, fp, sp);
+//    stack_size_ = ImmediateOperand::Word32(arena_, 0/*placeholder*/);
+//    current()->NewIO(X64Sub, sp, stack_size_);
     stack_size_ = ImmediateOperand::Word32(arena_, 0/*placeholder*/);
-    current()->NewIO(X64Sub, sp, stack_size_);
+    current()->NewIO(ArchFrameEnter, fp, stack_size_);
     
     std::vector<std::tuple<LocationOperand *, RegisterOperand *>> saved_registers;
     for (size_t i = 0; i < arraysize(kCalleeSaveRegisters); i++) {
@@ -372,7 +377,6 @@ void X64FunctionInstructionSelector::TearDownHandleFrame(
     auto arg2 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[2], MachineRepresentation::kWord64);
     auto returning_vals_size = ImmediateOperand::Word32(arena_, RoundUp(ReturningValSizeInBytes(fun_->prototype()),
                                                                         kStackConf->stack_alignment_size()));
-    
     if (returning_vals_size->word32() > 0) {
         current()->NewIO(X64Movq, arg0, returning_vals_size);
         current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_reserve_handle_returning_vals));
@@ -387,9 +391,10 @@ void X64FunctionInstructionSelector::TearDownHandleFrame(
         operands_.Free(bak);
     }
 
-    current()->NewIO(X64Add, sp, stack_size_); // sub sp, sp, stack-total-size
-    current()->NewO(X64Pop, fp);
-    current()->New(ArchRet);
+//    current()->NewIO(X64Add, sp, stack_size_); // sub sp, sp, stack-total-size
+//    current()->NewO(X64Pop, fp);
+//    current()->New(ArchRet);
+    current()->NewIO(ArchFrameExit, fp, stack_size_);
 }
 
 void X64FunctionInstructionSelector::CallOriginalFun() {
@@ -529,9 +534,10 @@ void X64FunctionInstructionSelector::SetUpStubFrame(RegisterOperand *sp, Registe
 //    popq %rbp
 //    retq
     stack_size_ = ImmediateOperand::Word32(arena_, 0);
-    current()->NewI(X64Push, fp);
-    current()->NewIO(X64Movq, fp, sp);
-    current()->NewIO(X64Sub, sp, stack_size_);
+    current()->NewIO(ArchFrameEnter, fp, stack_size_);
+//    current()->NewI(X64Push, fp);
+//    current()->NewIO(X64Movq, fp, sp);
+//    current()->NewIO(X64Sub, sp, stack_size_);
 }
 
 void X64FunctionInstructionSelector::TearDownStubFrame(RegisterOperand *sp, RegisterOperand *fp,
@@ -554,9 +560,10 @@ void X64FunctionInstructionSelector::TearDownStubFrame(RegisterOperand *sp, Regi
     current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_current_root)); // x0 -> root
     current()->NewIO(X64Movq, root, acc);
     
-    current()->NewIO(X64Add, sp, stack_size_); // sub sp, sp, stack-total-size
-    current()->NewO(X64Pop, fp);
-    current()->New(ArchRet);
+//    current()->NewIO(X64Add, sp, stack_size_); // sub sp, sp, stack-total-size
+//    current()->NewO(X64Pop, fp);
+//    current()->New(ArchRet);
+    current()->NewIO(ArchFrameExit, fp, stack_size_);
 }
 
 void X64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
@@ -1133,9 +1140,10 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
                 Move(opd, ret, ty);
             }
             
-            current()->NewIO(X64Add, operands_.registers()->stack_pointer(), stack_size_);
-            current()->NewO(X64Pop, operands_.registers()->frame_pointer());
-            current()->New(ArchRet);
+//            current()->NewIO(X64Add, operands_.registers()->stack_pointer(), stack_size_);
+//            current()->NewO(X64Pop, operands_.registers()->frame_pointer());
+//            current()->New(ArchRet);
+            current()->NewIO(ArchFrameExit, operands_.registers()->frame_pointer(), stack_size_);
         } break;
             
         default: {

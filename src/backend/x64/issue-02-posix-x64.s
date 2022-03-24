@@ -7,23 +7,30 @@
 # functions
 .global _issue02_Zoissue02_Zd_Z4init
 _issue02_Zoissue02_Zd_Z4init:
+.cfi_startproc
 Lblk5:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     leaq _yalx_Zplang_Zolang_Zd_Z4init(%rip), %r13
     movq %r13, %rax
     movq %rax, %rdi
     leaq Lkzs.1(%rip), %rsi
     callq _pkg_init_once
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_Zdissue1
 _issue02_Zoissue02_Zdissue1:
+.cfi_startproc
 Lblk6:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $64, %rsp
     leaq -32(%rbp), %rax
     movq %rax, -40(%rbp)
@@ -81,11 +88,16 @@ Lblk6:
     addq $64, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_Zdissue1_had
 _issue02_Zoissue02_Zdissue1_had:
+.cfi_startproc
 Lblk7:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $48, %rsp
     movq %rbx, -8(%rbp)
     movq %r12, -16(%rbp)
@@ -103,11 +115,16 @@ Lblk7:
     addq $48, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_Zdissue2
 _issue02_Zoissue02_Zdissue2:
+.cfi_startproc
 Lblk8:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $64, %rsp
     leaq -32(%rbp), %rax
     movq %rax, -40(%rbp)
@@ -138,11 +155,16 @@ Lblk8:
     addq $64, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_Zdissue2_had
 _issue02_Zoissue02_Zdissue2_had:
+.cfi_startproc
 Lblk9:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $48, %rsp
     movq %rbx, -8(%rbp)
     movq %r12, -16(%rbp)
@@ -160,11 +182,16 @@ Lblk9:
     addq $48, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_Zdissue3
 _issue02_Zoissue02_Zdissue3:
+.cfi_startproc
 Lblk10:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $16, %rsp
     leaq _yalx_Zplang_Zolang_ZdException$class(%rip), %rdi
     callq _heap_alloc
@@ -186,11 +213,16 @@ Lblk10:
     addq $16, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_Zdissue3_had
 _issue02_Zoissue02_Zdissue3_had:
+.cfi_startproc
 Lblk11:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $48, %rsp
     movq %rbx, -8(%rbp)
     movq %r12, -16(%rbp)
@@ -208,11 +240,16 @@ Lblk11:
     addq $48, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_Zddisplay
 _issue02_Zoissue02_Zddisplay:
+.cfi_startproc
 Lblk12:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $16, %rsp
     movq %rdi, -8(%rbp)
     leaq -8(%rbp), %rdi
@@ -222,11 +259,16 @@ Lblk12:
     addq $16, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_ZdassertString
 _issue02_Zoissue02_ZdassertString:
+.cfi_startproc
 Lblk13:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $32, %rsp
     movq %rdi, -8(%rbp)
     movq %rsi, -16(%rbp)
@@ -238,34 +280,45 @@ Lblk13:
     addq $32, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_ZdassertInt
 _issue02_Zoissue02_ZdassertInt:
+.cfi_startproc
 Lblk14:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     callq _assert_int_stub
     callq _current_root
     movq %rax, %r14
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_ZdBar_ZdtoString
 _issue02_Zoissue02_ZdBar_ZdtoString:
+.cfi_startproc
 Lblk0:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movq 24(%rdi), %rax
     movq %rax, 24(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_ZdBar_ZdBar_Z4constructor
 _issue02_Zoissue02_ZdBar_ZdBar_Z4constructor:
+.cfi_startproc
 Lblk1:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $32, %rsp
     movq %rdi, %rax
     movq %rcx, -8(%rbp)
@@ -289,28 +342,35 @@ Lblk1:
     addq $32, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_ZdFoo_ZddoIt
 _issue02_Zoissue02_ZdFoo_ZddoIt:
+.cfi_startproc
 Lblk2:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movq 24(%rdi), %rax
     movq %rax, %rdi
     addq $0, %rsp
     callq _issue02_Zoissue02_Zddisplay
     subq $0, %rsp
-    addq $0, %rsp
     popq %rbp
     retq
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_ZdFoo_ZddoThat
 _issue02_Zoissue02_ZdFoo_ZddoThat:
+.cfi_startproc
 Lblk3:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $16, %rsp
     movq %rdi, -8(%rbp)
     movq Kstr.0(%rip), %rdi
@@ -324,21 +384,24 @@ Lblk3:
     addq $16, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor
 _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor:
+.cfi_startproc
 Lblk4:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl %esi, 16(%rdi)
     movl %edx, 20(%rdi)
     movq %rcx, 24(%rdi)
-    addq $0, %rsp
     popq %rbp
     retq
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 # CString constants
 .section __TEXT,__cstring,cstring_literals
 Lkzs.0:

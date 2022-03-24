@@ -390,6 +390,81 @@ char *yalx_symbol_mangle(const char *const plain_name, const char *postfix) {
     return symbol;
 }
 
+size_t yalx_symbol_demangle_on_place(char symbol[], size_t size) {
+    char *p = &symbol[0];
+    const char *const end = p + size;
+    if (size > 2 && p[0] == '_' && p[1] == '_') {
+        return size;
+    }
+    if (*p == '_') {
+        size--;
+        memmove(p, p + 1, size - 1); // remove prefix `_'
+    }
+    while (p < end) {
+    retry:
+        if (*p != '_') {
+            p++;
+            continue;
+        }
+        
+        char *dash = p++;
+        switch (*p) {
+            case 'Z': {
+                p++;
+                char next = *p;
+                switch (next) {
+                    case 'd':
+                        *dash = '.';
+                        break;
+                    case '4':
+                        *dash = '$';
+                        break;
+                    case 'o':
+                        *dash = ':';
+                        break;
+                    case 'p':
+                        *dash = '/';
+                        break;
+                    default:
+                        p++;
+                        goto retry;
+                }
+                if (end - dash - 3 > 0) {
+                    // _Zd
+                    // .Zd
+                    size -= 2;
+                    memmove(dash + 1, dash + 3, end - dash - 3);
+                }
+            } break;
+            case 'D': {
+                p++;
+                char next = *p;
+                switch (next) {
+                    case 'k':
+                        *dash = '<';
+                        break;
+                    case 'l':
+                        *dash = '>';
+                        break;
+                    default:
+                        p++;
+                        goto retry;
+                }
+                if (end - dash - 3 > 0) {
+                    // _Zd
+                    // .Zd
+                    size -= 2;
+                    memmove(dash + 1, dash + 3, end - dash - 3);
+                }
+            } break;
+            default:
+                p++;
+                break;
+        }
+    }
+    return size;
+}
+
 int yalx_name_symbolize(const char *const plain_name, char symbol[], size_t size) {
     char *p = symbol;
     const char *const limit = p + size;

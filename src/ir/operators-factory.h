@@ -88,6 +88,11 @@ public:
                                                            0/*value_out*/, 0/*control_out*/, fun);
     }
     
+    Operator *Catch() {
+        return new (arena_) Operator(Operator::kCatch, 1, 0/*value_in*/, 0/*control_in*/, 0/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
     // Load Value type's pointer of field
     // input[0]: Value pinter
     Operator *LoadEffectAddress(const Handle *handle) {
@@ -131,34 +136,34 @@ public:
                                                          1/*value_out*/, 0/*control_out*/, handle);
     }
     
-    Operator *CallHandle(const Handle *handle, int value_out, int value_in) {
+    Operator *CallHandle(const Handle *handle, int value_out, int value_in, int control_out) {
         return new (arena_) OperatorWith<const Handle *>(Operator::kCallHandle, 0, value_in, 0/*control_in*/,
-                                                         value_out, 0/*control_out*/, handle);
+                                                         value_out, control_out, handle);
     }
     
-    Operator *CallVirtual(const Handle *handle, int value_out, int value_in) {
+    Operator *CallVirtual(const Handle *handle, int value_out, int value_in, int control_out) {
         return new (arena_) OperatorWith<const Handle *>(Operator::kCallVirtual, 0, value_in, 0/*control_in*/,
-                                                         value_out, 0/*control_out*/, handle);
+                                                         value_out, control_out, handle);
     }
     
-    Operator *CallAbstract(const Handle *handle, int value_out, int value_in) {
+    Operator *CallAbstract(const Handle *handle, int value_out, int value_in, int control_out) {
         return new (arena_) OperatorWith<const Handle *>(Operator::kCallAbstract, 0, value_in, 0/*control_in*/,
-                                                         value_out, 0/*control_out*/, handle);
+                                                         value_out, control_out, handle);
     }
     
-    Operator *CallDirectly(Function *fun, int value_out, int value_in) {
+    Operator *CallDirectly(Function *fun, int value_out, int value_in, int control_out) {
         return new (arena_) OperatorWith<Function *>(Operator::kCallDirectly, 0, value_in, 0/*control_in*/,
-                                                     value_out, 0/*control_out*/, fun);
+                                                     value_out, control_out, fun);
     }
     
-    Operator *CallIndirectly(int value_out, int value_in) {
+    Operator *CallIndirectly(int value_out, int value_in, int control_out) {
         return new (arena_) Operator(Operator::kCallIndirectly, 0, value_in, 0/*control_in*/, value_out,
-                                     0/*control_out*/);
+                                     control_out);
     }
     
-    Operator *CallRuntime(int value_out, int value_in, RuntimeId id) {
+    Operator *CallRuntime(int value_out, int value_in, int control_out, RuntimeId id) {
         return new (arena_) OperatorWith<RuntimeId>(Operator::kCallRuntime, 0, value_in, 0/*control_in*/, value_out,
-                                                    0/*control_out*/, id);
+                                                    control_out, id);
     }
     
     Operator *ReturningVal(int index) {
@@ -198,6 +203,11 @@ return new (arena_) Operator(Operator::k##name, 0, 2, 0, 1, 0); \
     DECLARE_IR_CONVERSION(DEFINE_CONVERSION)
     
 #undef DEFINE_CONVERSION
+    
+    Operator *RefAssertedTo(int control_out) {
+        return new (arena_) Operator(Operator::kRefAssertedTo, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     control_out);
+    }
     
     Operator *ICmp(IConditionId cond) {
         return new (arena_) OperatorWith<IConditionId>(Operator::kICmp, 0, 2/*value_in*/, 0/*control_in*/, 1/*value_out*/,

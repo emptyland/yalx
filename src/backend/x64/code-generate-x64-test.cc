@@ -100,7 +100,7 @@ TEST_F(X64CodeGeneratorTest, YalxLang) {
     bool ok = true;
     CodeGen("tests/40-code-gen-sanity", "yalx/lang:lang", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
 }
 
 TEST_F(X64CodeGeneratorTest, StructsGenerating) {
@@ -109,7 +109,7 @@ TEST_F(X64CodeGeneratorTest, StructsGenerating) {
     bool ok = true;
     CodeGen("tests/41-code-gen-structs", "issue02:issue02", &printer, &ok);
     ASSERT_TRUE(ok);
-    //printf("%s\n", buf.c_str());
+    printf("%s\n", buf.c_str());
 }
 
 TEST_F(X64CodeGeneratorTest, FooMetadata) {

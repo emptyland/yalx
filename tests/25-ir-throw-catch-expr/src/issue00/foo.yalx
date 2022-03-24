@@ -1,0 +1,19 @@
+package issue00
+
+fun issue1() {
+    try {
+        foo()
+    } catch (e: Exception) {
+        display(e.message)
+    }
+}
+
+fun foo() {
+    throw Exception("ok", none)
+}
+
+@yalx.Compiler(nativeStubName="yalx_Zplang_Zolang_Zdprintln_stub")
+native fun display(s: string)
+
+@yalx.Compiler(nativeStubName="assert_string_stub")
+native fun assertString(a: string, b: string)

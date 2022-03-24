@@ -10,18 +10,25 @@
 # functions
 .global _yalx_Zplang_Zolang_Zd_Z4init
 _yalx_Zplang_Zolang_Zd_Z4init:
+.cfi_startproc
 Lblk37:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
-    addq $0, %rsp
+    .cfi_def_cfa_register %rbp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_Zdprintln
 _yalx_Zplang_Zolang_Zdprintln:
+.cfi_startproc
 Lblk38:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $16, %rsp
     movq %rdi, -8(%rbp)
     leaq -8(%rbp), %rdi
@@ -31,11 +38,16 @@ Lblk38:
     addq $16, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_Zdunwind
 _yalx_Zplang_Zolang_Zdunwind:
+.cfi_startproc
 Lblk39:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $96, %rsp
     movq %rbp, %rdi
     subq $48, %rdi
@@ -53,11 +65,16 @@ Lblk39:
     addq $96, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_Zdid
 _yalx_Zplang_Zolang_ZdAny_Zdid:
+.cfi_startproc
 Lblk0:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $96, %rsp
     movq %rbp, %rdi
     subq $48, %rdi
@@ -75,11 +92,16 @@ Lblk0:
     addq $96, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_ZdhashCode
 _yalx_Zplang_Zolang_ZdAny_ZdhashCode:
+.cfi_startproc
 Lblk1:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $96, %rsp
     movq %rbp, %rdi
     subq $48, %rdi
@@ -97,11 +119,16 @@ Lblk1:
     addq $96, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_ZdtoString
 _yalx_Zplang_Zolang_ZdAny_ZdtoString:
+.cfi_startproc
 Lblk2:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $96, %rsp
     movq %rbp, %rdi
     subq $48, %rdi
@@ -119,11 +146,16 @@ Lblk2:
     addq $96, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_ZdisEmpty
 _yalx_Zplang_Zolang_ZdAny_ZdisEmpty:
+.cfi_startproc
 Lblk3:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $96, %rsp
     movq %rbp, %rdi
     subq $48, %rdi
@@ -141,35 +173,44 @@ Lblk3:
     addq $96, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_Zdfinalize
 _yalx_Zplang_Zolang_ZdAny_Zdfinalize:
+.cfi_startproc
 Lblk4:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
-    addq $0, %rsp
+    .cfi_def_cfa_register %rbp
     popq %rbp
     retq
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
 _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor:
+.cfi_startproc
 Lblk5:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
-    addq $0, %rsp
+    .cfi_def_cfa_register %rbp
     popq %rbp
     retq
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdString_ZdString_Z4constructor
 _yalx_Zplang_Zolang_ZdString_ZdString_Z4constructor:
+.cfi_startproc
 Lblk6:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $48, %rsp
     movl %ecx, -4(%rbp)
     movl %edx, -8(%rbp)
@@ -195,11 +236,16 @@ Lblk6:
     addq $48, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdI32_ZdtoString
 _yalx_Zplang_Zolang_ZdI32_ZdtoString:
+.cfi_startproc
 Lblk7:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $96, %rsp
     movq %rbp, %rdi
     subq $48, %rdi
@@ -217,28 +263,35 @@ Lblk7:
     addq $96, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdI32_ZdI32_Z4constructor
 _yalx_Zplang_Zolang_ZdI32_ZdI32_Z4constructor:
+.cfi_startproc
 Lblk8:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movq %rdi, %rax
     movq %rax, %rdi
     addq $0, %rsp
     callq _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdNumber_Dki32_Dl_Z4constructor
     subq $0, %rsp
-    addq $0, %rsp
     popq %rbp
     retq
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdU32_ZdtoString
 _yalx_Zplang_Zolang_ZdU32_ZdtoString:
+.cfi_startproc
 Lblk9:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $96, %rsp
     movq %rbp, %rdi
     subq $48, %rdi
@@ -256,307 +309,381 @@ Lblk9:
     addq $96, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdU32_ZdU32_Z4constructor
 _yalx_Zplang_Zolang_ZdU32_ZdU32_Z4constructor:
+.cfi_startproc
 Lblk10:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movq %rdi, %rax
     movq %rax, %rdi
     addq $0, %rsp
     callq _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdNumber_Dku32_Dl_Z4constructor
     subq $0, %rsp
-    addq $0, %rsp
     popq %rbp
     retq
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI8
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI8:
+.cfi_startproc
 Lblk11:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movb %al, %cl
     andl $255, %ecx
     movb %cl, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU8
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU8:
+.cfi_startproc
 Lblk12:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movb %al, %cl
     andl $255, %ecx
     movb %cl, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI16
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI16:
+.cfi_startproc
 Lblk13:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movw %ax, %cx
     andl $65535, %ecx
     movw %cx, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU16
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU16:
+.cfi_startproc
 Lblk14:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movw %ax, %cx
     andl $65535, %ecx
     movw %cx, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI32
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI32:
+.cfi_startproc
 Lblk15:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movl %eax, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU32
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU32:
+.cfi_startproc
 Lblk16:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movl %eax, %ecx
     movl %ecx, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI64
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI64:
+.cfi_startproc
 Lblk17:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movslq %eax, %rcx
     movq %rcx, 24(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU64
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU64:
+.cfi_startproc
 Lblk18:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movl %eax, %ecx
     movq %rcx, 24(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoF32
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoF32:
+.cfi_startproc
 Lblk19:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movss %xmm0, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoF64
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoF64:
+.cfi_startproc
 Lblk20:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movsd %xmm0, 24(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdNumber_Dki32_Dl_Z4constructor
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdNumber_Dki32_Dl_Z4constructor:
+.cfi_startproc
 Lblk21:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl %esi, 16(%rdi)
-    addq $0, %rsp
     popq %rbp
     retq
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI8
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI8:
+.cfi_startproc
 Lblk22:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movb %al, %cl
     andl $255, %ecx
     movb %cl, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU8
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU8:
+.cfi_startproc
 Lblk23:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movb %al, %cl
     andl $255, %ecx
     movb %cl, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI16
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI16:
+.cfi_startproc
 Lblk24:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movw %ax, %cx
     andl $65535, %ecx
     movw %cx, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU16
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU16:
+.cfi_startproc
 Lblk25:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movw %ax, %cx
     andl $65535, %ecx
     movw %cx, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI32
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI32:
+.cfi_startproc
 Lblk26:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movl %eax, %ecx
     movl %ecx, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU32
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU32:
+.cfi_startproc
 Lblk27:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movl %eax, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI64
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI64:
+.cfi_startproc
 Lblk28:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movl %eax, %ecx
     movq %rcx, 24(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU64
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU64:
+.cfi_startproc
 Lblk29:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movl %eax, %ecx
     movq %rcx, 24(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoF32
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoF32:
+.cfi_startproc
 Lblk30:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movss %xmm0, 28(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoF64
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoF64:
+.cfi_startproc
 Lblk31:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl 16(%rdi), %eax
     movsd %xmm0, 24(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdNumber_Dku32_Dl_Z4constructor
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdNumber_Dku32_Dl_Z4constructor:
+.cfi_startproc
 Lblk32:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movl %esi, 16(%rdi)
-    addq $0, %rsp
     popq %rbp
     retq
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdThrowable_ZdtoString
 _yalx_Zplang_Zolang_ZdThrowable_ZdtoString:
+.cfi_startproc
 Lblk33:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movq 16(%rdi), %rax
     movq %rax, 24(%rbp)
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor
 _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor:
+.cfi_startproc
 Lblk34:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $64, %rsp
     movq %rdi, %rax
     movq %rdx, -8(%rbp)
@@ -584,12 +711,16 @@ Lblk34:
     addq $64, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
 _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor:
+.cfi_startproc
 Lblk35:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
-    subq $0, %rsp
+    .cfi_def_cfa_register %rbp
     movq %rdi, %rax
     movq %rdx, %rcx
     movq %rax, %rdi
@@ -597,17 +728,20 @@ Lblk35:
     addq $0, %rsp
     callq _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor
     subq $0, %rsp
-    addq $0, %rsp
     popq %rbp
     retq
-    addq $0, %rsp
     popq %rbp
     retq
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor
 _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor:
+.cfi_startproc
 Lblk36:
     pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
     movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
     subq $48, %rsp
     movq %rdi, %rax
     movq %rcx, -8(%rbp)
@@ -634,6 +768,7 @@ Lblk36:
     addq $48, %rsp
     popq %rbp
     retq
+.cfi_endproc
 # CString constants
 .section __TEXT,__cstring,cstring_literals
 Lkzs.0:

@@ -46,6 +46,7 @@ constexpr static char kLangPackageFullName[] = "yalx/lang:lang";
 constexpr static char kAnyClassName[] = "Any";
 constexpr static char kAnyClassFullName[] = "yalx/lang:lang.Any";
 constexpr static char kAnyArrayFullName[] = "yalx/lang:lang.Any[]";
+constexpr static char kThrowableClassFullName[] = "yalx/lang:lang.Throwable";
 
 constexpr static char kI32ClassFullName[] = "yalx/lang:lang.I32";
 constexpr static char kU32ClassFullName[] = "yalx/lang:lang.U32";

@@ -55,8 +55,6 @@ int yalx_init_coroutine(const coid_t id, struct coroutine *co, struct stack *sta
     co->state = CO_INIT;
     DCHECK(stack != NULL);
     co->stack = stack;
-    co->returning_vals = NULL;
-    co->top_unwind_point = NULL;
     return 0;
 }
 

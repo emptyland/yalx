@@ -650,6 +650,22 @@ functions:
     ASSERT_EQ(z, buf);
 }
 
+// 25-ir-throw-catch-expr
+TEST_F(IntermediateRepresentationGeneratorTest, TryCatchExpression) {
+    bool ok = false;
+    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    IRGen("tests/25-ir-throw-catch-expr", &modules, &ok);
+    ASSERT_TRUE(ok);
+    
+    ASSERT_TRUE(modules.find("issue00:issue00") != modules.end());
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    modules["issue00:issue00"]->PrintTo(&printer);
+
+    printf("%s\n", buf.c_str());
+}
+
 } // namespace ir
 
 } // namespace yalx

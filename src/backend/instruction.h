@@ -22,6 +22,8 @@ enum InstructionCode {
     ArchRet,
     ArchJmp,
     ArchCall,
+    ArchFrameEnter,
+    ArchFrameExit,
     ArchUnreachable,
     ArchSafepoint,
 #define DEFINE_ENUM(name) name,

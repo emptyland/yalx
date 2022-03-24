@@ -18,6 +18,7 @@ extern "C" {
 //typedef i32_t mid_t;
 //typedef i32_t cid_t;
 
+struct yalx_value_throwable;
 struct processor;
 struct coroutine;
 struct machine;
@@ -76,6 +77,7 @@ struct coroutine {
     address_t stub; // stub address for none-c0 coroutine
     struct yalx_returning_vals *returning_vals;
     struct unwind_node *top_unwind_point; // unwind for exception handler
+    struct yalx_value_throwable *exception; // the exception happened
 }; // struct coroutine
 
 

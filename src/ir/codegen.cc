@@ -62,6 +62,39 @@ private:
     BasicBlock *loop_exit_;
 }; // class LoopContext
 
+class TryContext final {
+public:
+    TryContext(TryContext **location, BasicBlock *catch_block, BasicBlock *finally_block)
+    : location_(location)
+    , prev_(nullptr)
+    , catch_block_(catch_block)
+    , finally_block_(finally_block) {
+        Enter();
+    }
+    
+    ~TryContext() { Exit(); }
+    
+    DEF_PTR_GETTER(BasicBlock, catch_block);
+    DEF_PTR_GETTER(BasicBlock, finally_block);
+private:
+    void Enter() {
+        assert(location_ != nullptr);
+        prev_ = *location_;
+        assert(*location_ != this);
+        *location_ = this;
+    }
+    
+    void Exit() {
+        assert(*location_ == this);
+        *location_ = prev_;
+    }
+    
+    TryContext **location_;
+    TryContext *prev_;
+    BasicBlock *catch_block_;
+    BasicBlock *finally_block_;
+}; // class TryContext
+
 class FunContext final {
 public:
     FunContext(FunContext **location, Function *fun, BasicBlock *current_block)
@@ -77,9 +110,10 @@ public:
     DEF_PTR_GETTER(Function, fun);
     DEF_PTR_PROP_RW(BasicBlock, current_block);
     DEF_PTR_GETTER(LoopContext, current_loop);
+    DEF_PTR_GETTER(TryContext, current_try);
     
     LoopContext **loop_location() { return &current_loop_; }
-    
+    TryContext **try_location() { return &current_try_; }
 private:
     void Enter() {
         assert(location_ != nullptr);
@@ -98,6 +132,7 @@ private:
     Function *fun_;
     BasicBlock *current_block_;
     LoopContext *current_loop_ = nullptr;
+    TryContext *current_try_ = nullptr;
 }; // class Emitting
 
 class IRGeneratorAstVisitor : public cpl::AstVisitor {
@@ -483,22 +518,16 @@ public:
             assert(args[0]->type().kind() == Type::kValue || args[0]->type().IsReference());
             auto self = DCHECK_NOTNULL(args[0]->type().model());
             if (self->declaration() == Model::kInterface) {
-                op = ops()->CallAbstract(handle, 1/*value_out*/, value_in);
+                op = ops()->CallAbstract(handle, 1/*value_out*/, value_in, invoke_control_out());
             } else if (self->declaration() == Model::kClass ||
                        self->declaration() == Model::kStruct) {
-//                if (self->declaration() == Model::kStruct && !args[0]->type().IsPointer()) {
-//                    args[0] = b()->NewNode(root_ss.Position(), Type::Val(args[0]->type().model(), true),
-//                                           ops()->LoadAddress(), args[0]);
-//                }
                 if (down_cast<StructureModel>(self)->In_vtab(handle)) {
-                    op = ops()->CallVirtual(handle, 1/*value_out*/, value_in);
+                    op = ops()->CallVirtual(handle, 1/*value_out*/, value_in, invoke_control_out());
                 } else {
-                    op = ops()->CallHandle(handle, 1/*value_out*/, value_in);
+                    op = ops()->CallHandle(handle, 1/*value_out*/, value_in, invoke_control_out());
                 }
             } else {
                 UNREACHABLE();
-//                assert(self->declaration() == Model::kStruct);
-//                op = ops()->CallHandle(handle, 1/*value_out*/, value_in);
             }
             
             std::vector<Value *> results;
@@ -514,7 +543,7 @@ public:
             auto proto = down_cast<PrototypeModel>(callee->type().model());
             auto type = proto->return_type(0);
             auto value_in = static_cast<int>(proto->params_size());
-            auto op = ops()->CallIndirectly(1/*value_out*/, value_in);
+            auto op = ops()->CallIndirectly(1/*value_out*/, value_in, invoke_control_out());
             args.insert(args.begin(), callee);
             std::vector<Value *> results;
             EmitCall(op, proto, std::move(args), &results, root_ss.Position());
@@ -524,7 +553,7 @@ public:
         if (symbol.kind == Symbol::kFun) {
             auto proto = symbol.core.fun->prototype();
             auto value_in = static_cast<int>(proto->params_size());
-            auto op = ops()->CallDirectly(symbol.core.fun, 1/*value_out*/, value_in);
+            auto op = ops()->CallDirectly(symbol.core.fun, 1/*value_out*/, value_in, invoke_control_out());
             std::vector<Value *> results;
             EmitCall(op, proto, std::move(args), &results, root_ss.Position());
             return Returning(results);
@@ -553,7 +582,7 @@ public:
             auto proto = clazz->constructor()->prototype();
             auto value_in = static_cast<int>(proto->params_size());
             auto handle = DCHECK_NOTNULL(clazz->FindMemberOrNull(clazz->constructor()->name()->ToSlice()));
-            op = ops()->CallHandle(handle, 1, value_in);
+            op = ops()->CallHandle(handle, 1/*value_out*/, value_in, invoke_control_out());
             std::vector<Value *> results;
             args.insert(args.begin(), ob);
             EmitCall(op, proto, std::move(args), &results, root_ss.Position());
@@ -1065,9 +1094,9 @@ public:
             return -1;
         }
         assert(value->type().kind() == Type::kReference);
-        auto op = ops()->CallRuntime(0, 1/*value_in*/, RuntimeLib::Raise); // Never return
+        auto op = ops()->CallRuntime(0/*value_out*/, 1/*value_in*/, invoke_control_out(), RuntimeLib::Raise);
         b()->NewNode(root_ss.Position(), Types::Void, op, value);
-        EmitUnreachable();
+        EmitUnreachable(); // Never return
         return Returning(Unit());
     }
     
@@ -1193,6 +1222,81 @@ public:
         }
     }
     
+    int VisitTryCatchExpression(cpl::TryCatchExpression *node) override {
+        using std::placeholders::_1;
+        using std::placeholders::_2;
+        
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        BranchScope scope(&location_, node);
+        NamespaceScope::Keeper<BranchScope> trunk(&scope);
+
+        auto fun = emitting_->fun();
+        std::vector<BasicBlock *> blocks;
+        blocks.push_back(fun->NewBlock(nullptr));
+        for (auto clause : node->catch_clauses()) {
+            blocks.push_back(fun->NewBlock(nullptr));
+        }
+        BasicBlock *finally_block = !node->finally_block() ? nullptr : fun->NewBlock(nullptr);
+
+        TryContext try_scope(emitting_->try_location(), blocks.size() < 2 ? nullptr : blocks[1], finally_block);
+        const int number_of_branchs = static_cast<int>(node->catch_clauses_size()) + 1;
+        std::vector<std::vector<Value *>> values(number_of_branchs);
+        blocks.push_back(!finally_block ? fun->NewBlock(nullptr) : finally_block);
+
+        auto origin = b();
+        b(blocks[0]);
+        if (Reduce(node->try_block(), &values[0]) < 0) {
+            return -1;
+        }
+        b()->NewNode(root_ss.Position(), Types::Void, ops()->Br(0, 1), blocks.back());
+        
+        for (auto i = 0; i < node->catch_clauses_size(); i++) {
+            auto ast = node->catch_clause(i);
+            SourcePositionTable::Scope ss(ast->source_position(), &root_ss);
+            NamespaceScope::Keeper<BranchScope> br(trunk->Branch(node));
+
+            auto block = blocks[i + 1];
+            SetAndMakeLast(block);
+            auto ty = Type::Ref(AssertedGetUdt<StructureModel>(cpl::kThrowableClassFullName));
+            auto op = ops()->Catch();
+            auto ex = b()->NewNode(ss.Position(), ty, op);
+
+            op = ops()->IsInstanceOf(DCHECK_NOTNULL(ty.model()));
+            auto cond = b()->NewNode(ss.Position(), Types::UInt8, op, ex);
+            op = ops()->Br(1/*vlaue_in*/, 2/*control_out*/);
+            
+            block = fun->NewBlock(nullptr);
+            assert(i + 2 < blocks.size());
+            b()->NewNode(ss.Position(), Types::Void, op, cond, block, blocks[i + 2]);
+            blocks[i + 1] = block;
+            
+            SetAndMakeLast(block);
+            op = ops()->RefAssertedTo();
+            ty = BuildType(ast->match_type());
+            assert(ty.kind() == Type::kReference);
+            ex = b()->NewNode(ss.Position(), ty, op, ex);
+            br->PutValue(ast->name()->name()->ToSlice(), ex, b());
+
+            if (Reduce(ast->then_clause(), &values[i + 1]) < 0) {
+                return -1;
+            }
+            b()->NewNode(ss.Position(), Types::Void, ops()->Br(0, 1), blocks[i + 2]);
+        }
+        
+        SetAndMakeLast(blocks.back());
+        trunk->MergeConflicts(std::bind(&IRGeneratorAstVisitor::HandleMergeConflicts, this, _1, _2));
+        
+        std::vector<Type> types;
+        for (auto ast : node->reduced_types()) { types.push_back(BuildType(ast)); }
+        
+        std::vector<Value *> results;
+        if (ReduceValuesOfBranches(types, origin, &blocks[0], &values[0], number_of_branchs,
+                                   node->catch_clauses_size(), &results, root_ss.Position()) < 0) {
+            return -1;
+        }
+        return Returning(results);
+    }
+    
     int VisitNot(cpl::Not *node) override { UNREACHABLE(); }
     
     int VisitRecv(cpl::Recv *node) override { UNREACHABLE(); }
@@ -1204,7 +1308,7 @@ public:
     
     int VisitLambdaLiteral(cpl::LambdaLiteral *node) override { UNREACHABLE(); }
     int VisitArrayInitializer(cpl::ArrayInitializer *node) override { UNREACHABLE(); }
-    int VisitTryCatchExpression(cpl::TryCatchExpression *node) override { UNREACHABLE(); }
+    
     int VisitAssertedGet(cpl::AssertedGet *node) override { UNREACHABLE(); }
     int VisitChannelInitializer(cpl::ChannelInitializer *node) override { UNREACHABLE(); }
     
@@ -1485,6 +1589,12 @@ private:
     
     LoopContext *loop() { return DCHECK_NOTNULL(loop_or_null()); }
     LoopContext *loop_or_null() { return emitting_->current_loop(); }
+    
+    TryContext *try_() { return DCHECK_NOTNULL(try_or_null()); }
+    TryContext *try_or_null() { return emitting_->current_try(); }
+    
+    int invoke_control_out() { return !try_or_null() ? 0 : 1; }
+    BasicBlock *invoke_control() { return !try_()->catch_block() ? try_()->finally_block() : try_()->catch_block(); }
 
     BasicBlock *b() const { return DCHECK_NOTNULL(DCHECK_NOTNULL(emitting_)->current_block()); }
     void b(BasicBlock *blk) { DCHECK_NOTNULL(emitting_)->set_current_block(blk); }
@@ -1745,7 +1855,7 @@ private:
             op = ops()->StringConstant(deps->full_name());
             auto pkg_name = Value::New0(arena(), SourcePosition::Unknown(), Types::String, op);
             
-            op = ops()->CallRuntime(0, 2, RuntimeLib::PkgInitOnce);
+            op = ops()->CallRuntime(0/*value_out*/, 2/*value_in*/, invoke_control_out(), RuntimeLib::PkgInitOnce);
             init_blk_->NewNode(SourcePosition::Unknown(), Types::Void, op, fun, pkg_name);
         }
     }
@@ -1762,7 +1872,15 @@ private:
         }
         
         auto type = proto->return_type(0);
-        auto call = b()->NewNodeWithValues(nullptr, source_position, type, op, args);
+        Value *call = nullptr;
+        if (op->control_out() > 0) {
+            std::vector<Node *> nodes;
+            for (auto arg: args) { nodes.push_back(arg); }
+            nodes.push_back(invoke_control());
+            call = b()->NewNodeWithNodes(nullptr, source_position, type, op, nodes);
+        } else {
+            call = b()->NewNodeWithValues(nullptr, source_position, type, op, args);
+        }
         returning_vals->push_back(call);
         for (int i = 1; i < proto->return_types_size(); i++) {
             op = ops()->ReturningVal(i);
@@ -1932,7 +2050,7 @@ private:
             auto op = ops()->ICmp(ICondition::eq);
             cond = b()->NewNode(root_ss.Position(), Types::UInt8, op, lhs, rhs);
         } else if (lhs->type().kind() == Type::kString) {
-            auto op = ops()->CallRuntime(1/*value_out*/, 2/*value_in*/, RuntimeLib::StringEQ);
+            auto op = ops()->CallRuntime(1/*value_out*/, 2/*value_in*/, 0/*control_out*/, RuntimeLib::StringEQ);
             cond = b()->NewNode(root_ss.Position(), Types::UInt8, op, lhs, rhs);
         } else {
             UNREACHABLE();
@@ -1950,7 +2068,7 @@ private:
         
         SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(ast));
         if (lhs->type().kind() == Type::kString) {
-            auto op = ops()->CallRuntime(1/*value_out*/, 2/*value_in*/, rid);
+            auto op = ops()->CallRuntime(1/*value_out*/, 2/*value_in*/, 0/*control_out*/, rid);
             auto call = b()->NewNode(ss.Position(), Types::UInt8, op, lhs, rhs);
             return Returning(call);
         }
