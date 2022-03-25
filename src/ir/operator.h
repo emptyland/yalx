@@ -32,6 +32,7 @@ namespace ir {
     V(StackAlloc) \
     V(Closure) \
     V(Unreachable) \
+    V(Unwind) \
     V(Ret)
 
 #define DECLARE_IR_GLOBALS(V) \

@@ -690,8 +690,20 @@ struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz) {
     return result.object;
 }
 
-struct coroutine *current_root() { return thread_local_mach->running; }
+struct coroutine *current_root() { return CURRENT_COROUTINE; }
 
+
+u8_t is_instance_of(struct yalx_value_any *const host, const struct yalx_class *const for_test) {
+    assert(host != NULL);
+    assert(for_test != NULL);
+    const struct yalx_class *const ty = CLASS(host);
+    for (const struct yalx_class *it = ty; it != NULL; it = it->super) {
+        if (for_test == it) {
+            return 1;
+        }
+    }
+    return 0;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 // native fun's stubs:

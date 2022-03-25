@@ -13,6 +13,7 @@
 #include "ir/utils.h"
 #include "compiler/constants.h"
 #include "runtime/runtime.h"
+#include "runtime/process.h"
 #include "base/lazy-instance.h"
 #include "base/arena-utils.h"
 #include "base/format.h"
@@ -220,14 +221,14 @@ public:
     
     void Run() {
         auto blk = blocks_[fun_->entry()];
-//        blk->NewI(X64Push, operands_.registers()->frame_pointer()); // push rbp
-//        // movq rsp->rbp
-//        blk->NewIO(X64Movq, operands_.registers()->frame_pointer(), operands_.registers()->stack_pointer());
-//        stack_size_ = ImmediateOperand::Word32(arena_, 0);
-//        blk->NewIO(X64Sub, operands_.registers()->stack_pointer(), stack_size_);
-  
         stack_size_ = ImmediateOperand::Word32(arena_, 0);
         blk->NewIO(ArchFrameEnter, operands_.registers()->frame_pointer(), stack_size_);
+        
+        if (fun_->should_unwind_handle()) {
+            current_block_ = blk;
+            InstallUnwindHandler();
+            current_block_ = nullptr;
+        }
 
         ProcessParameters(blk);
         for (auto blk : fun_->blocks()) {
@@ -258,12 +259,15 @@ private:
     void TearDownHandleFrame(const std::vector<std::tuple<LocationOperand *, RegisterOperand *>> &saved_registers,
                              RegisterOperand *sp, RegisterOperand *fp);
     
+    void InstallUnwindHandler();
+    void UninstallUnwindHandler();
     void SelectBasicBlock(ir::BasicBlock *bb);
     void Select(ir::Value *instr);
     void CallDirectly(ir::Value *instr);
     void CallVirtual(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
     void ConditionBr(ir::Value *instr);
+    void HandleCatch(InstructionBlock *handler);
     void ProcessParameters(InstructionBlock *block);
     void BooleanValue(ir::Value *instr, InstructionOperand *opd);
     void ConditionSelect(ir::Value *instr, InstructionOperand *opd, InstructionOperand *true_val,
@@ -316,6 +320,13 @@ private:
     
     bool IsSuccessorConditionBr(ir::Value *cond);
     
+    void SetCatchHandler(ir::BasicBlock *handler) {
+        auto iter = blocks_.find(handler);
+        assert(iter != blocks_.end());
+        assert(catch_handler_ == nullptr);
+        catch_handler_ = iter->second;
+    }
+    
     base::Arena *const arena_;
     ir::StructureModel *const owns_;
     ir::Function *const fun_;
@@ -329,6 +340,7 @@ private:
     ir::Value *prev_instr_ = nullptr;
     int instruction_position_ = 0;
     ImmediateOperand *stack_size_ = nullptr;
+    InstructionBlock *catch_handler_ = nullptr;
     std::map<ir::BasicBlock *, InstructionBlock *> blocks_;
     std::vector<InstructionOperand *> tmps_;
     std::vector<OperandAllocator::BorrowedRecord> borrowed_registers_;
@@ -351,10 +363,6 @@ void X64FunctionInstructionSelector::BuildNativeHandle() {
 
 std::vector<std::tuple<LocationOperand *, RegisterOperand *>>
 X64FunctionInstructionSelector::SetUpHandleFrame(RegisterOperand *sp, RegisterOperand *fp) {
-//    current()->NewI(X64Push, fp);
-//    current()->NewIO(X64Movq, fp, sp);
-//    stack_size_ = ImmediateOperand::Word32(arena_, 0/*placeholder*/);
-//    current()->NewIO(X64Sub, sp, stack_size_);
     stack_size_ = ImmediateOperand::Word32(arena_, 0/*placeholder*/);
     current()->NewIO(ArchFrameEnter, fp, stack_size_);
     
@@ -390,10 +398,6 @@ void X64FunctionInstructionSelector::TearDownHandleFrame(
         current()->NewIO(X64Movq, origin, bak);
         operands_.Free(bak);
     }
-
-//    current()->NewIO(X64Add, sp, stack_size_); // sub sp, sp, stack-total-size
-//    current()->NewO(X64Pop, fp);
-//    current()->New(ArchRet);
     current()->NewIO(ArchFrameExit, fp, stack_size_);
 }
 
@@ -535,9 +539,6 @@ void X64FunctionInstructionSelector::SetUpStubFrame(RegisterOperand *sp, Registe
 //    retq
     stack_size_ = ImmediateOperand::Word32(arena_, 0);
     current()->NewIO(ArchFrameEnter, fp, stack_size_);
-//    current()->NewI(X64Push, fp);
-//    current()->NewIO(X64Movq, fp, sp);
-//    current()->NewIO(X64Sub, sp, stack_size_);
 }
 
 void X64FunctionInstructionSelector::TearDownStubFrame(RegisterOperand *sp, RegisterOperand *fp,
@@ -560,10 +561,45 @@ void X64FunctionInstructionSelector::TearDownStubFrame(RegisterOperand *sp, Regi
     current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_current_root)); // x0 -> root
     current()->NewIO(X64Movq, root, acc);
     
-//    current()->NewIO(X64Add, sp, stack_size_); // sub sp, sp, stack-total-size
-//    current()->NewO(X64Pop, fp);
-//    current()->New(ArchRet);
     current()->NewIO(ArchFrameExit, fp, stack_size_);
+}
+
+void X64FunctionInstructionSelector::InstallUnwindHandler() {
+    assert(fun_->should_unwind_handle());
+    // struct unwind_node in top of stack
+    auto addr = operands_.AllocateStackSlot(ir::Types::Word64, 0, StackSlotAllocator::kLinear);
+    auto prev = operands_.AllocateStackSlot(ir::Types::Word64, 0, StackSlotAllocator::kLinear);
+    assert(prev->k() == -16);
+    assert(prev->register0_id() == kRBP);
+    auto handler = operands_.registers()->frame_pointer();
+
+    // current->prev = root->top_unwind_point
+    // current->addr = &fun
+    // root->top_unwind_point = current
+    auto top = new (arena_) LocationOperand(X64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_TOP_UNWIND);
+    auto scratch = new (arena_) RegisterOperand(kRAX, MachineRepresentation::kWord64);
+    Move(scratch, top, ir::Types::Word64);
+    Move(prev, scratch, ir::Types::Word64);
+    
+    auto rel = new (arena_) ReloactionOperand(bundle()->symbol(), nullptr, true/*fetch_addr*/);
+    current()->NewIO(X64Lea, scratch, rel);
+    Move(addr, scratch, ir::Types::Word64);
+    
+    current()->NewIO(X64Lea, scratch, prev);
+    Move(top, scratch, ir::Types::Word64);
+}
+
+void X64FunctionInstructionSelector::UninstallUnwindHandler() {
+    assert(fun_->should_unwind_handle());
+    // struct unwind_node in top of stack
+    auto addr = new (arena_) LocationOperand(X64Mode_MRI, kRBP, -1, -8);
+    auto prev = new (arena_) LocationOperand(X64Mode_MRI, kRBP, -1, -16);
+    
+    auto top = new (arena_) LocationOperand(X64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_TOP_UNWIND);
+    auto scratch = new (arena_) RegisterOperand(kRAX, MachineRepresentation::kWord64);
+    Move(scratch, top, ir::Types::Word64);
+    auto top_prev = new (arena_) LocationOperand(X64Mode_MRI, scratch->register_id(), -1, 0);
+    Move(top_prev, prev, ir::Types::Word64);
 }
 
 void X64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
@@ -594,6 +630,11 @@ void X64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
                 operands_.Free(borrow.target);
             }
         }
+        
+        if (catch_handler_) {
+            HandleCatch(catch_handler_);
+            catch_handler_ = nullptr; // clear catch handler;
+        }
         prev_instr_ = instr;
         instruction_position_++;
     }
@@ -603,6 +644,15 @@ void X64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
 
 void X64FunctionInstructionSelector::Select(ir::Value *instr) {
     switch (instr->op()->value()) {
+        case ir::Operator::kUnreachable:
+            current()->New(ArchUnreachable);
+            break;
+            
+        case ir::Operator::kUnwind: {
+            auto loc = new (arena_) LocationOperand(X64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_EXCEPTION);
+            Move(loc, ImmediateOperand::Word32(arena_, 0), ir::Types::Word64);
+        } break;
+            
         case ir::Operator::kBr: {
             if (instr->op()->value_in() == 0) {
                 auto ib = blocks_[instr->OutputControl(0)];
@@ -737,6 +787,12 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             }
         } break;
             
+        case ir::Operator::kCatch: {
+            auto loc = new (arena_) LocationOperand(X64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_EXCEPTION);
+            auto opd = Allocate(instr, kAny);
+            Move(opd, loc, instr->type());
+        } break;
+            
         case ir::Operator::kRefAssertedTo: {
             auto input = instr->InputValue(0);
             assert(input->type().IsReference());
@@ -752,6 +808,31 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
                 Move(opd, Allocate(input, kAny), instr->type());
                 //UNREACHABLE(); // TODO: check it
             }
+        } break;
+            
+        case ir::Operator::kIsInstanceOf: {
+            auto model = ir::OperatorWith<const ir::Model *>::Data(instr->op());
+            auto input = Allocate(instr->InputValue(0), kAny);
+            
+            RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+            saving_scope.SaveAll(); // TODO: SaveCaller
+            
+            auto arg0 = new (arena_) RegisterOperand(Argv_0.code(), MachineRepresentation::kWord64);
+            Move(arg0, input, instr->InputValue(0)->type());
+            
+            std::string symbol;
+            LinkageSymbols::Build(&symbol, model->full_name()->ToSlice());
+            symbol.append("$class");
+            auto rel = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
+            auto arg1 = new (arena_) RegisterOperand(Argv_1.code(), MachineRepresentation::kWord64);
+            current()->NewIO(X64Lea, arg1, rel);
+            rel = bundle()->AddExternalSymbol(kRt_is_instance_of);
+            current()->NewI(ArchCall, rel);
+
+            auto ret0 = new (arena_) RegisterOperand(rax.code(), MachineRepresentation::kWord64);
+            auto opd = Allocate(instr, kMoR);
+            TypingNormalize(&opd, reinterpret_cast<InstructionOperand **>(&ret0), instr->type());
+            Move(opd, ret0, instr->type());
         } break;
             
         case ir::Operator::kICmp: {
@@ -1139,10 +1220,8 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
                 returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
                 Move(opd, ret, ty);
             }
-            
-//            current()->NewIO(X64Add, operands_.registers()->stack_pointer(), stack_size_);
-//            current()->NewO(X64Pop, operands_.registers()->frame_pointer());
-//            current()->New(ArchRet);
+
+            if (fun_->should_unwind_handle()) { UninstallUnwindHandler(); }
             current()->NewIO(ArchFrameExit, operands_.registers()->frame_pointer(), stack_size_);
         } break;
             
@@ -1293,6 +1372,10 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     auto rel = new (arena_) ReloactionOperand(symbols_->Mangle(callee->full_name()), nullptr);
     current()->NewI(ArchCall, rel);
     current()->NewIO(X64Sub, operands_.registers()->stack_pointer(), adjust);
+    
+    if (instr->op()->control_out() > 0) {
+        SetCatchHandler(instr->OutputControl(0));
+    }
 }
 
 void X64FunctionInstructionSelector::CallVirtual(ir::Value *instr) {
@@ -1312,6 +1395,10 @@ void X64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
             symbol = kRt_pkg_init_once;
             assert(instr->op()->value_in() == 2);
         } break;
+            
+        case ir::RuntimeId::kRaise:
+            symbol = kRt_raise;
+            break;
             
         default:
             UNREACHABLE();
@@ -1396,6 +1483,10 @@ void X64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
     
     auto rel = new (arena_) ReloactionOperand(symbol, nullptr);
     current()->NewI(ArchCall, rel);
+    
+    if (instr->op()->control_out() > 0) {
+        SetCatchHandler(instr->OutputControl(0));
+    }
 }
 
 void X64FunctionInstructionSelector::BooleanValue(ir::Value *instr, InstructionOperand *opd) {
@@ -1639,6 +1730,14 @@ void X64FunctionInstructionSelector::ConditionBr(ir::Value *instr) {
         current()->NewII(X64Cmp8, cond_val, zero);
         current()->NewO(X64Je, output);
     }
+}
+
+void X64FunctionInstructionSelector::HandleCatch(InstructionBlock *handler) {
+    //auto opd = operands_.Allocate(ir::Types::Word64);
+    auto exception = new (arena_) LocationOperand(X64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_EXCEPTION);
+    current()->NewII(X64Test, exception, ImmediateOperand::Word32(arena_, 0xffffffff));
+    auto rel = new (arena_) ReloactionOperand(nullptr, handler);
+    current()->NewO(X64Jnz, rel);
 }
 
 void X64FunctionInstructionSelector::ProcessParameters(InstructionBlock *block) {

@@ -60,7 +60,7 @@ typedef struct coroutine_id coid_t;
 
 struct unwind_node {
     struct unwind_node *prev;
-    address_t fp;
+    address_t addr; // address of function
 };
 
 struct coroutine {
@@ -79,6 +79,9 @@ struct coroutine {
     struct unwind_node *top_unwind_point; // unwind for exception handler
     struct yalx_value_throwable *exception; // the exception happened
 }; // struct coroutine
+
+#define ROOT_OFFSET_TOP_UNWIND offsetof(struct coroutine, top_unwind_point)
+#define ROOT_OFFSET_EXCEPTION offsetof(struct coroutine, exception)
 
 
 struct machine {

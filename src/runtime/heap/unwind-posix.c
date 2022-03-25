@@ -1,4 +1,5 @@
 #include "runtime/runtime.h"
+#include "runtime/process.h"
 #include "runtime/checking.h"
 #include "runtime/heap/heap.h"
 #include "runtime/object/yalx-string.h"
@@ -61,4 +62,46 @@ void yalx_Zplang_Zolang_Zdunwind_stub() {
     struct yalx_value_refs_array *array = yalx_new_refs_array(&heap, backtrace_frame_class, (yalx_ref_t *)frames, size);
     free(frames);
     yalx_return_ref((yalx_ref_t)array);
+}
+
+// implements in boot-[Os]-[Arch].s
+extern void throw_to(struct coroutine *root, address_t pc, address_t fp, address_t sp);
+
+void throw_it(struct yalx_value_any *exception) {
+    struct coroutine *co = CURRENT_COROUTINE;
+    assert(co->top_unwind_point != NULL);
+    //co->top_unwind_point->
+    
+    //struct back heap_alloc(backtrace_frame_class);
+    unw_cursor_t cursor;
+    unw_context_t context;
+    
+    // Initialize cursor to current frame for local unwinding.
+    unw_getcontext(&context);
+    unw_init_local(&cursor, &context);
+
+    while (unw_step(&cursor) > 0) {
+        unw_word_t pc;
+        unw_get_reg(&cursor, UNW_REG_IP, &pc);
+        if (pc == 0) {
+            break;
+        }
+        
+        unw_word_t offset = 0;
+        char name[256];
+        unw_get_proc_name(&cursor, name, arraysize(name), &offset);
+        
+        //printf("%s\n", name);
+        if ((address_t)pc - offset == co->top_unwind_point->addr) {
+            co->exception = exception;
+            
+            unw_word_t rbp = 0, rsp = 0;
+            unw_get_reg(&cursor, UNW_X86_64_RBP, &rbp);
+            unw_get_reg(&cursor, UNW_REG_SP, &rsp);
+            
+            address_t pc = *((address_t *)(rsp - 8));
+            throw_to(co, pc, (address_t)rbp, (address_t)rsp);
+        }
+    }
+    assert(!"Unreachable");
 }

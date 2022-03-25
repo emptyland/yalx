@@ -138,7 +138,7 @@ void GnuAsmGenerator::EmitMetadata() {
         printer_->Indent(1)->Println(".long 0 %s padding", comment_);
         if (clazz->base_of()) {
             std::string base_name;
-            LinkageSymbols::Build(&base_name, clazz->full_name()->ToSlice());
+            LinkageSymbols::Build(&base_name, clazz->base_of()->full_name()->ToSlice());
             base_name.append("$class");
             printer_->Indent(1)->Println(".quad %s %s super", base_name.c_str() , comment_);
         } else {

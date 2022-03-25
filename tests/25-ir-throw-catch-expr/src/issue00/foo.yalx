@@ -1,5 +1,6 @@
 package issue00
 
+@yalx.Compiler(nativeHandle=true)
 fun issue1() {
     try {
         foo()

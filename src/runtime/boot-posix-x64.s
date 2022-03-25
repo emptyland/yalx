@@ -180,3 +180,18 @@ _coroutine_finalize_stub:
     jmp *%rdi
     int3
 
+
+//----------------------------------------------------------------------------------------------------------------------
+// void throw_to(struct coroutine *root, address_t pc, address_t fp, address_t sp)
+// Argv_0 = rdi; // {kRDI},
+// Argv_1 = rsi; // {kRSI},
+// Argv_2 = rdx; // {kRDX},
+// Argv_3 = rcx; // {kRCX},
+//----------------------------------------------------------------------------------------------------------------------
+.global _throw_to
+_throw_to:
+    movq %rdi, %r14 // arg0 -> root
+    movq %rdx, %rbp
+    movq %rcx, %rsp
+    jmp *%rsi
+    int3

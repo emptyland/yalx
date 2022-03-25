@@ -51,6 +51,11 @@ public:
                                      0/*control_out*/);
     }
     
+    Operator *Unwind() {
+        return new (arena_) Operator(Operator::kUnwind, 0, 0/*value_in*/, 0/*control_in*/, 0/*value_out*/,
+                                     0/*control_out*/);
+    }
+    
     Operator *HeapAlloc(const StructureModel *model) {
         return new (arena_) OperatorWith<const StructureModel *>(Operator::kHeapAlloc, 0, 0/*value_in*/,
                                                                  0/*control_in*/, 1/*value_out*/, 0/*control_out*/,

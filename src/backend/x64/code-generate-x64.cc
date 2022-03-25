@@ -242,6 +242,11 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             printer()->Write("andq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
+            
+        case X64Test:
+            printer()->Write("testq ");
+            EmitOperands(instr->InputAt(0), instr->InputAt(1));
+            break;
 
         case X64Movb:
             printer()->Write("movb ");
@@ -481,6 +486,12 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
+        
+        case X64Jnz:
+            printer()->Write("jnz ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln("");
+            break;
             
         case X64Jna:
         case X64Jnb:
@@ -490,7 +501,6 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
         case X64Jno:
         case X64Jnp:
         case X64Jns:
-        case X64Jnz:
         case X64Jnae:
         case X64Jnbe:
         case X64Jnge:

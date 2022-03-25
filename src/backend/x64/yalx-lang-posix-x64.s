@@ -1085,7 +1085,7 @@ _yalx_Zplang_Zolang_ZdString$class:
     .long 8 # reference_size
     .long 40 # instance_size
     .long 0 # padding
-    .quad _yalx_Zplang_Zolang_ZdString$class # super
+    .quad _yalx_Zplang_Zolang_ZdAny$class # super
     .quad Lkzs.21 # name
     .long 6 # name
     .long 0 # padding
@@ -1198,7 +1198,7 @@ _yalx_Zplang_Zolang_ZdI32$class:
     .long 8 # reference_size
     .long 24 # instance_size
     .long 0 # padding
-    .quad _yalx_Zplang_Zolang_ZdI32$class # super
+    .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl$class # super
     .quad Lkzs.26 # name
     .long 3 # name
     .long 0 # padding
@@ -1257,7 +1257,7 @@ _yalx_Zplang_Zolang_ZdU32$class:
     .long 8 # reference_size
     .long 24 # instance_size
     .long 0 # padding
-    .quad _yalx_Zplang_Zolang_ZdU32$class # super
+    .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl$class # super
     .quad Lkzs.31 # name
     .long 3 # name
     .long 0 # padding
@@ -1690,7 +1690,7 @@ _yalx_Zplang_Zolang_ZdThrowable$class:
     .long 8 # reference_size
     .long 40 # instance_size
     .long 0 # padding
-    .quad _yalx_Zplang_Zolang_ZdThrowable$class # super
+    .quad _yalx_Zplang_Zolang_ZdAny$class # super
     .quad Lkzs.78 # name
     .long 9 # name
     .long 0 # padding
@@ -1786,7 +1786,7 @@ _yalx_Zplang_Zolang_ZdException$class:
     .long 8 # reference_size
     .long 40 # instance_size
     .long 0 # padding
-    .quad _yalx_Zplang_Zolang_ZdException$class # super
+    .quad _yalx_Zplang_Zolang_ZdThrowable$class # super
     .quad Lkzs.82 # name
     .long 9 # name
     .long 0 # padding
@@ -1832,7 +1832,7 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$class:
     .long 8 # reference_size
     .long 48 # instance_size
     .long 0 # padding
-    .quad _yalx_Zplang_Zolang_ZdBacktraceFrame$class # super
+    .quad _yalx_Zplang_Zolang_ZdAny$class # super
     .quad Lkzs.90 # name
     .long 14 # name
     .long 0 # padding

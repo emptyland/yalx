@@ -1095,7 +1095,11 @@ public:
         }
         assert(value->type().kind() == Type::kReference);
         auto op = ops()->CallRuntime(0/*value_out*/, 1/*value_in*/, invoke_control_out(), RuntimeLib::Raise);
-        b()->NewNode(root_ss.Position(), Types::Void, op, value);
+        if (op->control_out() > 0) {
+            b()->NewNode(root_ss.Position(), Types::Void, op, value, invoke_control());
+        } else {
+            b()->NewNode(root_ss.Position(), Types::Void, op, value);
+        }
         EmitUnreachable(); // Never return
         return Returning(Unit());
     }
@@ -1231,6 +1235,7 @@ public:
         NamespaceScope::Keeper<BranchScope> trunk(&scope);
 
         auto fun = emitting_->fun();
+        fun->AddPropertiesBits(Function::kUnwindHandleBit);
         std::vector<BasicBlock *> blocks;
         blocks.push_back(fun->NewBlock(nullptr));
         for (auto clause : node->catch_clauses()) {
@@ -1238,15 +1243,17 @@ public:
         }
         BasicBlock *finally_block = !node->finally_block() ? nullptr : fun->NewBlock(nullptr);
 
-        TryContext try_scope(emitting_->try_location(), blocks.size() < 2 ? nullptr : blocks[1], finally_block);
         const int number_of_branchs = static_cast<int>(node->catch_clauses_size()) + 1;
         std::vector<std::vector<Value *>> values(number_of_branchs);
         blocks.push_back(!finally_block ? fun->NewBlock(nullptr) : finally_block);
 
         auto origin = b();
         b(blocks[0]);
-        if (Reduce(node->try_block(), &values[0]) < 0) {
-            return -1;
+        {
+            TryContext try_scope(emitting_->try_location(), blocks.size() < 2 ? nullptr : blocks[1], finally_block);
+            if (Reduce(node->try_block(), &values[0]) < 0) {
+                return -1;
+            }
         }
         b()->NewNode(root_ss.Position(), Types::Void, ops()->Br(0, 1), blocks.back());
         
@@ -1271,6 +1278,7 @@ public:
             blocks[i + 1] = block;
             
             SetAndMakeLast(block);
+            EmitUnwind();
             op = ops()->RefAssertedTo();
             ty = BuildType(ast->match_type());
             assert(ty.kind() == Type::kReference);
@@ -1841,6 +1849,11 @@ private:
         b()->NewNode(souce_position, Types::Void, op);
     }
     
+    void EmitUnwind(SourcePosition souce_position = SourcePosition::Unknown()) {
+        auto op = ops()->Unwind();
+        b()->NewNode(souce_position, Types::Void, op);
+    }
+    
     void EmitCallingModuleDependentInitializers(cpl::Package *node) {
         for (auto [name, import] : node->imports()) {
             std::string full_name(name);
@@ -2102,7 +2115,7 @@ private:
 
                 if (field->name()->Equal(cpl::kAnnoNativeHandleProperty)) {
                     if (auto val = field->value()->AsBoolLiteral()) {
-                        fun->SetPropertiesBits(val->value() ? Function::kNativeHandleBit : 0);
+                        fun->AddPropertiesBits(val->value() ? Function::kNativeHandleBit : 0);
                     }
                 } else if (field->name()->Equal(cpl::kAnnoNativeStubNameProperty)) {
                     if (auto val = field->value()->AsStringLiteral()) {

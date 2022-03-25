@@ -49,6 +49,8 @@ extern const String *const kRt_current_root;
 extern const String *const kRt_yalx_exit_returning_scope;
 extern const String *const kRt_associate_stub_returning_vals;
 extern const String *const kRt_heap_alloc;
+extern const String *const kRt_raise;
+extern const String *const kRt_is_instance_of;
 
 } // namespace backend
 } // namespace yalx

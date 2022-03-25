@@ -71,6 +71,7 @@ public:
     
     constexpr static const uint32_t kNeverReturnBit = 1u;
     constexpr static const uint32_t kNativeHandleBit = 1u << 1;
+    constexpr static const uint32_t kUnwindHandleBit = 1u << 2;
     
     BasicBlock *NewBlock(const String *name);
     
@@ -87,6 +88,9 @@ public:
     
     bool is_never_return() const { return properties_ & kNeverReturnBit; }
     bool is_native_handle() const { return properties_ & kNativeHandleBit; }
+    bool should_unwind_handle() const { return properties_ & kUnwindHandleBit; }
+    
+    void AddPropertiesBits(uint32_t bits) { properties_ |= bits; }
     
     void SetPropertiesBits(uint32_t bits) {
         properties_ &= ~bits;
