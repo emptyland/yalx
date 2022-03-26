@@ -45,10 +45,10 @@ void yalx_Zplang_Zolang_Zdunwind_stub() {
         frame->file = yalx_new_string(&heap, "<unknown>", 9);
         
 //        {
-//            unw_word_t rbp, sp;
-//            int r1 = unw_get_reg(&cursor, UNW_X86_64_RBP, &rbp);
+//            unw_word_t fp, sp;
+//            int r1 = unw_get_reg(&cursor, UNW_ARM64_FP, &fp);
 //            int r2 = unw_get_reg(&cursor, UNW_REG_SP, &sp);
-//            printf("%s(): %d = %p, %d = %p, size = %d\n", frame->function->bytes, r1, rbp, r2, sp, rbp - sp);
+//            printf("%s(): %d = %p, %d = %p, size = %d\n", frame->function->bytes, r1, fp, r2, sp, fp - sp);
 //        }
         
         if (size + 1 > capacity) {

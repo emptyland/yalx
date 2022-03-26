@@ -372,6 +372,8 @@ void OperandAllocator::Free(InstructionOperand *operand) {
             }
         } break;
         case InstructionOperand::kLocation:
+            assert(operand->IsLocation());
+            assert(registers()->frame_pointer()->register_id() == operand->AsLocation()->register0_id());
             slots()->FreeSlot(operand->AsLocation());
             break;
         default:
@@ -385,15 +387,15 @@ bool OperandAllocator::WillBeDead(ir::Value *value, int position) const {
     assert(position < dead_records_.size());
 
     auto iter = live_ranges_.find(value);
-    if (iter == live_ranges_.end()) {
-        auto rd = dead_records_[position];
-        for (size_t i = rd.index; i < rd.index + rd.size; i++) {
-            if (value == deads_[i]) {
-                return true;
-            }
-        }
-        return false;
-    }
+//    if (iter == live_ranges_.end()) {
+//        auto rd = dead_records_[position];
+//        for (size_t i = rd.index; i < rd.index + rd.size; i++) {
+//            if (value == deads_[i]) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
     return position >= iter->second.stop_position;
 }
 
@@ -460,9 +462,10 @@ OperandAllocator::BorrowedRecord OperandAllocator::BorrowRegister(ir::Type ty, I
     }
 
     if (active_rd.val) {
-        Associate(active_rd.val, bak);
+        //Associate(active_rd.val, bak);
+        allocated_[active_rd.val] = bak;
     } else {
-        Free(active_rd.opd);
+        //Free(active_rd.opd);
     }
     return {AllocateReigster(ty), active_rd.opd, bak, active_rd.val};
 }
@@ -499,43 +502,31 @@ void RegisterSavingScope::AddExclude(ir::Value *exclude, int designate, int posi
 void RegisterSavingScope::SaveAll() {
     moving_delegate_->Initialize();
     for (auto [rid, rd] : allocator_->active_general_registers_) {
-        if (general_exclude_.find(rid) != general_exclude_.end()) {
+        if (!rd.val || general_exclude_.find(rid) != general_exclude_.end()) {
             continue;
         }
         
-        if (allocator_->WillBeLive(rd.val, position_ + 1)) {
-            auto bak = allocator_->AllocateStackSlot(DCHECK_NOTNULL(rd.val)->type(), 0/*padding_size*/,
-                                                     StackSlotAllocator::kFit);
-            moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
+        //if (allocator_->WillBeLive(rd.val, position_ + 1)) {
+            auto ty = rd.val->type();
+            auto bak = allocator_->AllocateStackSlot(ty, 0/*padding_size*/, StackSlotAllocator::kFit);
+            moving_delegate_->MoveTo(bak, rd.opd, ty);
             backup_.push_back({rd.val, bak, rd.opd});
-            
-//            {
-//                std::string buf;
-//                auto file = base::NewMemoryWritableFile(&buf);
-//                ir::PrintingContext ctx(0);
-//                base::PrintingWriter printer(file, true);
-//                rd.val->PrintTo(&ctx, &printer);
-//                printf("val: %s", buf.c_str());
-//            }
-        }
+        //}
     }
     for (auto [rid, rd] : allocator_->active_float_registers_) {
-        if (float_exclude_.find(rid) != float_exclude_.end()) {
+        if (!rd.val || float_exclude_.find(rid) != float_exclude_.end()) {
             continue;
         }
         
-        if (allocator_->WillBeLive(rd.val, position_ + 1)) {
-            auto bak = allocator_->AllocateStackSlot(rd.val->type(), 0/*padding_size*/, StackSlotAllocator::kFit);
-            moving_delegate_->MoveTo(bak, rd.opd, rd.val->type());
+        //if (allocator_->WillBeLive(rd.val, position_ + 1)) {
+            auto ty = rd.val->type();
+            auto bak = allocator_->AllocateStackSlot(ty, 0/*padding_size*/, StackSlotAllocator::kFit);
+            moving_delegate_->MoveTo(bak, rd.opd, ty);
             backup_.push_back({rd.val, bak, rd.opd});
-        }
+        //}
     }
     for (auto bak : backup_) {
-        if (bak.val) {
-            allocator_->Associate(bak.val, bak.current);
-        } else {
-            allocator_->Free(bak.old);
-        }
+        allocator_->Associate(bak.val, bak.current);
     }
     moving_delegate_->Finalize();
 }
@@ -543,10 +534,8 @@ void RegisterSavingScope::SaveAll() {
 void RegisterSavingScope::Exit() {
     moving_delegate_->Initialize();
     for (auto bak : backup_) {
-        DCHECK_NOTNULL(bak.val);
         if (allocator_->WillBeLive(bak.val, position_ + 1)) {
-            auto opd = allocator_->Allocate(bak.val->type());
-            //auto opd = DCHECK_NOTNULL(allocator_->AllocateReigster(bak.val->type(), bak.old->register_id()));
+            auto opd = allocator_->Allocate(DCHECK_NOTNULL(bak.val)->type());
             moving_delegate_->MoveTo(opd, bak.current, bak.val->type());
             allocator_->Associate(bak.val, opd);
         } else {

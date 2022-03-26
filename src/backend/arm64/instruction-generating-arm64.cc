@@ -14,6 +14,7 @@
 #include "ir/utils.h"
 #include "compiler/constants.h"
 #include "runtime/runtime.h"
+#include "runtime/process.h"
 #include "base/lazy-instance.h"
 #include "base/arena-utils.h"
 #include "base/format.h"
@@ -112,7 +113,7 @@ struct Arm64RegisterConfigurationInitializer {
 struct Arm64StackConfigurationInitializer {
     static StackConfiguration *New(void *chunk) {
         return new (chunk) StackConfiguration(Arm64Mode_MRI,
-                                              32, // saved size
+                                              0, // saved size
                                               4,  // slot alignment size
                                               16, // stack alignment size
                                               arm64::fp.code(),
@@ -198,8 +199,7 @@ private:
     
     void CallDirectly(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
-    void PassArguments(const std::vector<InstructionOperand *> &args, ir::Value *instr,
-                       RegisterSavingScope *saving_scope);
+    void PassArguments(InstructionOperand *exclude, ir::Value *instr, RegisterSavingScope *saving_scope);
     void ConditionBr(ir::Value *instr);
     void BooleanValue(ir::Value *instr, InstructionOperand *opd);
     void ConditionSelect(ir::Value *instr, InstructionOperand *opd, InstructionOperand *true_val,
@@ -241,6 +241,31 @@ private:
         return false;
     }
     
+    void SetCatchHandler(ir::BasicBlock *handler) {
+        auto iter = blocks_.find(handler);
+        assert(iter != blocks_.end());
+        assert(catch_handler_ == nullptr);
+        catch_handler_ = iter->second;
+    }
+    
+    void TypingNormalize(InstructionOperand **a, InstructionOperand **b, ir::Type type) {
+        TypingNormalize(a, type);
+        TypingNormalize(b, type);
+    }
+    
+    void TypingNormalize(InstructionOperand **a, ir::Type type) {
+        auto rep = ToMachineRepresentation(type);
+        if (auto rl = (*a)->AsRegister()) {
+            if (rl->rep() != rep) {
+                *a = new (arena_) RegisterOperand(rl->register_id(), rep);
+            }
+        }
+    }
+    
+    void InstallUnwindHandler();
+    void UninstallUnwindHandler();
+    void HandleCatch(InstructionBlock *handler);
+    
     void SetUpHandleFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr);
     void TearDownHandleFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr);
     void CallOriginalFun();
@@ -268,11 +293,51 @@ private:
     ImmediateOperand *stack_total_size_ = nullptr;
     ImmediateOperand *stack_used_size_ = nullptr;
     LocationOperand *stack_sp_fp_location_ = nullptr;
+    InstructionBlock *catch_handler_ = nullptr;
     std::map<ir::BasicBlock *, InstructionBlock *> blocks_;
     std::vector<InstructionOperand *> tmps_;
     std::vector<OperandAllocator::BorrowedRecord> borrowed_registers_;
     std::vector<ImmediateOperand *> calling_stack_adjust_;
 }; // class Arm64FunctionInstructionSelector
+
+void Arm64FunctionInstructionSelector::InstallUnwindHandler() {
+    assert(fun_->should_unwind_handle());
+    // struct unwind_node in top of stack
+    auto addr = operands_.AllocateStackSlot(ir::Types::Word64, 0, StackSlotAllocator::kLinear);
+    auto prev = operands_.AllocateStackSlot(ir::Types::Word64, 0, StackSlotAllocator::kLinear);
+    assert(prev->k() == -16);
+    assert(prev->register0_id() == arm64::fp.code());
+    auto handler = operands_.registers()->frame_pointer();
+
+    // current->prev = root->top_unwind_point
+    // current->addr = &fun
+    // root->top_unwind_point = current
+    auto top = new (arena_) LocationOperand(Arm64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_TOP_UNWIND);
+    auto scratch = new (arena_) RegisterOperand(arm64::x0.code(), MachineRepresentation::kWord64);
+    Move(scratch, top, ir::Types::Word64);
+    Move(prev, scratch, ir::Types::Word64);
+    
+    auto rel = new (arena_) ReloactionOperand(bundle()->symbol(), nullptr, true/*fetch_addr*/);
+    Move(scratch, rel, ir::Types::Word64);
+    Move(addr, scratch, ir::Types::Word64);
+    
+    //current()->NewIO(X64Lea, scratch, prev);
+    Move(scratch, prev, ir::Types::Word64);
+    Move(top, scratch, ir::Types::Word64);
+}
+
+void Arm64FunctionInstructionSelector::UninstallUnwindHandler() {
+    assert(fun_->should_unwind_handle());
+    // struct unwind_node in top of stack
+    auto addr = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::fp.code(), -1, -8);
+    auto prev = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::fp.code(), -1, -16);
+    
+    auto top = new (arena_) LocationOperand(Arm64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_TOP_UNWIND);
+    auto scratch = new (arena_) RegisterOperand(arm64::x0.code(), MachineRepresentation::kWord64);
+    Move(scratch, top, ir::Types::Word64);
+    auto top_prev = new (arena_) LocationOperand(Arm64Mode_MRI, scratch->register_id(), -1, 0);
+    Move(top_prev, prev, ir::Types::Word64);
+}
 
 void Arm64FunctionInstructionSelector::BuildNativeHandle() {
     std::string buf;
@@ -544,6 +609,12 @@ void Arm64FunctionInstructionSelector::Run() {
     stack_used_size_ = ImmediateOperand::Word32(arena_, 0);
     blk->NewI2O(ArchFrameEnter, fp, stack_total_size_, stack_sp_fp_location_);
     
+    if (fun_->should_unwind_handle()) {
+        current_block_ = blk;
+        InstallUnwindHandler();
+        current_block_ = nullptr;
+    }
+    
     AssociateParameters(blk);
     for (auto blk : fun_->blocks()) {
         SelectBasicBlock(blk);
@@ -558,6 +629,17 @@ void Arm64FunctionInstructionSelector::Run() {
         assert(stack_size >= adjust->word32());
         adjust->Set32(stack_size - adjust->word32());
     }
+}
+
+void Arm64FunctionInstructionSelector::HandleCatch(InstructionBlock *handler) {
+    //auto opd = operands_.Allocate(ir::Types::Word64);
+    auto exception = new (arena_) LocationOperand(Arm64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_EXCEPTION);
+    auto scratch = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+    Move(scratch, exception, ir::Types::Word64);
+    auto xzr = new (arena_) RegisterOperand(arm64::xzr.code(), MachineRepresentation::kWord64);
+    current()->NewII(Arm64Cmp, scratch, xzr);
+    auto rel = new (arena_) ReloactionOperand(nullptr, handler);
+    current()->NewO(Arm64B_ne, rel);
 }
 
 void Arm64FunctionInstructionSelector::AssociateParameters(InstructionBlock *block) {
@@ -618,6 +700,12 @@ void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
                 operands_.Free(borrow.target);
             }
         }
+        borrowed_registers_.clear();
+        
+        if (catch_handler_) {
+            HandleCatch(catch_handler_);
+            catch_handler_ = nullptr; // clear catch handler;
+        }
         prev_instr_ = instr;
         instruction_position_++;
     }
@@ -627,6 +715,11 @@ void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
 
 void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
     switch (instr->op()->value()) {
+            
+        case ir::Operator::kUnreachable:
+            current()->New(ArchUnreachable);
+            break;
+            
         case ir::Operator::kBr: {
             if (instr->op()->value_in() == 0) {
                 auto ib = blocks_[instr->OutputControl(0)];
@@ -696,6 +789,30 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, opd->AsRegister()->register_id(), -1, field->offset);
             auto value = Allocate(instr, kAny);
             Move(value, loc, instr->InputValue(0)->type());
+        } break;
+            
+        case ir::Operator::kIsInstanceOf: {
+            auto model = ir::OperatorWith<const ir::Model *>::Data(instr->op());
+            auto input = Allocate(instr->InputValue(0), kAny);
+            
+            RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+            saving_scope.SaveAll(); // TODO: SaveCallerOnly
+            
+            auto x0 = new (arena_) RegisterOperand(arm64::x0.code(), MachineRepresentation::kWord64);
+            Move(x0, input, instr->InputValue(0)->type());
+            
+            std::string symbol;
+            LinkageSymbols::Build(&symbol, model->full_name()->ToSlice());
+            symbol.append("$class");
+            auto rel = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
+            auto x1 = new (arena_) RegisterOperand(arm64::x1.code(), MachineRepresentation::kWord64);
+            Move(x1, rel, ir::Types::Word64);
+            rel = bundle()->AddExternalSymbol(kRt_is_instance_of);
+            current()->NewI(ArchCall, rel);
+
+            auto opd = Allocate(instr, kMoR);
+            TypingNormalize(&opd, reinterpret_cast<InstructionOperand **>(&x0), instr->type());
+            Move(opd, x0, instr->type());
         } break;
             
         case ir::Operator::kICmp: {
@@ -847,7 +964,101 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         case ir::Operator::kClosure: {
             // TODO:
             UNREACHABLE();
-        } break;;
+        } break;
+            
+        case ir::Operator::kBitCastTo: {
+            auto opd = Allocate(instr, kMoR);
+            auto input = Allocate(instr->InputValue(0), kAny);
+            Move(opd, input, instr->type());
+        } break;
+            
+        case ir::Operator::kZextTo: {
+            auto opd = Allocate(instr, kReg);
+            auto input = Allocate(instr->InputValue(0), kMoR);
+            auto rep = ToMachineRepresentation(instr->InputValue(0)->type());
+            switch (rep) {
+                case MachineRepresentation::kWord8:
+                    TypingNormalize(&opd, &input, ir::Types::Word32);
+                    input->IsRegister()
+                        ? current()->NewIO(Arm64Uxtb, opd, input)
+                        : current()->NewIO(Arm64Ldrb, opd, input);
+                    break;
+                case MachineRepresentation::kWord16:
+                    TypingNormalize(&opd, &input, ir::Types::Word32);
+                    input->IsRegister()
+                        ? current()->NewIO(Arm64Uxth, opd, input)
+                        : current()->NewIO(Arm64Ldrh, opd, input);
+                    break;
+                case MachineRepresentation::kWord32:
+                    TypingNormalize(&opd, &input, ir::Types::Word32);
+                    Move(opd, input, ir::Types::Word32);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+            
+        case ir::Operator::kSextTo: {
+            auto opd = Allocate(instr, kReg);
+            auto input = Allocate(instr->InputValue(0), kMoR);
+            auto rep = ToMachineRepresentation(instr->InputValue(0)->type());
+            switch (rep) {
+                case MachineRepresentation::kWord8:
+                    TypingNormalize(&opd, &input, ir::Types::Word32);
+                    input->IsRegister()
+                        ? current()->NewIO(Arm64Sxtb32, opd, input)
+                        : current()->NewIO(Arm64Ldrsb, opd, input);
+                    break;
+                case MachineRepresentation::kWord16:
+                    TypingNormalize(&opd, &input, ir::Types::Word32);
+                    input->IsRegister()
+                        ? current()->NewIO(Arm64Sxth32, opd, input)
+                        : current()->NewIO(Arm64Ldrsh, opd, input);
+                    break;
+                case MachineRepresentation::kWord32:
+                    TypingNormalize(&opd, &input, ir::Types::Word64);
+                    input->IsRegister()
+                        ? current()->NewIO(Arm64Sxtw32, opd, input)
+                        : current()->NewIO(Arm64Ldrsw, opd, input);
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+            
+        case ir::Operator::kTruncTo: {
+            auto opd = Allocate(instr, kReg);
+            auto input = Allocate(instr->InputValue(0), kMoR);
+            TypingNormalize(&opd, &input, instr->type());
+            Move(opd, input, instr->type());
+            auto rep = ToMachineRepresentation(instr->type());
+            auto src = instr->InputValue(0)->type().bytes();
+            switch (rep) {
+                case MachineRepresentation::kWord8:
+                    current()->NewIO(Arm64And32, opd, opd, ImmediateOperand::Word32(arena_, 0xff));
+                    break;
+                case MachineRepresentation::kWord16:
+                    current()->NewIO(Arm64And32, opd, opd, ImmediateOperand::Word32(arena_, 0xffff));
+                    break;
+                case MachineRepresentation::kWord32:
+                    // Ignore
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+            
+        case ir::Operator::kFPExtTo:
+        case ir::Operator::kFPTruncTo:
+        case ir::Operator::kUIToFP:
+        case ir::Operator::kSIToFP:
+        case ir::Operator::kFPToSI:
+        case ir::Operator::kFPToUI:
+            current()->New(ArchUnreachable); // TODO:
+            break;
             
         case ir::Operator::kCallRuntime:
             CallRuntime(instr);
@@ -857,6 +1068,18 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         case ir::Operator::kCallDirectly:
             CallDirectly(instr);
             break;
+            
+        case ir::Operator::kCatch: {
+            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_EXCEPTION);
+            auto opd = Allocate(instr, kAny);
+            Move(opd, loc, instr->type());
+        } break;
+            
+        case ir::Operator::kUnwind: {
+            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_EXCEPTION);
+            auto xzr = new (arena_) RegisterOperand(arm64::xzr.code(), MachineRepresentation::kWord64);
+            Move(loc, xzr, ir::Types::Word64);
+        } break;
             
         case ir::Operator::kReturningVal:
             // Just Ignore this ir code
@@ -911,17 +1134,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
                 Move(opd, ret, ty);
             }
             
-            // stp sp, lr, [sp, location]
-//            auto lr = new (arena_) RegisterOperand(arm64::lr.code(), MachineRepresentation::kWord64);
-//            current()->NewIO2(Arm64Ldp,
-//                              operands_.registers()->frame_pointer(),
-//                              lr,
-//                              stack_sp_fp_location_);
-//            current()->NewIO(Arm64Add,
-//                             operands_.registers()->stack_pointer(),
-//                             operands_.registers()->stack_pointer(),
-//                             stack_total_size_);
-//            current()->New(ArchRet);
+            if (fun_->should_unwind_handle()) { UninstallUnwindHandler(); }
             auto fp = operands_.registers()->frame_pointer();
             current()->NewI2O(ArchFrameExit, fp, stack_total_size_, stack_sp_fp_location_);
         } break;
@@ -950,6 +1163,7 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         auto method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
         callee = method->fun;
     }
+    //printd("call: %s", callee->name()->data());
     std::vector<ir::Value *> returning_vals;
     returning_vals.push_back(instr);
     if (instr->users().size() > 0) {
@@ -965,7 +1179,7 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         });
     }
     std::vector<ir::Value *> overflow_args;
-    std::vector<InstructionOperand *> args;
+    //std::vector<InstructionOperand *> args;
     RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
     size_t overflow_args_size = 0;
     int general_index = 0, float_index = 0;
@@ -975,7 +1189,7 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
                 saving_scope.AddExclude(arg, kFloatArgumentsRegisters[float_index], instruction_position_);
-                args.push_back(Allocate(arg, kAny));
+                Allocate(arg, kAny);
             } else {
                 // overflow
                 overflow_args_size += size;
@@ -985,7 +1199,7 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         } else {
             if (general_index < kNumberOfGeneralArgumentsRegisters) {
                 saving_scope.AddExclude(arg, kGeneralArgumentsRegisters[general_index], instruction_position_);
-                args.push_back(Allocate(arg, kAny));
+                Allocate(arg, kAny);
             } else {
                 // overflow
                 overflow_args_size += size;
@@ -996,7 +1210,7 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     }
     saving_scope.SaveAll();
 
-    PassArguments(args, instr, &saving_scope);
+    PassArguments(nullptr, instr, &saving_scope);
     
     auto current_stack_size = operands_.slots()->stack_size();
     bool first = true;
@@ -1038,6 +1252,10 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     if (returning_vals_size_in_bytes > 0) {
         current()->NewIO(Arm64Sub, sp, sp, adjust);
     }
+    
+    if (instr->op()->control_out() > 0) {
+        SetCatchHandler(instr->OutputControl(0));
+    }
 }
 
 void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
@@ -1059,7 +1277,7 @@ void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
     }
     
     RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
-    std::vector<InstructionOperand *> args;
+    InstructionOperand *exclude = nullptr;
     int general_index = 0, float_index = 0;
     for (int i = 0; i < instr->op()->value_in(); i++) {
         auto arg = instr->InputValue(i);
@@ -1067,15 +1285,15 @@ void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
             const auto const pkg_name = ir::OperatorWith<const String *>::Data(arg->op());
             const auto kid = const_pool_->FindOrInsertString(pkg_name);
             const auto linked_name = String::New(arena_, base::Sprintf("Lkzs.%d", kid));
-            args.push_back(new (arena_) ReloactionOperand(linked_name, nullptr, true/*fetch_address*/));
+            exclude = new (arena_) ReloactionOperand(linked_name, nullptr, true/*fetch_address*/);
             general_index++;
             continue;
         }
         const auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
-                args.push_back(Allocate(arg, kAny));
                 saving_scope.AddExclude(arg, kFloatArgumentsRegisters[float_index], instruction_position_);
+                Allocate(arg, kAny);
             } else {
                 // overflow
                 UNREACHABLE();
@@ -1083,8 +1301,8 @@ void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
             float_index++;
         } else {
             if (general_index < kNumberOfGeneralArgumentsRegisters) {
-                args.push_back(Allocate(arg, kAny));
                 saving_scope.AddExclude(arg, kGeneralArgumentsRegisters[general_index], instruction_position_);
+                Allocate(arg, kAny);
             } else {
                 // overflow
                 UNREACHABLE();
@@ -1094,33 +1312,37 @@ void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
     }
     saving_scope.SaveAll(); // TODO: SaveCallerOnly
     
-    PassArguments(args, instr, &saving_scope);
+    PassArguments(exclude, instr, &saving_scope);
     
     auto rel = new (arena_) ReloactionOperand(symbol, nullptr);
     current()->NewI(ArchCall, rel);
+    
+    if (instr->op()->control_out() > 0) {
+        SetCatchHandler(instr->OutputControl(0));
+    }
 }
 
-void Arm64FunctionInstructionSelector::PassArguments(const std::vector<InstructionOperand *> &args, ir::Value *instr,
+void Arm64FunctionInstructionSelector::PassArguments(InstructionOperand *exclude, ir::Value *instr,
                                                      RegisterSavingScope *saving_scope) {
-    assert(instr->op()->value_in() >= args.size());
     int general_index = 0, float_index = 0;
     for (int i = 0; i < instr->op()->value_in(); i++) {
         auto arg = instr->InputValue(i);
+        auto opd = (i == 1 && exclude) ? exclude : DCHECK_NOTNULL(operands_.Allocated(arg));
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
-                if (saving_scope->Include(kFloatArgumentsRegisters[float_index], false/*general*/)) {
-                    auto dest = new (arena_) RegisterOperand(kFloatArgumentsRegisters[float_index],
-                                                             ToMachineRepresentation(arg->type()));
-                    Move(dest, args[i], arg->type());
+                const auto rid  = kFloatArgumentsRegisters[float_index];
+                if (saving_scope->Include(rid, false/*general*/)) {
+                    auto dest = new (arena_) RegisterOperand(rid, ToMachineRepresentation(arg->type()));
+                    Move(dest, opd, arg->type());
                 }
             }
             float_index++;
         } else {
             if (general_index < kNumberOfGeneralArgumentsRegisters) {
-                if (saving_scope->Include(kGeneralArgumentsRegisters[general_index], true/*general*/)) {
-                    auto dest = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[general_index],
-                                                             ToMachineRepresentation(arg->type()));
-                    Move(dest, args[i], arg->type());
+                const auto rid = kGeneralArgumentsRegisters[general_index];
+                if (saving_scope->Include(rid, true/*general*/)) {
+                    auto dest = new (arena_) RegisterOperand(rid, ToMachineRepresentation(arg->type()));
+                    Move(dest, opd, arg->type());
                 }
             }
             general_index++;

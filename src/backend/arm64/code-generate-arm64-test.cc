@@ -56,6 +56,24 @@ TEST_F(Arm64CodeGeneratorTest, StructsGenerating) {
     bool ok = true;
     CodeGen("tests/41-code-gen-structs", "issue02:issue02", &printer, &ok);
     ASSERT_TRUE(ok);
+    //printf("%s\n", buf.c_str());
+}
+
+TEST_F(Arm64CodeGeneratorTest, YalxLang) {
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    CodeGen("tests/40-code-gen-sanity", "yalx/lang:lang", &printer, &ok);
+    ASSERT_TRUE(ok);
+    //printf("%s\n", buf.c_str());
+}
+
+TEST_F(Arm64CodeGeneratorTest, TryCatch) {
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    CodeGen("tests/25-ir-throw-catch-expr", "issue00:issue00", &printer, &ok);
+    ASSERT_TRUE(ok);
     printf("%s\n", buf.c_str());
 }
 
@@ -121,7 +139,7 @@ TEST_F(Arm64CodeGeneratorTest, StackAndHeapAllocStruct) {
     pkg_init_once(reinterpret_cast<void *>(&issue02_Zoissue02_Zd_Z4init), "issue02:issue02");
     issue02_Zoissue02_Zdissue1_had();
     issue02_Zoissue02_Zdissue2_had();
-    //issue02_Zoissue02_Zdissue3_had();
+    issue02_Zoissue02_Zdissue3_had();
 }
 
 #endif // YALX_ARCH_ARM64

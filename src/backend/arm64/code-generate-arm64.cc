@@ -131,7 +131,7 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             
         case ArchDebugBreak:
         case ArchUnreachable:
-            printer()->Writeln("brk");
+            printer()->Writeln("brk #0x3c");
             break;
             
         case ArchRet:
@@ -425,6 +425,15 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperands(instr->InputAt(0), instr->OutputAt(0));
             break;
             
+        case Arm64StrW:
+            if (DCHECK_NOTNULL(instr->OutputAt(0)->AsLocation())->k() < 0) {
+                printer()->Write("stur ");
+            } else {
+                printer()->Write("str ");
+            }
+            EmitOperands(instr->InputAt(0), instr->OutputAt(0));
+            break;
+            
         case Arm64Stp:
             printer()->Write("stp ");
             EmitOperands(instr->InputAt(0), instr->InputAt(1), instr->OutputAt(0));
@@ -485,6 +494,37 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
         case Arm64Sub32:
             printer()->Write("sub ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64And32:
+        case Arm64And:
+            printer()->Write("and ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
+            break;
+            
+        case Arm64Uxtb:
+            printer()->Write("uxtb ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case Arm64Uxth:
+            printer()->Write("uxth ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case Arm64Sxtb32:
+            printer()->Write("sxtb ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case Arm64Sxth32:
+            printer()->Write("sxth ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case Arm64Sxtw32:
+            printer()->Write("sxtw ");
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
 
         default:

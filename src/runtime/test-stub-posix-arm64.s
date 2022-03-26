@@ -153,11 +153,14 @@ _yalx_magic_number2:
 _yalx_magic_number3:
     .ascii "HKDG"
 .global _yalx_Zplang_Zolang_ZdAny$class
+.weak_definition _yalx_Zplang_Zolang_ZdAny$class
 _yalx_Zplang_Zolang_ZdAny$class:
     .quad 0
 .global _yalx_Zplang_Zolang_ZdException$class
+.weak_definition _yalx_Zplang_Zolang_ZdException$class
 _yalx_Zplang_Zolang_ZdException$class:
     .quad 0
 .global _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
+.weak_definition _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
 _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor:
     .quad 0

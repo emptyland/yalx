@@ -76,9 +76,7 @@ namespace backend {
     V(Arm64Mov32)                             \
     V(Arm64Sxtb32)                            \
     V(Arm64Sxth32)                            \
-    V(Arm64Sxtb)                              \
-    V(Arm64Sxth)                              \
-    V(Arm64Sxtw)                              \
+    V(Arm64Sxtw32)                            \
     V(Arm64Sbfx)                              \
     V(Arm64Sbfx32)                            \
     V(Arm64Ubfx)                              \
@@ -231,6 +229,8 @@ namespace backend {
     V(Arm64DsbIsb)                            \
     V(Arm64Sxtl)                              \
     V(Arm64Sxtl2)                             \
+    V(Arm64Uxtb)                              \
+    V(Arm64Uxth)                              \
     V(Arm64Uxtl)                              \
     V(Arm64Uxtl2)                             \
     V(Arm64F64x2Splat)                        \

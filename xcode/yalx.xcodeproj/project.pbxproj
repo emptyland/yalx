@@ -88,6 +88,8 @@
 		236D0E6127C785D000E86AD2 /* issue-01-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 236D0E6027C785D000E86AD2 /* issue-01-posix-arm64.s */; };
 		237D551D27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
 		237D551E27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
+		23863A8027EF64B60089F9BA /* yalx-lang-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23863A7F27EF64B60089F9BA /* yalx-lang-posix-arm64.s */; };
+		23863A8127EF65680089F9BA /* any.c in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68526676DFC00635ADB /* any.c */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA42684627B002E6DCF /* lexer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFA32684627B002E6DCF /* lexer.cc */; };
@@ -409,6 +411,7 @@
 		237A0DAB27731390002180FE /* global-symbol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "global-symbol.h"; path = "../src/compiler/global-symbol.h"; sourceTree = "<group>"; };
 		237D551B27B0BAD60067A633 /* operand-allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "operand-allocator.h"; path = "../src/backend/operand-allocator.h"; sourceTree = "<group>"; };
 		237D551C27B0C0530067A633 /* operand-allocator.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "operand-allocator.cc"; path = "../src/backend/operand-allocator.cc"; sourceTree = "<group>"; };
+		23863A7F27EF64B60089F9BA /* yalx-lang-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "yalx-lang-posix-arm64.s"; path = "../src/backend/arm64/yalx-lang-posix-arm64.s"; sourceTree = "<group>"; };
 		2387EF9D2681C80D002E6DCF /* compiler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = compiler.h; path = ../src/compiler/compiler.h; sourceTree = "<group>"; };
 		2387EF9E2681C8D3002E6DCF /* compiler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = compiler.cc; path = ../src/compiler/compiler.cc; sourceTree = "<group>"; };
 		2387EFA126842BFF002E6DCF /* object-visitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "object-visitor.h"; path = "../src/runtime/heap/object-visitor.h"; sourceTree = "<group>"; };
@@ -577,6 +580,7 @@
 				23C3356927A8279500319862 /* instruction-generating-arm64.cc */,
 				23C3356827A8278400319862 /* instruction-generating-arm64.h */,
 				23C3356727A8263900319862 /* instruction-codes-arm64.h */,
+				23863A7F27EF64B60089F9BA /* yalx-lang-posix-arm64.s */,
 				236D0E6027C785D000E86AD2 /* issue-01-posix-arm64.s */,
 				232226A027EEDE9300B18B36 /* issue-02-posix-arm64.s */,
 			);
@@ -1032,6 +1036,7 @@
 				236D0E5C27C7380100E86AD2 /* code-generate-arm64.cc in Sources */,
 				23D4A46F2680D17D0090C631 /* crc32.c in Sources */,
 				23D4A4702680D17D0090C631 /* env-test.cc in Sources */,
+				23863A8027EF64B60089F9BA /* yalx-lang-posix-arm64.s in Sources */,
 				23C1345B27A4DA0D00C0DEB4 /* constants.cc in Sources */,
 				232AA00526861D4C0098E6A3 /* parser.cc in Sources */,
 				23D4A4712680D17D0090C631 /* env-posix.cc in Sources */,
@@ -1060,6 +1065,7 @@
 				23F6C24C278FC85B00899C4F /* runtime.cc in Sources */,
 				23D4A47B2680D17D0090C631 /* sha256.c in Sources */,
 				23D4A47C2680D17D0090C631 /* sha256.h in Sources */,
+				23863A8127EF65680089F9BA /* any.c in Sources */,
 				23D4A47D2680D17D0090C631 /* status-test.cc in Sources */,
 				23D4A47E2680D17D0090C631 /* status.h in Sources */,
 				236CC7B727BF383F00754BC0 /* hash-table.c in Sources */,
