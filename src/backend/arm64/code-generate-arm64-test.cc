@@ -1,4 +1,5 @@
 #include "backend/x64/code-generate-x64.h"
+#include "backend/code-generate-arch-test.h"
 #include "backend/constants-pool.h"
 #include "backend/linkage-symbols.h"
 #include "backend/instruction.h"
@@ -7,6 +8,7 @@
 #include "ir/node.h"
 #include "base/io.h"
 #include "runtime/object/yalx-string.h"
+#include "runtime/object/type.h"
 #include "runtime/heap/heap.h"
 #include "runtime/process.h"
 #include "runtime/runtime.h"
@@ -48,23 +50,30 @@ TEST_F(Arm64CodeGeneratorTest, Sanity) {
     //printf("%s\n", buf.c_str());
 }
 
-#ifdef YALX_ARCH_ARM64
-
-extern "C" {
-void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
-void main_Zomain_Zdissue1();
-void main_Zomain_Zdissue5();
-void main_Zomain_Zdfoo();
-void main_Zomain_Zd_Z4init();
-void issue9_stub(i32_t a, yalx_str_handle s) {
-    printd("%d", a);
-    // TODO
+TEST_F(Arm64CodeGeneratorTest, StructsGenerating) {
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    CodeGen("tests/41-code-gen-structs", "issue02:issue02", &printer, &ok);
+    ASSERT_TRUE(ok);
+    printf("%s\n", buf.c_str());
 }
-void main_Zomain_Zdmain_had();
-void main_Zomain_Zdissue6_had(i32_t a, i32_t b);
-} // extern "C"
 
-#endif // YALX_ARCH_ARM64
+TEST_F(Arm64CodeGeneratorTest, FooMetadata) {
+    
+    auto clazz = yalx_find_class("issue02:issue02.Foo");
+    ASSERT_TRUE(clazz != NULL);
+    ASSERT_EQ(3, clazz->n_fields);
+    ASSERT_STREQ("x", clazz->fields[0].name.z);
+    ASSERT_STREQ("y", clazz->fields[1].name.z);
+    ASSERT_STREQ("name", clazz->fields[2].name.z);
+    
+    ASSERT_STREQ("doIt", clazz->methods[0].name.z);
+    ASSERT_STREQ("fun (issue02:issue02.Foo)->(void)", clazz->methods[0].prototype_desc.z);
+
+    ASSERT_STREQ("doThat", clazz->methods[1].name.z);
+    
+}
 
 #ifdef YALX_ARCH_ARM64
 
@@ -99,25 +108,23 @@ TEST_F(Arm64CodeGeneratorTest, CallNativeHandle) {
     
     main_Zomain_Zdmain_had();
 
-    main_Zomain_Zdissue6_had(1,2);
+    main_Zomain_Zdissue6_had(1, 2);
     ASSERT_EQ(-1, vals[3]);
     
-    main_Zomain_Zdissue6_had(2,1);
+    main_Zomain_Zdissue6_had(2, 1);
     ASSERT_EQ(4, vals[3]);
     
     yalx_exit_returning_scope(&state);
 }
 
-#endif // YALX_ARCH_ARM64
-
-TEST_F(Arm64CodeGeneratorTest, StructsGenerating) {
-    std::string buf;
-    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
-    bool ok = true;
-    CodeGen("tests/41-code-gen-structs", "issue02:issue02", &printer, &ok);
-    ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+TEST_F(Arm64CodeGeneratorTest, StackAndHeapAllocStruct) {
+    pkg_init_once(reinterpret_cast<void *>(&issue02_Zoissue02_Zd_Z4init), "issue02:issue02");
+    issue02_Zoissue02_Zdissue1_had();
+    issue02_Zoissue02_Zdissue2_had();
+    //issue02_Zoissue02_Zdissue3_had();
 }
+
+#endif // YALX_ARCH_ARM64
 
 } // namespace backend
 } // namespace yalx

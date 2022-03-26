@@ -92,7 +92,7 @@ public:
         //printd("%s", fun_->symbol()->data());
         printer()->Write(".global ")->Writeln(fun_->symbol()->ToSlice());
         printer()->Write(fun_->symbol()->ToSlice())->Writeln(":");
-        
+        printer()->Writeln(".cfi_startproc");
         position_ = 0;
         for (auto ib : fun_->blocks()) {
             printer()->Println("Lblk%d:", ib->label());
@@ -101,6 +101,7 @@ public:
                 position_++;
             }
         }
+        printer()->Writeln(".cfi_endproc");
     }
 
 private:
@@ -146,6 +147,46 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             }
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
+            break;
+            
+//            sub sp, sp, #80
+//            stp fp, lr, [sp, #64]
+//            add fp, sp, #64
+        case ArchFrameEnter:
+            printer()->Write("sub sp, sp, ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            
+            printer()->Indent(1)->Write("stp ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Write(", lr, ");
+            EmitOperand(instr->InputAt(1));
+            printer()->Writeln("");
+            
+            printer()->Indent(1)->Write("add ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Println(", sp, #%d", instr->InputAt(1)->AsLocation()->k());
+            
+            printer()->Indent(1)->Writeln(".cfi_def_cfa fp, 16");
+            printer()->Indent(1)->Writeln(".cfi_offset lr, -8");
+            printer()->Indent(1)->Writeln(".cfi_offset fp, -16");
+        break;
+            
+//            ldp fp, lr, [sp, #64]
+//            add sp, sp, #80
+//            ret
+        case ArchFrameExit:
+            printer()->Write("ldp ");
+            EmitOperand(instr->OutputAt(0));
+            printer()->Write(", lr, ");
+            EmitOperand(instr->InputAt(1));
+            printer()->Writeln("");
+            
+            printer()->Indent(1)->Write("add sp, sp, ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln("");
+            
+            printer()->Indent(1)->Writeln("ret");
             break;
             
         case ArchJmp:

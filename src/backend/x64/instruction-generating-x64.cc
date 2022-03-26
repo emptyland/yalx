@@ -1311,7 +1311,6 @@ void X64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
             general_index++;
         }
     }
-    //printd("callee: %s", callee->full_name()->data());
     saving_scope.SaveAll();
 
     general_index = 0, float_index = 0;

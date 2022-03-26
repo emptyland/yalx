@@ -1,4 +1,5 @@
 #include "backend/x64/code-generate-x64.h"
+#include "backend/code-generate-arch-test.h"
 #include "backend/constants-pool.h"
 #include "backend/linkage-symbols.h"
 #include "backend/instruction.h"
@@ -48,45 +49,7 @@ protected:
     LinkageSymbols symbols_;
 }; // class X64InstructionGeneratorTest
 
-extern "C" {
-void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
-void main_Zomain_Zd_Z4init();
-void main_Zomain_Zdissue1();
-void main_Zomain_Zdissue5();
-void main_Zomain_Zdfoo();
-void main_Zomain_Zdmain_had();
-void main_Zomain_Zdissue6_had(i32_t a, i32_t b);
-void main_Zomain_Zdissue11_had();
 
-void issue00_Zoissue00_Zd_Z4init();
-void issue00_Zoissue00_Zdissue1_had();
-
-void issue02_Zoissue02_Zd_Z4init();
-void issue02_Zoissue02_Zdissue1_had();
-void issue02_Zoissue02_Zdissue2_had();
-void issue02_Zoissue02_Zdissue3_had();
-
-void issue9_stub(i32_t a, yalx_str_handle s) {
-    printf("%d\n", a);
-    // TODO
-}
-
-void issue10_stub() {
-    ASSERT_EQ(0, yalx_return_i32(1));
-    ASSERT_EQ(0, yalx_return_i32(2));
-    ASSERT_EQ(0, yalx_return_i32(3));
-    ASSERT_EQ(0, yalx_return_cstring("hello", 5));
-}
-
-void assert_string_stub(yalx_str_handle a, yalx_str_handle b) {
-    ASSERT_STREQ(yalx_str_bytes(a), yalx_str_bytes(b));
-}
-
-void assert_int_stub(i32_t a, i32_t b) {
-    ASSERT_EQ(a, b);
-}
-
-} // extern "C"
 
 TEST_F(X64CodeGeneratorTest, Sanity) {
     std::string buf;

@@ -27,6 +27,9 @@
 		231C4B90268DA7D200D4AC62 /* yalx-string-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8E268DA7D200D4AC62 /* yalx-string-posix-arm64.s */; };
 		231C4B91268DA7D200D4AC62 /* any-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8F268DA7D200D4AC62 /* any-posix-arm64.s */; };
 		23201D5227E9BC6C00D5EA36 /* yalx-lang-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23201D5127E9BC6C00D5EA36 /* yalx-lang-posix-x64.s */; };
+		2322269C27EEB04700B18B36 /* code-generate-arch-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2322269B27EEB04700B18B36 /* code-generate-arch-test.cc */; };
+		2322269D27EEB04700B18B36 /* code-generate-arch-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2322269B27EEB04700B18B36 /* code-generate-arch-test.cc */; };
+		232226A127EEDE9300B18B36 /* issue-02-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 232226A027EEDE9300B18B36 /* issue-02-posix-arm64.s */; };
 		23235B862797C07600134DEB /* condition.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23235B852797C07600134DEB /* condition.cc */; };
 		23235B872797C07600134DEB /* condition.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23235B852797C07600134DEB /* condition.cc */; };
 		232AA00026861A060098E6A3 /* ast-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A9FFF26861A060098E6A3 /* ast-test.cc */; };
@@ -317,6 +320,9 @@
 		231C4B8E268DA7D200D4AC62 /* yalx-string-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "yalx-string-posix-arm64.s"; path = "../src/runtime/object/yalx-string-posix-arm64.s"; sourceTree = "<group>"; };
 		231C4B8F268DA7D200D4AC62 /* any-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "any-posix-arm64.s"; path = "../src/runtime/object/any-posix-arm64.s"; sourceTree = "<group>"; };
 		23201D5127E9BC6C00D5EA36 /* yalx-lang-posix-x64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "yalx-lang-posix-x64.s"; path = "../src/backend/x64/yalx-lang-posix-x64.s"; sourceTree = "<group>"; };
+		2322269A27EEAFDB00B18B36 /* code-generate-arch-test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "code-generate-arch-test.h"; path = "../src/backend/code-generate-arch-test.h"; sourceTree = "<group>"; };
+		2322269B27EEB04700B18B36 /* code-generate-arch-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "code-generate-arch-test.cc"; path = "../src/backend/code-generate-arch-test.cc"; sourceTree = "<group>"; };
+		232226A027EEDE9300B18B36 /* issue-02-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "issue-02-posix-arm64.s"; path = "../src/backend/arm64/issue-02-posix-arm64.s"; sourceTree = "<group>"; };
 		23235B842797BA2000134DEB /* condition.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = condition.h; path = ../src/ir/condition.h; sourceTree = "<group>"; };
 		23235B852797C07600134DEB /* condition.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = condition.cc; path = ../src/ir/condition.cc; sourceTree = "<group>"; };
 		232A47BA264A83D4003DCA4F /* env-posix.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-posix.cc"; path = "../src/base/env-posix.cc"; sourceTree = "<group>"; };
@@ -538,6 +544,8 @@
 				23C1344827A3CE9400C0DEB4 /* instruction.h */,
 				23667C3027B2532E00612546 /* machine-type.cc */,
 				23C1344C27A3E3B400C0DEB4 /* machine-type.h */,
+				2322269B27EEB04700B18B36 /* code-generate-arch-test.cc */,
+				2322269A27EEAFDB00B18B36 /* code-generate-arch-test.h */,
 				23CF342427E037DC0095441B /* gnu-asm-generator.cc */,
 				23CF342327E036FF0095441B /* gnu-asm-generator.h */,
 				23C1345527A3F23C00C0DEB4 /* constants-pool-test.cc */,
@@ -570,6 +578,7 @@
 				23C3356827A8278400319862 /* instruction-generating-arm64.h */,
 				23C3356727A8263900319862 /* instruction-codes-arm64.h */,
 				236D0E6027C785D000E86AD2 /* issue-01-posix-arm64.s */,
+				232226A027EEDE9300B18B36 /* issue-02-posix-arm64.s */,
 			);
 			name = Arm64;
 			sourceTree = "<group>";
@@ -946,6 +955,7 @@
 				230C47D727B6A51200312896 /* instruction-generating-x64-test.cc in Sources */,
 				233236E3269ECAFA0078406C /* node-test.cc in Sources */,
 				23D4A44E2680D17D0090C631 /* heap-test.cc in Sources */,
+				232226A127EEDE9300B18B36 /* issue-02-posix-arm64.s in Sources */,
 				23D4A44F2680D17D0090C631 /* heap.h in Sources */,
 				230C85FF27853E4D00298122 /* constants.cc in Sources */,
 				23A7F0E22699E22A0060BFB7 /* compiler-test.cc in Sources */,
@@ -1056,6 +1066,7 @@
 				23D4A47F2680D17D0090C631 /* status.cc in Sources */,
 				23D4A4802680D17D0090C631 /* checking.h in Sources */,
 				2331FFA7268DC66B00F69508 /* ast-utils.cc in Sources */,
+				2322269D27EEB04700B18B36 /* code-generate-arch-test.cc in Sources */,
 				233236DB269E7F110078406C /* operator.cc in Sources */,
 				2387EFBC2685BEAD002E6DCF /* ast.cc in Sources */,
 				233236E0269EC2EF0078406C /* operator-test.cc in Sources */,
@@ -1183,6 +1194,7 @@
 				2313C4D627A23E8500F6A34B /* constants-folding.cc in Sources */,
 				23D5A655266718ED00635ADB /* process.c in Sources */,
 				23D5A656266718ED00635ADB /* checking.h in Sources */,
+				2322269C27EEB04700B18B36 /* code-generate-arch-test.cc in Sources */,
 				23D5A657266718ED00635ADB /* scheduler.h in Sources */,
 				23D5A658266718ED00635ADB /* scheduler.cc in Sources */,
 				23D5A659266718ED00635ADB /* label.h in Sources */,

@@ -332,6 +332,8 @@ public:
                        Instruction::Operand *in2);
     Instruction *NewIO2(Instruction::Code op, Instruction::Operand *out1, Instruction::Operand *out2,
                         Instruction::Operand *input);
+    Instruction *NewI2O(Instruction::Code op, Instruction::Operand *io, Instruction::Operand *in1,
+                        Instruction::Operand *in2);
     Instruction *NewII(Instruction::Code op, Instruction::Operand *in1, Instruction::Operand *in2);
 
     DEF_PTR_GETTER(InstructionFunction, owns);

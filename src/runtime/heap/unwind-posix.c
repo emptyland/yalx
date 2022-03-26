@@ -94,13 +94,16 @@ void throw_it(struct yalx_value_any *exception) {
         //printf("%s\n", name);
         if ((address_t)pc - offset == co->top_unwind_point->addr) {
             co->exception = exception;
-            
+        #if defined(YALX_ARCH_X64)
             unw_word_t rbp = 0, rsp = 0;
             unw_get_reg(&cursor, UNW_X86_64_RBP, &rbp);
             unw_get_reg(&cursor, UNW_REG_SP, &rsp);
             
             address_t pc = *((address_t *)(rsp - 8));
             throw_to(co, pc, (address_t)rbp, (address_t)rsp);
+        #elif defined(YALX_ARCH_X64)
+            assert(!"TODO");
+        #endif
         }
     }
     assert(!"Unreachable");

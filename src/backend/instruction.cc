@@ -154,6 +154,14 @@ Instruction *InstructionBlock::NewIO2(Instruction::Code op, Instruction::Operand
     return instr;
 }
 
+Instruction *InstructionBlock::NewI2O(Instruction::Code op, Instruction::Operand *io, Instruction::Operand *in1,
+                                      Instruction::Operand *in2) {
+    InstructionOperand *operands[] = {in1, in2, io};
+    auto instr = Instruction::New(arena_, op, operands, 2/*inputs_count*/, 1/*outputs_count*/);
+    instructions_.push_back(instr);
+    return instr;
+}
+
 Instruction *InstructionBlock::NewII(Instruction::Code op, Instruction::Operand *in1, Instruction::Operand *in2) {
     InstructionOperand *operands[] = {in1, in2};
     auto instr = Instruction::New(arena_, op, operands, 2/*inputs_count*/, 0/*outputs_count*/);

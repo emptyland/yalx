@@ -94,6 +94,43 @@ _asm_stub6:
 co_dummy_entry1:
     ret
 
+// _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
+// _yalx_Zplang_Zolang_ZdAny_Zdfinalize
+// _yalx_Zplang_Zolang_ZdAny_ZdhashCode
+// _yalx_Zplang_Zolang_ZdAny_Zdid
+// _yalx_Zplang_Zolang_ZdAny_ZdisEmpty
+// _yalx_Zplang_Zolang_Zd_Z4init
+
+.global _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
+.weak_definition _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
+_yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor:
+    ret
+
+.global _yalx_Zplang_Zolang_ZdAny_Zdfinalize
+.weak_definition _yalx_Zplang_Zolang_ZdAny_Zdfinalize
+_yalx_Zplang_Zolang_ZdAny_Zdfinalize:
+    ret
+
+.global _yalx_Zplang_Zolang_ZdAny_ZdhashCode
+.weak_definition _yalx_Zplang_Zolang_ZdAny_ZdhashCode
+_yalx_Zplang_Zolang_ZdAny_ZdhashCode:
+    ret
+
+.global _yalx_Zplang_Zolang_ZdAny_Zdid
+.weak_definition _yalx_Zplang_Zolang_ZdAny_Zdid
+_yalx_Zplang_Zolang_ZdAny_Zdid:
+    ret
+
+.global _yalx_Zplang_Zolang_ZdAny_ZdisEmpty
+.weak_definition _yalx_Zplang_Zolang_ZdAny_ZdisEmpty
+_yalx_Zplang_Zolang_ZdAny_ZdisEmpty:
+    ret
+
+.global _yalx_Zplang_Zolang_Zd_Z4init
+.weak_definition _yalx_Zplang_Zolang_Zd_Z4init
+_yalx_Zplang_Zolang_Zd_Z4init:
+    ret
+
 //----------------------------------------------------------------------------------------------------------------------
 // yalx.lang.debugOutput(a: any)
 //----------------------------------------------------------------------------------------------------------------------
@@ -115,3 +152,12 @@ _yalx_magic_number2:
     .ascii "KLTW"
 _yalx_magic_number3:
     .ascii "HKDG"
+.global _yalx_Zplang_Zolang_ZdAny$class
+_yalx_Zplang_Zolang_ZdAny$class:
+    .quad 0
+.global _yalx_Zplang_Zolang_ZdException$class
+_yalx_Zplang_Zolang_ZdException$class:
+    .quad 0
+.global _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
+_yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor:
+    .quad 0

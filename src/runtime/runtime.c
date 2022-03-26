@@ -188,6 +188,7 @@ int yalx_runtime_init() {
     
 
     // FIXME:
+#if defined(YALX_ARCH_X64)
     const struct yalx_class *ty = yalx_find_class(ANY_CLASS_NAME);
     if (!ty) {
         die("Any class not found");
@@ -219,7 +220,7 @@ int yalx_runtime_init() {
         return -1;
     }
     backtrace_frame_class = ty;
-    
+#endif
     dev_print_struct_fields();
     return 0;
 }
