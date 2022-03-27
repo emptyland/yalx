@@ -35,7 +35,7 @@ public:
             return lhs.kind == rhs.kind && ::memcmp(lhs.data, rhs.data, 8) == 0;
         }
     }; // struct SlotEqualTo
-    
+
     using NumbersMap = base::ArenaUnorderedMap<Slot, int, SlotHash, SlotEqualTo>;
     using StringMap = base::ArenaMap<std::string_view, int>;
     using StringPool = base::ArenaVector<const String *>;

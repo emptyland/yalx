@@ -106,16 +106,14 @@ void throw_it(struct yalx_value_any *exception) {
             unw_word_t rbp = 0, rsp = 0;
             unw_get_reg(&cursor, UNW_X86_64_RBP, &rbp);
             unw_get_reg(&cursor, UNW_REG_SP, &rsp);
-            
-            address_t pc = *((address_t *)(rsp - 8));
-            throw_to(co, pc, (address_t)rbp, (address_t)rsp);
+
+            throw_to(co, (address_t)pc, (address_t)rbp, (address_t)rsp);
         #elif defined(YALX_ARCH_ARM64)
             unw_word_t fp = 0, sp = 0;
             unw_get_reg(&cursor, UNW_ARM64_FP, &fp);
             unw_get_reg(&cursor, UNW_REG_SP, &sp);
-            
-            address_t pc = *((address_t *)(sp - 8));
-            throw_to(co, pc, (address_t)fp, (address_t)sp);
+
+            throw_to(co, (address_t)pc, (address_t)fp, (address_t)sp);
         #endif
         }
     }

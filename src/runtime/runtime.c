@@ -720,6 +720,7 @@ struct yalx_value_any *ref_asserted_to(struct yalx_value_any *const from, const 
     if (!is_instance_of(from, clazz)) {
         throw_bad_casting_exception(CLASS(from), clazz);
     }
+    //printf("%s->%s\n", CLASS(from)->location.z, clazz->location.z);
     return from;
 }
 
