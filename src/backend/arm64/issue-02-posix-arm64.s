@@ -9,9 +9,9 @@
 _issue02_Zoissue02_Zd_Z4init:
 .cfi_startproc
 Lblk5:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -20,43 +20,51 @@ Lblk5:
     adrp x19, Lkzs.1@PAGE
     add x1, x19, Lkzs.1@PAGEOFF
     bl _pkg_init_once
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _issue02_Zoissue02_Zdissue1
 _issue02_Zoissue02_Zdissue1:
 .cfi_startproc
 Lblk6:
-    sub sp, sp, #112
-    stp fp, lr, [sp, #96]
-    add fp, sp, #96
+    sub sp, sp, #80
+    stp fp, lr, [sp, #64]
+    add fp, sp, #64
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    add x0, fp, #-64
+    add x0, fp, #-32
     mov w1, #1
     mov w2, #2
     adrp x19, Kstr.2@PAGE
     add x19, x19, Kstr.2@PAGEOFF
     ldr x3, [x19, #0]
-    stur x0, [fp, #-72]
+    stur x0, [fp, #-40]
+    stur w1, [fp, #-44]
+    stur w2, [fp, #-48]
+    stur x3, [fp, #-56]
     bl _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor
-    ldur x0, [fp, #-72]
+    ldur x0, [fp, #-40]
     ldr w1, [x0, #16]
     ldr w2, [x0, #20]
     add w3, w1, w2
     mov w1, #3
-    stur x0, [fp, #-72]
-    mov w0, w1
-    mov w1, w3
+    stur x0, [fp, #-40]
+    stur w1, [fp, #-44]
+    stur w2, [fp, #-48]
+    stur w3, [fp, #-52]
+    ldur w0, [fp, #-44]
+    ldur w1, [fp, #-52]
     bl _issue02_Zoissue02_ZdassertInt
-    ldur x0, [fp, #-72]
+    ldur x0, [fp, #-40]
     ldr x1, [x0, #24]
     adrp x19, Kstr.2@PAGE
     add x19, x19, Kstr.2@PAGEOFF
     ldr x0, [x19, #0]
+    stur x0, [fp, #-8]
     bl _issue02_Zoissue02_ZdassertString
+    stur x1, [fp, #-8]
     adrp x19, _issue02_Zoissue02_ZdBar$class@PAGE
     add x0, x19, _issue02_Zoissue02_ZdBar$class@PAGEOFF
     bl _heap_alloc
@@ -65,25 +73,32 @@ Lblk6:
     adrp x19, Kstr.3@PAGE
     add x19, x19, Kstr.3@PAGEOFF
     ldr x3, [x19, #0]
-    stur x0, [fp, #-40]
+    stur x0, [fp, #-16]
+    stur w1, [fp, #-20]
+    stur w2, [fp, #-24]
+    stur x3, [fp, #-32]
     bl _issue02_Zoissue02_ZdBar_ZdBar_Z4constructor
-    ldur x0, [fp, #-40]
+    ldur x0, [fp, #-16]
     ldr w1, [x0, #16]
     ldr w2, [x0, #20]
     add w3, w1, w2
     mov w1, #5
-    stur x0, [fp, #-40]
-    mov w0, w1
-    mov w1, w3
+    stur x0, [fp, #-16]
+    stur w1, [fp, #-20]
+    stur w2, [fp, #-24]
+    stur w3, [fp, #-28]
+    ldur w0, [fp, #-20]
+    ldur w1, [fp, #-28]
     bl _issue02_Zoissue02_ZdassertInt
-    ldur x0, [fp, #-40]
+    ldur x0, [fp, #-16]
     ldr x1, [x0, #24]
     adrp x19, Kstr.3@PAGE
     add x19, x19, Kstr.3@PAGEOFF
     ldr x0, [x19, #0]
+    stur x0, [fp, #-16]
     bl _issue02_Zoissue02_ZdassertString
-    ldp fp, lr, [sp, #96]
-    add sp, sp, #112
+    ldp fp, lr, [sp, #64]
+    add sp, sp, #80
     ret
 .cfi_endproc
 .global _issue02_Zoissue02_Zdissue1_had
@@ -118,29 +133,33 @@ Lblk7:
 _issue02_Zoissue02_Zdissue2:
 .cfi_startproc
 Lblk8:
-    sub sp, sp, #112
-    stp fp, lr, [sp, #96]
-    add fp, sp, #96
+    sub sp, sp, #80
+    stp fp, lr, [sp, #64]
+    add fp, sp, #64
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    add x0, fp, #-64
+    add x0, fp, #-32
     mov w1, #1
     mov w2, #2
     adrp x19, Kstr.2@PAGE
     add x19, x19, Kstr.2@PAGEOFF
     ldr x3, [x19, #0]
-    stur x0, [fp, #-72]
+    stur x0, [fp, #-40]
+    stur w1, [fp, #-44]
+    stur w2, [fp, #-48]
+    stur x3, [fp, #-56]
     bl _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor
-    ldur x0, [fp, #-72]
+    ldur x0, [fp, #-40]
     ldr x1, [x0, #24]
     adrp x19, Kstr.2@PAGE
     add x19, x19, Kstr.2@PAGEOFF
     ldr x2, [x19, #0]
-    stur x0, [fp, #-72]
-    mov x0, x2
+    stur x0, [fp, #-40]
+    stur x2, [fp, #-48]
+    ldur x0, [fp, #-48]
     bl _issue02_Zoissue02_ZdassertString
-    ldur x0, [fp, #-72]
+    ldur x0, [fp, #-40]
     adrp x19, Kstr.4@PAGE
     add x19, x19, Kstr.4@PAGEOFF
     ldr x1, [x19, #0]
@@ -156,10 +175,12 @@ Lblk8:
     adrp x19, Kstr.4@PAGE
     add x19, x19, Kstr.4@PAGEOFF
     ldr x0, [x19, #0]
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
     mov x1, x0
     bl _issue02_Zoissue02_ZdassertString
-    ldp fp, lr, [sp, #96]
-    add sp, sp, #112
+    ldp fp, lr, [sp, #64]
+    add sp, sp, #80
     ret
 .cfi_endproc
 .global _issue02_Zoissue02_Zdissue2_had
@@ -194,32 +215,41 @@ Lblk9:
 _issue02_Zoissue02_Zdissue3:
 .cfi_startproc
 Lblk10:
-    sub sp, sp, #64
-    stp fp, lr, [sp, #48]
-    add fp, sp, #48
+    sub sp, sp, #48
+    stp fp, lr, [sp, #32]
+    add fp, sp, #32
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     adrp x19, _yalx_Zplang_Zolang_ZdException$class@PAGE
     add x0, x19, _yalx_Zplang_Zolang_ZdException$class@PAGEOFF
     bl _heap_alloc
-    mov x2, #0
-    mov x1, x2
+    stur x0, [fp, #-8]
+    mov x0, #0
+    adrp x19, _yalx_Zplang_Zolang_ZdException$class@PAGE
+    add x1, x19, _yalx_Zplang_Zolang_ZdException$class@PAGEOFF
+    bl _ref_asserted_to
+    mov x1, x0
+    ldur x2, [fp, #-8]
     adrp x19, Kstr.5@PAGE
     add x19, x19, Kstr.5@PAGEOFF
-    ldr x2, [x19, #0]
-    stur x0, [fp, #-40]
-    mov x1, x2
-    mov x2, x1
+    ldr x0, [x19, #0]
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    ldur x0, [fp, #-24]
+    ldur x1, [fp, #-8]
+    ldur x2, [fp, #-16]
     bl _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
-    ldur x0, [fp, #-40]
+    ldur x0, [fp, #-24]
     ldr x1, [x0, #16]
     adrp x19, Kstr.5@PAGE
     add x19, x19, Kstr.5@PAGEOFF
     ldr x0, [x19, #0]
+    stur x0, [fp, #-8]
     bl _issue02_Zoissue02_ZdassertString
-    ldp fp, lr, [sp, #48]
-    add sp, sp, #64
+    ldp fp, lr, [sp, #32]
+    add sp, sp, #48
     ret
 .cfi_endproc
 .global _issue02_Zoissue02_Zdissue3_had
@@ -254,104 +284,105 @@ Lblk11:
 _issue02_Zoissue02_Zddisplay:
 .cfi_startproc
 Lblk12:
-    sub sp, sp, #64
-    stp fp, lr, [sp, #48]
-    add fp, sp, #48
+    sub sp, sp, #32
+    stp fp, lr, [sp, #16]
+    add fp, sp, #16
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    stur x0, [fp, #-40]
-    sub x0, fp, #40
+    stur x0, [fp, #-8]
+    sub x0, fp, #8
     bl _yalx_Zplang_Zolang_Zdprintln_stub
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #48]
-    add sp, sp, #64
+    ldp fp, lr, [sp, #16]
+    add sp, sp, #32
     ret
 .cfi_endproc
 .global _issue02_Zoissue02_ZdassertString
 _issue02_Zoissue02_ZdassertString:
 .cfi_startproc
 Lblk13:
-    sub sp, sp, #80
-    stp fp, lr, [sp, #64]
-    add fp, sp, #64
+    sub sp, sp, #48
+    stp fp, lr, [sp, #32]
+    add fp, sp, #32
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    stur x0, [fp, #-40]
-    stur x1, [fp, #-48]
-    sub x0, fp, #40
-    sub x1, fp, #48
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    sub x0, fp, #8
+    sub x1, fp, #16
     bl _assert_string_stub
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #64]
-    add sp, sp, #80
+    ldp fp, lr, [sp, #32]
+    add sp, sp, #48
     ret
 .cfi_endproc
 .global _issue02_Zoissue02_ZdassertInt
 _issue02_Zoissue02_ZdassertInt:
 .cfi_startproc
 Lblk14:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     bl _assert_int_stub
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _issue02_Zoissue02_ZdBar_ZdtoString
 _issue02_Zoissue02_ZdBar_ZdtoString:
 .cfi_startproc
 Lblk0:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr x1, [x0, #24]
     str x1, [fp, #24]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _issue02_Zoissue02_ZdBar_ZdBar_Z4constructor
 _issue02_Zoissue02_ZdBar_ZdBar_Z4constructor:
 .cfi_startproc
 Lblk1:
-    sub sp, sp, #80
-    stp fp, lr, [sp, #64]
-    add fp, sp, #64
+    sub sp, sp, #64
+    stp fp, lr, [sp, #48]
+    add fp, sp, #48
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     mov x4, x0
-    stur x0, [fp, #-40]
-    stur w1, [fp, #-44]
-    stur w2, [fp, #-48]
-    stur x3, [fp, #-56]
-    mov x0, x4
+    stur x0, [fp, #-8]
+    stur w1, [fp, #-12]
+    stur w2, [fp, #-16]
+    stur x3, [fp, #-24]
+    stur x4, [fp, #-32]
+    ldur x0, [fp, #-32]
     bl _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
-    ldur x0, [fp, #-40]
-    ldur w1, [fp, #-44]
-    ldur w2, [fp, #-48]
-    ldur x3, [fp, #-56]
+    ldur x0, [fp, #-8]
+    ldur w1, [fp, #-12]
+    ldur w2, [fp, #-16]
+    ldur x3, [fp, #-24]
     str w1, [x0, #16]
     str w2, [x0, #20]
     str x3, [x0, #24]
-    ldp fp, lr, [sp, #64]
-    add sp, sp, #80
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
     ret
-    ldp fp, lr, [sp, #64]
-    add sp, sp, #80
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
     ret
 .cfi_endproc
 .global _issue02_Zoissue02_ZdFoo_ZddoIt
@@ -365,7 +396,9 @@ Lblk2:
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr x1, [x0, #24]
-    mov x0, x1
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    ldur x0, [fp, #-16]
     bl _issue02_Zoissue02_Zddisplay
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
@@ -378,44 +411,44 @@ Lblk2:
 _issue02_Zoissue02_ZdFoo_ZddoThat:
 .cfi_startproc
 Lblk3:
-    sub sp, sp, #64
-    stp fp, lr, [sp, #48]
-    add fp, sp, #48
-    .cfi_def_cfa fp, 16
-    .cfi_offset lr, -8
-    .cfi_offset fp, -16
-    adrp x19, Kstr.0@PAGE
-    add x19, x19, Kstr.0@PAGEOFF
-    ldr x1, [x19, #0]
-    stur x0, [fp, #-40]
-    mov x0, x1
-    bl _issue02_Zoissue02_Zddisplay
-    ldur x0, [fp, #-40]
-    ldp fp, lr, [sp, #48]
-    add sp, sp, #64
-    ret
-    ldp fp, lr, [sp, #48]
-    add sp, sp, #64
-    ret
-.cfi_endproc
-.global _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor
-_issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor:
-.cfi_startproc
-Lblk4:
     sub sp, sp, #48
     stp fp, lr, [sp, #32]
     add fp, sp, #32
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    str w1, [x0, #16]
-    str w2, [x0, #20]
-    str x3, [x0, #24]
+    adrp x19, Kstr.0@PAGE
+    add x19, x19, Kstr.0@PAGEOFF
+    ldr x1, [x19, #0]
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    ldur x0, [fp, #-16]
+    bl _issue02_Zoissue02_Zddisplay
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
     ret
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
+    ret
+.cfi_endproc
+.global _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor
+_issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor:
+.cfi_startproc
+Lblk4:
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    str w1, [x0, #16]
+    str w2, [x0, #20]
+    str x3, [x0, #24]
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
+    ret
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 ; CString constants

@@ -714,6 +714,9 @@ u8_t is_instance_of(struct yalx_value_any *const host, const struct yalx_class *
 }
 
 struct yalx_value_any *ref_asserted_to(struct yalx_value_any *const from, const struct yalx_class *const clazz) {
+    if (!from) {
+        return NULL;
+    }
     if (!is_instance_of(from, clazz)) {
         throw_bad_casting_exception(CLASS(from), clazz);
     }

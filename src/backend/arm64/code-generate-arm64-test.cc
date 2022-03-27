@@ -56,7 +56,7 @@ TEST_F(Arm64CodeGeneratorTest, StructsGenerating) {
     bool ok = true;
     CodeGen("tests/41-code-gen-structs", "issue02:issue02", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
 }
 
 TEST_F(Arm64CodeGeneratorTest, YalxLang) {
