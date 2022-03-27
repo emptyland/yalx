@@ -60,6 +60,7 @@ LocationOperand *StackSlotAllocator::Allocate(size_t padding_size, size_t size, 
     InsertSlot(slot);
     //MarkUsed(-slot.operand->k() - slot.size, slot.size);
     MarkUsed(offset, slot.size);
+    //printf("allocated: %p(%d)\n", slot.operand, slot.operand->k());
     return slot.operand;
 }
 
@@ -77,15 +78,32 @@ void StackSlotAllocator::FreeSlot(LocationOperand *operand) {
 }
 
 void StackSlotAllocator::InsertSlot(const StackSlot &slot) {
-    if (slots_.empty()) {
-        slots_.push_back(slot);
-    } else {
-        for (auto iter = slots_.begin(); iter != slots_.end(); iter++) {
-            if (slot.operand->k() < iter->operand->k()) {
-                slots_.insert(iter + 1, slot);
-                break;
-            }
+//    if (slots_.empty()) {
+//        slots_.push_back(slot);
+//        printf("push_back %p(%d)\n", slot.operand, slot.operand->k());
+//    } else {
+//        bool has_inserted = false;
+//        for (auto iter = slots_.begin(); iter != slots_.end(); iter++) {
+//            if (slot.operand->k() < iter->operand->k()) {
+//                slots_.insert(iter + 1, slot);
+//                has_inserted = true;
+//                break;
+//            }
+//        }
+//        if (!has_inserted) {
+//            slots_.push_back(slot);
+//        }
+//    }
+    bool has_inserted = false;
+    for (auto iter = slots_.begin(); iter != slots_.end(); iter++) {
+        if (slot.operand->k() < iter->operand->k()) {
+            slots_.insert(iter + 1, slot);
+            has_inserted = true;
+            break;
         }
+    }
+    if (!has_inserted) {
+        slots_.push_back(slot);
     }
     UpdateMaxStackSize(slot.operand, slot.size);
     
