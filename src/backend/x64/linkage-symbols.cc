@@ -16,7 +16,7 @@ DECLARE_STATIC_STRING(kRt_associate_stub_returning_vals, "_associate_stub_return
 DECLARE_STATIC_STRING(kRt_heap_alloc, "_heap_alloc");
 DECLARE_STATIC_STRING(kRt_raise, "_throw_it");
 DECLARE_STATIC_STRING(kRt_is_instance_of, "_is_instance_of");
-
+DECLARE_STATIC_STRING(kRt_ref_asserted_to, "_ref_asserted_to");
 
 LinkageSymbols::LinkageSymbols(base::Arena *arena)
 : arena_(arena)

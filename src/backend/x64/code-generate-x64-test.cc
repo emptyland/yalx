@@ -157,8 +157,6 @@ TEST_F(X64CodeGeneratorTest, StackAndHeapAllocStruct) {
 }
 
 TEST_F(X64CodeGeneratorTest, TryCatchSanity) {
-//    void issue00_Zoissue00_Zd_Z4init();
-//    void issue00_Zoissue00_Zdissue1_had();
     pkg_init_once(reinterpret_cast<void *>(&issue00_Zoissue00_Zd_Z4init), "issue00:issue00");
     issue00_Zoissue00_Zdissue1_had();
 }

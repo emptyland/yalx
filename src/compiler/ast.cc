@@ -976,7 +976,10 @@ std::string FunctionPrototype::MakeSignature() const {
         }
     }
     buf.append("):");
-    assert(!return_types().empty());
+    if (return_types().empty()) {
+        buf.append("unit");
+        return buf;
+    }
     if (return_types_size() > 1) {
         buf.append("(");
         for (auto i = 0; i < return_types_size(); i++) {

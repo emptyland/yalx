@@ -31,6 +31,11 @@ struct yalx_value_exception {
     struct yalx_value_typed_array *backtrace; // backtrace_frame[]
 }; // struct yalx_value_throwable
 
+typedef struct yalx_value_throwable **yalx_throwable_handle;
+typedef struct yalx_value_exception **yalx_exception_handle;
+
+void throw_bad_casting_exception(const struct yalx_class *const from, const struct yalx_class *const to);
+
 #ifdef __cplusplus
 }
 #endif

@@ -9,7 +9,8 @@
 #include <libunwind.h>
 #include <stdio.h>
 
-void yalx_Zplang_Zolang_Zdunwind_stub() {
+struct backtrace_frame **yalx_unwind(size_t *depth, int dummy) {
+    assert(dummy >= 0);
     //struct back heap_alloc(backtrace_frame_class);
     unw_cursor_t cursor;
     unw_context_t context;
@@ -26,12 +27,18 @@ void yalx_Zplang_Zolang_Zdunwind_stub() {
 
     // Unwind frames one by one, going up the frame stack.
     while (unw_step(&cursor) > 0) {
-        unw_word_t offset, pc;
+        unw_word_t offset = 0, pc = 0;
         unw_get_reg(&cursor, UNW_REG_IP, &pc);
         if (pc == 0) {
             break;
         }
+        if (dummy-- > 0) {
+            continue;
+        }
         struct backtrace_frame *frame = (struct backtrace_frame *)heap_alloc(backtrace_frame_class);
+    #if defined(YALX_ARCH_ARM64)
+        pc &= 0xfffffffffffull; // valid address only 48 bits
+    #endif
         frame->address = (address_t)pc;
 
         char name[256];
@@ -43,14 +50,7 @@ void yalx_Zplang_Zolang_Zdunwind_stub() {
         }
         frame->line = 0;
         frame->file = yalx_new_string(&heap, "<unknown>", 9);
-        
-//        {
-//            unw_word_t fp, sp;
-//            int r1 = unw_get_reg(&cursor, UNW_ARM64_FP, &fp);
-//            int r2 = unw_get_reg(&cursor, UNW_REG_SP, &sp);
-//            printf("%s(): %d = %p, %d = %p, size = %d\n", frame->function->bytes, r1, fp, r2, sp, fp - sp);
-//        }
-        
+
         if (size + 1 > capacity) {
             capacity <<= 1;
             frames = realloc(frames, capacity * sizeof(*frames));
@@ -58,7 +58,13 @@ void yalx_Zplang_Zolang_Zdunwind_stub() {
         }
         frames[size++] = frame;
     }
-    
+    *depth = size;
+    return frames;
+}
+
+void yalx_Zplang_Zolang_Zdunwind_stub() {
+    size_t size = 0;
+    struct backtrace_frame **frames = yalx_unwind(&size, 1);
     struct yalx_value_refs_array *array = yalx_new_refs_array(&heap, backtrace_frame_class, (yalx_ref_t *)frames, size);
     free(frames);
     yalx_return_ref((yalx_ref_t)array);
@@ -81,7 +87,7 @@ void throw_it(struct yalx_value_any *exception) {
     unw_init_local(&cursor, &context);
 
     while (unw_step(&cursor) > 0) {
-        unw_word_t pc;
+        unw_word_t pc = 0;
         unw_get_reg(&cursor, UNW_REG_IP, &pc);
         if (pc == 0) {
             break;
@@ -91,8 +97,10 @@ void throw_it(struct yalx_value_any *exception) {
         char name[256];
         unw_get_proc_name(&cursor, name, arraysize(name), &offset);
         
-        //printf("%s\n", name);
-        if ((address_t)pc - offset == co->top_unwind_point->addr) {
+    #if defined(YALX_ARCH_ARM64)
+        pc &= 0xfffffffffffull; // valid address only 48 bits
+    #endif
+        if (((address_t)pc - offset) == co->top_unwind_point->addr) {
             co->exception = exception;
         #if defined(YALX_ARCH_X64)
             unw_word_t rbp = 0, rsp = 0;
@@ -101,8 +109,13 @@ void throw_it(struct yalx_value_any *exception) {
             
             address_t pc = *((address_t *)(rsp - 8));
             throw_to(co, pc, (address_t)rbp, (address_t)rsp);
-        #elif defined(YALX_ARCH_X64)
-            assert(!"TODO");
+        #elif defined(YALX_ARCH_ARM64)
+            unw_word_t fp = 0, sp = 0;
+            unw_get_reg(&cursor, UNW_ARM64_FP, &fp);
+            unw_get_reg(&cursor, UNW_REG_SP, &sp);
+            
+            address_t pc = *((address_t *)(sp - 8));
+            throw_to(co, pc, (address_t)fp, (address_t)sp);
         #endif
         }
     }

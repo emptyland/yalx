@@ -8,10 +8,15 @@ class Throwable(
     private val backtrace = unwind()
 
     override fun toString() -> message
+
+    native fun printBacktrace(): unit
 }
 
 @Lang
 class Exception(message: string, linked: Exception?) : Throwable(message, linked)
+
+@Lang
+class BadCastingException(message: string): Exception(message, none)
 
 
 class BacktraceFrame(

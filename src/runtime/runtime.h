@@ -43,9 +43,11 @@ extern "C" {
 
 #define ANY_CLASS_NAME       "yalx/lang:lang.Any"
 #define STRING_CLASS_NAME    "yalx/lang:lang.String"
-#define THROWABLE_CLASS_NAME "yalx/lang:lang.Throwable"
+#define BAD_CASTING_EXCEPTION_CLASS_NAME "yalx/lang:lang.BadCastingException"
 #define EXCEPTION_CLASS_NAME "yalx/lang:lang.Exception"
+#define THROWABLE_CLASS_NAME "yalx/lang:lang.Throwable"
 #define BACKTRACE_FRAME_CLASS_NAME "yalx/lang:lang.BacktraceFrame"
+
 
 // Yalx internal primitive types:
 typedef int8_t   i8_t;
@@ -74,7 +76,7 @@ struct yalx_str {
 #define YALX_STR(s) { .z = (s), .n = sizeof(s) - 1 }
 
 struct yalx_class;
-
+struct backtrace_frame;
 
 // Version of yalx
 extern const struct yalx_str yalx_version;
@@ -176,6 +178,8 @@ void *yalx_return_reserved_do(struct yalx_returning_vals *state, size_t n);
 
 const struct yalx_class *yalx_find_class(const char *const plain_name);
 
+struct backtrace_frame **yalx_unwind(size_t *depth, int dummy);
+
 // implements in test-stub-[Arch].s
 int asm_stub1(int, int);
 int asm_stub2(const struct yalx_str *);
@@ -207,6 +211,8 @@ struct coroutine *current_root();
 void throw_it(struct yalx_value_any *exception);
 
 u8_t is_instance_of(struct yalx_value_any *const host, const struct yalx_class *const for_test);
+
+struct yalx_value_any *ref_asserted_to(struct yalx_value_any *const from, const struct yalx_class *const clazz);
 
 // generated entry symbol: main:main.main(): unit
 void y2zmain_main(void);

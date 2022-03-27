@@ -99,3 +99,19 @@ _call_returning_vals:
     add sp, sp, 96
     mov x0, 0
     ret
+
+
+//----------------------------------------------------------------------------------------------------------------------
+// void throw_to(struct coroutine *root, address_t pc, address_t fp, address_t sp)
+// x0 = root
+// x1 = pc
+// x2 = fp
+// x3 = sp
+//----------------------------------------------------------------------------------------------------------------------
+.global _throw_to
+_throw_to:
+    mov x26, x0 // arg0 -> root
+    mov fp, x2
+    mov sp, x3
+    blr x1
+    brk #0x3c

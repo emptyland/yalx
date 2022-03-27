@@ -3,15 +3,25 @@ package issue00
 @yalx.Compiler(nativeHandle=true)
 fun issue1() {
     try {
+        bar()
         foo()
+        assertString("never run it", "")
     } catch (e: Exception) {
-        display(e.message)
+        //display(e.message)
+        e.printBacktrace()
     }
 }
 
 fun foo() {
     throw Exception("ok", none)
 }
+
+fun bar(): Exception {
+    val bar: any = Bar(1, 2)
+    return bar as Exception
+}
+
+class Bar(val x: int, val y: int)
 
 @yalx.Compiler(nativeStubName="yalx_Zplang_Zolang_Zdprintln_stub")
 native fun display(s: string)

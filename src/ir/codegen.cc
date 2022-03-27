@@ -267,10 +267,6 @@ public:
         }
         
         for (auto ast : node->methods()) {
-            if (ast->decoration() == cpl::FunctionDeclaration::kNative ||
-                ast->body() == nullptr) {
-                continue;
-            }
             auto method = clazz->FindMethod(ast->name()->ToSlice());
             assert(method.has_value());
             if (!GenerateFun(ast, clazz, method->fun)) {
@@ -283,10 +279,6 @@ public:
             if (!ctor) {
                 return -1;
             }
-//            printd("%s", ctor->full_name()->data());
-//            if (node->IsStructDefinition()) {
-//                FixupStructConstructor(ctor->prototype());
-//            }
             clazz->set_constructor(ctor);
             Model::Method method {
                 .fun = ctor,
@@ -1948,6 +1940,7 @@ private:
         } else {
             BuildType(ast->prototype()); // Build prototype always
         }
+        //printd("%s", fun->full_name()->data());
         
         auto entry = fun->NewBlock(String::New(arena(), "entry"));
         int hint = 0;

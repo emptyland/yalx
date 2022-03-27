@@ -51,6 +51,7 @@ extern const String *const kRt_associate_stub_returning_vals;
 extern const String *const kRt_heap_alloc;
 extern const String *const kRt_raise;
 extern const String *const kRt_is_instance_of;
+extern const String *const kRt_ref_asserted_to;
 
 } // namespace backend
 } // namespace yalx

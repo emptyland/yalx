@@ -180,6 +180,26 @@ public:
     }
     void SaveAll();
     
+    bool HasSaved(int designate) {
+        for (auto bak : backup_) {
+            if (bak.old->register_id() == designate) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    bool IsNotStill(ir::Value *val, int designate) const { return !IsStill(val, designate); }
+    
+    bool IsStill(ir::Value *val, int designate) const {
+        for (auto bak : backup_) {
+            if (bak.val == val && bak.old->register_id() == designate) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     DISALLOW_IMPLICIT_CONSTRUCTORS(RegisterSavingScope);
 private:
     void Exit();

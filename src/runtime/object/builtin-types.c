@@ -366,3 +366,4 @@ const struct yalx_class *const dims_array_class = &builtin_classes[Type_dims_arr
 const struct yalx_class *backtrace_frame_class = NULL;
 const struct yalx_class *throwable_class = NULL;
 const struct yalx_class *exception_class = NULL;
+const struct yalx_class *bad_casting_exception_class = NULL;

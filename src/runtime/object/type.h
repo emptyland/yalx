@@ -150,6 +150,7 @@ extern const struct yalx_class *const dims_array_class;
 extern const struct yalx_class *backtrace_frame_class;
 extern const struct yalx_class *throwable_class;
 extern const struct yalx_class *exception_class;
+extern const struct yalx_class *bad_casting_exception_class;
 
 #ifdef __cplusplus
 }

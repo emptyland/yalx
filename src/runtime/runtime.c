@@ -6,6 +6,7 @@
 #include "runtime/heap/heap.h"
 #include "runtime/object/yalx-string.h"
 #include "runtime/object/number.h"
+#include "runtime/object/throwable.h"
 #include "runtime/object/type.h"
 #include <unistd.h>
 #if defined(YALX_OS_DARWIN)
@@ -219,6 +220,13 @@ int yalx_runtime_init() {
         return -1;
     }
     backtrace_frame_class = ty;
+    
+    ty = yalx_find_class(BAD_CASTING_EXCEPTION_CLASS_NAME);
+    if (!ty) {
+        die("BadCastingException class not found");
+        return -1;
+    }
+    bad_casting_exception_class = ty;
 
     dev_print_struct_fields();
     return 0;
@@ -703,6 +711,13 @@ u8_t is_instance_of(struct yalx_value_any *const host, const struct yalx_class *
         }
     }
     return 0;
+}
+
+struct yalx_value_any *ref_asserted_to(struct yalx_value_any *const from, const struct yalx_class *const clazz) {
+    if (!is_instance_of(from, clazz)) {
+        throw_bad_casting_exception(CLASS(from), clazz);
+    }
+    return from;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

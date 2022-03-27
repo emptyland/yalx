@@ -320,9 +320,8 @@ void Arm64FunctionInstructionSelector::InstallUnwindHandler() {
     auto rel = new (arena_) ReloactionOperand(bundle()->symbol(), nullptr, true/*fetch_addr*/);
     Move(scratch, rel, ir::Types::Word64);
     Move(addr, scratch, ir::Types::Word64);
-    
-    //current()->NewIO(X64Lea, scratch, prev);
-    Move(scratch, prev, ir::Types::Word64);
+
+    current()->NewIO(Arm64Sub, scratch, handler, ImmediateOperand::Word32(arena_, -prev->k()));
     Move(top, scratch, ir::Types::Word64);
 }
 
@@ -461,6 +460,7 @@ LocationOperand *Arm64FunctionInstructionSelector::CallNativeStub() {
         returning_vals_scope = operands_.AllocateStackSlot(OperandAllocator::kVal, sizeof(yalx_returning_vals), 0,
                                                            StackSlotAllocator::kLinear);
     }
+    //printd("%s", fun_->full_name()->data());
     std::vector<std::tuple<LocationOperand *, InstructionOperand *, ir::Value *>> args;
     if (returning_vals_size > 0) {
         int general_index = 0, float_index = 0;
@@ -527,7 +527,7 @@ LocationOperand *Arm64FunctionInstructionSelector::CallNativeStub() {
         LinkageSymbols::BuildNativeStub(&buf, fun_->full_name()->ToSlice());
         native_stub_symbol = String::New(arena_, buf);
     }
-    
+
     auto fp = operands_.registers()->frame_pointer();
     for (auto [bak, origin, param] : args) {
         if (param->type().IsReference()) {
@@ -543,17 +543,6 @@ LocationOperand *Arm64FunctionInstructionSelector::CallNativeStub() {
 }
 
 void Arm64FunctionInstructionSelector::SetUpStubFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr) {
-//    stack_total_size_ = ImmediateOperand::Word32(arena_, 0);
-//    // sub sp, sp, stack-total-size
-//    current()->NewIO(Arm64Sub, sp, sp, stack_total_size_);
-//    stack_sp_fp_location_ = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::sp.code(), -1, 0);
-//    // stp sp, lr, [sp, location]
-//    current()->NewIO(Arm64Stp, stack_sp_fp_location_, fp, lr);
-//
-//    // add fp, sp, stack-used-size
-//    stack_used_size_ = ImmediateOperand::Word32(arena_, 0);
-//    current()->NewIO(Arm64Add, fp, sp, stack_used_size_);
-    
     stack_total_size_ = ImmediateOperand::Word32(arena_, 0);
     stack_used_size_ = ImmediateOperand::Word32(arena_, 0);
     stack_sp_fp_location_ = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::sp.code(), -1, 0);
@@ -577,10 +566,6 @@ void Arm64FunctionInstructionSelector::TearDownStubFrame(RegisterOperand *sp, Re
 
     current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_current_root)); // x0 -> root
     current()->NewIO(Arm64Mov, root, x0);
-
-//    current()->NewIO2(Arm64Ldp, fp, lr, stack_sp_fp_location_);
-//    current()->NewIO(Arm64Add, sp, sp, stack_total_size_); // sub sp, sp, stack-total-size
-//    current()->New(ArchRet);
     current()->NewI2O(ArchFrameExit, fp, stack_total_size_, stack_sp_fp_location_);
     
     const auto stack_size = RoundUp(operands_.slots()->max_stack_size(), kStackConf->stack_alignment_size());
@@ -925,16 +910,27 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             auto input = instr->InputValue(0);
             assert(input->type().IsReference());
             assert(instr->type().IsReference());
-            auto opd = Allocate(instr, kMoR);
             auto from_ty = input->type().model();
             auto to_ty = instr->type().model();
-            if (from_ty == to_ty
-                || from_ty->IsBaseOf(to_ty)
-                || to_ty->full_name()->Equal(cpl::kAnyClassFullName)) {
-                Move(opd, Allocate(input, kAny), instr->type());
+            if (from_ty == to_ty || from_ty->IsBaseOf(to_ty)) {
+                Move(Allocate(instr, kMoR), Allocate(input, kAny), instr->type());
             } else {
-                Move(opd, Allocate(input, kAny), instr->type());
-                //UNREACHABLE(); // TODO: check it
+                RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+                saving_scope.SaveAll();
+                auto x0 = new (arena_) RegisterOperand(arm64::x0.code(), MachineRepresentation::kWord64);
+                Move(x0, Allocate(input, kAny), input->type());
+                
+                auto x1 = new (arena_) RegisterOperand(arm64::x1.code(), MachineRepresentation::kWord64);
+                assert(instr->type().IsReference());
+                std::string symbol;
+                LinkageSymbols::Build(&symbol, to_ty->full_name()->ToSlice());
+                symbol.append("$class");
+                auto rel = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
+                Move(x1, rel, ir::Types::Word64);
+                
+                rel = bundle()->AddExternalSymbol(kRt_ref_asserted_to);
+                current()->NewI(ArchCall, rel);
+                Move(Allocate(instr, kMoR), x0, instr->type());
             }
         } break;
             
@@ -1331,7 +1327,7 @@ void Arm64FunctionInstructionSelector::PassArguments(InstructionOperand *exclude
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
                 const auto rid  = kFloatArgumentsRegisters[float_index];
-                if (saving_scope->Include(rid, false/*general*/)) {
+                if (saving_scope->Include(rid, false/*general*/) && saving_scope->IsNotStill(arg, rid)) {
                     auto dest = new (arena_) RegisterOperand(rid, ToMachineRepresentation(arg->type()));
                     Move(dest, opd, arg->type());
                 }
@@ -1340,7 +1336,7 @@ void Arm64FunctionInstructionSelector::PassArguments(InstructionOperand *exclude
         } else {
             if (general_index < kNumberOfGeneralArgumentsRegisters) {
                 const auto rid = kGeneralArgumentsRegisters[general_index];
-                if (saving_scope->Include(rid, true/*general*/)) {
+                if (saving_scope->Include(rid, true/*general*/) && saving_scope->IsNotStill(arg, rid)) {
                     auto dest = new (arena_) RegisterOperand(rid, ToMachineRepresentation(arg->type()));
                     Move(dest, opd, arg->type());
                 }

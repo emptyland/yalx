@@ -11,244 +11,254 @@
 .global _yalx_Zplang_Zolang_Zd_Z4init
 _yalx_Zplang_Zolang_Zd_Z4init:
 .cfi_startproc
-Lblk37:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+Lblk39:
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_Zdprintln
 _yalx_Zplang_Zolang_Zdprintln:
 .cfi_startproc
-Lblk38:
-    sub sp, sp, #64
-    stp fp, lr, [sp, #48]
-    add fp, sp, #48
+Lblk40:
+    sub sp, sp, #32
+    stp fp, lr, [sp, #16]
+    add fp, sp, #16
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    stur x0, [fp, #-40]
-    sub x0, fp, #40
+    stur x0, [fp, #-8]
+    sub x0, fp, #8
     bl _yalx_Zplang_Zolang_Zdprintln_stub
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #48]
-    add sp, sp, #64
+    ldp fp, lr, [sp, #16]
+    add sp, sp, #32
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_Zdunwind
 _yalx_Zplang_Zolang_Zdunwind:
 .cfi_startproc
-Lblk39:
-    sub sp, sp, #144
-    stp fp, lr, [sp, #128]
-    add fp, sp, #128
+Lblk41:
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    sub x0, fp, #80
+    sub x0, fp, #48
     add x1, fp, #16
     mov x2, #16
     adr x3, _yalx_Zplang_Zolang_Zdunwind
     bl _associate_stub_returning_vals
     bl _yalx_Zplang_Zolang_Zdunwind_stub
-    sub x0, fp, #80
+    sub x0, fp, #48
     bl _yalx_exit_returning_scope
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #128]
-    add sp, sp, #144
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_Zdid
 _yalx_Zplang_Zolang_ZdAny_Zdid:
 .cfi_startproc
 Lblk0:
-    sub sp, sp, #144
-    stp fp, lr, [sp, #128]
-    add fp, sp, #128
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    sub x0, fp, #80
+    stur x0, [fp, #-56]
+    sub x0, fp, #48
     add x1, fp, #16
     mov x2, #16
     adr x3, _yalx_Zplang_Zolang_ZdAny_Zdid
     bl _associate_stub_returning_vals
+    sub x0, fp, #56
     bl _yalx_Zplang_Zolang_ZdAny_Zdid_stub
-    sub x0, fp, #80
+    sub x0, fp, #48
     bl _yalx_exit_returning_scope
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #128]
-    add sp, sp, #144
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_ZdhashCode
 _yalx_Zplang_Zolang_ZdAny_ZdhashCode:
 .cfi_startproc
 Lblk1:
-    sub sp, sp, #144
-    stp fp, lr, [sp, #128]
-    add fp, sp, #128
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    sub x0, fp, #80
+    stur x0, [fp, #-56]
+    sub x0, fp, #48
     add x1, fp, #16
     mov x2, #16
     adr x3, _yalx_Zplang_Zolang_ZdAny_ZdhashCode
     bl _associate_stub_returning_vals
+    sub x0, fp, #56
     bl _yalx_Zplang_Zolang_ZdAny_ZdhashCode_stub
-    sub x0, fp, #80
+    sub x0, fp, #48
     bl _yalx_exit_returning_scope
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #128]
-    add sp, sp, #144
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_ZdtoString
 _yalx_Zplang_Zolang_ZdAny_ZdtoString:
 .cfi_startproc
 Lblk2:
-    sub sp, sp, #144
-    stp fp, lr, [sp, #128]
-    add fp, sp, #128
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    sub x0, fp, #80
+    stur x0, [fp, #-56]
+    sub x0, fp, #48
     add x1, fp, #16
     mov x2, #16
     adr x3, _yalx_Zplang_Zolang_ZdAny_ZdtoString
     bl _associate_stub_returning_vals
+    sub x0, fp, #56
     bl _yalx_Zplang_Zolang_ZdAny_ZdtoString_stub
-    sub x0, fp, #80
+    sub x0, fp, #48
     bl _yalx_exit_returning_scope
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #128]
-    add sp, sp, #144
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_ZdisEmpty
 _yalx_Zplang_Zolang_ZdAny_ZdisEmpty:
 .cfi_startproc
 Lblk3:
-    sub sp, sp, #144
-    stp fp, lr, [sp, #128]
-    add fp, sp, #128
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    sub x0, fp, #80
+    stur x0, [fp, #-56]
+    sub x0, fp, #48
     add x1, fp, #16
     mov x2, #16
     adr x3, _yalx_Zplang_Zolang_ZdAny_ZdisEmpty
     bl _associate_stub_returning_vals
+    sub x0, fp, #56
     bl _yalx_Zplang_Zolang_ZdAny_ZdisEmpty_stub
-    sub x0, fp, #80
+    sub x0, fp, #48
     bl _yalx_exit_returning_scope
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #128]
-    add sp, sp, #144
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_Zdfinalize
 _yalx_Zplang_Zolang_ZdAny_Zdfinalize:
 .cfi_startproc
 Lblk4:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
 _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor:
 .cfi_startproc
 Lblk5:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdString_ZdString_Z4constructor
 _yalx_Zplang_Zolang_ZdString_ZdString_Z4constructor:
 .cfi_startproc
 Lblk6:
-    sub sp, sp, #96
-    stp fp, lr, [sp, #80]
-    add fp, sp, #80
+    sub sp, sp, #64
+    stp fp, lr, [sp, #48]
+    add fp, sp, #48
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    stur x0, [fp, #-40]
-    stur w1, [fp, #-44]
-    stur w2, [fp, #-48]
-    stur w3, [fp, #-52]
-    stur x4, [fp, #-60]
+    stur x0, [fp, #-8]
+    stur w1, [fp, #-12]
+    stur w2, [fp, #-16]
+    stur w3, [fp, #-20]
+    stur x4, [fp, #-28]
     bl _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
-    ldur x0, [fp, #-40]
-    ldur w1, [fp, #-44]
-    ldur w2, [fp, #-48]
-    ldur w3, [fp, #-52]
-    ldur x4, [fp, #-60]
+    ldur x0, [fp, #-8]
+    ldur w1, [fp, #-12]
+    ldur w2, [fp, #-16]
+    ldur w3, [fp, #-20]
+    ldur x4, [fp, #-28]
     str w1, [x0, #16]
     str w2, [x0, #20]
     str w3, [x0, #24]
     str x4, [x0, #32]
-    ldp fp, lr, [sp, #80]
-    add sp, sp, #96
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
     ret
-    ldp fp, lr, [sp, #80]
-    add sp, sp, #96
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdI32_ZdtoString
 _yalx_Zplang_Zolang_ZdI32_ZdtoString:
 .cfi_startproc
 Lblk7:
-    sub sp, sp, #144
-    stp fp, lr, [sp, #128]
-    add fp, sp, #128
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    sub x0, fp, #80
+    stur x0, [fp, #-56]
+    sub x0, fp, #48
     add x1, fp, #16
     mov x2, #16
     adr x3, _yalx_Zplang_Zolang_ZdI32_ZdtoString
     bl _associate_stub_returning_vals
+    ldur x0, [fp, #-56]
     bl _yalx_Zplang_Zolang_ZdI32_ZdtoString_stub
-    sub x0, fp, #80
+    sub x0, fp, #48
     bl _yalx_exit_returning_scope
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #128]
-    add sp, sp, #144
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdI32_ZdI32_Z4constructor
@@ -262,7 +272,9 @@ Lblk8:
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     mov x2, x0
-    mov x0, x2
+    stur x0, [fp, #-8]
+    stur x2, [fp, #-16]
+    ldur x0, [fp, #-16]
     bl _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdNumber_Dki32_Dl_Z4constructor
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
@@ -275,24 +287,26 @@ Lblk8:
 _yalx_Zplang_Zolang_ZdU32_ZdtoString:
 .cfi_startproc
 Lblk9:
-    sub sp, sp, #144
-    stp fp, lr, [sp, #128]
-    add fp, sp, #128
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
-    sub x0, fp, #80
+    stur x0, [fp, #-56]
+    sub x0, fp, #48
     add x1, fp, #16
     mov x2, #16
     adr x3, _yalx_Zplang_Zolang_ZdU32_ZdtoString
     bl _associate_stub_returning_vals
+    ldur x0, [fp, #-56]
     bl _yalx_Zplang_Zolang_ZdU32_ZdtoString_stub
-    sub x0, fp, #80
+    sub x0, fp, #48
     bl _yalx_exit_returning_scope
     bl _current_root
     mov x26, x0
-    ldp fp, lr, [sp, #128]
-    add sp, sp, #144
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdU32_ZdU32_Z4constructor
@@ -306,7 +320,9 @@ Lblk10:
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     mov x2, x0
-    mov x0, x2
+    stur x0, [fp, #-8]
+    stur x2, [fp, #-16]
+    ldur x0, [fp, #-16]
     bl _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdNumber_Dku32_Dl_Z4constructor
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
@@ -319,9 +335,9 @@ Lblk10:
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI8:
 .cfi_startproc
 Lblk11:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -329,17 +345,17 @@ Lblk11:
     mov w0, w1
     and w0, w0, #255
     strb w0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU8
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU8:
 .cfi_startproc
 Lblk12:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -347,17 +363,17 @@ Lblk12:
     mov w0, w1
     and w0, w0, #255
     strb w0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI16
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI16:
 .cfi_startproc
 Lblk13:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -365,17 +381,17 @@ Lblk13:
     mov w0, w1
     and w0, w0, #65535
     str w0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU16
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU16:
 .cfi_startproc
 Lblk14:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -383,136 +399,136 @@ Lblk14:
     mov w0, w1
     and w0, w0, #65535
     str w0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI32
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI32:
 .cfi_startproc
 Lblk15:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     str w1, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU32
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU32:
 .cfi_startproc
 Lblk16:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     mov w0, w1
     str w0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI64
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI64:
 .cfi_startproc
 Lblk17:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     sxtw x0, x1
     str x0, [fp, #24]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU64
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU64:
 .cfi_startproc
 Lblk18:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     mov w0, w1
     str x0, [fp, #24]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoF32
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoF32:
 .cfi_startproc
 Lblk19:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     brk #0x3c
     str s0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoF64
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoF64:
 .cfi_startproc
 Lblk20:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     brk #0x3c
     str s0, [fp, #24]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdNumber_Dki32_Dl_Z4constructor
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdNumber_Dki32_Dl_Z4constructor:
 .cfi_startproc
 Lblk21:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     str w1, [x0, #16]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI8
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI8:
 .cfi_startproc
 Lblk22:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -520,17 +536,17 @@ Lblk22:
     mov w0, w1
     and w0, w0, #255
     strb w0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU8
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU8:
 .cfi_startproc
 Lblk23:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -538,17 +554,17 @@ Lblk23:
     mov w0, w1
     and w0, w0, #255
     strb w0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI16
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI16:
 .cfi_startproc
 Lblk24:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -556,17 +572,17 @@ Lblk24:
     mov w0, w1
     and w0, w0, #65535
     str w0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU16
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU16:
 .cfi_startproc
 Lblk25:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -574,184 +590,206 @@ Lblk25:
     mov w0, w1
     and w0, w0, #65535
     str w0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI32
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI32:
 .cfi_startproc
 Lblk26:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     mov w0, w1
     str w0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU32
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU32:
 .cfi_startproc
 Lblk27:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     str w1, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI64
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI64:
 .cfi_startproc
 Lblk28:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     mov w0, w1
     str x0, [fp, #24]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU64
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU64:
 .cfi_startproc
 Lblk29:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     mov w0, w1
     str x0, [fp, #24]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoF32
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoF32:
 .cfi_startproc
 Lblk30:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     brk #0x3c
     str s0, [fp, #28]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoF64
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoF64:
 .cfi_startproc
 Lblk31:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr w1, [x0, #16]
     brk #0x3c
     str s0, [fp, #24]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdNumber_Dku32_Dl_Z4constructor
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdNumber_Dku32_Dl_Z4constructor:
 .cfi_startproc
 Lblk32:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     str w1, [x0, #16]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdThrowable_ZdtoString
 _yalx_Zplang_Zolang_ZdThrowable_ZdtoString:
 .cfi_startproc
 Lblk33:
-    sub sp, sp, #48
-    stp fp, lr, [sp, #32]
-    add fp, sp, #32
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     ldr x1, [x0, #16]
     str x1, [fp, #24]
-    ldp fp, lr, [sp, #32]
-    add sp, sp, #48
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
+    ret
+.cfi_endproc
+.global _yalx_Zplang_Zolang_ZdThrowable_ZdprintBacktrace
+_yalx_Zplang_Zolang_ZdThrowable_ZdprintBacktrace:
+.cfi_startproc
+Lblk34:
+    sub sp, sp, #32
+    stp fp, lr, [sp, #16]
+    add fp, sp, #16
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stur x0, [fp, #-8]
+    sub x0, fp, #8
+    bl _yalx_Zplang_Zolang_ZdThrowable_ZdprintBacktrace_stub
+    bl _current_root
+    mov x26, x0
+    ldp fp, lr, [sp, #16]
+    add sp, sp, #32
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor
 _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor:
 .cfi_startproc
-Lblk34:
-    sub sp, sp, #112
-    stp fp, lr, [sp, #96]
-    add fp, sp, #96
+Lblk35:
+    sub sp, sp, #64
+    stp fp, lr, [sp, #48]
+    add fp, sp, #48
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     mov x3, x0
-    stur x0, [fp, #-40]
-    stur x1, [fp, #-48]
-    stur x2, [fp, #-56]
-    mov x0, x3
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    stur x3, [fp, #-32]
+    ldur x0, [fp, #-32]
     bl _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
-    ldur x0, [fp, #-40]
-    ldur x1, [fp, #-48]
-    ldur x2, [fp, #-56]
+    ldur x0, [fp, #-8]
+    ldur x1, [fp, #-16]
+    ldur x2, [fp, #-24]
     str x1, [x0, #16]
     str x2, [x0, #24]
-    stur x0, [fp, #-40]
-    add sp, sp, #32
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    add sp, sp, #0
     bl _yalx_Zplang_Zolang_Zdunwind
-    sub sp, sp, #32
-    ldur x0, [fp, #-40]
-    ldur x19, [fp, #-72]
+    sub sp, sp, #0
+    ldur x0, [fp, #-8]
+    ldur x19, [fp, #-40]
     str x19, [x0, #32]
-    ldp fp, lr, [sp, #96]
-    add sp, sp, #112
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
     ret
-    ldp fp, lr, [sp, #96]
-    add sp, sp, #112
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
 _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor:
 .cfi_startproc
-Lblk35:
+Lblk36:
     sub sp, sp, #48
     stp fp, lr, [sp, #32]
     add fp, sp, #32
@@ -760,8 +798,11 @@ Lblk35:
     .cfi_offset fp, -16
     mov x3, x0
     mov x0, x2
-    mov x0, x3
-    mov x2, x0
+    stur x0, [fp, #-8]
+    stur x2, [fp, #-16]
+    stur x3, [fp, #-24]
+    ldur x0, [fp, #-24]
+    ldur x2, [fp, #-8]
     bl _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
@@ -770,38 +811,75 @@ Lblk35:
     add sp, sp, #48
     ret
 .cfi_endproc
+.global _yalx_Zplang_Zolang_ZdBadCastingException_ZdBadCastingException_Z4constructor
+_yalx_Zplang_Zolang_ZdBadCastingException_ZdBadCastingException_Z4constructor:
+.cfi_startproc
+Lblk37:
+    sub sp, sp, #64
+    stp fp, lr, [sp, #48]
+    add fp, sp, #48
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    mov x2, x0
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    mov x0, #0
+    adrp x19, _yalx_Zplang_Zolang_ZdException$class@PAGE
+    add x1, x19, _yalx_Zplang_Zolang_ZdException$class@PAGEOFF
+    bl _ref_asserted_to
+    mov x1, x0
+    ldur x2, [fp, #-16]
+    ldur x3, [fp, #-24]
+    stur x0, [fp, #-16]
+    stur x1, [fp, #-24]
+    stur x2, [fp, #-32]
+    stur x3, [fp, #-40]
+    ldur x0, [fp, #-40]
+    ldur x1, [fp, #-32]
+    ldur x2, [fp, #-24]
+    bl _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
+    ret
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
+    ret
+.cfi_endproc
 .global _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor
 _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor:
 .cfi_startproc
-Lblk36:
-    sub sp, sp, #96
-    stp fp, lr, [sp, #80]
-    add fp, sp, #80
+Lblk38:
+    sub sp, sp, #80
+    stp fp, lr, [sp, #64]
+    add fp, sp, #64
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     mov x5, x0
-    stur x0, [fp, #-40]
-    stur x1, [fp, #-48]
-    stur x2, [fp, #-56]
-    stur x3, [fp, #-64]
-    stur w4, [fp, #-68]
-    mov x0, x5
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    stur x3, [fp, #-32]
+    stur w4, [fp, #-36]
+    stur x5, [fp, #-44]
+    ldur x0, [fp, #-44]
     bl _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
-    ldur x0, [fp, #-40]
-    ldur x1, [fp, #-48]
-    ldur x2, [fp, #-56]
-    ldur x3, [fp, #-64]
-    ldur w4, [fp, #-68]
+    ldur x0, [fp, #-8]
+    ldur x1, [fp, #-16]
+    ldur x2, [fp, #-24]
+    ldur x3, [fp, #-32]
+    ldur w4, [fp, #-36]
     str x1, [x0, #16]
     str x2, [x0, #24]
     str x3, [x0, #32]
     str w4, [x0, #40]
-    ldp fp, lr, [sp, #80]
-    add sp, sp, #96
+    ldp fp, lr, [sp, #64]
+    add sp, sp, #80
     ret
-    ldp fp, lr, [sp, #80]
-    add sp, sp, #96
+    ldp fp, lr, [sp, #64]
+    add sp, sp, #80
     ret
 .cfi_endproc
 ; CString constants
@@ -953,42 +1031,54 @@ Lkzs.71:
 Lkzs.72:
     .asciz "fun (yalx/lang:lang.Throwable)->(string)"
 Lkzs.73:
-    .asciz "fun (yalx/lang:lang.Throwable,string,yalx/lang:lang.Throwable)->(void)"
+    .asciz "fun (yalx/lang:lang.Throwable)->(void)"
 Lkzs.74:
-    .asciz "Throwable$constructor"
+    .asciz "printBacktrace"
 Lkzs.75:
-    .asciz "message"
+    .asciz "fun (yalx/lang:lang.Throwable,string,yalx/lang:lang.Throwable)->(void)"
 Lkzs.76:
-    .asciz "linked"
+    .asciz "Throwable$constructor"
 Lkzs.77:
-    .asciz "backtrace"
+    .asciz "message"
 Lkzs.78:
-    .asciz "Throwable"
+    .asciz "linked"
 Lkzs.79:
-    .asciz "yalx/lang:lang.Throwable"
+    .asciz "backtrace"
 Lkzs.80:
-    .asciz "fun (yalx/lang:lang.Exception,string,yalx/lang:lang.Exception)->(void)"
+    .asciz "Throwable"
 Lkzs.81:
-    .asciz "Exception$constructor"
+    .asciz "yalx/lang:lang.Throwable"
 Lkzs.82:
-    .asciz "Exception"
+    .asciz "fun (yalx/lang:lang.Exception,string,yalx/lang:lang.Exception)->(void)"
 Lkzs.83:
-    .asciz "yalx/lang:lang.Exception"
+    .asciz "Exception$constructor"
 Lkzs.84:
-    .asciz "fun (yalx/lang:lang.BacktraceFrame,u64,string,string,u32)->(void)"
+    .asciz "Exception"
 Lkzs.85:
-    .asciz "BacktraceFrame$constructor"
+    .asciz "yalx/lang:lang.Exception"
 Lkzs.86:
-    .asciz "address"
+    .asciz "fun (yalx/lang:lang.BadCastingException,string)->(void)"
 Lkzs.87:
-    .asciz "function"
+    .asciz "BadCastingException$constructor"
 Lkzs.88:
-    .asciz "file"
+    .asciz "BadCastingException"
 Lkzs.89:
-    .asciz "line"
+    .asciz "yalx/lang:lang.BadCastingException"
 Lkzs.90:
-    .asciz "BacktraceFrame"
+    .asciz "fun (yalx/lang:lang.BacktraceFrame,u64,string,string,u32)->(void)"
 Lkzs.91:
+    .asciz "BacktraceFrame$constructor"
+Lkzs.92:
+    .asciz "address"
+Lkzs.93:
+    .asciz "function"
+Lkzs.94:
+    .asciz "file"
+Lkzs.95:
+    .asciz "line"
+Lkzs.96:
+    .asciz "BacktraceFrame"
+Lkzs.97:
     .asciz "yalx/lang:lang.BacktraceFrame"
 .section __DATA,__data
 .p2align 4
@@ -1726,10 +1816,10 @@ _yalx_Zplang_Zolang_ZdThrowable$class:
     .long 40 ; instance_size
     .long 0 ; padding
     .quad _yalx_Zplang_Zolang_ZdAny$class ; super
-    .quad Lkzs.78 ; name
+    .quad Lkzs.80 ; name
     .long 9 ; name
     .long 0 ; padding
-    .quad Lkzs.79 ; location
+    .quad Lkzs.81 ; location
     .long 24 ; location
     .long 0 ; padding
     .long 0 ; n_annotations
@@ -1739,7 +1829,7 @@ _yalx_Zplang_Zolang_ZdThrowable$class:
     .long 0 ; padding
     .quad _yalx_Zplang_Zolang_ZdThrowable$fields ; fields
     .quad _yalx_Zplang_Zolang_ZdThrowable$ctor ; ctor
-    .long 2 ; n_methods
+    .long 3 ; n_methods
     .long 0 ; padding
     .quad _yalx_Zplang_Zolang_ZdThrowable$methods ; methods
     .long 5 ; n_vtab
@@ -1751,7 +1841,7 @@ _yalx_Zplang_Zolang_ZdThrowable$fields:
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.75 ; name
+    .quad Lkzs.77 ; name
     .long 7 ; name
     .long 0 ; padding
     .quad 0 ; type
@@ -1761,7 +1851,7 @@ _yalx_Zplang_Zolang_ZdThrowable$fields:
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.76 ; name
+    .quad Lkzs.78 ; name
     .long 6 ; name
     .long 0 ; padding
     .quad 0 ; type
@@ -1771,7 +1861,7 @@ _yalx_Zplang_Zolang_ZdThrowable$fields:
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.77 ; name
+    .quad Lkzs.79 ; name
     .long 9 ; name
     .long 0 ; padding
     .quad 0 ; type
@@ -1791,17 +1881,30 @@ _yalx_Zplang_Zolang_ZdThrowable$methods:
     .long 40 ; prototype_desc
     .long 0 ; padding
     .quad _yalx_Zplang_Zolang_ZdThrowable_ZdtoString ; entry
-_yalx_Zplang_Zolang_ZdThrowable$ctor:
-    ; Throwable::Throwable$constructor
+    ; Throwable::printBacktrace
     .long 1 ; index
     .long 0 ; access|is_native|is_override|...
     .long 0 ; n_annotations
     .long 0 ; padding
     .quad 0 ; reserved0
     .quad Lkzs.74 ; name
-    .long 21 ; name
+    .long 14 ; name
     .long 0 ; padding
     .quad Lkzs.73 ; prototype_desc
+    .long 38 ; prototype_desc
+    .long 0 ; padding
+    .quad _yalx_Zplang_Zolang_ZdThrowable_ZdprintBacktrace ; entry
+_yalx_Zplang_Zolang_ZdThrowable$ctor:
+    ; Throwable::Throwable$constructor
+    .long 2 ; index
+    .long 0 ; access|is_native|is_override|...
+    .long 0 ; n_annotations
+    .long 0 ; padding
+    .quad 0 ; reserved0
+    .quad Lkzs.76 ; name
+    .long 21 ; name
+    .long 0 ; padding
+    .quad Lkzs.75 ; prototype_desc
     .long 70 ; prototype_desc
     .long 0 ; padding
     .quad _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor ; entry
@@ -1822,10 +1925,10 @@ _yalx_Zplang_Zolang_ZdException$class:
     .long 40 ; instance_size
     .long 0 ; padding
     .quad _yalx_Zplang_Zolang_ZdThrowable$class ; super
-    .quad Lkzs.82 ; name
+    .quad Lkzs.84 ; name
     .long 9 ; name
     .long 0 ; padding
-    .quad Lkzs.83 ; location
+    .quad Lkzs.85 ; location
     .long 24 ; location
     .long 0 ; padding
     .long 0 ; n_annotations
@@ -1850,13 +1953,59 @@ _yalx_Zplang_Zolang_ZdException$ctor:
     .long 0 ; n_annotations
     .long 0 ; padding
     .quad 0 ; reserved0
-    .quad Lkzs.81 ; name
+    .quad Lkzs.83 ; name
     .long 21 ; name
     .long 0 ; padding
-    .quad Lkzs.80 ; prototype_desc
+    .quad Lkzs.82 ; prototype_desc
     .long 70 ; prototype_desc
     .long 0 ; padding
     .quad _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor ; entry
+.global _yalx_Zplang_Zolang_ZdBadCastingException$class
+_yalx_Zplang_Zolang_ZdBadCastingException$class:
+    .quad 0 ; id
+    .byte 0 ; constraint
+    .byte 0 ; padding
+    .byte 0
+    .byte 0
+    .long 8 ; reference_size
+    .long 40 ; instance_size
+    .long 0 ; padding
+    .quad _yalx_Zplang_Zolang_ZdException$class ; super
+    .quad Lkzs.88 ; name
+    .long 19 ; name
+    .long 0 ; padding
+    .quad Lkzs.89 ; location
+    .long 34 ; location
+    .long 0 ; padding
+    .long 0 ; n_annotations
+    .long 0 ; padding
+    .quad 0 ; reserved0
+    .long 0 ; n_fields
+    .long 0 ; padding
+    .quad 0 ; fields
+    .quad _yalx_Zplang_Zolang_ZdBadCastingException$ctor ; ctor
+    .long 1 ; n_methods
+    .long 0 ; padding
+    .quad _yalx_Zplang_Zolang_ZdBadCastingException$methods ; methods
+    .long 0 ; n_vtab
+    .long 0 ; n_itab
+    .quad 0 ; vtab
+    .quad 0 ; itab
+_yalx_Zplang_Zolang_ZdBadCastingException$methods:
+_yalx_Zplang_Zolang_ZdBadCastingException$ctor:
+    ; BadCastingException::BadCastingException$constructor
+    .long 0 ; index
+    .long 0 ; access|is_native|is_override|...
+    .long 0 ; n_annotations
+    .long 0 ; padding
+    .quad 0 ; reserved0
+    .quad Lkzs.87 ; name
+    .long 31 ; name
+    .long 0 ; padding
+    .quad Lkzs.86 ; prototype_desc
+    .long 55 ; prototype_desc
+    .long 0 ; padding
+    .quad _yalx_Zplang_Zolang_ZdBadCastingException_ZdBadCastingException_Z4constructor ; entry
 .global _yalx_Zplang_Zolang_ZdBacktraceFrame$class
 _yalx_Zplang_Zolang_ZdBacktraceFrame$class:
     .quad 0 ; id
@@ -1868,10 +2017,10 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$class:
     .long 48 ; instance_size
     .long 0 ; padding
     .quad _yalx_Zplang_Zolang_ZdAny$class ; super
-    .quad Lkzs.90 ; name
+    .quad Lkzs.96 ; name
     .long 14 ; name
     .long 0 ; padding
-    .quad Lkzs.91 ; location
+    .quad Lkzs.97 ; location
     .long 29 ; location
     .long 0 ; padding
     .long 0 ; n_annotations
@@ -1893,7 +2042,7 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$fields:
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.86 ; name
+    .quad Lkzs.92 ; name
     .long 7 ; name
     .long 0 ; padding
     .quad 0 ; type
@@ -1903,7 +2052,7 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$fields:
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.87 ; name
+    .quad Lkzs.93 ; name
     .long 8 ; name
     .long 0 ; padding
     .quad 0 ; type
@@ -1913,7 +2062,7 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$fields:
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.88 ; name
+    .quad Lkzs.94 ; name
     .long 4 ; name
     .long 0 ; padding
     .quad 0 ; type
@@ -1923,7 +2072,7 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$fields:
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.89 ; name
+    .quad Lkzs.95 ; name
     .long 4 ; name
     .long 0 ; padding
     .quad 0 ; type
@@ -1937,10 +2086,10 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$ctor:
     .long 0 ; n_annotations
     .long 0 ; padding
     .quad 0 ; reserved0
-    .quad Lkzs.85 ; name
+    .quad Lkzs.91 ; name
     .long 26 ; name
     .long 0 ; padding
-    .quad Lkzs.84 ; prototype_desc
+    .quad Lkzs.90 ; prototype_desc
     .long 65 ; prototype_desc
     .long 0 ; padding
     .quad _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor ; entry
@@ -1949,7 +2098,7 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$ctor:
 ; Yalx-String constants
 .global _yalx_Zplang_Zolang_Lksz
 _yalx_Zplang_Zolang_Lksz:
-    .long 92
+    .long 98
     .long 0 ; padding for struct lksz_header
     .quad Lkzs.0
     .quad Lkzs.1
@@ -2043,9 +2192,15 @@ _yalx_Zplang_Zolang_Lksz:
     .quad Lkzs.89
     .quad Lkzs.90
     .quad Lkzs.91
+    .quad Lkzs.92
+    .quad Lkzs.93
+    .quad Lkzs.94
+    .quad Lkzs.95
+    .quad Lkzs.96
+    .quad Lkzs.97
 .global _yalx_Zplang_Zolang_Kstr
 _yalx_Zplang_Zolang_Kstr:
-    .long 92
+    .long 98
     .long 0 ; padding for struct kstr_header
 Kstr.0:
     .quad 0
@@ -2230,4 +2385,16 @@ Kstr.89:
 Kstr.90:
     .quad 0
 Kstr.91:
+    .quad 0
+Kstr.92:
+    .quad 0
+Kstr.93:
+    .quad 0
+Kstr.94:
+    .quad 0
+Kstr.95:
+    .quad 0
+Kstr.96:
+    .quad 0
+Kstr.97:
     .quad 0
