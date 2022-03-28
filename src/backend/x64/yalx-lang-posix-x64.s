@@ -11,7 +11,7 @@
 .global _yalx_Zplang_Zolang_Zd_Z4init
 _yalx_Zplang_Zolang_Zd_Z4init:
 .cfi_startproc
-Lblk37:
+Lblk39:
     pushq %rbp
     .cfi_def_cfa_offset 16
     .cfi_offset %rbp, -16
@@ -23,7 +23,7 @@ Lblk37:
 .global _yalx_Zplang_Zolang_Zdprintln
 _yalx_Zplang_Zolang_Zdprintln:
 .cfi_startproc
-Lblk38:
+Lblk40:
     pushq %rbp
     .cfi_def_cfa_offset 16
     .cfi_offset %rbp, -16
@@ -42,7 +42,7 @@ Lblk38:
 .global _yalx_Zplang_Zolang_Zdunwind
 _yalx_Zplang_Zolang_Zdunwind:
 .cfi_startproc
-Lblk39:
+Lblk41:
     pushq %rbp
     .cfi_def_cfa_offset 16
     .cfi_offset %rbp, -16
@@ -76,6 +76,7 @@ Lblk0:
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
     subq $96, %rsp
+    movq %rax, -56(%rbp)
     movq %rbp, %rdi
     subq $48, %rdi
     movq %rbp, %rsi
@@ -83,6 +84,7 @@ Lblk0:
     movq $16, %rdx
     leaq _yalx_Zplang_Zolang_ZdAny_Zdid(%rip), %rcx
     callq _associate_stub_returning_vals
+    leaq -56(%rbp), %rax
     callq _yalx_Zplang_Zolang_ZdAny_Zdid_stub
     movq %rbp, %rdi
     subq $48, %rdi
@@ -103,6 +105,7 @@ Lblk1:
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
     subq $96, %rsp
+    movq %rax, -56(%rbp)
     movq %rbp, %rdi
     subq $48, %rdi
     movq %rbp, %rsi
@@ -110,6 +113,7 @@ Lblk1:
     movq $16, %rdx
     leaq _yalx_Zplang_Zolang_ZdAny_ZdhashCode(%rip), %rcx
     callq _associate_stub_returning_vals
+    leaq -56(%rbp), %rax
     callq _yalx_Zplang_Zolang_ZdAny_ZdhashCode_stub
     movq %rbp, %rdi
     subq $48, %rdi
@@ -130,6 +134,7 @@ Lblk2:
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
     subq $96, %rsp
+    movq %rax, -56(%rbp)
     movq %rbp, %rdi
     subq $48, %rdi
     movq %rbp, %rsi
@@ -137,6 +142,7 @@ Lblk2:
     movq $16, %rdx
     leaq _yalx_Zplang_Zolang_ZdAny_ZdtoString(%rip), %rcx
     callq _associate_stub_returning_vals
+    leaq -56(%rbp), %rax
     callq _yalx_Zplang_Zolang_ZdAny_ZdtoString_stub
     movq %rbp, %rdi
     subq $48, %rdi
@@ -157,6 +163,7 @@ Lblk3:
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
     subq $96, %rsp
+    movq %rax, -56(%rbp)
     movq %rbp, %rdi
     subq $48, %rdi
     movq %rbp, %rsi
@@ -164,6 +171,7 @@ Lblk3:
     movq $16, %rdx
     leaq _yalx_Zplang_Zolang_ZdAny_ZdisEmpty(%rip), %rcx
     callq _associate_stub_returning_vals
+    leaq -56(%rbp), %rax
     callq _yalx_Zplang_Zolang_ZdAny_ZdisEmpty_stub
     movq %rbp, %rdi
     subq $48, %rdi
@@ -247,6 +255,7 @@ Lblk7:
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
     subq $96, %rsp
+    movq %rax, -56(%rbp)
     movq %rbp, %rdi
     subq $48, %rdi
     movq %rbp, %rsi
@@ -254,6 +263,7 @@ Lblk7:
     movq $16, %rdx
     leaq _yalx_Zplang_Zolang_ZdI32_ZdtoString(%rip), %rcx
     callq _associate_stub_returning_vals
+    movq -56(%rbp), %rax
     callq _yalx_Zplang_Zolang_ZdI32_ZdtoString_stub
     movq %rbp, %rdi
     subq $48, %rdi
@@ -273,13 +283,18 @@ Lblk8:
     .cfi_offset %rbp, -16
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
+    subq $32, %rsp
     movq %rdi, %rax
-    movq %rax, %rdi
-    addq $0, %rsp
+    movq %rax, -8(%rbp)
+    movq %rdi, -16(%rbp)
+    movq -8(%rbp), %rdi
+    addq $16, %rsp
     callq _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdNumber_Dki32_Dl_Z4constructor
-    subq $0, %rsp
+    subq $16, %rsp
+    addq $32, %rsp
     popq %rbp
     retq
+    addq $32, %rsp
     popq %rbp
     retq
 .cfi_endproc
@@ -293,6 +308,7 @@ Lblk9:
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
     subq $96, %rsp
+    movq %rax, -56(%rbp)
     movq %rbp, %rdi
     subq $48, %rdi
     movq %rbp, %rsi
@@ -300,6 +316,7 @@ Lblk9:
     movq $16, %rdx
     leaq _yalx_Zplang_Zolang_ZdU32_ZdtoString(%rip), %rcx
     callq _associate_stub_returning_vals
+    movq -56(%rbp), %rax
     callq _yalx_Zplang_Zolang_ZdU32_ZdtoString_stub
     movq %rbp, %rdi
     subq $48, %rdi
@@ -319,13 +336,18 @@ Lblk10:
     .cfi_offset %rbp, -16
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
+    subq $32, %rsp
     movq %rdi, %rax
-    movq %rax, %rdi
-    addq $0, %rsp
+    movq %rax, -8(%rbp)
+    movq %rdi, -16(%rbp)
+    movq -8(%rbp), %rdi
+    addq $16, %rsp
     callq _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdNumber_Dku32_Dl_Z4constructor
-    subq $0, %rsp
+    subq $16, %rsp
+    addq $32, %rsp
     popq %rbp
     retq
+    addq $32, %rsp
     popq %rbp
     retq
 .cfi_endproc
@@ -675,8 +697,8 @@ Lblk33:
     popq %rbp
     retq
 .cfi_endproc
-.global _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor
-_yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor:
+.global _yalx_Zplang_Zolang_ZdThrowable_ZdprintBacktrace
+_yalx_Zplang_Zolang_ZdThrowable_ZdprintBacktrace:
 .cfi_startproc
 Lblk34:
     pushq %rbp
@@ -684,36 +706,18 @@ Lblk34:
     .cfi_offset %rbp, -16
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
-    subq $64, %rsp
-    movq %rdi, %rax
-    movq %rdx, -8(%rbp)
-    movq %rsi, -16(%rbp)
-    movq %rdi, -24(%rbp)
-    movq %rax, %rdi
-    addq $32, %rsp
-    callq _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
-    subq $32, %rsp
-    movq -8(%rbp), %rcx
-    movq -16(%rbp), %rdx
-    movq -24(%rbp), %rsi
-    movq %rdx, 16(%rsi)
-    movq %rcx, 24(%rsi)
-    movq %rsi, -8(%rbp)
-    addq $32, %rsp
-    callq _yalx_Zplang_Zolang_Zdunwind
-    subq $32, %rsp
-    movq -8(%rbp), %rax
-    movq -40(%rbp), %r13
-    movq %r13, 32(%rax)
-    addq $64, %rsp
-    popq %rbp
-    retq
-    addq $64, %rsp
+    subq $16, %rsp
+    movq %rdi, -8(%rbp)
+    leaq -8(%rbp), %rdi
+    callq _yalx_Zplang_Zolang_ZdThrowable_ZdprintBacktrace_stub
+    callq _current_root
+    movq %rax, %r14
+    addq $16, %rsp
     popq %rbp
     retq
 .cfi_endproc
-.global _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
-_yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor:
+.global _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor
+_yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor:
 .cfi_startproc
 Lblk35:
     pushq %rbp
@@ -721,20 +725,39 @@ Lblk35:
     .cfi_offset %rbp, -16
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
+    subq $48, %rsp
     movq %rdi, %rax
-    movq %rdx, %rcx
-    movq %rax, %rdi
-    movq %rcx, %rdx
+    movq %rax, -8(%rbp)
+    movq %rdx, -16(%rbp)
+    movq %rsi, -24(%rbp)
+    movq %rdi, -32(%rbp)
+    movq -8(%rbp), %rdi
+    addq $16, %rsp
+    callq _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
+    subq $16, %rsp
+    movq -16(%rbp), %rax
+    movq -24(%rbp), %rcx
+    movq -32(%rbp), %rdx
+    movq %rcx, 16(%rdx)
+    movq %rax, 24(%rdx)
+    movq %rax, -8(%rbp)
+    movq %rcx, -16(%rbp)
+    movq %rdx, -24(%rbp)
     addq $0, %rsp
-    callq _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor
+    callq _yalx_Zplang_Zolang_Zdunwind
     subq $0, %rsp
+    movq -24(%rbp), %rax
+    movq -40(%rbp), %r13
+    movq %r13, 32(%rax)
+    addq $48, %rsp
     popq %rbp
     retq
+    addq $48, %rsp
     popq %rbp
     retq
 .cfi_endproc
-.global _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor
-_yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor:
+.global _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
+_yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor:
 .cfi_startproc
 Lblk36:
     pushq %rbp
@@ -744,24 +767,80 @@ Lblk36:
     .cfi_def_cfa_register %rbp
     subq $48, %rsp
     movq %rdi, %rax
-    movq %rcx, -8(%rbp)
-    movq %rdx, -16(%rbp)
-    movq %rsi, -24(%rbp)
+    movq %rdx, %rcx
+    movq %rax, -8(%rbp)
+    movq %rcx, -16(%rbp)
+    movq %rdx, -24(%rbp)
     movq %rdi, -32(%rbp)
-    movl %r8d, -36(%rbp)
-    movq %rax, %rdi
+    movq -8(%rbp), %rdi
+    movq -16(%rbp), %rdx
+    addq $16, %rsp
+    callq _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor
+    subq $16, %rsp
+    addq $48, %rsp
+    popq %rbp
+    retq
+    addq $48, %rsp
+    popq %rbp
+    retq
+.cfi_endproc
+.global _yalx_Zplang_Zolang_ZdBadCastingException_ZdBadCastingException_Z4constructor
+_yalx_Zplang_Zolang_ZdBadCastingException_ZdBadCastingException_Z4constructor:
+.cfi_startproc
+Lblk37:
+    pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
+    movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
+    subq $32, %rsp
+    movq %rdi, %rax
+    movq $0, %rcx
+    movq %rax, -8(%rbp)
+    movq %rcx, -16(%rbp)
+    movq %rdi, -24(%rbp)
+    movq -8(%rbp), %rdi
+    movq -16(%rbp), %rdx
+    addq $0, %rsp
+    callq _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
+    subq $0, %rsp
+    addq $32, %rsp
+    popq %rbp
+    retq
+    addq $32, %rsp
+    popq %rbp
+    retq
+.cfi_endproc
+.global _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor
+_yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor:
+.cfi_startproc
+Lblk38:
+    pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
+    movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
+    subq $48, %rsp
+    movq %rdi, %rax
+    movq %rax, -8(%rbp)
+    movq %rcx, -16(%rbp)
+    movq %rdx, -24(%rbp)
+    movq %rsi, -32(%rbp)
+    movq %rdi, -40(%rbp)
+    movl %r8d, -44(%rbp)
+    movq -8(%rbp), %rdi
     addq $0, %rsp
     callq _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
     subq $0, %rsp
-    movq -8(%rbp), %rcx
-    movq -16(%rbp), %rdx
-    movq -24(%rbp), %rsi
-    movq -32(%rbp), %rdi
-    movl -36(%rbp), %r8d
-    movq %rsi, 16(%rdi)
-    movq %rdx, 24(%rdi)
-    movq %rcx, 32(%rdi)
-    movl %r8d, 40(%rdi)
+    movq -16(%rbp), %rax
+    movq -24(%rbp), %rcx
+    movq -32(%rbp), %rdx
+    movq -40(%rbp), %rsi
+    movl -44(%rbp), %edi
+    movq %rdx, 16(%rsi)
+    movq %rcx, 24(%rsi)
+    movq %rax, 32(%rsi)
+    movl %edi, 40(%rsi)
     addq $48, %rsp
     popq %rbp
     retq
@@ -918,42 +997,54 @@ Lkzs.71:
 Lkzs.72:
     .asciz "fun (yalx/lang:lang.Throwable)->(string)"
 Lkzs.73:
-    .asciz "fun (yalx/lang:lang.Throwable,string,yalx/lang:lang.Throwable)->(void)"
+    .asciz "fun (yalx/lang:lang.Throwable)->(void)"
 Lkzs.74:
-    .asciz "Throwable$constructor"
+    .asciz "printBacktrace"
 Lkzs.75:
-    .asciz "message"
+    .asciz "fun (yalx/lang:lang.Throwable,string,yalx/lang:lang.Throwable)->(void)"
 Lkzs.76:
-    .asciz "linked"
+    .asciz "Throwable$constructor"
 Lkzs.77:
-    .asciz "backtrace"
+    .asciz "message"
 Lkzs.78:
-    .asciz "Throwable"
+    .asciz "linked"
 Lkzs.79:
-    .asciz "yalx/lang:lang.Throwable"
+    .asciz "backtrace"
 Lkzs.80:
-    .asciz "fun (yalx/lang:lang.Exception,string,yalx/lang:lang.Exception)->(void)"
+    .asciz "Throwable"
 Lkzs.81:
-    .asciz "Exception$constructor"
+    .asciz "yalx/lang:lang.Throwable"
 Lkzs.82:
-    .asciz "Exception"
+    .asciz "fun (yalx/lang:lang.Exception,string,yalx/lang:lang.Exception)->(void)"
 Lkzs.83:
-    .asciz "yalx/lang:lang.Exception"
+    .asciz "Exception$constructor"
 Lkzs.84:
-    .asciz "fun (yalx/lang:lang.BacktraceFrame,u64,string,string,u32)->(void)"
+    .asciz "Exception"
 Lkzs.85:
-    .asciz "BacktraceFrame$constructor"
+    .asciz "yalx/lang:lang.Exception"
 Lkzs.86:
-    .asciz "address"
+    .asciz "fun (yalx/lang:lang.BadCastingException,string)->(void)"
 Lkzs.87:
-    .asciz "function"
+    .asciz "BadCastingException$constructor"
 Lkzs.88:
-    .asciz "file"
+    .asciz "BadCastingException"
 Lkzs.89:
-    .asciz "line"
+    .asciz "yalx/lang:lang.BadCastingException"
 Lkzs.90:
-    .asciz "BacktraceFrame"
+    .asciz "fun (yalx/lang:lang.BacktraceFrame,u64,string,string,u32)->(void)"
 Lkzs.91:
+    .asciz "BacktraceFrame$constructor"
+Lkzs.92:
+    .asciz "address"
+Lkzs.93:
+    .asciz "function"
+Lkzs.94:
+    .asciz "file"
+Lkzs.95:
+    .asciz "line"
+Lkzs.96:
+    .asciz "BacktraceFrame"
+Lkzs.97:
     .asciz "yalx/lang:lang.BacktraceFrame"
 .section __DATA,__data
 .p2align 4
@@ -1691,10 +1782,10 @@ _yalx_Zplang_Zolang_ZdThrowable$class:
     .long 40 # instance_size
     .long 0 # padding
     .quad _yalx_Zplang_Zolang_ZdAny$class # super
-    .quad Lkzs.78 # name
+    .quad Lkzs.80 # name
     .long 9 # name
     .long 0 # padding
-    .quad Lkzs.79 # location
+    .quad Lkzs.81 # location
     .long 24 # location
     .long 0 # padding
     .long 0 # n_annotations
@@ -1704,7 +1795,7 @@ _yalx_Zplang_Zolang_ZdThrowable$class:
     .long 0 # padding
     .quad _yalx_Zplang_Zolang_ZdThrowable$fields # fields
     .quad _yalx_Zplang_Zolang_ZdThrowable$ctor # ctor
-    .long 2 # n_methods
+    .long 3 # n_methods
     .long 0 # padding
     .quad _yalx_Zplang_Zolang_ZdThrowable$methods # methods
     .long 5 # n_vtab
@@ -1716,7 +1807,7 @@ _yalx_Zplang_Zolang_ZdThrowable$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.75 # name
+    .quad Lkzs.77 # name
     .long 7 # name
     .long 0 # padding
     .quad 0 # type
@@ -1726,7 +1817,7 @@ _yalx_Zplang_Zolang_ZdThrowable$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.76 # name
+    .quad Lkzs.78 # name
     .long 6 # name
     .long 0 # padding
     .quad 0 # type
@@ -1736,7 +1827,7 @@ _yalx_Zplang_Zolang_ZdThrowable$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.77 # name
+    .quad Lkzs.79 # name
     .long 9 # name
     .long 0 # padding
     .quad 0 # type
@@ -1756,17 +1847,30 @@ _yalx_Zplang_Zolang_ZdThrowable$methods:
     .long 40 # prototype_desc
     .long 0 # padding
     .quad _yalx_Zplang_Zolang_ZdThrowable_ZdtoString # entry
-_yalx_Zplang_Zolang_ZdThrowable$ctor:
-    # Throwable::Throwable$constructor
+    # Throwable::printBacktrace
     .long 1 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
     .long 0 # padding
     .quad 0 # reserved0
     .quad Lkzs.74 # name
-    .long 21 # name
+    .long 14 # name
     .long 0 # padding
     .quad Lkzs.73 # prototype_desc
+    .long 38 # prototype_desc
+    .long 0 # padding
+    .quad _yalx_Zplang_Zolang_ZdThrowable_ZdprintBacktrace # entry
+_yalx_Zplang_Zolang_ZdThrowable$ctor:
+    # Throwable::Throwable$constructor
+    .long 2 # index
+    .long 0 # access|is_native|is_override|...
+    .long 0 # n_annotations
+    .long 0 # padding
+    .quad 0 # reserved0
+    .quad Lkzs.76 # name
+    .long 21 # name
+    .long 0 # padding
+    .quad Lkzs.75 # prototype_desc
     .long 70 # prototype_desc
     .long 0 # padding
     .quad _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor # entry
@@ -1787,10 +1891,10 @@ _yalx_Zplang_Zolang_ZdException$class:
     .long 40 # instance_size
     .long 0 # padding
     .quad _yalx_Zplang_Zolang_ZdThrowable$class # super
-    .quad Lkzs.82 # name
+    .quad Lkzs.84 # name
     .long 9 # name
     .long 0 # padding
-    .quad Lkzs.83 # location
+    .quad Lkzs.85 # location
     .long 24 # location
     .long 0 # padding
     .long 0 # n_annotations
@@ -1815,13 +1919,59 @@ _yalx_Zplang_Zolang_ZdException$ctor:
     .long 0 # n_annotations
     .long 0 # padding
     .quad 0 # reserved0
-    .quad Lkzs.81 # name
+    .quad Lkzs.83 # name
     .long 21 # name
     .long 0 # padding
-    .quad Lkzs.80 # prototype_desc
+    .quad Lkzs.82 # prototype_desc
     .long 70 # prototype_desc
     .long 0 # padding
     .quad _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor # entry
+.global _yalx_Zplang_Zolang_ZdBadCastingException$class
+_yalx_Zplang_Zolang_ZdBadCastingException$class:
+    .quad 0 # id
+    .byte 0 # constraint
+    .byte 0 # padding
+    .byte 0
+    .byte 0
+    .long 8 # reference_size
+    .long 40 # instance_size
+    .long 0 # padding
+    .quad _yalx_Zplang_Zolang_ZdException$class # super
+    .quad Lkzs.88 # name
+    .long 19 # name
+    .long 0 # padding
+    .quad Lkzs.89 # location
+    .long 34 # location
+    .long 0 # padding
+    .long 0 # n_annotations
+    .long 0 # padding
+    .quad 0 # reserved0
+    .long 0 # n_fields
+    .long 0 # padding
+    .quad 0 # fields
+    .quad _yalx_Zplang_Zolang_ZdBadCastingException$ctor # ctor
+    .long 1 # n_methods
+    .long 0 # padding
+    .quad _yalx_Zplang_Zolang_ZdBadCastingException$methods # methods
+    .long 0 # n_vtab
+    .long 0 # n_itab
+    .quad 0 # vtab
+    .quad 0 # itab
+_yalx_Zplang_Zolang_ZdBadCastingException$methods:
+_yalx_Zplang_Zolang_ZdBadCastingException$ctor:
+    # BadCastingException::BadCastingException$constructor
+    .long 0 # index
+    .long 0 # access|is_native|is_override|...
+    .long 0 # n_annotations
+    .long 0 # padding
+    .quad 0 # reserved0
+    .quad Lkzs.87 # name
+    .long 31 # name
+    .long 0 # padding
+    .quad Lkzs.86 # prototype_desc
+    .long 55 # prototype_desc
+    .long 0 # padding
+    .quad _yalx_Zplang_Zolang_ZdBadCastingException_ZdBadCastingException_Z4constructor # entry
 .global _yalx_Zplang_Zolang_ZdBacktraceFrame$class
 _yalx_Zplang_Zolang_ZdBacktraceFrame$class:
     .quad 0 # id
@@ -1833,10 +1983,10 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$class:
     .long 48 # instance_size
     .long 0 # padding
     .quad _yalx_Zplang_Zolang_ZdAny$class # super
-    .quad Lkzs.90 # name
+    .quad Lkzs.96 # name
     .long 14 # name
     .long 0 # padding
-    .quad Lkzs.91 # location
+    .quad Lkzs.97 # location
     .long 29 # location
     .long 0 # padding
     .long 0 # n_annotations
@@ -1858,7 +2008,7 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.86 # name
+    .quad Lkzs.92 # name
     .long 7 # name
     .long 0 # padding
     .quad 0 # type
@@ -1868,7 +2018,7 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.87 # name
+    .quad Lkzs.93 # name
     .long 8 # name
     .long 0 # padding
     .quad 0 # type
@@ -1878,7 +2028,7 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.88 # name
+    .quad Lkzs.94 # name
     .long 4 # name
     .long 0 # padding
     .quad 0 # type
@@ -1888,7 +2038,7 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.89 # name
+    .quad Lkzs.95 # name
     .long 4 # name
     .long 0 # padding
     .quad 0 # type
@@ -1902,10 +2052,10 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$ctor:
     .long 0 # n_annotations
     .long 0 # padding
     .quad 0 # reserved0
-    .quad Lkzs.85 # name
+    .quad Lkzs.91 # name
     .long 26 # name
     .long 0 # padding
-    .quad Lkzs.84 # prototype_desc
+    .quad Lkzs.90 # prototype_desc
     .long 65 # prototype_desc
     .long 0 # padding
     .quad _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor # entry
@@ -1914,7 +2064,7 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$ctor:
 # Yalx-String constants
 .global _yalx_Zplang_Zolang_Lksz
 _yalx_Zplang_Zolang_Lksz:
-    .long 92
+    .long 98
     .long 0 # padding for struct lksz_header
     .quad Lkzs.0
     .quad Lkzs.1
@@ -2008,9 +2158,15 @@ _yalx_Zplang_Zolang_Lksz:
     .quad Lkzs.89
     .quad Lkzs.90
     .quad Lkzs.91
+    .quad Lkzs.92
+    .quad Lkzs.93
+    .quad Lkzs.94
+    .quad Lkzs.95
+    .quad Lkzs.96
+    .quad Lkzs.97
 .global _yalx_Zplang_Zolang_Kstr
 _yalx_Zplang_Zolang_Kstr:
-    .long 92
+    .long 98
     .long 0 # padding for struct kstr_header
 Kstr.0:
     .quad 0
@@ -2195,4 +2351,16 @@ Kstr.89:
 Kstr.90:
     .quad 0
 Kstr.91:
+    .quad 0
+Kstr.92:
+    .quad 0
+Kstr.93:
+    .quad 0
+Kstr.94:
+    .quad 0
+Kstr.95:
+    .quad 0
+Kstr.96:
+    .quad 0
+Kstr.97:
     .quad 0

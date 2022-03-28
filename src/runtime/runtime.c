@@ -220,7 +220,6 @@ int yalx_runtime_init() {
         return -1;
     }
     backtrace_frame_class = ty;
-    
     ty = yalx_find_class(BAD_CASTING_EXCEPTION_CLASS_NAME);
     if (!ty) {
         die("BadCastingException class not found");

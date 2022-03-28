@@ -313,6 +313,13 @@ private:
         }
     }
     
+    ReloactionOperand *GetModelReloaction(const ir::Model *ty, bool fetch_address) {
+        std::string symbol;
+        LinkageSymbols::Build(&symbol, ty->full_name()->ToSlice());
+        symbol.append("$class");
+        return bundle()->AddExternalSymbol(symbol, fetch_address);
+    }
+    
     static size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto);
     static size_t ParametersSizeInBytes(const ir::Function *fun);
     static size_t OverflowParametersSizeInBytes(const ir::Function *fun);
@@ -797,16 +804,22 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             auto input = instr->InputValue(0);
             assert(input->type().IsReference());
             assert(instr->type().IsReference());
-            auto opd = Allocate(instr, kMoR);
             auto from_ty = input->type().model();
             auto to_ty = instr->type().model();
-            if (from_ty == to_ty
-                || from_ty->IsBaseOf(to_ty)
-                || to_ty->full_name()->Equal(cpl::kAnyClassFullName)) {
-                Move(opd, Allocate(input, kAny), instr->type());
+            if (from_ty == to_ty || from_ty->IsBaseOf(to_ty)) {
+                Move(Allocate(instr, kMoR), Allocate(input, kAny), instr->type());
             } else {
-                Move(opd, Allocate(input, kAny), instr->type());
-                //UNREACHABLE(); // TODO: check it
+                RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+                saving_scope.SaveAll();
+                auto arg0 = new (arena_) RegisterOperand(Argv_0.code(), MachineRepresentation::kWord64);
+                Move(arg0, Allocate(input, kAny), input->type());
+                
+                auto arg1 = new (arena_) RegisterOperand(Argv_1.code(), MachineRepresentation::kWord64);
+                Move(arg1, GetModelReloaction(to_ty, true/*fetch_address*/), ir::Types::Word64);
+
+                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_ref_asserted_to));
+                auto ret0 = new (arena_) RegisterOperand(kRAX, MachineRepresentation::kWord64);
+                Move(Allocate(instr, kMoR), ret0, instr->type());
             }
         } break;
             
