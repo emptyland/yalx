@@ -157,6 +157,9 @@ class ArrayModel : public Model {
 public:
     ArrayModel(base::Arena *arena, const String *name, const String *full_name,
                int dimension_count, const Type element_type);
+    
+    DEF_VAL_GETTER(Type, element_type);
+    DEF_VAL_GETTER(int, dimension_count);
 
     static std::string ToString(int dimension_count, const Type element_type);
     

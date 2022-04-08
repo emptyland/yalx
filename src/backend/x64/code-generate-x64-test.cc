@@ -87,6 +87,15 @@ TEST_F(X64CodeGeneratorTest, TryCatch) {
     //printf("%s\n", buf.c_str());
 }
 
+TEST_F(X64CodeGeneratorTest, ExceptionMetadata) {
+    auto clazz = yalx_find_class("yalx/lang:lang.Exception");
+    ASSERT_TRUE(clazz != NULL);
+    auto base = clazz->super;
+    ASSERT_TRUE(base != NULL);
+    ASSERT_STREQ("Throwable", base->name.z);
+    ASSERT_EQ(3, base->n_fields);
+}
+
 TEST_F(X64CodeGeneratorTest, FooMetadata) {
     
     auto clazz = yalx_find_class("issue02:issue02.Foo");

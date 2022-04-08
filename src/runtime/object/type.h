@@ -122,7 +122,7 @@ static inline enum yalx_builtin_type yalx_builtin_type(const struct yalx_class *
 }
 
 // builtin-types:
-extern const struct yalx_class *const yalx_lang_any_class;
+
 extern const struct yalx_class *const bool_class;
 extern const struct yalx_class *const i8_class;
 extern const struct yalx_class *const u8_class;
@@ -139,7 +139,9 @@ extern const struct yalx_class *const U64_class;
 extern const struct yalx_class *const F32_class;
 extern const struct yalx_class *const F64_class;
 
+extern const struct yalx_class *const any_class;
 extern const struct yalx_class *const string_class;
+
 
 // Classes of arrays
 extern const struct yalx_class *const typed_array_class;
@@ -151,6 +153,7 @@ extern const struct yalx_class *backtrace_frame_class;
 extern const struct yalx_class *throwable_class;
 extern const struct yalx_class *exception_class;
 extern const struct yalx_class *bad_casting_exception_class;
+extern const struct yalx_class *array_index_out_of_bounds_exception_class;
 
 #ifdef __cplusplus
 }

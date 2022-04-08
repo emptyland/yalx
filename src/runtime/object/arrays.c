@@ -18,3 +18,16 @@ struct yalx_value_refs_array *yalx_new_refs_array(struct heap *heap, const struc
     post_write_barrier_batch(&heap, bundle, data, nitems);
     return bundle;
 }
+
+
+struct yalx_value_array_header *yalx_cast_to_array_if_possibly(yalx_ref_t obj) {
+    if (!obj) {
+        return NULL;
+    }
+    const struct yalx_class *ty = CLASS(obj);
+    if (ty == typed_array_class || ty == dims_array_class || ty == refs_array_class) {
+        return (struct yalx_value_array_header *)obj;
+    } else {
+        return NULL;
+    }
+}

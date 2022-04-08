@@ -10,6 +10,7 @@ class PrintingWriter;
 } // namespace base
 namespace ir {
 class Module;
+class Type;
 } // namespace ir
 namespace backend {
 
@@ -43,6 +44,7 @@ protected:
     void EmitNumberConstants();
     void EmitStringConstants();
     void EmitMetadata();
+    void EmitTypeRelocation(const ir::Type &ty, base::PrintingWriter *printer);
     
     const char *comment_ = "#";
     const char *text_p2align_ = "";

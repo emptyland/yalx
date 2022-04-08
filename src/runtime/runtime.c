@@ -136,6 +136,18 @@ static void dev_print_struct_fields() {}
 
 extern struct yalx_class builtin_classes[MAX_BUILTIN_TYPES];
 
+struct class_load_entry {
+    const char *name;
+    struct yalx_class **location;
+} classes_loading_entries[] = {
+    {THROWABLE_CLASS_NAME, &throwable_class},
+    {EXCEPTION_CLASS_NAME, &exception_class},
+    {BACKTRACE_FRAME_CLASS_NAME, &backtrace_frame_class},
+    {BAD_CASTING_EXCEPTION_CLASS_NAME, &bad_casting_exception_class},
+    {ARRAY_INDEX_OUT_OF_BOUNDS_EXCEPTION_CLASS_NAME, &array_index_out_of_bounds_exception_class},
+    {NULL, NULL} // end of entries
+};
+
 int yalx_runtime_init() {
     
 #if defined(YALX_OS_DARWIN)
@@ -202,30 +214,15 @@ int yalx_runtime_init() {
         return -1;
     }
     memcpy(&builtin_classes[Type_string], ty, sizeof(*ty));
-    ty = yalx_find_class(THROWABLE_CLASS_NAME);
-    if (!ty) {
-        die("Throwable class not found");
-        return -1;
+    
+    for (struct class_load_entry *entry = &classes_loading_entries[0]; entry->name != NULL; entry++) {
+        ty = yalx_find_class(entry->name);
+        if (!ty) {
+            die("`%s' class not found", entry->name);
+            return -1;
+        }
+        *entry->location = ty;
     }
-    throwable_class = ty;
-    ty = yalx_find_class(EXCEPTION_CLASS_NAME);
-    if (!ty) {
-        die("Exception class not found");
-        return -1;
-    }
-    exception_class = ty;
-    ty = yalx_find_class(BACKTRACE_FRAME_CLASS_NAME);
-    if (!ty) {
-        die("BacktraceFrame class not found");
-        return -1;
-    }
-    backtrace_frame_class = ty;
-    ty = yalx_find_class(BAD_CASTING_EXCEPTION_CLASS_NAME);
-    if (!ty) {
-        die("BadCastingException class not found");
-        return -1;
-    }
-    bad_casting_exception_class = ty;
 
     dev_print_struct_fields();
     return 0;
@@ -272,6 +269,7 @@ void die(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
+    putc('\n', stderr);
     va_end(ap);
     exit(-1);
 }

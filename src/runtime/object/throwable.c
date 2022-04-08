@@ -18,16 +18,12 @@ void yalx_Zplang_Zolang_ZdThrowable_ZdprintBacktrace_stub(yalx_throwable_handle 
     }
 }
 
-
-void throw_bad_casting_exception(const struct yalx_class *const from, const struct yalx_class *const to) {
-    char *buf = (char *)malloc(1024);
-    snprintf(buf, 1024, "%s -> %s", from->location.z, to->location.z);
-    struct yalx_value_str *message = yalx_new_string(&heap, buf, strlen(buf));
-    free(buf);
-    
-    struct yalx_value_exception *ex = heap_alloc(bad_casting_exception_class);
+static void throw_exception(const struct yalx_class *ty,
+                            struct yalx_value_str *const message,
+                            struct yalx_value_throwable *const cause) {
+    struct yalx_value_exception *ex = heap_alloc(ty);
     assert(ex != NULL);
-    ex->linked = NULL;
+    ex->linked = cause;
     ex->message = message;
     post_write_barrier(&heap, ex, message);
     
@@ -41,4 +37,23 @@ void throw_bad_casting_exception(const struct yalx_class *const from, const stru
     
     throw_it(ex);
     assert(!"Unreachable");
+}
+
+void throw_bad_casting_exception(const struct yalx_class *const from, const struct yalx_class *const to) {
+    char *buf = (char *)malloc(1024);
+    snprintf(buf, 1024, "%s -> %s", from->location.z, to->location.z);
+    struct yalx_value_str *message = yalx_new_string(&heap, buf, strlen(buf));
+    free(buf);
+    throw_exception(bad_casting_exception_class, message, NULL);
+}
+
+void throw_array_index_out_of_bounds_exception(const struct yalx_value_array_header *obj, int index) {
+    assert(yalx_is_array((yalx_ref_t)obj));
+    
+    char *buf = (char *)malloc(1024);
+    snprintf(buf, 1024, "Size is %u, but index at %u", obj->len, index);
+    struct yalx_value_str *message = yalx_new_string(&heap, buf, strlen(buf));
+    free(buf);
+    
+    throw_exception(array_index_out_of_bounds_exception_class, message, NULL);
 }

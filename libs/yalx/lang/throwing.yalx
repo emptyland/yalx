@@ -18,6 +18,8 @@ class Exception(message: string, linked: Exception?) : Throwable(message, linked
 @Lang
 class BadCastingException(message: string): Exception(message, none)
 
+@Lang
+class ArrayIndexOutOfBoundsException(message: string): Exception(message, none)
 
 class BacktraceFrame(
     val address: u64,

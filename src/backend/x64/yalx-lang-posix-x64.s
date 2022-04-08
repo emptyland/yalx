@@ -11,7 +11,7 @@
 .global _yalx_Zplang_Zolang_Zd_Z4init
 _yalx_Zplang_Zolang_Zd_Z4init:
 .cfi_startproc
-Lblk39:
+Lblk40:
     pushq %rbp
     .cfi_def_cfa_offset 16
     .cfi_offset %rbp, -16
@@ -23,7 +23,7 @@ Lblk39:
 .global _yalx_Zplang_Zolang_Zdprintln
 _yalx_Zplang_Zolang_Zdprintln:
 .cfi_startproc
-Lblk40:
+Lblk41:
     pushq %rbp
     .cfi_def_cfa_offset 16
     .cfi_offset %rbp, -16
@@ -42,7 +42,7 @@ Lblk40:
 .global _yalx_Zplang_Zolang_Zdunwind
 _yalx_Zplang_Zolang_Zdunwind:
 .cfi_startproc
-Lblk41:
+Lblk42:
     pushq %rbp
     .cfi_def_cfa_offset 16
     .cfi_offset %rbp, -16
@@ -793,28 +793,71 @@ Lblk37:
     .cfi_offset %rbp, -16
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
-    subq $32, %rsp
+    subq $48, %rsp
     movq %rdi, %rax
-    movq $0, %rcx
+    movq %rax, -8(%rbp)
+    movq %rsi, -16(%rbp)
+    movq %rdi, -24(%rbp)
+    movq $0, %rdi
+    leaq _yalx_Zplang_Zolang_ZdException$class(%rip), %rsi
+    callq _ref_asserted_to
+    movq -8(%rbp), %rcx
+    movq -16(%rbp), %rdx
     movq %rax, -8(%rbp)
     movq %rcx, -16(%rbp)
-    movq %rdi, -24(%rbp)
-    movq -8(%rbp), %rdi
-    movq -16(%rbp), %rdx
-    addq $0, %rsp
+    movq %rdx, -32(%rbp)
+    movq -16(%rbp), %rdi
+    movq -32(%rbp), %rsi
+    movq -8(%rbp), %rdx
+    addq $16, %rsp
     callq _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
-    subq $0, %rsp
-    addq $32, %rsp
+    subq $16, %rsp
+    addq $48, %rsp
     popq %rbp
     retq
-    addq $32, %rsp
+    addq $48, %rsp
+    popq %rbp
+    retq
+.cfi_endproc
+.global _yalx_Zplang_Zolang_ZdArrayIndexOutOfBoundsException_ZdArrayIndexOutOfBoundsException_Z4constructor
+_yalx_Zplang_Zolang_ZdArrayIndexOutOfBoundsException_ZdArrayIndexOutOfBoundsException_Z4constructor:
+.cfi_startproc
+Lblk38:
+    pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
+    movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
+    subq $48, %rsp
+    movq %rdi, %rax
+    movq %rax, -8(%rbp)
+    movq %rsi, -16(%rbp)
+    movq %rdi, -24(%rbp)
+    movq $0, %rdi
+    leaq _yalx_Zplang_Zolang_ZdException$class(%rip), %rsi
+    callq _ref_asserted_to
+    movq -8(%rbp), %rcx
+    movq -16(%rbp), %rdx
+    movq %rax, -8(%rbp)
+    movq %rcx, -16(%rbp)
+    movq %rdx, -32(%rbp)
+    movq -16(%rbp), %rdi
+    movq -32(%rbp), %rsi
+    movq -8(%rbp), %rdx
+    addq $16, %rsp
+    callq _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
+    subq $16, %rsp
+    addq $48, %rsp
+    popq %rbp
+    retq
+    addq $48, %rsp
     popq %rbp
     retq
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor
 _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor:
 .cfi_startproc
-Lblk38:
+Lblk39:
     pushq %rbp
     .cfi_def_cfa_offset 16
     .cfi_offset %rbp, -16
@@ -1031,20 +1074,28 @@ Lkzs.88:
 Lkzs.89:
     .asciz "yalx/lang:lang.BadCastingException"
 Lkzs.90:
-    .asciz "fun (yalx/lang:lang.BacktraceFrame,u64,string,string,u32)->(void)"
+    .asciz "fun (yalx/lang:lang.ArrayIndexOutOfBoundsException,string)->(void)"
 Lkzs.91:
-    .asciz "BacktraceFrame$constructor"
+    .asciz "ArrayIndexOutOfBoundsException$constructor"
 Lkzs.92:
-    .asciz "address"
+    .asciz "ArrayIndexOutOfBoundsException"
 Lkzs.93:
-    .asciz "function"
+    .asciz "yalx/lang:lang.ArrayIndexOutOfBoundsException"
 Lkzs.94:
-    .asciz "file"
+    .asciz "fun (yalx/lang:lang.BacktraceFrame,u64,string,string,u32)->(void)"
 Lkzs.95:
-    .asciz "line"
+    .asciz "BacktraceFrame$constructor"
 Lkzs.96:
-    .asciz "BacktraceFrame"
+    .asciz "address"
 Lkzs.97:
+    .asciz "function"
+Lkzs.98:
+    .asciz "file"
+Lkzs.99:
+    .asciz "line"
+Lkzs.100:
+    .asciz "BacktraceFrame"
+Lkzs.101:
     .asciz "yalx/lang:lang.BacktraceFrame"
 .section __DATA,__data
 .p2align 4
@@ -1053,28 +1104,26 @@ Lkzs.97:
 _yalx_Zplang_Zolang_ZdAny$class:
     .quad 0 # id
     .byte 0 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 16 # instance_size
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # super
     .quad Lkzs.11 # name
     .long 3 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.12 # location
     .long 18 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 0 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # fields
     .quad _yalx_Zplang_Zolang_ZdAny$ctor # ctor
     .long 6 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdAny$methods # methods
     .long 5 # n_vtab
     .long 0 # n_itab
@@ -1085,80 +1134,80 @@ _yalx_Zplang_Zolang_ZdAny$methods:
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.1 # name
     .long 2 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.0 # prototype_desc
     .long 31 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdAny_Zdid # entry
     # Any::hashCode
     .long 1 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.3 # name
     .long 8 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.2 # prototype_desc
     .long 31 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdAny_ZdhashCode # entry
     # Any::toString
     .long 2 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.5 # name
     .long 8 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.4 # prototype_desc
     .long 34 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdAny_ZdtoString # entry
     # Any::isEmpty
     .long 3 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.7 # name
     .long 7 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.6 # prototype_desc
     .long 30 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdAny_ZdisEmpty # entry
     # Any::finalize
     .long 4 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.9 # name
     .long 8 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.8 # prototype_desc
     .long 32 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdAny_Zdfinalize # entry
 _yalx_Zplang_Zolang_ZdAny$ctor:
     # Any::Any$constructor
     .long 5 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.10 # name
     .long 15 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.8 # prototype_desc
     .long 32 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor # entry
 _yalx_Zplang_Zolang_ZdAny$vtab:
     .quad _yalx_Zplang_Zolang_ZdAny_Zdfinalize
@@ -1170,28 +1219,26 @@ _yalx_Zplang_Zolang_ZdAny$vtab:
 _yalx_Zplang_Zolang_ZdString$class:
     .quad 0 # id
     .byte 0 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 40 # instance_size
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdAny$class # super
     .quad Lkzs.21 # name
     .long 6 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.22 # location
     .long 21 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 4 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdString$fields # fields
     .quad _yalx_Zplang_Zolang_ZdString$ctor # ctor
     .long 3 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdString$methods # methods
     .long 0 # n_vtab
     .long 0 # n_itab
@@ -1204,107 +1251,105 @@ _yalx_Zplang_Zolang_ZdString$fields:
     .quad 0 # reserved0
     .quad Lkzs.17 # name
     .long 4 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+1008 # type
     .long 16 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # String::capacity
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
     .quad Lkzs.18 # name
     .long 8 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+1008 # type
     .long 20 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # String::cachedHashCode
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
     .quad Lkzs.19 # name
     .long 14 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+1008 # type
     .long 24 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # String::buf
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
     .quad Lkzs.20 # name
     .long 3 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+3456 # type
     .long 32 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
 _yalx_Zplang_Zolang_ZdString$methods:
     # String::toString
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.5 # name
     .long 8 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.13 # prototype_desc
     .long 22 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdString_ZdtoString # entry
     # String::hashCode
     .long 1 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.3 # name
     .long 8 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.14 # prototype_desc
     .long 19 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdString_ZdhashCode # entry
 _yalx_Zplang_Zolang_ZdString$ctor:
     # String::String$constructor
     .long 2 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.16 # name
     .long 18 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.15 # prototype_desc
     .long 37 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdString_ZdString_Z4constructor # entry
 .global _yalx_Zplang_Zolang_ZdI32$class
 _yalx_Zplang_Zolang_ZdI32$class:
     .quad 0 # id
     .byte 1 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 24 # instance_size
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl$class # super
     .quad Lkzs.26 # name
     .long 3 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.27 # location
     .long 18 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 0 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # fields
     .quad _yalx_Zplang_Zolang_ZdI32$ctor # ctor
     .long 2 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdI32$methods # methods
     .long 0 # n_vtab
     .long 0 # n_itab
@@ -1315,55 +1360,53 @@ _yalx_Zplang_Zolang_ZdI32$methods:
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.5 # name
     .long 8 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.23 # prototype_desc
     .long 34 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdI32_ZdtoString # entry
 _yalx_Zplang_Zolang_ZdI32$ctor:
     # I32::I32$constructor
     .long 1 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.25 # name
     .long 15 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.24 # prototype_desc
     .long 36 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdI32_ZdI32_Z4constructor # entry
 .global _yalx_Zplang_Zolang_ZdU32$class
 _yalx_Zplang_Zolang_ZdU32$class:
     .quad 0 # id
     .byte 1 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 24 # instance_size
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl$class # super
     .quad Lkzs.31 # name
     .long 3 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.32 # location
     .long 18 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 0 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # fields
     .quad _yalx_Zplang_Zolang_ZdU32$ctor # ctor
     .long 2 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdU32$methods # methods
     .long 0 # n_vtab
     .long 0 # n_itab
@@ -1374,55 +1417,53 @@ _yalx_Zplang_Zolang_ZdU32$methods:
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.5 # name
     .long 8 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.28 # prototype_desc
     .long 34 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdU32_ZdtoString # entry
 _yalx_Zplang_Zolang_ZdU32$ctor:
     # U32::U32$constructor
     .long 1 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.30 # name
     .long 15 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.29 # prototype_desc
     .long 36 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdU32_ZdU32_Z4constructor # entry
 .global _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl$class
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl$class:
     .quad 0 # id
     .byte 1 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 24 # instance_size
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # super
     .quad Lkzs.56 # name
     .long 11 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.57 # location
     .long 26 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 1 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl$fields # fields
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl$ctor # ctor
     .long 11 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl$methods # methods
     .long 0 # n_vtab
     .long 0 # n_itab
@@ -1435,181 +1476,179 @@ _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl$fields:
     .quad 0 # reserved0
     .quad Lkzs.55 # name
     .long 5 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+864 # type
     .long 16 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl$methods:
     # Number<i32>::toI8
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.34 # name
     .long 4 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.33 # prototype_desc
     .long 38 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI8 # entry
     # Number<i32>::toU8
     .long 1 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.36 # name
     .long 4 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.35 # prototype_desc
     .long 38 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU8 # entry
     # Number<i32>::toI16
     .long 2 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.38 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.37 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI16 # entry
     # Number<i32>::toU16
     .long 3 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.40 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.39 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU16 # entry
     # Number<i32>::toI32
     .long 4 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.42 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.41 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI32 # entry
     # Number<i32>::toU32
     .long 5 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.44 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.43 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU32 # entry
     # Number<i32>::toI64
     .long 6 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.46 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.45 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoI64 # entry
     # Number<i32>::toU64
     .long 7 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.48 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.47 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoU64 # entry
     # Number<i32>::toF32
     .long 8 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.50 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.49 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoF32 # entry
     # Number<i32>::toF64
     .long 9 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.52 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.51 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdtoF64 # entry
 _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl$ctor:
     # Number<i32>::Number<i32>$constructor
     .long 10 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.54 # name
     .long 23 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.53 # prototype_desc
     .long 44 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdNumber_Dki32_Dl_Z4constructor # entry
 .global _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl$class
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl$class:
     .quad 0 # id
     .byte 1 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 24 # instance_size
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # super
     .quad Lkzs.70 # name
     .long 11 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.71 # location
     .long 26 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 1 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl$fields # fields
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl$ctor # ctor
     .long 11 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl$methods # methods
     .long 0 # n_vtab
     .long 0 # n_itab
@@ -1622,181 +1661,179 @@ _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl$fields:
     .quad 0 # reserved0
     .quad Lkzs.55 # name
     .long 5 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+1008 # type
     .long 16 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl$methods:
     # Number<u32>::toI8
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.34 # name
     .long 4 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.58 # prototype_desc
     .long 38 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI8 # entry
     # Number<u32>::toU8
     .long 1 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.36 # name
     .long 4 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.59 # prototype_desc
     .long 38 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU8 # entry
     # Number<u32>::toI16
     .long 2 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.38 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.60 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI16 # entry
     # Number<u32>::toU16
     .long 3 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.40 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.61 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU16 # entry
     # Number<u32>::toI32
     .long 4 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.42 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.62 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI32 # entry
     # Number<u32>::toU32
     .long 5 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.44 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.63 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU32 # entry
     # Number<u32>::toI64
     .long 6 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.46 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.64 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoI64 # entry
     # Number<u32>::toU64
     .long 7 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.48 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.65 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoU64 # entry
     # Number<u32>::toF32
     .long 8 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.50 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.66 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoF32 # entry
     # Number<u32>::toF64
     .long 9 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.52 # name
     .long 5 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.67 # prototype_desc
     .long 39 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdtoF64 # entry
 _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl$ctor:
     # Number<u32>::Number<u32>$constructor
     .long 10 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.69 # name
     .long 23 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.68 # prototype_desc
     .long 44 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdNumber_Dku32_Dl_Z4constructor # entry
 .global _yalx_Zplang_Zolang_ZdThrowable$class
 _yalx_Zplang_Zolang_ZdThrowable$class:
     .quad 0 # id
     .byte 0 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 40 # instance_size
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdAny$class # super
     .quad Lkzs.80 # name
     .long 9 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.81 # location
     .long 24 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 3 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdThrowable$fields # fields
     .quad _yalx_Zplang_Zolang_ZdThrowable$ctor # ctor
     .long 3 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdThrowable$methods # methods
     .long 5 # n_vtab
     .long 0 # n_itab
@@ -1809,70 +1846,70 @@ _yalx_Zplang_Zolang_ZdThrowable$fields:
     .quad 0 # reserved0
     .quad Lkzs.77 # name
     .long 7 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _yalx_Zplang_Zolang_ZdString$class # type
     .long 16 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # Throwable::linked
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
     .quad Lkzs.78 # name
     .long 6 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _yalx_Zplang_Zolang_ZdThrowable$class # type
     .long 24 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # Throwable::backtrace
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
     .quad Lkzs.79 # name
     .long 9 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+3600 # type
     .long 32 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
 _yalx_Zplang_Zolang_ZdThrowable$methods:
     # Throwable::toString
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.5 # name
     .long 8 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.72 # prototype_desc
     .long 40 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdThrowable_ZdtoString # entry
     # Throwable::printBacktrace
     .long 1 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.74 # name
     .long 14 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.73 # prototype_desc
     .long 38 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdThrowable_ZdprintBacktrace # entry
 _yalx_Zplang_Zolang_ZdThrowable$ctor:
     # Throwable::Throwable$constructor
     .long 2 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.76 # name
     .long 21 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.75 # prototype_desc
     .long 70 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor # entry
 _yalx_Zplang_Zolang_ZdThrowable$vtab:
     .quad _yalx_Zplang_Zolang_ZdAny_Zdfinalize
@@ -1884,28 +1921,26 @@ _yalx_Zplang_Zolang_ZdThrowable$vtab:
 _yalx_Zplang_Zolang_ZdException$class:
     .quad 0 # id
     .byte 0 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 40 # instance_size
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdThrowable$class # super
     .quad Lkzs.84 # name
     .long 9 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.85 # location
     .long 24 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 0 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # fields
     .quad _yalx_Zplang_Zolang_ZdException$ctor # ctor
     .long 1 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdException$methods # methods
     .long 0 # n_vtab
     .long 0 # n_itab
@@ -1917,41 +1952,39 @@ _yalx_Zplang_Zolang_ZdException$ctor:
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.83 # name
     .long 21 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.82 # prototype_desc
     .long 70 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor # entry
 .global _yalx_Zplang_Zolang_ZdBadCastingException$class
 _yalx_Zplang_Zolang_ZdBadCastingException$class:
     .quad 0 # id
     .byte 0 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 40 # instance_size
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdException$class # super
     .quad Lkzs.88 # name
     .long 19 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.89 # location
     .long 34 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 0 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # fields
     .quad _yalx_Zplang_Zolang_ZdBadCastingException$ctor # ctor
     .long 1 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdBadCastingException$methods # methods
     .long 0 # n_vtab
     .long 0 # n_itab
@@ -1963,41 +1996,83 @@ _yalx_Zplang_Zolang_ZdBadCastingException$ctor:
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.87 # name
     .long 31 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.86 # prototype_desc
     .long 55 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdBadCastingException_ZdBadCastingException_Z4constructor # entry
+.global _yalx_Zplang_Zolang_ZdArrayIndexOutOfBoundsException$class
+_yalx_Zplang_Zolang_ZdArrayIndexOutOfBoundsException$class:
+    .quad 0 # id
+    .byte 0 # constraint
+    .space 3 # padding
+    .long 8 # reference_size
+    .long 40 # instance_size
+    .space 4 # padding
+    .quad _yalx_Zplang_Zolang_ZdException$class # super
+    .quad Lkzs.92 # name
+    .long 30 # name
+    .space 4 # padding
+    .quad Lkzs.93 # location
+    .long 45 # location
+    .space 4 # padding
+    .long 0 # n_annotations
+    .space 4 # padding
+    .quad 0 # reserved0
+    .long 0 # n_fields
+    .space 4 # padding
+    .quad 0 # fields
+    .quad _yalx_Zplang_Zolang_ZdArrayIndexOutOfBoundsException$ctor # ctor
+    .long 1 # n_methods
+    .space 4 # padding
+    .quad _yalx_Zplang_Zolang_ZdArrayIndexOutOfBoundsException$methods # methods
+    .long 0 # n_vtab
+    .long 0 # n_itab
+    .quad 0 # vtab
+    .quad 0 # itab
+_yalx_Zplang_Zolang_ZdArrayIndexOutOfBoundsException$methods:
+_yalx_Zplang_Zolang_ZdArrayIndexOutOfBoundsException$ctor:
+    # ArrayIndexOutOfBoundsException::ArrayIndexOutOfBoundsException$constructor
+    .long 0 # index
+    .long 0 # access|is_native|is_override|...
+    .long 0 # n_annotations
+    .space 4 # padding
+    .quad 0 # reserved0
+    .quad Lkzs.91 # name
+    .long 42 # name
+    .space 4 # padding
+    .quad Lkzs.90 # prototype_desc
+    .long 66 # prototype_desc
+    .space 4 # padding
+    .quad _yalx_Zplang_Zolang_ZdArrayIndexOutOfBoundsException_ZdArrayIndexOutOfBoundsException_Z4constructor # entry
 .global _yalx_Zplang_Zolang_ZdBacktraceFrame$class
 _yalx_Zplang_Zolang_ZdBacktraceFrame$class:
     .quad 0 # id
     .byte 0 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 48 # instance_size
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdAny$class # super
-    .quad Lkzs.96 # name
+    .quad Lkzs.100 # name
     .long 14 # name
-    .long 0 # padding
-    .quad Lkzs.97 # location
+    .space 4 # padding
+    .quad Lkzs.101 # location
     .long 29 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 4 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdBacktraceFrame$fields # fields
     .quad _yalx_Zplang_Zolang_ZdBacktraceFrame$ctor # ctor
     .long 1 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdBacktraceFrame$methods # methods
     .long 0 # n_vtab
     .long 0 # n_itab
@@ -2008,63 +2083,63 @@ _yalx_Zplang_Zolang_ZdBacktraceFrame$fields:
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.92 # name
+    .quad Lkzs.96 # name
     .long 7 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+1008 # type
     .long 16 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # BacktraceFrame::function
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.93 # name
+    .quad Lkzs.97 # name
     .long 8 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _yalx_Zplang_Zolang_ZdString$class # type
     .long 24 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # BacktraceFrame::file
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.94 # name
+    .quad Lkzs.98 # name
     .long 4 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _yalx_Zplang_Zolang_ZdString$class # type
     .long 32 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # BacktraceFrame::line
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
-    .quad Lkzs.95 # name
+    .quad Lkzs.99 # name
     .long 4 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+1008 # type
     .long 40 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
 _yalx_Zplang_Zolang_ZdBacktraceFrame$methods:
 _yalx_Zplang_Zolang_ZdBacktraceFrame$ctor:
     # BacktraceFrame::BacktraceFrame$constructor
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
-    .quad Lkzs.91 # name
+    .quad Lkzs.95 # name
     .long 26 # name
-    .long 0 # padding
-    .quad Lkzs.90 # prototype_desc
+    .space 4 # padding
+    .quad Lkzs.94 # prototype_desc
     .long 65 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _yalx_Zplang_Zolang_ZdBacktraceFrame_ZdBacktraceFrame_Z4constructor # entry
 .section __DATA,__data
 .p2align 4
 # Yalx-String constants
 .global _yalx_Zplang_Zolang_Lksz
 _yalx_Zplang_Zolang_Lksz:
-    .long 98
+    .long 102
     .long 0 # padding for struct lksz_header
     .quad Lkzs.0
     .quad Lkzs.1
@@ -2164,9 +2239,13 @@ _yalx_Zplang_Zolang_Lksz:
     .quad Lkzs.95
     .quad Lkzs.96
     .quad Lkzs.97
+    .quad Lkzs.98
+    .quad Lkzs.99
+    .quad Lkzs.100
+    .quad Lkzs.101
 .global _yalx_Zplang_Zolang_Kstr
 _yalx_Zplang_Zolang_Kstr:
-    .long 98
+    .long 102
     .long 0 # padding for struct kstr_header
 Kstr.0:
     .quad 0
@@ -2363,4 +2442,12 @@ Kstr.95:
 Kstr.96:
     .quad 0
 Kstr.97:
+    .quad 0
+Kstr.98:
+    .quad 0
+Kstr.99:
+    .quad 0
+Kstr.100:
+    .quad 0
+Kstr.101:
     .quad 0

@@ -130,12 +130,10 @@ void GnuAsmGenerator::EmitMetadata() {
         printer_->Indent(1)->Println(".quad %d %s id", 0/*TODO:class_id*/, comment_);
         printer_->Indent(1)->Println(".byte %d %s constraint",
                                      clazz->declaration() == ir::Model::kClass ? K_CLASS : K_STRUCT, comment_);
-        printer_->Indent(1)->Println(".byte 0 %s padding", comment_);
-        printer_->Indent(1)->Writeln(".byte 0");
-        printer_->Indent(1)->Writeln(".byte 0");
+        printer_->Indent(1)->Println(".space 3 %s padding", comment_);
         printer_->Indent(1)->Println(".long %d %s reference_size", clazz->ReferenceSizeInBytes(), comment_);
         printer_->Indent(1)->Println(".long %d %s instance_size", clazz->PlacementSizeInBytes(), comment_);
-        printer_->Indent(1)->Println(".long 0 %s padding", comment_);
+        printer_->Indent(1)->Println(".space 4 %s padding", comment_);
         if (clazz->base_of()) {
             std::string base_name;
             LinkageSymbols::Build(&base_name, clazz->base_of()->full_name()->ToSlice());
@@ -147,16 +145,16 @@ void GnuAsmGenerator::EmitMetadata() {
         auto kid = const_pool_->FindOrInsertString(clazz->name());
         printer_->Indent(1)->Println(".quad Lkzs.%zd %s name", kid, comment_);
         printer_->Indent(1)->Println(".long %zd %s name", clazz->name()->size(), comment_);
-        printer_->Indent(1)->Println(".long 0 %s padding", comment_);
+        printer_->Indent(1)->Println(".space 4 %s padding", comment_);
         kid = const_pool_->FindOrInsertString(clazz->full_name());
         printer_->Indent(1)->Println(".quad Lkzs.%zd %s location", kid, comment_);
         printer_->Indent(1)->Println(".long %zd %s location", clazz->full_name()->size(), comment_);
-        printer_->Indent(1)->Println(".long 0 %s padding", comment_);
+        printer_->Indent(1)->Println(".space 4 %s padding", comment_);
         printer_->Indent(1)->Println(".long %u %s n_annotations", 0/*TODO*/, comment_);
-        printer_->Indent(1)->Println(".long 0 %s padding", comment_);
+        printer_->Indent(1)->Println(".space 4 %s padding", comment_);
         printer_->Indent(1)->Println(".quad 0 %s reserved0", comment_);
         printer_->Indent(1)->Println(".long %zd %s n_fields", clazz->fields_size(), comment_);
-        printer_->Indent(1)->Println(".long 0 %s padding", comment_);
+        printer_->Indent(1)->Println(".space 4 %s padding", comment_);
         
         buf.erase(buf.end() - 5, buf.end());
         buf.append("fields");
@@ -167,7 +165,7 @@ void GnuAsmGenerator::EmitMetadata() {
         printer_->Indent(1)->Println(".quad %s %s ctor", !clazz->constructor() ? "0" : buf.c_str(), comment_);
         
         printer_->Indent(1)->Println(".long %zd %s n_methods", clazz->methods_size(), comment_);
-        printer_->Indent(1)->Println(".long 0 %s padding", comment_);
+        printer_->Indent(1)->Println(".space 4 %s padding", comment_);
         
         buf.erase(buf.end() - 4, buf.end());
         buf.append("methods");
@@ -205,10 +203,13 @@ void GnuAsmGenerator::EmitMetadata() {
             auto kid = const_pool_->FindOrInsertString(field.name);
             printer_->Indent(1)->Println(".quad Lkzs.%zd %s name", kid, comment_);
             printer_->Indent(1)->Println(".long %zd %s name", field.name->size(), comment_);
-            printer_->Indent(1)->Println(".long 0 %s padding", comment_);
-            printer_->Indent(1)->Println(".quad 0 %s type", comment_); // TODO: set type
+            printer_->Indent(1)->Println(".space 4 %s padding", comment_);
+            
+            //printer_->Indent(1)->Println(".quad 0 %s type", comment_); // TODO: set type
+            EmitTypeRelocation(field.type, printer_->Indent(1)->Write(".quad "));
+            
             printer_->Indent(1)->Println(".long %zd %s offset_of_head", field.offset, comment_);
-            printer_->Indent(1)->Println(".long 0 %s padding", comment_);
+            printer_->Indent(1)->Println(".space 4 %s padding", comment_);
         }
         
         if (!clazz->methods().empty()) {
@@ -243,16 +244,16 @@ void GnuAsmGenerator::EmitMetadata() {
             printer_->Indent(1)->Println(".long %d %s index", method_index++, comment_);
             printer_->Indent(1)->Println(".long %u %s access|is_native|is_override|...", 0, comment_); // TODO:
             printer_->Indent(1)->Println(".long 0 %s n_annotations", comment_);
-            printer_->Indent(1)->Println(".long 0 %s padding", comment_);
+            printer_->Indent(1)->Println(".space 4 %s padding", comment_);
             printer_->Indent(1)->Println(".quad 0 %s reserved0", comment_);
             auto kid = const_pool_->FindOrInsertString(method.fun->name());
             printer_->Indent(1)->Println(".quad Lkzs.%zd %s name", kid, comment_);
             printer_->Indent(1)->Println(".long %zd %s name", method.fun->name()->size(), comment_);
-            printer_->Indent(1)->Println(".long 0 %s padding", comment_);
+            printer_->Indent(1)->Println(".space 4 %s padding", comment_);
             kid = const_pool_->FindOrInsertString(method.fun->prototype()->name());
             printer_->Indent(1)->Println(".quad Lkzs.%zd %s prototype_desc", kid, comment_);
             printer_->Indent(1)->Println(".long %zd %s prototype_desc", method.fun->prototype()->name()->size(), comment_);
-            printer_->Indent(1)->Println(".long 0 %s padding", comment_);
+            printer_->Indent(1)->Println(".space 4 %s padding", comment_);
             std::string symbol;
             LinkageSymbols::Build(&symbol, method.fun->full_name()->ToSlice());
             printer_->Indent(1)->Println(".quad %s %s entry", symbol.c_str(), comment_);
@@ -282,6 +283,77 @@ void GnuAsmGenerator::EmitMetadata() {
             printer_->Indent(1)->Println(".quad %s", symbol->data());
         }
     }
+}
+
+void GnuAsmGenerator::EmitTypeRelocation(const ir::Type &ty, base::PrintingWriter *printer) {
+    switch (ty.kind()) {
+        case ir::Type::kWord8:
+        case ir::Type::kUInt8:
+            printer->Print("_builtin_classes+%d", Type_u8 * sizeof(yalx_class));
+            break;
+        case ir::Type::kWord16:
+        case ir::Type::kUInt16:
+            printer->Print("_builtin_classes+%d", Type_u16 * sizeof(yalx_class));
+            break;
+        case ir::Type::kWord32:
+        case ir::Type::kUInt32:
+            printer->Print("_builtin_classes+%d", Type_u32 * sizeof(yalx_class));
+            break;
+        case ir::Type::kWord64:
+        case ir::Type::kUInt64:
+            printer->Print("_builtin_classes+%d", Type_u32 * sizeof(yalx_class));
+            break;
+        case ir::Type::kInt8:
+            printer->Print("_builtin_classes+%d", Type_i8 * sizeof(yalx_class));
+            break;
+        case ir::Type::kInt16:
+            printer->Print("_builtin_classes+%d", Type_i16 * sizeof(yalx_class));
+            break;
+        case ir::Type::kInt32:
+            printer->Print("_builtin_classes+%d", Type_i32 * sizeof(yalx_class));
+            break;
+        case ir::Type::kInt64:
+            printer->Print("_builtin_classes+%d", Type_i64 * sizeof(yalx_class));
+            break;
+        case ir::Type::kFloat32:
+            printer->Print("_builtin_classes+%d", Type_f32 * sizeof(yalx_class));
+            break;
+        case ir::Type::kFloat64:
+            printer->Print("_builtin_classes+%d", Type_f64 * sizeof(yalx_class));
+            break;
+        case ir::Type::kString:
+            printer->Write("_yalx_Zplang_Zolang_ZdString$class");
+            break;
+        case ir::Type::kValue: {
+            std::string symbol;
+            LinkageSymbols::Build(&symbol, ty.model()->full_name()->ToSlice());
+            symbol.append("$class");
+            printer->Write(symbol);
+        } break;
+        case ir::Type::kReference: {
+            if (ty.model()->declaration() == ir::Model::kArray) {
+                auto model = down_cast<ir::ArrayModel>(ty.model());
+                if (model->dimension_count() > 1) {
+                    printer->Print("_builtin_classes+%d", Type_dims_array * sizeof(yalx_class));
+                } else if (model->element_type().IsReference()) {
+                    printer->Print("_builtin_classes+%d", Type_refs_array * sizeof(yalx_class));
+                } else {
+                    printer->Print("_builtin_classes+%d", Type_typed_array * sizeof(yalx_class));
+                }
+            } else if (ty.model()->declaration() == ir::Model::kChannel) {
+                UNREACHABLE();
+            } else {
+                std::string symbol;
+                LinkageSymbols::Build(&symbol, ty.model()->full_name()->ToSlice());
+                symbol.append("$class");
+                printer->Write(symbol);
+            }
+        } break;
+        default:
+            UNREACHABLE();
+            break;
+    }
+    printer->Println(" %s type", comment_);
 }
 
 void GnuAsmGenerator::EmitSourceFilesInfo() {

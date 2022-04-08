@@ -44,6 +44,7 @@ extern "C" {
 #define ANY_CLASS_NAME       "yalx/lang:lang.Any"
 #define STRING_CLASS_NAME    "yalx/lang:lang.String"
 #define BAD_CASTING_EXCEPTION_CLASS_NAME "yalx/lang:lang.BadCastingException"
+#define ARRAY_INDEX_OUT_OF_BOUNDS_EXCEPTION_CLASS_NAME "yalx/lang:lang.ArrayIndexOutOfBoundsException"
 #define EXCEPTION_CLASS_NAME "yalx/lang:lang.Exception"
 #define THROWABLE_CLASS_NAME "yalx/lang:lang.Throwable"
 #define BACKTRACE_FRAME_CLASS_NAME "yalx/lang:lang.BacktraceFrame"

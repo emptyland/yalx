@@ -339,7 +339,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
 };
 
 
-const struct yalx_class *const yalx_lang_any_class = &builtin_classes[Type_any];
+
 const struct yalx_class *const bool_class = &builtin_classes[Type_bool];
 const struct yalx_class *const i8_class = &builtin_classes[Type_i8];
 const struct yalx_class *const u8_class = &builtin_classes[Type_u8];
@@ -356,14 +356,15 @@ const struct yalx_class *const U64_class = &builtin_classes[Type_U64];
 const struct yalx_class *const F32_class = &builtin_classes[Type_F32];
 const struct yalx_class *const F64_class = &builtin_classes[Type_F64];
 
-const struct yalx_class *const string_class = &builtin_classes[Type_string];
-
 const struct yalx_class *const typed_array_class = &builtin_classes[Type_typed_array];
 const struct yalx_class *const refs_array_class = &builtin_classes[Type_refs_array];
 const struct yalx_class *const dims_array_class = &builtin_classes[Type_dims_array];
 
+const struct yalx_class *const any_class = &builtin_classes[Type_any];
+const struct yalx_class *const string_class = &builtin_classes[Type_string];
 
 const struct yalx_class *backtrace_frame_class = NULL;
 const struct yalx_class *throwable_class = NULL;
 const struct yalx_class *exception_class = NULL;
 const struct yalx_class *bad_casting_exception_class = NULL;
+const struct yalx_class *array_index_out_of_bounds_exception_class = NULL;
