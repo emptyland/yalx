@@ -109,6 +109,10 @@
 		2387EFB82685BB99002E6DCF /* node-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFB62685BB99002E6DCF /* node-test.cc */; };
 		2387EFBB2685BEAD002E6DCF /* ast.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFBA2685BEAD002E6DCF /* ast.cc */; };
 		2387EFBC2685BEAD002E6DCF /* ast.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFBA2685BEAD002E6DCF /* ast.cc */; };
+		23893F8028447368000FA9F7 /* block.c in Sources */ = {isa = PBXBuildFile; fileRef = 23893F7F28447368000FA9F7 /* block.c */; };
+		23893F8128447368000FA9F7 /* block.c in Sources */ = {isa = PBXBuildFile; fileRef = 23893F7F28447368000FA9F7 /* block.c */; };
+		23893F8328449CE4000FA9F7 /* block-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23893F8228449CE4000FA9F7 /* block-test.cc */; };
+		23893F8428449CE4000FA9F7 /* block-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23893F8228449CE4000FA9F7 /* block-test.cc */; };
 		239735C827B54BA300FAD063 /* code-generate-x64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735C727B54BA300FAD063 /* code-generate-x64.cc */; };
 		239735C927B54BA300FAD063 /* code-generate-x64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735C727B54BA300FAD063 /* code-generate-x64.cc */; };
 		239735CC27B54D2800FAD063 /* linkage-symbols.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735CB27B54D2800FAD063 /* linkage-symbols.cc */; };
@@ -433,6 +437,10 @@
 		2387EFB62685BB99002E6DCF /* node-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "node-test.cc"; path = "../src/compiler/node-test.cc"; sourceTree = "<group>"; };
 		2387EFB92685BE66002E6DCF /* ast.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ast.h; path = ../src/compiler/ast.h; sourceTree = "<group>"; };
 		2387EFBA2685BEAD002E6DCF /* ast.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ast.cc; path = ../src/compiler/ast.cc; sourceTree = "<group>"; };
+		23893F7D28447317000FA9F7 /* lxr.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lxr.h; path = ../src/runtime/lxr/lxr.h; sourceTree = "<group>"; };
+		23893F7E28447351000FA9F7 /* block.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = block.h; path = ../src/runtime/lxr/block.h; sourceTree = "<group>"; };
+		23893F7F28447368000FA9F7 /* block.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = block.c; path = ../src/runtime/lxr/block.c; sourceTree = "<group>"; };
+		23893F8228449CE4000FA9F7 /* block-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "block-test.cc"; path = "../src/runtime/lxr/block-test.cc"; sourceTree = "<group>"; };
 		239735C627B54B2400FAD063 /* code-generate-x64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "code-generate-x64.h"; path = "../src/backend/x64/code-generate-x64.h"; sourceTree = "<group>"; };
 		239735C727B54BA300FAD063 /* code-generate-x64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "code-generate-x64.cc"; path = "../src/backend/x64/code-generate-x64.cc"; sourceTree = "<group>"; };
 		239735CA27B54CD500FAD063 /* linkage-symbols.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "linkage-symbols.h"; path = "../src/backend/linkage-symbols.h"; sourceTree = "<group>"; };
@@ -622,6 +630,7 @@
 		2351F80D26648C8200D337EA /* Runtime */ = {
 			isa = PBXGroup;
 			children = (
+				23893F7C284472ED000FA9F7 /* LXR */,
 				23D5A68026676B2600635ADB /* Object */,
 				23D5A67F26676B1F00635ADB /* Heap */,
 				2351F812266494AE00D337EA /* runtime-test.cc */,
@@ -777,6 +786,17 @@
 				23C1345827A4D96D00C0DEB4 /* assembly-generating-delegate.h */,
 			);
 			name = Compiler;
+			sourceTree = "<group>";
+		};
+		23893F7C284472ED000FA9F7 /* LXR */ = {
+			isa = PBXGroup;
+			children = (
+				23893F7D28447317000FA9F7 /* lxr.h */,
+				23893F8228449CE4000FA9F7 /* block-test.cc */,
+				23893F7F28447368000FA9F7 /* block.c */,
+				23893F7E28447351000FA9F7 /* block.h */,
+			);
+			name = LXR;
 			sourceTree = "<group>";
 		};
 		23D5A67F26676B1F00635ADB /* Heap */ = {
@@ -971,6 +991,7 @@
 				23D4A44F2680D17D0090C631 /* heap.h in Sources */,
 				230C85FF27853E4D00298122 /* constants.cc in Sources */,
 				23A7F0E22699E22A0060BFB7 /* compiler-test.cc in Sources */,
+				23893F8428449CE4000FA9F7 /* block-test.cc in Sources */,
 				2313C4DD27A2421C00F6A34B /* constants-folding-test.cc in Sources */,
 				23D4A4502680D17D0090C631 /* heap.c in Sources */,
 				23D4A4512680D17D0090C631 /* runtime-test.cc in Sources */,
@@ -1088,6 +1109,7 @@
 				23D4A4812680D17D0090C631 /* format.h in Sources */,
 				23D4A4822680D17D0090C631 /* format.cc in Sources */,
 				23D4A4832680D17D0090C631 /* utils.h in Sources */,
+				23893F8128447368000FA9F7 /* block.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1095,6 +1117,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				23893F8028447368000FA9F7 /* block.c in Sources */,
 				23D5A65F266718F900635ADB /* arena-utils.cc in Sources */,
 				23D5A660266718F900635ADB /* arena-utils.h in Sources */,
 				23C1346927A5333000C0DEB4 /* register-allocator-test.cc in Sources */,
@@ -1207,6 +1230,7 @@
 				23D5A654266718ED00635ADB /* process.h in Sources */,
 				2355560A278929C0003ADACE /* io-test.cc in Sources */,
 				239735CF27B551A500FAD063 /* linkage-symbols-test.cc in Sources */,
+				23893F8328449CE4000FA9F7 /* block-test.cc in Sources */,
 				2313C4D627A23E8500F6A34B /* constants-folding.cc in Sources */,
 				23D5A655266718ED00635ADB /* process.c in Sources */,
 				23D5A656266718ED00635ADB /* checking.h in Sources */,
