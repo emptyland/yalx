@@ -4,6 +4,14 @@
 #include <sys/mman.h>
 #include <assert.h>
 
+static inline int approximate_log2(size_t n) {
+    int j = 0;
+    for (size_t i = 1; i < n; i <<= 1) {
+        j++;
+    }
+    return j;
+}
+
 static void *aligned_page_allocate(const size_t size, const size_t alignment) {
     const size_t page_size = os_page_size;
     size_t request_size = ROUND_UP(size + (alignment - page_size), page_size);

@@ -16,18 +16,31 @@ enum lxr_block_kind {
 
 #define LXR_NORMAL_BLOCK_SHIFT 20
 #define LXR_NORMAL_BLOCK_SIZE (1u << LXR_NORMAL_BLOCK_SHIFT)
+#define LXR_BLOCK_MAX_REGIONS 7
+#define LXR_BLOCK_BITMAP_LEN (LXR_NORMAL_BLOCK_SIZE >> 7)
+
+
+struct lxr_block_chunk {
+    struct lxr_block_chunk *next;
+    size_t size;
+}; // struct lxr_block_entry
 
 struct lxr_block_header {
     struct lxr_block_header *next;
     struct lxr_block_header *prev;
-    void *free;
+    // [0] 0, 16 bytes
+    // [1] 32 bytes
+    // [2] 64 bytes
+    // [3] 128 bytes
+    // [4] 256 bytes
+    // [5] 512 bytes
+    // [6] > 1024 bytes
+    struct lxr_block_chunk *regions[LXR_BLOCK_MAX_REGIONS];
+    struct lxr_block_chunk *free;
     ptrdiff_t offset_of_logging_bits;
+    //uint32_t bitmap[LXR_BLOCK_BITMAP_LEN];
 }; // struct lxr_block_header
 
-struct lxr_block_entry {
-    void *next;
-    size_t size;
-}; // struct lxr_block_entry
 
 
 #define lxr_block_bitmap(block) (uint32_t *)((address_t)(block) + sizeof(struct lxr_block_header))
