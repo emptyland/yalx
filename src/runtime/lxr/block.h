@@ -22,6 +22,8 @@ enum lxr_block_kind {
 #define LXR_NORMAL_BLOCK_SIZE (1u << LXR_NORMAL_BLOCK_SHIFT)
 #define LXR_BLOCK_MAX_REGIONS 7
 #define LXR_BLOCK_BITMAP_LEN (LXR_NORMAL_BLOCK_SIZE >> 7)
+#define LXR_BLOCK_MIN_ALIGMENT 8
+#define LXR_BLOCK_MASK ((1ull << LXR_NORMAL_BLOCK_SHIFT) - 1)
 
 
 struct lxr_block_chunk {
@@ -46,13 +48,17 @@ struct lxr_block_header {
 
 
 struct lxr_block_header *lxr_new_normal_block(const uint32_t *offset_of_bitmap);
+void lxr_delete_block(struct lxr_block_header *block);
 
 // 16,0|32,1|64,2|128,3|512,4|1024,5
 void *lxr_block_allocate(struct lxr_block_header *const block, const size_t size, const size_t aligment);
 
 void lxr_block_free(struct lxr_block_header *const block, void *chunk);
 
-void lxr_free_block(struct lxr_block_header *block);
+#define lxr_owns_block(chunk) ((struct lxr_block_header *)(((uintptr_t)chunk) & ~LXR_BLOCK_MASK))
+
+size_t lxr_block_marked_size(struct lxr_block_header *const block, void *chunk);
+
 
 #ifdef __cplusplus
 }
