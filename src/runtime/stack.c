@@ -1,6 +1,7 @@
 #include "runtime/stack.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdatomic.h>
 
 int yalx_init_stack(size_t size, struct stack *stack) {
     size = ROUND_UP(size, STACK_ALIGNMENT_SIZE);

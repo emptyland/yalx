@@ -17,6 +17,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 //#define _XOPEN_SOURCE
 //#include <ucontext.h>
 
@@ -660,6 +661,27 @@ int pkg_has_initialized(const char *const plain_name) {
     hash_table_value_span_t span = yalx_get_string_key(&pkg_init_records, plain_name);
     pthread_mutex_unlock(&pkg_init_mutex);
     return span.value != NULL;
+}
+
+void put_field(struct yalx_value_any **address, struct yalx_value_any *field) {
+    assert(address != NULL);
+    // TODO: 
+    *address = field;
+}
+
+struct yalx_value_any *lazy_load_object(struct yalx_value_any *_Atomic *address, const struct yalx_class *clazz) {
+    assert(address != NULL);
+    assert(clazz != NULL);
+    
+    struct allocate_result rs = yalx_heap_allocate(&heap, clazz, clazz->instance_size, 0);
+    assert(rs.object != NULL);
+    
+    if (atomic_load(address) == NULL) {
+        
+    }
+    //clazz->ctor->entry
+    // TODO:
+    return *address;
 }
 
 void associate_stub_returning_vals(struct yalx_returning_vals *state,

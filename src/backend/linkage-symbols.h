@@ -52,6 +52,7 @@ extern const String *const kRt_heap_alloc;
 extern const String *const kRt_raise;
 extern const String *const kRt_is_instance_of;
 extern const String *const kRt_ref_asserted_to;
+extern const String *const kRt_put_field;
 
 } // namespace backend
 } // namespace yalx

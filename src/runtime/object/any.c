@@ -14,7 +14,7 @@ void yalx_Zplang_Zolang_ZdAny_ZdhashCode_stub(yalx_ref_handle self) {
 }
 
 void yalx_Zplang_Zolang_ZdAny_Zdid_stub(yalx_ref_handle self) {
-    yalx_return_i32((*self)->oid);
+    yalx_return_i32((*self)->refs);
 }
 
 void yalx_Zplang_Zolang_ZdAny_ZdisEmpty_stub(yalx_ref_handle self) {

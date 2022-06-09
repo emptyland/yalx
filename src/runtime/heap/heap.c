@@ -225,7 +225,8 @@ struct allocate_result yalx_heap_allocate(struct heap *heap, const struct yalx_c
     if (rv.status != ALLOCATE_OK) {
         return rv;
     }
-    rv.object->oid = 0;
+    memset(rv.object, 0, size);
+    rv.object->refs = 0;
     rv.object->tags = 0;
     rv.object->klass = (uintptr_t)klass;
     rv.status = ALLOCATE_OK;

@@ -7,8 +7,11 @@
 #include <stdint.h>
 #include <string.h>
 
+
 #ifdef __cplusplus
 extern "C" {
+#else
+#include <stdatomic.h>
 #endif
 
 #define arraysize(a) (sizeof(a)/sizeof(a[0]))
@@ -76,6 +79,7 @@ struct yalx_str {
 
 #define YALX_STR(s) { .z = (s), .n = sizeof(s) - 1 }
 
+struct yalx_value_any;
 struct yalx_class;
 struct backtrace_frame;
 
@@ -198,6 +202,12 @@ void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx
 void pkg_init_once(void *init_fun, const char *const plain_name);
 int pkg_initialized_count();
 int pkg_has_initialized(const char *const plain_name);
+
+// put field for post write barrier
+void put_field(struct yalx_value_any **address, struct yalx_value_any *field);
+
+// lazy load object
+struct yalx_value_any *lazy_load_object(struct yalx_value_any * _Atomic *address, const struct yalx_class *clazz);
 
 void associate_stub_returning_vals(struct yalx_returning_vals *state,
                                    address_t returning_addr,

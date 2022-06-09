@@ -14,11 +14,14 @@ Lblk5:
     .cfi_offset %rbp, -16
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
+    subq $16, %rsp
     leaq _yalx_Zplang_Zolang_Zd_Z4init(%rip), %r13
     movq %r13, %rax
+    movq %rax, -8(%rbp)
     movq %rax, %rdi
     leaq Lkzs.1(%rip), %rsi
     callq _pkg_init_once
+    addq $16, %rsp
     popq %rbp
     retq
 .cfi_endproc
@@ -47,41 +50,51 @@ Lblk6:
     movl %ecx, %esi
     addl %edx, %esi
     movq %rax, -40(%rbp)
+    movl %ecx, -44(%rbp)
+    movl %edx, -48(%rbp)
     movl $3, %edi
     addq $16, %rsp
     callq _issue02_Zoissue02_ZdassertInt
     subq $16, %rsp
     movq -40(%rbp), %rax
     movq 24(%rax), %rcx
+    movq %rax, -8(%rbp)
+    movq %rcx, -16(%rbp)
+    movl %esi, -20(%rbp)
     movq Kstr.2(%rip), %rdi
-    movq %rcx, %rsi
+    movq -16(%rbp), %rsi
     addq $16, %rsp
     callq _issue02_Zoissue02_ZdassertString
     subq $16, %rsp
     leaq _issue02_Zoissue02_ZdBar$class(%rip), %rdi
     callq _heap_alloc
-    movq %rax, -8(%rbp)
-    movq -8(%rbp), %rdi
+    movq %rax, -16(%rbp)
+    movq -16(%rbp), %rdi
     movl $2, %esi
     movl $3, %edx
     movq Kstr.3(%rip), %rcx
     addq $16, %rsp
     callq _issue02_Zoissue02_ZdBar_ZdBar_Z4constructor
     subq $16, %rsp
-    movq -8(%rbp), %rax
+    movq -16(%rbp), %rax
     movl 16(%rax), %ecx
     movl 20(%rax), %edx
     movl %ecx, %esi
     addl %edx, %esi
-    movq %rax, -8(%rbp)
+    movq %rax, -16(%rbp)
+    movl %ecx, -24(%rbp)
+    movl %edx, -28(%rbp)
     movl $5, %edi
     addq $16, %rsp
     callq _issue02_Zoissue02_ZdassertInt
     subq $16, %rsp
-    movq -8(%rbp), %rax
+    movq -16(%rbp), %rax
     movq 24(%rax), %rcx
+    movq %rax, -16(%rbp)
+    movq %rcx, -36(%rbp)
+    movl %esi, -40(%rbp)
     movq Kstr.3(%rip), %rdi
-    movq %rcx, %rsi
+    movq -36(%rbp), %rsi
     addq $16, %rsp
     callq _issue02_Zoissue02_ZdassertString
     subq $16, %rsp
@@ -138,8 +151,9 @@ Lblk8:
     movq -40(%rbp), %rax
     movq 24(%rax), %rcx
     movq %rax, -40(%rbp)
+    movq %rcx, -48(%rbp)
     movq Kstr.2(%rip), %rdi
-    movq %rcx, %rsi
+    movq -48(%rbp), %rsi
     addq $16, %rsp
     callq _issue02_Zoissue02_ZdassertString
     subq $16, %rsp
@@ -147,8 +161,9 @@ Lblk8:
     movq Kstr.4(%rip), %r13
     movq %r13, 24(%rax)
     movq 24(%rax), %rax
+    movq %rax, -8(%rbp)
     movq Kstr.4(%rip), %rdi
-    movq %rax, %rsi
+    movq -8(%rbp), %rsi
     addq $16, %rsp
     callq _issue02_Zoissue02_ZdassertString
     subq $16, %rsp
@@ -192,25 +207,32 @@ Lblk10:
     .cfi_offset %rbp, -16
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
-    subq $16, %rsp
+    subq $32, %rsp
     leaq _yalx_Zplang_Zolang_ZdException$class(%rip), %rdi
     callq _heap_alloc
-    movq $0, %rcx
     movq %rax, -8(%rbp)
-    movq -8(%rbp), %rdi
+    movq $0, %rdi
+    leaq _yalx_Zplang_Zolang_ZdException$class(%rip), %rsi
+    callq _ref_asserted_to
+    movq -8(%rbp), %rcx
+    movq %rax, -8(%rbp)
+    movq %rcx, -16(%rbp)
+    movq -16(%rbp), %rdi
     movq Kstr.5(%rip), %rsi
-    movq %rcx, %rdx
-    addq $0, %rsp
-    callq _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
-    subq $0, %rsp
-    movq -8(%rbp), %rax
-    movq 16(%rax), %rcx
-    movq Kstr.5(%rip), %rdi
-    movq %rcx, %rsi
-    addq $0, %rsp
-    callq _issue02_Zoissue02_ZdassertString
-    subq $0, %rsp
+    movq -8(%rbp), %rdx
     addq $16, %rsp
+    callq _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
+    subq $16, %rsp
+    movq -16(%rbp), %rax
+    movq 16(%rax), %rcx
+    movq %rax, -8(%rbp)
+    movq %rcx, -16(%rbp)
+    movq Kstr.5(%rip), %rdi
+    movq -16(%rbp), %rsi
+    addq $16, %rsp
+    callq _issue02_Zoissue02_ZdassertString
+    subq $16, %rsp
+    addq $32, %rsp
     popq %rbp
     retq
 .cfi_endproc
@@ -319,27 +341,34 @@ Lblk1:
     .cfi_offset %rbp, -16
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
-    subq $32, %rsp
+    subq $48, %rsp
     movq %rdi, %rax
-    movq %rcx, -8(%rbp)
-    movl %edx, -12(%rbp)
-    movl %esi, -16(%rbp)
-    movq %rdi, -24(%rbp)
-    movq %rax, %rdi
-    addq $0, %rsp
+    movq %rax, -8(%rbp)
+    movq %rcx, -16(%rbp)
+    movl %edx, -20(%rbp)
+    movl %esi, -24(%rbp)
+    movq %rdi, -32(%rbp)
+    movq -8(%rbp), %rdi
+    addq $16, %rsp
     callq _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
-    subq $0, %rsp
-    movq -8(%rbp), %rcx
-    movl -12(%rbp), %edx
-    movl -16(%rbp), %esi
-    movq -24(%rbp), %rdi
-    movl %esi, 16(%rdi)
-    movl %edx, 20(%rdi)
-    movq %rcx, 24(%rdi)
-    addq $32, %rsp
+    subq $16, %rsp
+    movq -16(%rbp), %rax
+    movl -20(%rbp), %ecx
+    movl -24(%rbp), %edx
+    movq -32(%rbp), %rsi
+    movl %edx, 16(%rsi)
+    movl %ecx, 20(%rsi)
+    movq %rax, -8(%rbp)
+    movl %ecx, -12(%rbp)
+    movl %edx, -16(%rbp)
+    movq %rsi, -24(%rbp)
+    leaq 24(%rsi), %rdi
+    movq %rax, %rsi
+    callq _put_field
+    addq $48, %rsp
     popq %rbp
     retq
-    addq $32, %rsp
+    addq $48, %rsp
     popq %rbp
     retq
 .cfi_endproc
@@ -352,13 +381,18 @@ Lblk2:
     .cfi_offset %rbp, -16
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
+    subq $32, %rsp
     movq 24(%rdi), %rax
-    movq %rax, %rdi
-    addq $0, %rsp
+    movq %rax, -8(%rbp)
+    movq %rdi, -16(%rbp)
+    movq -8(%rbp), %rdi
+    addq $16, %rsp
     callq _issue02_Zoissue02_Zddisplay
-    subq $0, %rsp
+    subq $16, %rsp
+    addq $32, %rsp
     popq %rbp
     retq
+    addq $32, %rsp
     popq %rbp
     retq
 .cfi_endproc
@@ -377,7 +411,6 @@ Lblk3:
     addq $0, %rsp
     callq _issue02_Zoissue02_Zddisplay
     subq $0, %rsp
-    movq -8(%rbp), %rax
     addq $16, %rsp
     popq %rbp
     retq
@@ -451,28 +484,26 @@ Lkzs.19:
 _issue02_Zoissue02_ZdBar$class:
     .quad 0 # id
     .byte 0 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 32 # instance_size
-    .long 0 # padding
-    .quad _issue02_Zoissue02_ZdBar$class # super
+    .space 4 # padding
+    .quad _yalx_Zplang_Zolang_ZdAny$class # super
     .quad Lkzs.12 # name
     .long 3 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.13 # location
     .long 19 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 3 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad _issue02_Zoissue02_ZdBar$fields # fields
     .quad _issue02_Zoissue02_ZdBar$ctor # ctor
     .long 2 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _issue02_Zoissue02_ZdBar$methods # methods
     .long 5 # n_vtab
     .long 0 # n_itab
@@ -485,57 +516,57 @@ _issue02_Zoissue02_ZdBar$fields:
     .quad 0 # reserved0
     .quad Lkzs.10 # name
     .long 1 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+864 # type
     .long 16 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # Bar::y
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
     .quad Lkzs.11 # name
     .long 1 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+864 # type
     .long 20 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # Bar::name
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
     .quad Lkzs.2 # name
     .long 4 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _yalx_Zplang_Zolang_ZdString$class # type
     .long 24 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
 _issue02_Zoissue02_ZdBar$methods:
     # Bar::toString
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.7 # name
     .long 8 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.6 # prototype_desc
     .long 35 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _issue02_Zoissue02_ZdBar_ZdtoString # entry
 _issue02_Zoissue02_ZdBar$ctor:
     # Bar::Bar$constructor
     .long 1 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.9 # name
     .long 15 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.8 # prototype_desc
     .long 48 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _issue02_Zoissue02_ZdBar_ZdBar_Z4constructor # entry
 _issue02_Zoissue02_ZdBar$vtab:
     .quad _yalx_Zplang_Zolang_ZdAny_Zdfinalize
@@ -547,28 +578,26 @@ _issue02_Zoissue02_ZdBar$vtab:
 _issue02_Zoissue02_ZdFoo$class:
     .quad 0 # id
     .byte 1 # constraint
-    .byte 0 # padding
-    .byte 0
-    .byte 0
+    .space 3 # padding
     .long 8 # reference_size
     .long 32 # instance_size
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # super
     .quad Lkzs.18 # name
     .long 3 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.19 # location
     .long 19 # location
-    .long 0 # padding
+    .space 4 # padding
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .long 3 # n_fields
-    .long 0 # padding
+    .space 4 # padding
     .quad _issue02_Zoissue02_ZdFoo$fields # fields
     .quad _issue02_Zoissue02_ZdFoo$ctor # ctor
     .long 3 # n_methods
-    .long 0 # padding
+    .space 4 # padding
     .quad _issue02_Zoissue02_ZdFoo$methods # methods
     .long 0 # n_vtab
     .long 0 # n_itab
@@ -581,70 +610,70 @@ _issue02_Zoissue02_ZdFoo$fields:
     .quad 0 # reserved0
     .quad Lkzs.10 # name
     .long 1 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+864 # type
     .long 16 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # Foo::y
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
     .quad Lkzs.11 # name
     .long 1 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _builtin_classes+864 # type
     .long 20 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
     # Foo::name
     .long 0 # access|constraint
     .long 0 # n_annotations
     .quad 0 # reserved0
     .quad Lkzs.2 # name
     .long 4 # name
-    .long 0 # padding
-    .quad 0 # type
+    .space 4 # padding
+    .quad _yalx_Zplang_Zolang_ZdString$class # type
     .long 24 # offset_of_head
-    .long 0 # padding
+    .space 4 # padding
 _issue02_Zoissue02_ZdFoo$methods:
     # Foo::doIt
     .long 0 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.15 # name
     .long 4 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.14 # prototype_desc
     .long 33 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _issue02_Zoissue02_ZdFoo_ZddoIt # entry
     # Foo::doThat
     .long 1 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.0 # name
     .long 6 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.14 # prototype_desc
     .long 33 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _issue02_Zoissue02_ZdFoo_ZddoThat # entry
 _issue02_Zoissue02_ZdFoo$ctor:
     # Foo::Foo$constructor
     .long 2 # index
     .long 0 # access|is_native|is_override|...
     .long 0 # n_annotations
-    .long 0 # padding
+    .space 4 # padding
     .quad 0 # reserved0
     .quad Lkzs.17 # name
     .long 15 # name
-    .long 0 # padding
+    .space 4 # padding
     .quad Lkzs.16 # prototype_desc
     .long 48 # prototype_desc
-    .long 0 # padding
+    .space 4 # padding
     .quad _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor # entry
 .section __DATA,__data
 .p2align 4

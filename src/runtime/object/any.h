@@ -11,7 +11,7 @@ extern "C" {
 #define YALX_VALUE_HEADER \
     uintptr_t klass;      \
     u32_t     tags;       \
-    u32_t     oid
+    u32_t     refs
 
 struct yalx_value_any {
     YALX_VALUE_HEADER;

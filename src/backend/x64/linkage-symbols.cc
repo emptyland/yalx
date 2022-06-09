@@ -17,6 +17,7 @@ DECLARE_STATIC_STRING(kRt_heap_alloc, "_heap_alloc");
 DECLARE_STATIC_STRING(kRt_raise, "_throw_it");
 DECLARE_STATIC_STRING(kRt_is_instance_of, "_is_instance_of");
 DECLARE_STATIC_STRING(kRt_ref_asserted_to, "_ref_asserted_to");
+DECLARE_STATIC_STRING(kRt_put_field, "_put_field");
 
 LinkageSymbols::LinkageSymbols(base::Arena *arena)
 : arena_(arena)

@@ -263,6 +263,7 @@ private:
     void UninstallUnwindHandler();
     void SelectBasicBlock(ir::BasicBlock *bb);
     void Select(ir::Value *instr);
+    void PutField(ir::Value *instr);
     void CallDirectly(ir::Value *instr);
     void CallVirtual(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
@@ -704,37 +705,9 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             }
         } break;
             
-        case ir::Operator::kStoreEffectField: {
-            auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
-            assert(handle->IsField());
-            auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
-            auto opd = Allocate(instr->InputValue(0), kMoR);
-            auto value = Allocate(instr->InputValue(1), kAny);
-            
-            if (auto reg = opd->AsRegister()) {
-                auto loc = new (arena_) LocationOperand(X64Mode_MRI, reg->register_id(), -1, field->offset);
-                Move(loc, value, instr->InputValue(1)->type());
-            } else {
-                assert(opd->IsLocation());
-                auto mem = opd->AsLocation();
-                auto bak = operands_.Allocate(ir::Types::Word64);
-                if (auto base = bak->AsRegister()) {
-                    current()->NewIO(X64Lea, base, mem);
-                    auto loc = new (arena_) LocationOperand(X64Mode_MRI, base->register_id(), -1, field->offset);
-                    Move(loc, value, field->type);
-                    operands_.Free(bak);
-                } else {
-                    assert(bak->IsLocation());
-                    auto brd = operands_.BorrowRegister(ir::Types::Word64, bak);
-                    Move(bak, brd.target, ir::Types::Word64);
-                    borrowed_registers_.push_back(brd);
-                    current()->NewIO(X64Lea, brd.target, mem);
-                    auto loc = new (arena_) LocationOperand(X64Mode_MRI, brd.target->register_id(), -1, field->offset);
-                    Move(loc, value, field->type);
-                }
-            }
-            operands_.Associate(instr, opd);
-        } break;
+        case ir::Operator::kStoreEffectField:
+            PutField(instr);
+            break;
             
         case ir::Operator::kStoreAccessField:
         case ir::Operator::kStoreInlineField: {
@@ -1250,6 +1223,59 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             UNREACHABLE();
         } break;
     }
+}
+
+void X64FunctionInstructionSelector::PutField(ir::Value *instr) {
+    auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+    assert(handle->IsField());
+    auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+    auto opd = Allocate(instr->InputValue(0), kMoR);
+    auto value = Allocate(instr->InputValue(1), kAny);
+    
+    
+    std::unique_ptr<RegisterSavingScope> saving_scope(field->type.IsReference()
+                                                      ? new RegisterSavingScope(&operands_,
+                                                                                instruction_position_,
+                                                                                &moving_delegate_)
+                                                      : nullptr);
+    if (field->type.IsReference()) {
+        saving_scope->SaveAll();
+    }
+    
+    LocationOperand *loc = nullptr;
+    if (auto reg = opd->AsRegister()) {
+        loc = new (arena_) LocationOperand(X64Mode_MRI, reg->register_id(), -1, field->offset);
+    } else {
+        assert(opd->IsLocation());
+        auto mem = opd->AsLocation();
+        auto bak = operands_.Allocate(ir::Types::Word64);
+        if (auto base = bak->AsRegister()) {
+            current()->NewIO(X64Lea, base, mem);
+            loc = new (arena_) LocationOperand(X64Mode_MRI, base->register_id(), -1, field->offset);
+            operands_.Free(bak);
+        } else {
+            assert(bak->IsLocation());
+            auto brd = operands_.BorrowRegister(ir::Types::Word64, bak);
+            Move(bak, brd.target, ir::Types::Word64);
+            borrowed_registers_.push_back(brd);
+            current()->NewIO(X64Lea, brd.target, mem);
+            loc = new (arena_) LocationOperand(X64Mode_MRI, brd.target->register_id(), -1, field->offset);
+        }
+    }
+
+    if (field->type.IsReference()) {
+        auto arg0 = new (arena_) RegisterOperand(Argv_0.code(), MachineRepresentation::kWord64);
+        current()->NewIO(X64Lea, arg0, loc);
+        auto arg1 = new (arena_) RegisterOperand(Argv_1.code(), MachineRepresentation::kWord64);
+        Move(arg1, value, field->type);
+        
+        auto rel = bundle()->AddExternalSymbol(kRt_put_field);
+        current()->NewI(ArchCall, rel);
+        saving_scope.reset();
+    } else {
+        Move(loc, value, field->type);
+    }
+    operands_.Associate(instr, opd);
 }
 
 // --------------
