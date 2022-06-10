@@ -669,19 +669,34 @@ void put_field(struct yalx_value_any **address, struct yalx_value_any *field) {
     *address = field;
 }
 
+static const uintptr_t kPendingMask = 1;
+static const uintptr_t kCreatedMask = ~kPendingMask;
+
+static inline int need_init(struct yalx_value_any *_Atomic *address) {
+    if (atomic_compare_exchange_strong(address, 0, kPendingMask)) {
+        return true;
+    }
+    while ((uintptr_t)atomic_load_explicit(address, memory_order_acquire) == kPendingMask) {
+        sched_yield();
+    }
+    return 0;
+}
+
 struct yalx_value_any *lazy_load_object(struct yalx_value_any *_Atomic *address, const struct yalx_class *clazz) {
     assert(address != NULL);
     assert(clazz != NULL);
     
-    struct allocate_result rs = yalx_heap_allocate(&heap, clazz, clazz->instance_size, 0);
-    assert(rs.object != NULL);
-    
-    if (atomic_load(address) == NULL) {
-        
+
+    if (((uintptr_t)atomic_load_explicit(address, memory_order_acquire) & kCreatedMask) && need_init(address)) {
+        struct allocate_result rs = yalx_heap_allocate(&heap, clazz, clazz->instance_size, 0);
+        assert(rs.object != NULL);
+
+        // TODO: call ctor
+//        char buf[16] = {0};
+//        call_returning_vals(buf, sizeof(buf), clazz->ctor->entry);
+        atomic_store_explicit(address, rs.object, memory_order_release);
     }
-    //clazz->ctor->entry
-    // TODO:
-    return *address;
+    return atomic_load_explicit(address, memory_order_relaxed);
 }
 
 void associate_stub_returning_vals(struct yalx_returning_vals *state,

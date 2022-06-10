@@ -9,6 +9,8 @@ namespace base {
 class PrintingWriter;
 } // namespace base
 namespace ir {
+class StructureModel;
+class Model;
 class Module;
 class Type;
 } // namespace ir
@@ -17,6 +19,7 @@ namespace backend {
 class ConstantsPool;
 class LinkageSymbols;
 class InstructionFunction;
+
 
 class GnuAsmGenerator {
 public:
@@ -44,6 +47,8 @@ protected:
     void EmitNumberConstants();
     void EmitStringConstants();
     void EmitMetadata();
+    int EmitGlobalSlots(std::vector<int> *refs_offset);
+    void MarkRefsInClass(const ir::StructureModel *clazz, const int offset, std::vector<int> *refs_offset);
     void EmitTypeRelocation(const ir::Type &ty, base::PrintingWriter *printer);
     
     const char *comment_ = "#";

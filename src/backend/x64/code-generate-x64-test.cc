@@ -75,7 +75,7 @@ TEST_F(X64CodeGeneratorTest, StructsGenerating) {
     bool ok = true;
     CodeGen("tests/41-code-gen-structs", "issue02:issue02", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
 }
 
 TEST_F(X64CodeGeneratorTest, TryCatch) {
@@ -109,6 +109,17 @@ TEST_F(X64CodeGeneratorTest, FooMetadata) {
     ASSERT_STREQ("fun (issue02:issue02.Foo)->(void)", clazz->methods[0].prototype_desc.z);
 
     ASSERT_STREQ("doThat", clazz->methods[1].name.z);
+    
+}
+
+TEST_F(X64CodeGeneratorTest, GlobalVars) {
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    CodeGen("tests/42-code-gen-globals", "issue03:issue03", &printer, &ok);
+    ASSERT_TRUE(ok);
+    printf("%s\n", buf.c_str());
     
 }
 

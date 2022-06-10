@@ -89,12 +89,100 @@ void GnuAsmGenerator::EmitAll() {
         EmitMetadata();
     }
     
-    
     printer_->Println(".section %s", kDataSegmentName);
     printer_->Writeln(".p2align 4");
     
+    std::string symbol;
+    LinkageSymbols::Build(&symbol, module_->full_name()->ToSlice());
+    symbol.append("$global_slots");
+    //    struct pkg_global_slots {
+    //        size_t size_in_bytes;
+    //        Address slots;
+    //        size_t mark_size;
+    //        int marks[0];
+    //    };
+    
+    if (!module_->values().empty()) {
+        printer_->Println("%s global slots:", comment_);
+        std::vector<int> marked_refs;
+        auto size_in_bytes = EmitGlobalSlots(&marked_refs);
+        printer_->Println(".global %s", symbol.c_str());
+        printer_->Println("%s:", symbol.c_str());
+        printer_->Indent(1)->Println(".quad %zd %s size_in_bytes", size_in_bytes, comment_);
+        printer_->Indent(1)->Println(".quad pkg_global_slots %s slots",  comment_);
+        printer_->Indent(1)->Println(".quad %zd %s mark_size", marked_refs.size(), comment_);
+        printer_->Indent(1)->Println(".space 4 %s marks", comment_);
+        for (const auto off : marked_refs) {
+            printer_->Indent(1)->Println(".long %d", off);
+        }
+    } else {
+        printer_->Println(".global %s", symbol.c_str());
+        printer_->Println("%s:", symbol.c_str());
+        printer_->Indent(1)->Println(".quad 0 %s size_in_bytes", comment_);
+        printer_->Indent(1)->Println(".quad pkg_global_slots %s slots",  comment_);
+        printer_->Indent(1)->Println(".quad 0 %s mark_size",  comment_);
+    }
+    
     if (!const_pool_->string_pool().empty()) {
+        printer_->Println("%s string constants:", comment_);
         EmitStringConstants();
+    }
+}
+
+int GnuAsmGenerator::EmitGlobalSlots(std::vector<int> *refs_offset) {
+    printer_->Println("pkg_global_slots:");
+    int offset = 0;
+    
+    for (auto val : module_->values()) {
+        if (!val->Is(ir::Operator::kGlobalValue) &&
+            !val->Is(ir::Operator::kLazyValue)) {
+            continue;
+        }
+    
+        std::string symbol;
+        LinkageSymbols::Build(&symbol, val->name()->ToSlice());
+        printer_->Println("%s:", symbol.c_str());
+
+        if (val->type().IsReference()) {
+            printer_->Indent(1)->Println(".quad 0");
+            refs_offset->push_back(offset);
+        } else {
+            switch (val->type().ReferenceSizeInBytes()) {
+                case 1:
+                    printer_->Indent(1)->Println(".byte 0");
+                    break;
+                case 2:
+                    printer_->Indent(1)->Println(".word 0");
+                    break;
+                case 4:
+                    printer_->Indent(1)->Println(".long 0");
+                    break;
+                case 8:
+                    printer_->Indent(1)->Println(".quad 0");
+                    break;
+                default: {
+                    printer_->Indent(1)->Println(".space %zd", val->type().ReferenceSizeInBytes());
+                    MarkRefsInClass(down_cast<const ir::StructureModel>(val->type().model()), offset, refs_offset);
+                } break;
+            }
+        }
+        
+        auto padding_size = val->type().ReferenceSizeInBytes() % 4;
+        if (padding_size > 0) {
+            printer_->Indent(1)->Println(".space %zd", padding_size);
+        }
+        offset += RoundUp(val->type().ReferenceSizeInBytes(), 4);
+    }
+    return offset;
+}
+
+void GnuAsmGenerator::MarkRefsInClass(const ir::StructureModel *clazz, const int offset, std::vector<int> *refs_offset) {
+    for (const auto &field : clazz->fields()) {
+        if (field.type.IsReference()) {
+            refs_offset->push_back(offset + field.offset);
+        } else if (field.type.model() && field.type.model()->declaration() == ir::Model::kStruct) {
+            MarkRefsInClass(down_cast<const ir::StructureModel>(field.type.model()), offset + field.offset, refs_offset);
+        }
     }
 }
 

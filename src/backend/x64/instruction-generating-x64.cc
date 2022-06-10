@@ -279,11 +279,11 @@ private:
     void Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty);
     
     bool CanDirectlyMove(InstructionOperand *dest, InstructionOperand *src) {
-        assert(dest->IsRegister() || dest->IsLocation());
+        assert(dest->IsRegister() || dest->IsLocation() || dest->IsReloaction());
         if (dest->IsRegister() || src->IsRegister()) {
             return true;
         }
-        if (dest->IsLocation()) {
+        if (dest->IsLocation() || dest->IsReloaction()) {
             return src->IsImmediate();
         }
         return false;
@@ -674,6 +674,22 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             ConditionBr(instr);
         } break;
             
+        case ir::Operator::kStoreGlobal: {
+            auto global_var = instr->InputValue(0);
+            auto rval = Allocate(instr->InputValue(1), kAny);
+            auto symbol = symbols_->Mangle(global_var->name());
+            auto loc = bundle()->AddExternalSymbol(symbol);
+            Move(loc, rval, instr->InputValue(1)->type());
+        } break;
+
+//        case ir::Operator::kLoadGlobal: {
+//
+//        } break;
+//
+//        case ir::Operator::kLazyLoad: {
+//
+//        } break;
+
         case ir::Operator::kLoadEffectField: {
             auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
             assert(handle->IsField());
@@ -1963,7 +1979,7 @@ InstructionOperand *X64FunctionInstructionSelector::Constant(ir::Value *value) {
 }
 
 void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty) {
-    assert(dest->IsRegister() || dest->IsLocation());
+    assert(dest->IsRegister() || dest->IsLocation() || dest->IsReloaction());
     if (dest->Equals(src)) {
         return;
     }

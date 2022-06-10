@@ -1,0 +1,26 @@
+package issue03
+
+val foo = Foo(1, 2, "hello")
+
+var a = 1
+var b = 2
+
+val bar = Bar("Hello", "World")
+
+object Baz {
+    val i = 0
+    val j = 1
+    val s = "world"
+}
+
+// @yalx.Compiler(nativeHandle=true)
+// fun issue1(): int, int {
+//     return Baz.i, Baz.j
+// }
+
+class Foo(val i: int, val j: int, val s: string)
+
+struct Bar(val firstName: string, val lastName: string)
+
+@yalx.Compiler(nativeStubName="yalx_Zplang_Zolang_Zdprintln_stub")
+native fun display(s: string)
