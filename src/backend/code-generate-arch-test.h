@@ -22,6 +22,8 @@ void issue02_Zoissue02_Zdissue1_had();
 void issue02_Zoissue02_Zdissue2_had();
 void issue02_Zoissue02_Zdissue3_had();
 
+void issue03_Zoissue03_Zd_Z4init();
+
 
 
 } // extern "C"

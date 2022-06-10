@@ -181,6 +181,11 @@ TEST_F(X64CodeGeneratorTest, TryCatchSanity) {
     issue00_Zoissue00_Zdissue1_had();
 }
 
+TEST_F(X64CodeGeneratorTest, GlobalInit03) {
+    pkg_init_once(reinterpret_cast<void *>(&issue03_Zoissue03_Zd_Z4init), "issue03:issue03");
+    //issue00_Zoissue00_Zdissue1_had();
+}
+
 #endif // YALX_ARCH_X64
 
 } // namespace backend

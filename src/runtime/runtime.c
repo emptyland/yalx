@@ -601,6 +601,8 @@ struct kstr_header {
 };
 
 void pkg_init_once(void *init_fun, const char *const plain_name) {
+    // $global_slots
+    static const size_t kMaxPostfixSize = 16;
     char *symbol = NULL;
     char buf[16] = {0};
     pthread_mutex_lock(&pkg_init_mutex);
@@ -619,8 +621,8 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     
     const size_t prefix_len = strlen(symbol);
     assert(prefix_len > 1);
-    if (prefix_len + 6 > buf_size) {
-        symbol = (char *)realloc(symbol, prefix_len + 6);
+    if (prefix_len + kMaxPostfixSize > buf_size) {
+        symbol = (char *)realloc(symbol, prefix_len + kMaxPostfixSize);
     }
     strncpy(symbol + prefix_len, "_Lksz", 6);
     
@@ -634,6 +636,12 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     struct kstr_header *kstr_addr = (struct kstr_header *)dlsym(RTLD_MAIN_ONLY, symbol + 1/*Skip prefx '_'*/);
 #endif
     
+    strncpy(symbol + prefix_len, "$global_slots", 14);
+    
+#if defined(YALX_OS_POSIX)
+    struct pkg_global_slots *slots = (struct pkg_global_slots *)dlsym(RTLD_MAIN_ONLY, symbol + 1/*Skip prefx '_'*/);
+#endif
+    
     if (!lksz_addr || !kstr_addr) {
         yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name), 4);
         goto done; // No constant string will be initializing
@@ -644,7 +652,8 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
         kstr_addr->ks[i] = yalx_new_string(&heap, lksz_addr->sz[i], strlen(lksz_addr->sz[i]));
     }
     
-    yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name), 4);
+    hash_table_value_span_t rs = yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name), sizeof(slots));
+    memcpy(rs.value, &slots, sizeof(slots));
 done:
     pthread_mutex_unlock(&pkg_init_mutex);
     printf("pkg init...%s\n", plain_name);

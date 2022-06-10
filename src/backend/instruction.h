@@ -178,16 +178,21 @@ public:
     : InstructionOperand(kReloaction)
     , label_(label)
     , symbol_name_(symbol_name)
+    , offset_(0)
     , fetch_address_(fetch_address)
     {}
+    
+    ReloactionOperand *OffsetOf(base::Arena *arena, int offset) const;
     
     DEF_PTR_GETTER(const String, symbol_name);
     DEF_PTR_GETTER(const InstructionBlock, label);
     DEF_VAL_GETTER(bool, fetch_address);
+    DEF_VAL_GETTER(int, offset);
 private:
     const InstructionBlock *label_;
     const String *symbol_name_;
-    int fetch_address_;
+    int offset_;
+    bool fetch_address_;
 }; // class ReloactionOperand
 
 class LocationOperand final : public InstructionOperand {

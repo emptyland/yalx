@@ -675,11 +675,12 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
         } break;
             
         case ir::Operator::kStoreGlobal: {
+            //printd("--%s", instr->InputValue(0)->name()->data());
             auto global_var = instr->InputValue(0);
             auto rval = Allocate(instr->InputValue(1), kAny);
             auto symbol = symbols_->Mangle(global_var->name());
             auto loc = bundle()->AddExternalSymbol(symbol);
-            Move(loc, rval, instr->InputValue(1)->type());
+            Move(loc, rval, global_var->type());
         } break;
 
 //        case ir::Operator::kLoadGlobal: {
@@ -2081,8 +2082,109 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
                 return;
             }
 
-            // TODO:
-            UNREACHABLE();
+            if (dest->IsRegister() || dest->IsLocation()) {
+                int r0 = -1, base0 = 0;
+                if (auto to = dest->AsRegister()) {
+                    r0 = to->register_id();
+                } else if (auto to = dest->AsLocation()) {
+                    r0 = to->register0_id();
+                    base0 = to->k();
+                } else {
+                    UNREACHABLE();
+                }
+                
+                if (src->IsRegister() || src->IsLocation()) {
+                    int r1 = -1, base1 = 0;
+                    if (auto from = src->AsRegister()) {
+                        r1 = from->register_id();
+                    } else if (auto from = src->AsLocation()) {
+                        r1 = from->register0_id();
+                        base1 = from->k();
+                    } else {
+                        UNREACHABLE();
+                    }
+                    
+                    auto t64 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+                    int offset = 0;
+                    while (offset < ty.ReferenceSizeInBytes()) {
+                        auto to = new (arena_) LocationOperand(X64Mode_MRI, r0, -1, offset + base0);
+                        auto from = new (arena_) LocationOperand(X64Mode_MRI, r1, -1, offset + base1);
+                        current()->NewIO(X64Movq, t64, from);
+                        current()->NewIO(X64Movq, to, t64);
+                        offset += kPointerSize;
+                    }
+                    if (ty.ReferenceSizeInBytes() % kPointerSize == 4) {
+                        offset = ty.ReferenceSizeInBytes() - 4;
+                        auto t32 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord32);
+                        auto to = new (arena_) LocationOperand(X64Mode_MRI, r0, -1, offset + base0);
+                        auto from = new (arena_) LocationOperand(X64Mode_MRI, r1, -1, offset + base1);
+                        current()->NewIO(X64Movl, t32, from);
+                        current()->NewIO(X64Movl, to, t32);
+                    } else {
+                        assert(ty.ReferenceSizeInBytes() % kPointerSize == 0);
+                    }
+                } else {
+                    assert(src->IsReloaction());
+                    auto r1 = src->AsReloaction();
+                    
+                    auto t64 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+                    int offset = 0;
+                    while (offset < ty.ReferenceSizeInBytes()) {
+                        auto to = new (arena_) LocationOperand(X64Mode_MRI, r0, -1, offset + base0);
+                        auto from = r1->OffsetOf(arena_, offset);
+                        current()->NewIO(X64Movq, t64, from);
+                        current()->NewIO(X64Movq, to, t64);
+                        offset += kPointerSize;
+                    }
+                    if (ty.ReferenceSizeInBytes() % kPointerSize == 4) {
+                        offset = ty.ReferenceSizeInBytes() - 4;
+                        auto t32 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord32);
+                        auto to = new (arena_) LocationOperand(X64Mode_MRI, r0, -1, offset + base0);
+                        auto from = r1->OffsetOf(arena_, offset);
+                        current()->NewIO(X64Movl, t32, from);
+                        current()->NewIO(X64Movl, to, t32);
+                    } else {
+                        assert(ty.ReferenceSizeInBytes() % kPointerSize == 0);
+                    }
+                }
+            } else {
+                assert(dest->IsReloaction());
+                auto r0 = dest->AsReloaction();
+                
+                if (src->IsRegister() || src->IsLocation()) {
+                    int r1 = -1, base1 = 0;
+                    if (auto from = src->AsRegister()) {
+                        r1 = from->register_id();
+                    } else if (auto from = src->AsLocation()) {
+                        r1 = from->register0_id();
+                        base1 = from->k();
+                    } else {
+                        UNREACHABLE();
+                    }
+                    
+                    auto t64 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+                    int offset = 0;
+                    while (offset < ty.ReferenceSizeInBytes()) {
+                        auto to = r0->OffsetOf(arena_, offset);
+                        auto from = new (arena_) LocationOperand(X64Mode_MRI, r1, -1, offset + base1);
+                        current()->NewIO(X64Movq, t64, from);
+                        current()->NewIO(X64Movq, to, t64);
+                        offset += kPointerSize;
+                    }
+                    if (ty.ReferenceSizeInBytes() % kPointerSize == 4) {
+                        offset = ty.ReferenceSizeInBytes() - 4;
+                        auto t32 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord32);
+                        auto to = r0->OffsetOf(arena_, offset);
+                        auto from = new (arena_) LocationOperand(X64Mode_MRI, r1, -1, offset + base1);
+                        current()->NewIO(X64Movl, t32, from);
+                        current()->NewIO(X64Movl, to, t32);
+                    } else {
+                        assert(ty.ReferenceSizeInBytes() % kPointerSize == 0);
+                    }
+                } else {
+                    UNREACHABLE();
+                }
+            }
         } break;
             
             

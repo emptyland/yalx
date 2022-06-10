@@ -804,9 +804,19 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
             } else {
                 assert(opd->symbol_name() != nullptr);
                 if (style == kIndirectly) {
-                    printer()->Print("%s", opd->symbol_name()->data());
+                    if (opd->offset() == 0) {
+                        printer()->Print("%s", opd->symbol_name()->data());
+                    } else {
+                        printer()->Print("%s%s%d", opd->symbol_name()->data(),
+                                         opd->offset() > 0 ? "+" : "-", std::abs(opd->offset()));
+                    }
                 } else {
-                    printer()->Print("%s(%%rip)", opd->symbol_name()->data());
+                    if (opd->offset() == 0) {
+                        printer()->Print("%s(%%rip)", opd->symbol_name()->data());
+                    } else {
+                        printer()->Print("%s%s%d(%%rip)", opd->symbol_name()->data(),
+                                         opd->offset() > 0 ? "+" : "-", std::abs(opd->offset()));
+                    }
                 }
             }
         } break;

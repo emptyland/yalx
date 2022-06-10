@@ -111,7 +111,7 @@ void GnuAsmGenerator::EmitAll() {
         printer_->Indent(1)->Println(".quad %zd %s size_in_bytes", size_in_bytes, comment_);
         printer_->Indent(1)->Println(".quad pkg_global_slots %s slots",  comment_);
         printer_->Indent(1)->Println(".quad %zd %s mark_size", marked_refs.size(), comment_);
-        printer_->Indent(1)->Println(".space 4 %s marks", comment_);
+        //printer_->Indent(1)->Println(".space 4 %s marks", comment_);
         for (const auto off : marked_refs) {
             printer_->Indent(1)->Println(".long %d", off);
         }

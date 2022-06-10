@@ -341,6 +341,7 @@ public:
                 continue;
             }
             
+            //printd("%s", ast->Identifier()->data());
             auto dest = location_->FindSymbol(ast->Identifier()->ToSlice());
             assert(dest.IsFound());
             auto op = ops()->StoreGlobal();
@@ -556,7 +557,7 @@ public:
                    symbol.core.model->declaration() == Model::kStruct);
             
             auto clazz = down_cast<StructureModel>(symbol.core.model);
-            
+            //printd("%s", clazz->full_name()->data());
             Operator *op = nullptr;
             Type type = Types::Void;
             if (clazz->constraint() == Model::kVal) {
@@ -567,8 +568,9 @@ public:
                 type = Type::Ref(clazz);
             }
             auto ob = b()->NewNode(root_ss.Position(), type, op);
+            Value *self = ob;
             if (clazz->constraint() == Model::kVal) {
-                ob = b()->NewNode(root_ss.Position(), Type::Val(clazz, true), ops()->LoadAddress(), ob);
+                self = b()->NewNode(root_ss.Position(), Type::Val(clazz, true), ops()->LoadAddress(), ob);
             }
             
             auto proto = clazz->constructor()->prototype();
@@ -576,7 +578,7 @@ public:
             auto handle = DCHECK_NOTNULL(clazz->FindMemberOrNull(clazz->constructor()->name()->ToSlice()));
             op = ops()->CallHandle(handle, 1/*value_out*/, value_in, invoke_control_out());
             std::vector<Value *> results;
-            args.insert(args.begin(), ob);
+            args.insert(args.begin(), self);
             EmitCall(op, proto, std::move(args), &results, root_ss.Position());
             return Returning(ob);
             
@@ -2458,6 +2460,7 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
         } break;
         case cpl::Type::kType_struct: {
             auto clazz = type->AsStructType();
+            //printd("%s", clazz->definition()->FullName().c_str());
             return Type::Val(AssertedGetUdt(clazz->definition()->FullName()));
         } break;
         case cpl::Type::kType_string:

@@ -75,6 +75,12 @@ bool InstructionOperand::Equals(const InstructionOperand *other) const {
     }
 }
 
+ReloactionOperand *ReloactionOperand::OffsetOf(base::Arena *arena, int offset) const {
+    ReloactionOperand *copied = new (arena) ReloactionOperand(symbol_name(), label(), fetch_address());
+    copied->offset_ = offset;
+    return copied;
+}
+
 Instruction::Instruction(Code op, size_t inputs_count, size_t outputs_count, size_t temps_count, Operand *operands[])
 : op_(op)
 , inputs_count_(inputs_count)

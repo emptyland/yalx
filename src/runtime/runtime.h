@@ -198,6 +198,13 @@ int trampoline(void);
 void coroutine_finalize_stub(void);
 void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
 
+struct pkg_global_slots {
+    size_t size_in_bytes;
+    address_t slots;
+    size_t mark_size;
+    int    marks[0];
+};
+
 // runtime libs called by generated code
 void pkg_init_once(void *init_fun, const char *const plain_name);
 int pkg_initialized_count();

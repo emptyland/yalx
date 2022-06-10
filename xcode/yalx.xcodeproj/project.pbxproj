@@ -60,6 +60,7 @@
 		233AB98127EB46DE00E68B90 /* arrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB97F27EB46DE00E68B90 /* arrays.c */; };
 		233AB98327EB4C6100E68B90 /* unwind-posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB98227EB4C6100E68B90 /* unwind-posix.c */; };
 		233AB98427EB4C6100E68B90 /* unwind-posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB98227EB4C6100E68B90 /* unwind-posix.c */; };
+		23448B6128534A16007013EB /* issue-03-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6028534A16007013EB /* issue-03-posix-x64.s */; };
 		2355560A278929C0003ADACE /* io-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23555609278929C0003ADACE /* io-test.cc */; };
 		2355560B278929C0003ADACE /* io-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23555609278929C0003ADACE /* io-test.cc */; };
 		2355560E278936EC003ADACE /* utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2355560D278936EC003ADACE /* utils.cc */; };
@@ -362,6 +363,7 @@
 		233AB97F27EB46DE00E68B90 /* arrays.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = arrays.c; path = ../src/runtime/object/arrays.c; sourceTree = "<group>"; };
 		233AB98227EB4C6100E68B90 /* unwind-posix.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "unwind-posix.c"; path = "../src/runtime/heap/unwind-posix.c"; sourceTree = "<group>"; };
 		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
+		23448B6028534A16007013EB /* issue-03-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-03-posix-x64.s"; path = "../src/backend/x64/issue-03-posix-x64.s"; sourceTree = "<group>"; };
 		2351F80E26648CB200D337EA /* runtime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = runtime.h; path = ../src/runtime/runtime.h; sourceTree = "<group>"; };
 		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
 		2351F8112664939700D337EA /* macros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macros.h; path = ../src/runtime/macros.h; sourceTree = "<group>"; };
@@ -615,6 +617,7 @@
 				230630BC27EDA99200E12FE4 /* issue-00-posix-x64.s */,
 				236C1FD727BD17CC009C93B2 /* issue-01-posix-x64.s */,
 				236C793227DEF56A0037FB13 /* issue-02-posix-x64.s */,
+				23448B6028534A16007013EB /* issue-03-posix-x64.s */,
 			);
 			name = X64;
 			sourceTree = "<group>";
@@ -1228,6 +1231,7 @@
 				23D5A653266718ED00635ADB /* stack.c in Sources */,
 				2336A2912774168E00346372 /* codegen-test.cc in Sources */,
 				23D5A654266718ED00635ADB /* process.h in Sources */,
+				23448B6128534A16007013EB /* issue-03-posix-x64.s in Sources */,
 				2355560A278929C0003ADACE /* io-test.cc in Sources */,
 				239735CF27B551A500FAD063 /* linkage-symbols-test.cc in Sources */,
 				23893F8328449CE4000FA9F7 /* block-test.cc in Sources */,
