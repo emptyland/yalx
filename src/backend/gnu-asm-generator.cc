@@ -119,7 +119,7 @@ void GnuAsmGenerator::EmitAll() {
         printer_->Println(".global %s", symbol.c_str());
         printer_->Println("%s:", symbol.c_str());
         printer_->Indent(1)->Println(".quad 0 %s size_in_bytes", comment_);
-        printer_->Indent(1)->Println(".quad pkg_global_slots %s slots",  comment_);
+        printer_->Indent(1)->Println(".quad 0 %s slots",  comment_);
         printer_->Indent(1)->Println(".quad 0 %s mark_size",  comment_);
     }
     

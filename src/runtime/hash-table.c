@@ -16,10 +16,8 @@ static inline size_t hash_table_key_placement_size(size_t key_size, size_t value
 }
 
 static inline hash_table_value_span_t hash_table_key_value(struct hash_table_slot *node) {
-    size_t value_offset = sizeof(struct hash_table_slot) + node->key_size;
-    value_offset = ROUND_UP(value_offset, 4);
     hash_table_value_span_t span;
-    span.value = &node->key[value_offset];
+    span.value = &node->key[(ROUND_UP(node->key_size, 4))];
     span.size  = node->value_size;
     return span;
 }
@@ -40,8 +38,9 @@ static inline struct hash_table_slot *new_hash_table_key(const void *key,
     if (!slot) {
         return NULL;
     }
-    slot->next = NULL;
-    slot->prev = NULL;
+    dbg_init_zag(slot, size_in_bytes);
+    slot->next = slot;
+    slot->prev = slot;
     slot->hash_code = js_hash(key, key_size);
     slot->key_size = key_size;
     slot->value_size = value_size;

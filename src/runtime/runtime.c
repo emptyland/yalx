@@ -652,8 +652,9 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
         kstr_addr->ks[i] = yalx_new_string(&heap, lksz_addr->sz[i], strlen(lksz_addr->sz[i]));
     }
     
-    hash_table_value_span_t rs = yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name), sizeof(slots));
-    memcpy(rs.value, &slots, sizeof(slots));
+    hash_table_value_span_t rs = yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name) + 1, sizeof(slots));
+    //TODO: memcpy(rs.value, &slots, sizeof(slots));
+    *((struct pkg_global_slots **)rs.value) = slots;
 done:
     pthread_mutex_unlock(&pkg_init_mutex);
     printf("pkg init...%s\n", plain_name);
