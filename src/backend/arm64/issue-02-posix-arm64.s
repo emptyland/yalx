@@ -40,31 +40,28 @@ Lblk6:
     adrp x19, Kstr.2@PAGE
     add x19, x19, Kstr.2@PAGEOFF
     ldr x3, [x19, #0]
-    stur x0, [fp, #-40]
-    stur w1, [fp, #-44]
-    stur w2, [fp, #-48]
-    stur x3, [fp, #-56]
+    stur w1, [fp, #-36]
+    stur w2, [fp, #-40]
+    stur x3, [fp, #-48]
     bl _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor
-    ldur x0, [fp, #-40]
-    ldr w1, [x0, #16]
-    ldr w2, [x0, #20]
-    add w3, w1, w2
-    mov w1, #3
-    stur x0, [fp, #-40]
-    stur w1, [fp, #-44]
-    stur w2, [fp, #-48]
-    stur w3, [fp, #-52]
-    ldur w0, [fp, #-44]
-    ldur w1, [fp, #-52]
+    ldur w0, [fp, #-16]
+    ldur w1, [fp, #-12]
+    add w2, w0, w1
+    mov w0, #3
+    stur w0, [fp, #-36]
+    stur w1, [fp, #-40]
+    stur w2, [fp, #-44]
+    ldur w1, [fp, #-44]
     bl _issue02_Zoissue02_ZdassertInt
-    ldur x0, [fp, #-40]
-    ldr x1, [x0, #24]
+    ldur x0, [fp, #-8]
     adrp x19, Kstr.2@PAGE
     add x19, x19, Kstr.2@PAGEOFF
-    ldr x0, [x19, #0]
+    ldr x1, [x19, #0]
     stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    ldur x0, [fp, #-16]
+    ldur x1, [fp, #-8]
     bl _issue02_Zoissue02_ZdassertString
-    stur x1, [fp, #-8]
     adrp x19, _issue02_Zoissue02_ZdBar$class@PAGE
     add x0, x19, _issue02_Zoissue02_ZdBar$class@PAGEOFF
     bl _heap_alloc
@@ -73,29 +70,29 @@ Lblk6:
     adrp x19, Kstr.3@PAGE
     add x19, x19, Kstr.3@PAGEOFF
     ldr x3, [x19, #0]
-    stur x0, [fp, #-16]
-    stur w1, [fp, #-20]
-    stur w2, [fp, #-24]
-    stur x3, [fp, #-32]
+    stur x0, [fp, #-8]
+    stur w1, [fp, #-12]
+    stur w2, [fp, #-16]
+    stur x3, [fp, #-24]
     bl _issue02_Zoissue02_ZdBar_ZdBar_Z4constructor
-    ldur x0, [fp, #-16]
+    ldur x0, [fp, #-8]
     ldr w1, [x0, #16]
     ldr w2, [x0, #20]
     add w3, w1, w2
     mov w1, #5
-    stur x0, [fp, #-16]
-    stur w1, [fp, #-20]
-    stur w2, [fp, #-24]
-    stur w3, [fp, #-28]
-    ldur w0, [fp, #-20]
-    ldur w1, [fp, #-28]
+    stur x0, [fp, #-8]
+    stur w1, [fp, #-12]
+    stur w2, [fp, #-16]
+    stur w3, [fp, #-20]
+    ldur w0, [fp, #-12]
+    ldur w1, [fp, #-20]
     bl _issue02_Zoissue02_ZdassertInt
-    ldur x0, [fp, #-16]
+    ldur x0, [fp, #-8]
     ldr x1, [x0, #24]
     adrp x19, Kstr.3@PAGE
     add x19, x19, Kstr.3@PAGEOFF
     ldr x0, [x19, #0]
-    stur x0, [fp, #-16]
+    stur x0, [fp, #-8]
     bl _issue02_Zoissue02_ZdassertString
     ldp fp, lr, [sp, #64]
     add sp, sp, #80
@@ -145,39 +142,31 @@ Lblk8:
     adrp x19, Kstr.2@PAGE
     add x19, x19, Kstr.2@PAGEOFF
     ldr x3, [x19, #0]
-    stur x0, [fp, #-40]
-    stur w1, [fp, #-44]
-    stur w2, [fp, #-48]
-    stur x3, [fp, #-56]
+    stur w1, [fp, #-36]
+    stur w2, [fp, #-40]
+    stur x3, [fp, #-48]
     bl _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor
-    ldur x0, [fp, #-40]
-    ldr x1, [x0, #24]
+    ldur x0, [fp, #-8]
     adrp x19, Kstr.2@PAGE
     add x19, x19, Kstr.2@PAGEOFF
-    ldr x2, [x19, #0]
-    stur x0, [fp, #-40]
-    stur x2, [fp, #-48]
-    ldur x0, [fp, #-48]
-    bl _issue02_Zoissue02_ZdassertString
-    ldur x0, [fp, #-40]
-    adrp x19, Kstr.4@PAGE
-    add x19, x19, Kstr.4@PAGEOFF
     ldr x1, [x19, #0]
-    str x1, [x0, #24]
-    ldr x19, [x0, #24]
-    str x19, [x0, #0]
-    ldr x19, [x0, #32]
-    str x19, [x0, #8]
-    ldr x19, [x0, #40]
-    str x19, [x0, #16]
-    ldr x19, [x0, #48]
-    str x19, [x0, #24]
+    stur x0, [fp, #-40]
+    stur x1, [fp, #-48]
+    ldur x0, [fp, #-48]
+    ldur x1, [fp, #-40]
+    bl _issue02_Zoissue02_ZdassertString
     adrp x19, Kstr.4@PAGE
     add x19, x19, Kstr.4@PAGEOFF
     ldr x0, [x19, #0]
     stur x0, [fp, #-8]
+    ldur x0, [fp, #-8]
+    adrp x19, Kstr.4@PAGE
+    add x19, x19, Kstr.4@PAGEOFF
+    ldr x1, [x19, #0]
+    stur x0, [fp, #-8]
     stur x1, [fp, #-16]
-    mov x1, x0
+    ldur x0, [fp, #-16]
+    ldur x1, [fp, #-8]
     bl _issue02_Zoissue02_ZdassertString
     ldp fp, lr, [sp, #64]
     add sp, sp, #80
@@ -500,28 +489,26 @@ Lkzs.19:
 _issue02_Zoissue02_ZdBar$class:
     .quad 0 ; id
     .byte 0 ; constraint
-    .byte 0 ; padding
-    .byte 0
-    .byte 0
+    .space 3 ; padding
     .long 8 ; reference_size
     .long 32 ; instance_size
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _yalx_Zplang_Zolang_ZdAny$class ; super
     .quad Lkzs.12 ; name
     .long 3 ; name
-    .long 0 ; padding
+    .space 4 ; padding
     .quad Lkzs.13 ; location
     .long 19 ; location
-    .long 0 ; padding
+    .space 4 ; padding
     .long 0 ; n_annotations
-    .long 0 ; padding
+    .space 4 ; padding
     .quad 0 ; reserved0
     .long 3 ; n_fields
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue02_Zoissue02_ZdBar$fields ; fields
     .quad _issue02_Zoissue02_ZdBar$ctor ; ctor
     .long 2 ; n_methods
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue02_Zoissue02_ZdBar$methods ; methods
     .long 5 ; n_vtab
     .long 0 ; n_itab
@@ -534,57 +521,57 @@ _issue02_Zoissue02_ZdBar$fields:
     .quad 0 ; reserved0
     .quad Lkzs.10 ; name
     .long 1 ; name
-    .long 0 ; padding
-    .quad 0 ; type
+    .space 4 ; padding
+    .quad _builtin_classes+864 ; type
     .long 16 ; offset_of_head
-    .long 0 ; padding
+    .space 4 ; padding
     ; Bar::y
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
     .quad Lkzs.11 ; name
     .long 1 ; name
-    .long 0 ; padding
-    .quad 0 ; type
+    .space 4 ; padding
+    .quad _builtin_classes+864 ; type
     .long 20 ; offset_of_head
-    .long 0 ; padding
+    .space 4 ; padding
     ; Bar::name
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
     .quad Lkzs.2 ; name
     .long 4 ; name
-    .long 0 ; padding
-    .quad 0 ; type
+    .space 4 ; padding
+    .quad _yalx_Zplang_Zolang_ZdString$class ; type
     .long 24 ; offset_of_head
-    .long 0 ; padding
+    .space 4 ; padding
 _issue02_Zoissue02_ZdBar$methods:
     ; Bar::toString
     .long 0 ; index
     .long 0 ; access|is_native|is_override|...
     .long 0 ; n_annotations
-    .long 0 ; padding
+    .space 4 ; padding
     .quad 0 ; reserved0
     .quad Lkzs.7 ; name
     .long 8 ; name
-    .long 0 ; padding
+    .space 4 ; padding
     .quad Lkzs.6 ; prototype_desc
     .long 35 ; prototype_desc
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue02_Zoissue02_ZdBar_ZdtoString ; entry
 _issue02_Zoissue02_ZdBar$ctor:
     ; Bar::Bar$constructor
     .long 1 ; index
     .long 0 ; access|is_native|is_override|...
     .long 0 ; n_annotations
-    .long 0 ; padding
+    .space 4 ; padding
     .quad 0 ; reserved0
     .quad Lkzs.9 ; name
     .long 15 ; name
-    .long 0 ; padding
+    .space 4 ; padding
     .quad Lkzs.8 ; prototype_desc
     .long 48 ; prototype_desc
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue02_Zoissue02_ZdBar_ZdBar_Z4constructor ; entry
 _issue02_Zoissue02_ZdBar$vtab:
     .quad _yalx_Zplang_Zolang_ZdAny_Zdfinalize
@@ -596,28 +583,26 @@ _issue02_Zoissue02_ZdBar$vtab:
 _issue02_Zoissue02_ZdFoo$class:
     .quad 0 ; id
     .byte 1 ; constraint
-    .byte 0 ; padding
-    .byte 0
-    .byte 0
+    .space 3 ; padding
     .long 8 ; reference_size
     .long 32 ; instance_size
-    .long 0 ; padding
+    .space 4 ; padding
     .quad 0 ; super
     .quad Lkzs.18 ; name
     .long 3 ; name
-    .long 0 ; padding
+    .space 4 ; padding
     .quad Lkzs.19 ; location
     .long 19 ; location
-    .long 0 ; padding
+    .space 4 ; padding
     .long 0 ; n_annotations
-    .long 0 ; padding
+    .space 4 ; padding
     .quad 0 ; reserved0
     .long 3 ; n_fields
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue02_Zoissue02_ZdFoo$fields ; fields
     .quad _issue02_Zoissue02_ZdFoo$ctor ; ctor
     .long 3 ; n_methods
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue02_Zoissue02_ZdFoo$methods ; methods
     .long 0 ; n_vtab
     .long 0 ; n_itab
@@ -630,73 +615,79 @@ _issue02_Zoissue02_ZdFoo$fields:
     .quad 0 ; reserved0
     .quad Lkzs.10 ; name
     .long 1 ; name
-    .long 0 ; padding
-    .quad 0 ; type
+    .space 4 ; padding
+    .quad _builtin_classes+864 ; type
     .long 16 ; offset_of_head
-    .long 0 ; padding
+    .space 4 ; padding
     ; Foo::y
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
     .quad Lkzs.11 ; name
     .long 1 ; name
-    .long 0 ; padding
-    .quad 0 ; type
+    .space 4 ; padding
+    .quad _builtin_classes+864 ; type
     .long 20 ; offset_of_head
-    .long 0 ; padding
+    .space 4 ; padding
     ; Foo::name
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
     .quad Lkzs.2 ; name
     .long 4 ; name
-    .long 0 ; padding
-    .quad 0 ; type
+    .space 4 ; padding
+    .quad _yalx_Zplang_Zolang_ZdString$class ; type
     .long 24 ; offset_of_head
-    .long 0 ; padding
+    .space 4 ; padding
 _issue02_Zoissue02_ZdFoo$methods:
     ; Foo::doIt
     .long 0 ; index
     .long 0 ; access|is_native|is_override|...
     .long 0 ; n_annotations
-    .long 0 ; padding
+    .space 4 ; padding
     .quad 0 ; reserved0
     .quad Lkzs.15 ; name
     .long 4 ; name
-    .long 0 ; padding
+    .space 4 ; padding
     .quad Lkzs.14 ; prototype_desc
     .long 33 ; prototype_desc
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue02_Zoissue02_ZdFoo_ZddoIt ; entry
     ; Foo::doThat
     .long 1 ; index
     .long 0 ; access|is_native|is_override|...
     .long 0 ; n_annotations
-    .long 0 ; padding
+    .space 4 ; padding
     .quad 0 ; reserved0
     .quad Lkzs.0 ; name
     .long 6 ; name
-    .long 0 ; padding
+    .space 4 ; padding
     .quad Lkzs.14 ; prototype_desc
     .long 33 ; prototype_desc
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue02_Zoissue02_ZdFoo_ZddoThat ; entry
 _issue02_Zoissue02_ZdFoo$ctor:
     ; Foo::Foo$constructor
     .long 2 ; index
     .long 0 ; access|is_native|is_override|...
     .long 0 ; n_annotations
-    .long 0 ; padding
+    .space 4 ; padding
     .quad 0 ; reserved0
     .quad Lkzs.17 ; name
     .long 15 ; name
-    .long 0 ; padding
+    .space 4 ; padding
     .quad Lkzs.16 ; prototype_desc
     .long 48 ; prototype_desc
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue02_Zoissue02_ZdFoo_ZdFoo_Z4constructor ; entry
 .section __DATA,__data
 .p2align 4
+.global _issue02_Zoissue02$global_slots
+_issue02_Zoissue02$global_slots:
+    .quad 0 ; size_in_bytes
+    .quad 0 ; slots
+    .quad 0 ; mark_size
+; string constants:
 ; Yalx-String constants
 .global _issue02_Zoissue02_Lksz
 _issue02_Zoissue02_Lksz:

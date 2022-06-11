@@ -68,7 +68,10 @@ public:
     };
     
     DEF_VAL_GETTER(Kind, kind);
+    DEF_VAL_GETTER(int, refs);
     
+    int Grab() { return refs_++; }
+    int Drop() { return --refs_; }
     void Kill() { kind_ = kInvalid; }
 
 #define DEFINE_TESTING(name) bool Is##name() const { return kind() == k##name; }
@@ -87,6 +90,7 @@ protected:
     explicit InstructionOperand(Kind kind): kind_(kind) {}
 
     Kind kind_;
+    int refs_ = 0;
 }; // class InstructionOperand
 
 class ImmediateOperand final : public InstructionOperand {

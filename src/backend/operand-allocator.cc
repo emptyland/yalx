@@ -196,6 +196,7 @@ LocationOperand *OperandAllocator::AllocateStackSlot(ir::Value *value, size_t pa
             slot = AllocateStackSlot(kVal, value->type().bytes(), padding_size, policy);
             break;
     }
+    slot->Grab();
     allocated_[value] = slot;
     return slot;
 }
@@ -245,6 +246,7 @@ LocationOperand *OperandAllocator::AllocateStackSlot(OperandMark mark,
 RegisterOperand *OperandAllocator::AllocateReigster(ir::Value *value, int designate) {
     RegisterOperand *reg = AllocateReigster(value->type(), designate);
     if (reg) {
+        reg->Grab();
         allocated_[value] = reg;
         if (reg->IsGeneralRegister()) {
             active_general_registers_[reg->register_id()].val = value;
@@ -328,8 +330,11 @@ void OperandAllocator::Associate(ir::Value *value, InstructionOperand *operand) 
     if (auto iter = allocated_.find(value); iter != allocated_.end()) {
         if (operand != iter->second) {
             Free(iter->second);
+        } else {
+            iter->second->Drop();
         }
     }
+    operand->Grab();
     allocated_[value] = operand;
     if (auto reg = operand->AsRegister()) {
         if (reg->IsGeneralRegister()) {
@@ -356,11 +361,14 @@ InstructionOperand *OperandAllocator::LinkTo(ir::Value *value, InstructionOperan
     if (old && old->Equals(operand)) {
         return nullptr;
     }
+    operand->Grab();
     allocated_[value] = operand;
+    old->Drop();
     return old;
 }
 
 void OperandAllocator::Free(InstructionOperand *operand) {
+    operand->Drop();
     switch (operand->kind()) {
         case InstructionOperand::kRegister: {
             auto reg = operand->AsRegister();
@@ -408,13 +416,16 @@ void OperandAllocator::ReleaseDeads(int position) {
         auto key = deads_[i];
         if (auto iter = allocated_.find(key); iter != allocated_.end()) {
             auto operand = iter->second;
-            if (operand->IsLocation()) {
-                slots_.FreeSlot(operand->AsLocation());
-            } else if (operand->IsRegister()) {
-                registers_.FreeRegister(operand->AsRegister());
-            } else {
-                UNREACHABLE();
+            if (operand->Drop() == 0) {
+                if (operand->IsLocation()) {
+                    slots_.FreeSlot(operand->AsLocation());
+                } else if (operand->IsRegister()) {
+                    registers_.FreeRegister(operand->AsRegister());
+                } else {
+                    UNREACHABLE();
+                }
             }
+            assert(operand->refs() >= 0);
         }
     }
 }
@@ -463,6 +474,7 @@ OperandAllocator::BorrowedRecord OperandAllocator::BorrowRegister(ir::Type ty, I
 
     if (active_rd.val) {
         //Associate(active_rd.val, bak);
+        bak->Grab();
         allocated_[active_rd.val] = bak;
     } else {
         //Free(active_rd.opd);

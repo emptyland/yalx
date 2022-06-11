@@ -65,7 +65,8 @@ LocationOperand *StackSlotAllocator::Allocate(size_t padding_size, size_t size, 
 }
 
 void StackSlotAllocator::FreeSlot(LocationOperand *operand) {
-    //printf("freed: %p(%d)\n", operand, operand->k());
+    //operand->Drop();
+    //printf("freed: %p(%d) %d\n", operand, operand->k(), operand->refs());
     assert(!slots_.empty());
     auto iter = std::find_if(slots_.begin(), slots_.end(),
                              [operand](const auto &slot) {return slot.operand == operand;} );

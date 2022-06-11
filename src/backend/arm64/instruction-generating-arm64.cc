@@ -748,7 +748,28 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             UNREACHABLE();
         } break;
         
-        case ir::Operator::kStoreInlineField:
+        case ir::Operator::kStoreInlineField: {
+            auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+            assert(handle->IsField());
+            auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+            //auto opd = Allocate(instr, kAny);
+            
+            auto opd = Allocate(instr->InputValue(0), kAny);
+            LocationOperand *loc = nullptr;
+            if (opd->IsRegister()) {
+                auto self = opd->AsRegister();
+                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register_id(), -1, field->offset);
+            } else {
+                assert(opd->IsLocation());
+                auto self = opd->AsLocation();
+                //printd("%d", self->k());
+                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register0_id(), -1, self->k() + field->offset);
+            }
+            auto value = Allocate(instr->InputValue(1), kAny);
+            Move(loc, value, instr->InputValue(1)->type());
+            operands_.Associate(instr, opd);
+        } break;
+            
         case ir::Operator::kStoreAccessField: {
             auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
             assert(handle->IsField());
@@ -764,7 +785,25 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             operands_.Associate(instr, opd);
         } break;
             
-        case ir::Operator::kLoadInlineField:
+        case ir::Operator::kLoadInlineField: {
+            auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+            assert(handle->IsField());
+            auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+            
+            auto opd = Allocate(instr->InputValue(0), kAny);
+            LocationOperand *loc = nullptr;
+            if (opd->IsRegister()) {
+                auto self = opd->AsRegister();
+                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register_id(), -1, field->offset);
+            } else {
+                assert(opd->IsLocation());
+                auto self = opd->AsLocation();
+                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register0_id(), -1, self->k() + field->offset);
+            }
+            auto value = Allocate(instr, kAny);
+            Move(value, loc, instr->type());
+        } break;
+            
         case ir::Operator::kLoadAccessField: {
             auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
             assert(handle->IsField());
@@ -773,7 +812,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             auto opd = Allocate(instr->InputValue(0), kReg);
             auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, opd->AsRegister()->register_id(), -1, field->offset);
             auto value = Allocate(instr, kAny);
-            Move(value, loc, instr->InputValue(0)->type());
+            Move(value, loc, instr->type());
         } break;
             
         case ir::Operator::kIsInstanceOf: {
