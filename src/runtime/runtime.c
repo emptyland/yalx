@@ -652,7 +652,7 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
         kstr_addr->ks[i] = yalx_new_string(&heap, lksz_addr->sz[i], strlen(lksz_addr->sz[i]));
     }
     
-    hash_table_value_span_t rs = yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name) + 1, sizeof(slots));
+    hash_table_value_span_t rs = yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name), sizeof(slots));
     //TODO: memcpy(rs.value, &slots, sizeof(slots));
     *((struct pkg_global_slots **)rs.value) = slots;
 done:
@@ -660,7 +660,7 @@ done:
     printf("pkg init...%s\n", plain_name);
     free(symbol);
     if (init_fun) {
-        call_returning_vals(buf, sizeof(buf), init_fun);
+        call0_returning_vals(buf, sizeof(buf), init_fun);
     }
 }
 
@@ -673,6 +673,19 @@ int pkg_has_initialized(const char *const plain_name) {
     return span.value != NULL;
 }
 
+const struct pkg_global_slots *pkg_get_global_slots(const char *const plain_name) {
+    const struct pkg_global_slots *rs = NULL;
+    pthread_mutex_lock(&pkg_init_mutex);
+    hash_table_value_span_t span = yalx_get_string_key(&pkg_init_records, plain_name);
+    if (span.value == NULL) {
+        rs = NULL;
+    } else {
+        rs = *(struct pkg_global_slots **)span.value;
+    }
+    pthread_mutex_unlock(&pkg_init_mutex);
+    return rs;
+}
+
 void put_field(struct yalx_value_any **address, struct yalx_value_any *field) {
     assert(address != NULL);
     // TODO: 
@@ -683,8 +696,9 @@ static const uintptr_t kPendingMask = 1;
 static const uintptr_t kCreatedMask = ~kPendingMask;
 
 static inline int need_init(struct yalx_value_any *_Atomic *address) {
-    if (atomic_compare_exchange_strong(address, 0, kPendingMask)) {
-        return true;
+    struct yalx_value_any *expected = NULL;
+    if (atomic_compare_exchange_strong(address, &expected, kPendingMask)) {
+        return 1;
     }
     while ((uintptr_t)atomic_load_explicit(address, memory_order_acquire) == kPendingMask) {
         sched_yield();
@@ -697,13 +711,13 @@ struct yalx_value_any *lazy_load_object(struct yalx_value_any *_Atomic *address,
     assert(clazz != NULL);
     
 
-    if (((uintptr_t)atomic_load_explicit(address, memory_order_acquire) & kCreatedMask) && need_init(address)) {
+    if (!((uintptr_t)atomic_load_explicit(address, memory_order_acquire) & kCreatedMask) && need_init(address)) {
         struct allocate_result rs = yalx_heap_allocate(&heap, clazz, clazz->instance_size, 0);
         assert(rs.object != NULL);
 
-        // TODO: call ctor
-//        char buf[16] = {0};
-//        call_returning_vals(buf, sizeof(buf), clazz->ctor->entry);
+        // call constructor:
+        char buf[16] = {0};
+        call1_returning_vals(buf, sizeof(buf), clazz->ctor->entry, (intptr_t)rs.object);
         atomic_store_explicit(address, rs.object, memory_order_release);
     }
     return atomic_load_explicit(address, memory_order_relaxed);

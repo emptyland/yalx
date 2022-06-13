@@ -70,7 +70,7 @@ TEST(RuntimeTest, PkgInitOnce) {
 
 TEST(RuntimeTest, CallReturningVals) {
     int buf[4] = {0};
-    call_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(asm_stub6));
+    call0_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(asm_stub6));
     ASSERT_EQ(220, buf[0]);
     ASSERT_EQ(199, buf[3]);
 }

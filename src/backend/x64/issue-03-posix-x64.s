@@ -21,6 +21,7 @@ Lblk3:
     movq %rax, %rdi
     leaq Lkzs.1(%rip), %rsi
     callq _pkg_init_once
+    movq $0, _issue03_Zoissue03_ZdBaz(%rip)
     movl $1, _issue03_Zoissue03_Zda(%rip)
     movl $2, _issue03_Zoissue03_Zdb(%rip)
     leaq -40(%rbp), %rax
@@ -57,10 +58,70 @@ Lblk3:
     popq %rbp
     retq
 .cfi_endproc
+.global _issue03_Zoissue03_Zdissue1
+_issue03_Zoissue03_Zdissue1:
+.cfi_startproc
+Lblk4:
+    pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
+    movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
+    subq $16, %rsp
+    leaq _issue03_Zoissue03_ZdBaz(%rip), %rdi
+    leaq _issue03_Zoissue03_ZdBaz_Z4ShadowClass$class(%rip), %rsi
+    callq _lazy_load_object
+    movl 16(%rax), %ecx
+    movq %rax, -8(%rbp)
+    movl %ecx, -12(%rbp)
+    leaq _issue03_Zoissue03_ZdBaz(%rip), %rdi
+    leaq _issue03_Zoissue03_ZdBaz_Z4ShadowClass$class(%rip), %rsi
+    callq _lazy_load_object
+    movl -12(%rbp), %ecx
+    movl 20(%rax), %edx
+    movl %edx, 24(%rbp)
+    movl %ecx, 28(%rbp)
+    addq $16, %rsp
+    popq %rbp
+    retq
+.cfi_endproc
+.global _issue03_Zoissue03_Zdissue1_had
+_issue03_Zoissue03_Zdissue1_had:
+.cfi_startproc
+Lblk5:
+    pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
+    movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
+    subq $48, %rsp
+    movq %rbx, -8(%rbp)
+    movq %r12, -16(%rbp)
+    movq %r13, -24(%rbp)
+    movq %r14, -32(%rbp)
+    movq %r15, -40(%rbp)
+    callq _current_root
+    movq %rax, %r14
+    callq _issue03_Zoissue03_Zdissue1
+    movq $16, %rdi
+    callq _reserve_handle_returning_vals
+    movq %rax, %rdi
+    movq %rsp, %rsi
+    movq $16, %rdx
+    callq _memcpy
+    movq -8(%rbp), %rbx
+    movq -16(%rbp), %r12
+    movq -24(%rbp), %r13
+    movq -32(%rbp), %r14
+    movq -40(%rbp), %r15
+    addq $48, %rsp
+    popq %rbp
+    retq
+.cfi_endproc
 .global _issue03_Zoissue03_Zddisplay
 _issue03_Zoissue03_Zddisplay:
 .cfi_startproc
-Lblk4:
+Lblk6:
     pushq %rbp
     .cfi_def_cfa_offset 16
     .cfi_offset %rbp, -16
@@ -134,8 +195,8 @@ Lblk1:
     callq _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
     subq $16, %rsp
     movq -16(%rbp), %rax
-    movl $0, 16(%rax)
-    movl $1, 20(%rax)
+    movl $996, 16(%rax)
+    movl $777, 20(%rax)
     movq %rax, -8(%rbp)
     leaq 24(%rax), %rdi
     movq Kstr.0(%rip), %rsi

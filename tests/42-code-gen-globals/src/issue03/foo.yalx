@@ -8,15 +8,13 @@ var b = 2
 val bar = Bar("Hello", "World")
 
 object Baz {
-    val i = 0
-    val j = 1
+    val i = 996
+    val j = 777
     val s = "world"
 }
 
-// @yalx.Compiler(nativeHandle=true)
-// fun issue1(): int, int {
-//     return Baz.i, Baz.j
-// }
+@yalx.Compiler(nativeHandle=true)
+fun issue1(): int, int -> Baz.i, Baz.j
 
 class Foo(val i: int, val j: int, val s: string)
 

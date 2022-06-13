@@ -196,7 +196,8 @@ void *asm_stub6(void);
 // implements in boot-[Arch].s
 int trampoline(void);
 void coroutine_finalize_stub(void);
-void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
+void call0_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
+void call1_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun, intptr_t arg0);
 
 struct pkg_global_slots {
     size_t size_in_bytes;
@@ -209,6 +210,8 @@ struct pkg_global_slots {
 void pkg_init_once(void *init_fun, const char *const plain_name);
 int pkg_initialized_count();
 int pkg_has_initialized(const char *const plain_name);
+
+const struct pkg_global_slots *pkg_get_global_slots(const char *const plain_name);
 
 // put field for post write barrier
 void put_field(struct yalx_value_any **address, struct yalx_value_any *field);

@@ -74,10 +74,15 @@ public:
     }
     
     Operator *LazyValue(const String *symbol) {
-        return new (arena_) OperatorWith<const String *>(Operator::kLazyValue, 0, 0/*value_in*/, 0/*control_in*/,
-                                                         0/*value_out*/, 0/*control_out*/, symbol);
+        return new (arena_) OperatorWith<const String *>(Operator::kLazyValue, 0, 1/*value_in*/, 0/*control_in*/,
+                                                         1/*value_out*/, 0/*control_out*/, symbol);
     }
     
+    Operator *LazyLoad() {
+        return new (arena_) Operator(Operator::kLazyLoad, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
+                                     0/*control_out*/);
+    }
+
     Operator *LoadGlobal() {
         return new (arena_) Operator(Operator::kLoadGlobal, 0, 1/*value_in*/, 0/*control_in*/, 1/*value_out*/,
                                      0/*control_out*/);

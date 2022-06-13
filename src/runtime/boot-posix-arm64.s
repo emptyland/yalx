@@ -54,14 +54,14 @@ _coroutine_finalize_stub:
 
 
 //----------------------------------------------------------------------------------------------------------------------
-// void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun)
+// void call0_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun)
 //----------------------------------------------------------------------------------------------------------------------
 // x0 = returnning_vals
 // x1 = size_in_bytes
 // x2 = yalx_fun
 // r19…r28 Callee-saved registers
-.global _call_returning_vals, _memcpy
-_call_returning_vals:
+.global _call0_returning_vals, _memcpy
+_call0_returning_vals:
     sub sp, sp, 96
     stp fp, lr, [sp, 80]
     stp x19, x20, [sp, 64]

@@ -63,19 +63,26 @@ static void rehash_if_needed(struct hash_table *map) {
         return;
     }
     struct hash_table_slot **linear_nodes = (struct hash_table_slot **)malloc(map->size * sizeof(struct hash_table_slot *));
-    int i = 0;
+    int k = 0;
     for (int j = 0; j < hash_table_capacity(map); j++){
         struct hash_table_slot *slot = &map->slots[j];
         while (!QUEUE_EMPTY(slot)) {
-            linear_nodes[i++] = slot->next;
-            QUEUE_REMOVE(slot->next);
+            struct hash_table_slot *node = slot->next;
+            linear_nodes[k++] = node;
+            QUEUE_REMOVE(node);
+            //free(node);
         }
     }
     map->capacity_shift++;
     map->slots = (struct hash_table_slot *)realloc(map->slots,
                                                    hash_table_capacity(map) * sizeof(struct hash_table_slot));
-    while (i-- > 0) {
-        struct hash_table_slot *node = &linear_nodes[i];
+    for (int j = 0; j < hash_table_capacity(map); j++) {
+        struct hash_table_slot *slot = &map->slots[j];
+        slot->next = slot;
+        slot->prev = slot;
+    }
+    for (int i = 0; i < k; i++) {
+        struct hash_table_slot *node = linear_nodes[i];
         struct hash_table_slot *slot = hash_table_slot_at_hash_code(map, node->hash_code);
         QUEUE_INSERT_TAIL(slot, node);
     }

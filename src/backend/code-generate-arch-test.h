@@ -5,7 +5,7 @@
 #include "runtime/runtime.h"
 
 extern "C" {
-void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
+void call0_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
 void main_Zomain_Zd_Z4init();
 void main_Zomain_Zdissue1();
 void main_Zomain_Zdissue5();
@@ -23,7 +23,7 @@ void issue02_Zoissue02_Zdissue2_had();
 void issue02_Zoissue02_Zdissue3_had();
 
 void issue03_Zoissue03_Zd_Z4init();
-
+void issue03_Zoissue03_Zdissue1_had();
 
 
 } // extern "C"

@@ -97,15 +97,15 @@ TEST_F(Arm64CodeGeneratorTest, FooMetadata) {
 
 TEST_F(Arm64CodeGeneratorTest, ReturningVals) {
     int buf[4] = {0};
-    call_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zdissue1));
+    call0_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zdissue1));
     ASSERT_EQ(3, buf[3]);
     memset(buf, 0, sizeof(buf));
-    call_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zdfoo));
+    call0_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zdfoo));
     ASSERT_EQ(1066192077, buf[1]);
     ASSERT_EQ(2, buf[2]);
     ASSERT_EQ(1, buf[3]);
     memset(buf, 0, sizeof(buf));
-    call_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zdissue5));
+    call0_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zdissue5));
     ASSERT_EQ(4, buf[0]);
     ASSERT_EQ(3, buf[1]);
     ASSERT_EQ(2, buf[2]);
@@ -114,7 +114,7 @@ TEST_F(Arm64CodeGeneratorTest, ReturningVals) {
 
 TEST_F(Arm64CodeGeneratorTest, PkgInitOnce) {
 //    int buf[4] = {0};
-//    call_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zd_Z4init));
+//    call0_returning_vals(buf, sizeof(buf), reinterpret_cast<void *>(&main_Zomain_Zd_Z4init));
     pkg_init_once(reinterpret_cast<void *>(&main_Zomain_Zd_Z4init), "main:main");
 }
 

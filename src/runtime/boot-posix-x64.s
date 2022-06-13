@@ -43,10 +43,10 @@ _trampoline:
 
 
 //----------------------------------------------------------------------------------------------------------------------
-// void call_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun)
+// void call0_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun)
 //----------------------------------------------------------------------------------------------------------------------
-.global _call_returning_vals, _memcpy
-_call_returning_vals:
+.global _call0_returning_vals, _memcpy
+_call0_returning_vals:
     pushq %rbp
     pushq %rbx
     pushq %r12
@@ -82,6 +82,49 @@ _call_returning_vals:
     popq %rbx
     popq %rbp
     retq
+
+//----------------------------------------------------------------------------------------------------------------------
+// void call1_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun, intptr_t arg0)
+//----------------------------------------------------------------------------------------------------------------------
+.global _call1_returning_vals
+_call1_returning_vals:
+    pushq %rbp
+    pushq %rbx
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+    pushq %r15
+
+    movq %rsp, %rbp
+    addq $32, %rsi
+    subq %rsi, %rsp
+
+    movq %rdi, -8(%rbp) // returnning_vals
+    movq %rsi, -16(%rbp) // size_in_bytes
+    movq %rdx, -24(%rbp) // yalx_fun
+
+    movq %rcx, %rdi
+    callq *%rdx
+
+    movq -8(%rbp), %rdi // dest
+    movq %rsp, %rsi // src
+    movq -16(%rbp), %rdx // size
+    subq $32, %rdx
+    callq _memcpy
+
+    movq -16(%rbp), %rsi
+    addq %rsi, %rsp
+
+    popq %r15
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    popq %rbp
+    retq
+
 //----------------------------------------------------------------------------------------------------------------------
 // void yield()
 //----------------------------------------------------------------------------------------------------------------------

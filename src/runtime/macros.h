@@ -59,9 +59,10 @@
 
 #define QUEUE_REMOVE(x) \
     (x)->next->prev = (x)->prev; \
-    (x)->prev->next = (x)->next; \
-    (x)->prev = NULL; \
-    (x)->next = NULL
+    (x)->prev->next = (x)->next;
+
+//    (x)->prev = NULL; \
+//    (x)->next = NULL
 
 #define QUEUE_EMPTY(h) ((h)->next == (h))
 

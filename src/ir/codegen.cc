@@ -424,7 +424,7 @@ public:
                     auto load = b()->NewNode(root_ss.Position(), value->type(), op, value);
                     return Returning(load);
                 } else if (value->Is(Operator::kLazyValue)) {
-                    auto op = ops()->LazyValue(node->name());
+                    auto op = ops()->LazyLoad(/*node->name()*/);
                     auto load = b()->NewNode(root_ss.Position(), value->type(), op, value);
                     return Returning(load);
                 } else {

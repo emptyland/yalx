@@ -683,13 +683,36 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
             Move(loc, rval, global_var->type());
         } break;
 
-//        case ir::Operator::kLoadGlobal: {
-//
-//        } break;
-//
-//        case ir::Operator::kLazyLoad: {
-//
-//        } break;
+        case ir::Operator::kLoadGlobal: {
+            auto global_var = instr->InputValue(0);
+            auto symbol = symbols_->Mangle(global_var->name());
+            auto loc = bundle()->AddExternalSymbol(symbol);
+            auto lval = Allocate(instr, kAny);
+            Move(lval, loc, global_var->type());
+        } break;
+
+        case ir::Operator::kLazyLoad: {
+            auto global_var = instr->InputValue(0);
+            auto symbol = symbols_->Mangle(global_var->name());
+            auto slot = bundle()->AddExternalSymbol(symbol);
+            assert(global_var->type().IsReference());
+            std::string buf;
+            LinkageSymbols::Build(&buf, global_var->type().model()->full_name()->ToSlice());
+            buf.append("$class");
+            auto clazz = bundle()->AddExternalSymbol(buf);
+            
+            RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+            saving_scope.SaveAll();
+            auto arg0 = new (arena_) RegisterOperand(Argv_0.code(), MachineRepresentation::kWord64);
+            current()->NewIO(X64Lea, arg0, slot);
+            
+            auto arg1 = new (arena_) RegisterOperand(Argv_1.code(), MachineRepresentation::kWord64);
+            current()->NewIO(X64Lea, arg1, clazz);
+            
+            current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_lazy_load_object));
+            auto ret0 = new (arena_) RegisterOperand(kRAX, MachineRepresentation::kWord64);
+            Move(Allocate(instr, kMoR), ret0, instr->type());
+        } break;
 
         case ir::Operator::kLoadEffectField: {
             auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
