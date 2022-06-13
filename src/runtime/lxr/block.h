@@ -46,9 +46,16 @@ struct lxr_block_header {
     uint32_t bitmap[LXR_BLOCK_BITMAP_LEN];
 }; // struct lxr_block_header
 
+struct lxr_large_block {
+    struct lxr_large_block *next;
+    struct lxr_large_block *prev;
+    size_t size_in_bytes;
+};
 
 struct lxr_block_header *lxr_new_normal_block(const uint32_t *offset_of_bitmap);
 void lxr_delete_block(struct lxr_block_header *block);
+
+struct lxr_large_block *lxr_new_large_block(size_t n);
 
 // 16,0|32,1|64,2|128,3|512,4|1024,5
 void *lxr_block_allocate(struct lxr_block_header *const block, const size_t size, const size_t aligment);

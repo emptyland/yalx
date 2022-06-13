@@ -528,7 +528,7 @@ int yalx_name_symbolize(const char *const plain_name, char symbol[], size_t size
 
 int yalx_enter_returning_scope(struct yalx_returning_vals *state, size_t reserved_size, address_t fun_addr) {
     struct coroutine *co = CURRENT_COROUTINE;
-    assert(co->returning_vals != state);
+    DCHECK(co->returning_vals != state);
     state->prev = co->returning_vals;
     co->returning_vals = state;
     
@@ -547,7 +547,7 @@ int yalx_enter_returning_scope(struct yalx_returning_vals *state, size_t reserve
 
 int yalx_exit_returning_scope(struct yalx_returning_vals *state) {
     struct coroutine *const co = CURRENT_COROUTINE;
-    assert(co->returning_vals == state);
+    DCHECK(co->returning_vals == state);
     if (state->allocated) {
         free(state->buf);
     }
@@ -581,8 +581,8 @@ void *yalx_return_reserved_do(struct yalx_returning_vals *state, size_t n) {
 }
 
 const struct yalx_class *yalx_find_class(const char *const plain_name) {
-    assert(plain_name != NULL);
-    assert(plain_name[0] != 0);
+    DCHECK(plain_name != NULL);
+    DCHECK(plain_name[0] != 0);
     const char *const symbol = yalx_symbol_mangle(plain_name, "$class");
     const struct yalx_class *const clazz = (struct yalx_class *)dlsym(RTLD_MAIN_ONLY, symbol + 1);
     //puts(symbol);
@@ -620,7 +620,7 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     } while(yalx_name_symbolize(plain_name, symbol, buf_size) < 0);
     
     const size_t prefix_len = strlen(symbol);
-    assert(prefix_len > 1);
+    DCHECK(prefix_len > 1);
     if (prefix_len + kMaxPostfixSize > buf_size) {
         symbol = (char *)realloc(symbol, prefix_len + kMaxPostfixSize);
     }
@@ -687,7 +687,7 @@ const struct pkg_global_slots *pkg_get_global_slots(const char *const plain_name
 }
 
 void put_field(struct yalx_value_any **address, struct yalx_value_any *field) {
-    assert(address != NULL);
+    DCHECK(address != NULL);
     // TODO: 
     *address = field;
 }
@@ -707,10 +707,9 @@ static inline int need_init(struct yalx_value_any *_Atomic *address) {
 }
 
 struct yalx_value_any *lazy_load_object(struct yalx_value_any *_Atomic *address, const struct yalx_class *clazz) {
-    assert(address != NULL);
-    assert(clazz != NULL);
+    DCHECK(address != NULL);
+    DCHECK(clazz != NULL);
     
-
     if (!((uintptr_t)atomic_load_explicit(address, memory_order_acquire) & kCreatedMask) && need_init(address)) {
         struct allocate_result rs = yalx_heap_allocate(&heap, clazz, clazz->instance_size, 0);
         assert(rs.object != NULL);
@@ -728,7 +727,7 @@ void associate_stub_returning_vals(struct yalx_returning_vals *state,
                                    size_t reserved_size,
                                    address_t fun_addr) {
     struct coroutine *const co = CURRENT_COROUTINE;
-    assert(co->returning_vals != state);
+    DCHECK(co->returning_vals != state);
     state->prev = co->returning_vals;
     co->returning_vals = state;
     
@@ -741,16 +740,16 @@ void associate_stub_returning_vals(struct yalx_returning_vals *state,
 }
 
 void *reserve_handle_returning_vals(u32_t size) {
-    assert(thread_local_mach != NULL);
+    DCHECK(thread_local_mach != NULL);
     struct coroutine *const co = CURRENT_COROUTINE;
-    assert(size == co->returning_vals->total_size);
+    DCHECK(size == co->returning_vals->total_size);
     return co->returning_vals->buf;
 }
 
 struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz) {
     struct allocate_result result = yalx_heap_allocate(&heap, clazz, clazz->instance_size, 0);
     if (result.status != ALLOCATE_OK) {
-        assert(!"TODO: throw Exception");
+        DCHECK(!"TODO: throw Exception");
         return NULL; // TODO: throw Exception
     }
     return result.object;
@@ -760,8 +759,8 @@ struct coroutine *current_root() { return CURRENT_COROUTINE; }
 
 
 u8_t is_instance_of(struct yalx_value_any *const host, const struct yalx_class *const for_test) {
-    assert(host != NULL);
-    assert(for_test != NULL);
+    DCHECK(host != NULL);
+    DCHECK(for_test != NULL);
     const struct yalx_class *const ty = CLASS(host);
     for (const struct yalx_class *it = ty; it != NULL; it = it->super) {
         if (for_test == it) {
@@ -787,7 +786,7 @@ struct yalx_value_any *ref_asserted_to(struct yalx_value_any *const from, const 
 //----------------------------------------------------------------------------------------------------------------------
 
 void yalx_Zplang_Zolang_Zdprintln_stub(yalx_str_handle txt) {
-    assert(txt != NULL);
+    DCHECK(txt != NULL);
     const u32_t hash_code = yalx_str_hash_code(txt);
     if (hash_code == 634532469 || hash_code == 1342438586 || hash_code == 2593250737) {
         static const char *quote = "<👍>";

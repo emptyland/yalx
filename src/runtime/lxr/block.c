@@ -1,6 +1,7 @@
 #include "runtime/lxr/block.h"
 #include "runtime/runtime.h"
-
+#include "runtime/checking.h"
+#include "runtime/macros.h"
 #include <sys/mman.h>
 #include <assert.h>
 
@@ -23,20 +24,20 @@ static void *aligned_page_allocate(const size_t size, const size_t alignment) {
     address_t base = (address_t)result;
     address_t aligned_base = (address_t)ROUND_UP((uintptr_t)base, alignment);
     if (aligned_base != base) {
-        assert(base < aligned_base);
+        DCHECK(base < aligned_base);
         ptrdiff_t prefix_size = aligned_base - base;
         munmap(base, prefix_size);
         request_size -= prefix_size;
     }
     
     if (size != request_size) {
-        assert(size < request_size);
+        DCHECK(size < request_size);
         const size_t suffix_size = request_size - size;
         munmap(aligned_base + size, suffix_size);
         request_size -= suffix_size;
     }
     
-    assert(request_size == size);
+    DCHECK(request_size == size);
     return aligned_base;
 }
 
@@ -67,8 +68,8 @@ static inline void link_to_fit_region(struct lxr_block_header *const block,
 
 static inline void mark_allocated(struct lxr_block_header *const block, address_t chunk, size_t size) {
     ptrdiff_t offset = chunk - (address_t)block;
-    assert(offset > 0);
-    assert(offset % 4 == 0);
+    DCHECK(offset > 0);
+    DCHECK(offset % 4 == 0);
     size = ROUND_UP(size, LXR_BLOCK_MIN_ALIGMENT);
     
     // offset / 4
@@ -80,12 +81,12 @@ static inline void mark_allocated(struct lxr_block_header *const block, address_
 
 static inline size_t mark_freed(struct lxr_block_header *const block, address_t chunk) {
     ptrdiff_t offset = chunk - (address_t)block;
-    assert(offset > 0);
-    assert(offset % 4 == 0);
+    DCHECK(offset > 0);
+    DCHECK(offset % 4 == 0);
     
     // offset / 4
     int shift = offset >> 2;
-    assert(test_bit(block, shift));
+    DCHECK(test_bit(block, shift));
     for (int i = shift + 1; i < (shift + 4096 / 4); i++) {
         if ((block->bitmap[(i + 31) >> 5] != 0) && test_bit(block, i)) {
             clear_bit(block, shift);
@@ -98,8 +99,8 @@ static inline size_t mark_freed(struct lxr_block_header *const block, address_t 
 
 static inline size_t get_marked_size(struct lxr_block_header *const block, address_t chunk) {
     ptrdiff_t offset = chunk - (address_t)block;
-    assert(offset > 0);
-    assert(offset % 4 == 0);
+    DCHECK(offset > 0);
+    DCHECK(offset % 4 == 0);
     
     // offset / 4
     int shift = offset >> 2;
@@ -145,12 +146,17 @@ struct lxr_block_header *lxr_new_normal_block(const uint32_t *offset_of_logging)
     return block;
 }
 
+struct lxr_large_block *lxr_new_large_block(size_t n) {
+    // TODO:
+    return NULL;
+}
+
 
 void *lxr_block_allocate(struct lxr_block_header *const block, const size_t size, const size_t aligment) {
-    assert(aligment >= LXR_BLOCK_MIN_ALIGMENT);
-    assert(aligment % 2 == 0);
+    DCHECK(aligment >= LXR_BLOCK_MIN_ALIGMENT);
+    DCHECK(aligment % 2 == 0);
     size_t request_size = ROUND_UP(size, aligment);
-    assert(request_size < 4096);
+    DCHECK(request_size < 4096);
     if (request_size == 0) {
         return NULL;
     }
@@ -169,7 +175,7 @@ void *lxr_block_allocate(struct lxr_block_header *const block, const size_t size
         return NULL;
     }
     struct lxr_block_chunk *chunk = *location;
-    assert(chunk->size >= request_size);
+    DCHECK(chunk->size >= request_size);
     *location = chunk->next;
 
     const size_t remain_size = chunk->size - request_size;
@@ -186,7 +192,7 @@ void *lxr_block_allocate(struct lxr_block_header *const block, const size_t size
 }
 
 static inline int in_cache_nodes(struct lxr_block_header *const block, struct lxr_block_chunk *const match) {
-    assert(match != NULL);
+    DCHECK(match != NULL);
     for (int i = 0; i < LXR_BLOCK_MAX_REGIONS; i++) {
         for (struct lxr_block_chunk *node = block->regions[i]; node != NULL; node = node->next) {
             if (match == node) {
@@ -198,7 +204,7 @@ static inline int in_cache_nodes(struct lxr_block_header *const block, struct lx
 }
 
 static inline void remove_cache_node(struct lxr_block_header *const block, struct lxr_block_chunk *const match) {
-    assert(match != NULL);
+    DCHECK(match != NULL);
     const int index = get_fit_region_shift(match->size);
     struct lxr_block_chunk dummy;
     dummy.next = block->regions[index];
@@ -224,11 +230,11 @@ void lxr_block_free(struct lxr_block_header *const block, void *chunk) {
         return; // Ignore null pointer
     }
     address_t addr = (address_t)chunk;
-    assert(addr > (address_t)block && "invalid chunk address");
-    assert(addr < (address_t)block + LXR_NORMAL_BLOCK_SIZE);
+    DCHECK(addr > (address_t)block && "invalid chunk address");
+    DCHECK(addr < (address_t)block + LXR_NORMAL_BLOCK_SIZE);
 
     size_t size = mark_freed(block, addr);
-    assert(size > 0);
+    DCHECK(size > 0);
     dbg_free_zag(chunk, size);
     if (is_free(block, addr + size)) {
         struct lxr_block_chunk *slibing = (struct lxr_block_chunk *)(addr + size);

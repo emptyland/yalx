@@ -61,6 +61,8 @@
 		233AB98327EB4C6100E68B90 /* unwind-posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB98227EB4C6100E68B90 /* unwind-posix.c */; };
 		233AB98427EB4C6100E68B90 /* unwind-posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB98227EB4C6100E68B90 /* unwind-posix.c */; };
 		23448B6128534A16007013EB /* issue-03-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6028534A16007013EB /* issue-03-posix-x64.s */; };
+		23448B6428573B97007013EB /* immix-heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6328573B97007013EB /* immix-heap.c */; };
+		23448B6528573B97007013EB /* immix-heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6328573B97007013EB /* immix-heap.c */; };
 		2355560A278929C0003ADACE /* io-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23555609278929C0003ADACE /* io-test.cc */; };
 		2355560B278929C0003ADACE /* io-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23555609278929C0003ADACE /* io-test.cc */; };
 		2355560E278936EC003ADACE /* utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2355560D278936EC003ADACE /* utils.cc */; };
@@ -364,6 +366,8 @@
 		233AB98227EB4C6100E68B90 /* unwind-posix.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "unwind-posix.c"; path = "../src/runtime/heap/unwind-posix.c"; sourceTree = "<group>"; };
 		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
 		23448B6028534A16007013EB /* issue-03-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-03-posix-x64.s"; path = "../src/backend/x64/issue-03-posix-x64.s"; sourceTree = "<group>"; };
+		23448B6228573B66007013EB /* immix-heap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "immix-heap.h"; path = "../src/runtime/lxr/immix-heap.h"; sourceTree = "<group>"; };
+		23448B6328573B97007013EB /* immix-heap.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "immix-heap.c"; path = "../src/runtime/lxr/immix-heap.c"; sourceTree = "<group>"; };
 		2351F80E26648CB200D337EA /* runtime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = runtime.h; path = ../src/runtime/runtime.h; sourceTree = "<group>"; };
 		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
 		2351F8112664939700D337EA /* macros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macros.h; path = ../src/runtime/macros.h; sourceTree = "<group>"; };
@@ -798,6 +802,8 @@
 				23893F8228449CE4000FA9F7 /* block-test.cc */,
 				23893F7F28447368000FA9F7 /* block.c */,
 				23893F7E28447351000FA9F7 /* block.h */,
+				23448B6328573B97007013EB /* immix-heap.c */,
+				23448B6228573B66007013EB /* immix-heap.h */,
 			);
 			name = LXR;
 			sourceTree = "<group>";
@@ -973,6 +979,7 @@
 				23D4A4472680D17D0090C631 /* number.c in Sources */,
 				2332DAF627EFFEC100EBB3E4 /* throwable.c in Sources */,
 				23B997DE26A468D500DD037B /* scope.cc in Sources */,
+				23448B6528573B97007013EB /* immix-heap.c in Sources */,
 				23C1345F27A4DDFA00C0DEB4 /* instruction-generating-x64.cc in Sources */,
 				233AB98427EB4C6100E68B90 /* unwind-posix.c in Sources */,
 				23D4A4482680D17D0090C631 /* number.h in Sources */,
@@ -1130,6 +1137,7 @@
 				23D5A663266718F900635ADB /* at-exit.cc in Sources */,
 				23201D5227E9BC6C00D5EA36 /* yalx-lang-posix-x64.s in Sources */,
 				2331FFA6268DC66B00F69508 /* ast-utils.cc in Sources */,
+				23448B6428573B97007013EB /* immix-heap.c in Sources */,
 				23D5A664266718F900635ADB /* at-exit.h in Sources */,
 				2387EFBB2685BEAD002E6DCF /* ast.cc in Sources */,
 				2387EFB0268581AD002E6DCF /* token-test.cc in Sources */,
