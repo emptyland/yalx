@@ -66,9 +66,13 @@ static inline void link_to_fit_region(struct lxr_block_header *const block,
 #define clear_bit(block, shift) (block)->bitmap[(shift + 31) >> 5] &= ~(1u << (shift & 0x1fu))
 #define test_bit(block, shift)  (block->bitmap[(shift + 31) >> 5] & (1u << (shift & 0x1fu)))
 
+static inline ptrdiff_t offset_of_block(struct lxr_block_header *const block, address_t chunk) {
+    return chunk - (address_t)(block + 1);
+}
+
 static inline void mark_allocated(struct lxr_block_header *const block, address_t chunk, size_t size) {
-    ptrdiff_t offset = chunk - (address_t)block;
-    DCHECK(offset > 0);
+    ptrdiff_t offset = offset_of_block(block, chunk);
+    DCHECK(offset >= 0);
     DCHECK(offset % 4 == 0);
     size = ROUND_UP(size, LXR_BLOCK_MIN_ALIGMENT);
     
@@ -80,8 +84,8 @@ static inline void mark_allocated(struct lxr_block_header *const block, address_
 }
 
 static inline size_t mark_freed(struct lxr_block_header *const block, address_t chunk) {
-    ptrdiff_t offset = chunk - (address_t)block;
-    DCHECK(offset > 0);
+    ptrdiff_t offset = offset_of_block(block, chunk);
+    DCHECK(offset >= 0);
     DCHECK(offset % 4 == 0);
     
     // offset / 4
@@ -98,8 +102,8 @@ static inline size_t mark_freed(struct lxr_block_header *const block, address_t 
 }
 
 static inline size_t get_marked_size(struct lxr_block_header *const block, address_t chunk) {
-    ptrdiff_t offset = chunk - (address_t)block;
-    DCHECK(offset > 0);
+    ptrdiff_t offset = offset_of_block(block, chunk);
+    DCHECK(offset >= 0);
     DCHECK(offset % 4 == 0);
     
     // offset / 4
@@ -116,7 +120,7 @@ static inline size_t get_marked_size(struct lxr_block_header *const block, addre
 }
 
 static inline is_not_free(struct lxr_block_header *const block, address_t addr) {
-    const ptrdiff_t offset = addr - (address_t)block;
+    const ptrdiff_t offset = offset_of_block(block, addr);
     const int shift = offset >> 2;
     return test_bit(block, shift);
 }
@@ -183,6 +187,9 @@ void *lxr_block_allocate(struct lxr_block_header *const block, const size_t size
         return NULL;
     }
     struct lxr_block_chunk *chunk = *location;
+    if (chunk->size < request_size) {
+        return NULL;
+    }
     DCHECK(chunk->size >= request_size);
     *location = chunk->next;
 
@@ -246,9 +253,11 @@ void lxr_block_free(struct lxr_block_header *const block, void *chunk) {
     dbg_free_zag(chunk, size);
     if (is_free(block, addr + size)) {
         struct lxr_block_chunk *slibing = (struct lxr_block_chunk *)(addr + size);
-        assert(in_cache_nodes(block, slibing));
+        //assert(in_cache_nodes(block, slibing));
         const merged_size = size + slibing->size;
-        remove_cache_node(block, slibing);
+        if (in_cache_nodes(block, slibing)) {
+            remove_cache_node(block, slibing);
+        }
         link_to_fit_region(block, chunk, merged_size);
     } else {
         link_to_fit_region(block, chunk, size);

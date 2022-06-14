@@ -41,9 +41,9 @@ TEST_F(LxrBlockTest, Sanity) {
     
     auto p = lxr_block_allocate(block_, 1, kDefaultAligment);
     // 257 = 0x300000
-    ASSERT_EQ(0x900000, block_->bitmap[257]);
+    ASSERT_EQ(1, block_->bitmap[0]);
     lxr_block_free(block_, p);
-    ASSERT_EQ(0, block_->bitmap[257]);
+    ASSERT_EQ(0, block_->bitmap[0]);
     ASSERT_NE(nullptr, p);
 }
 
@@ -51,13 +51,13 @@ TEST_F(LxrBlockTest, Allocation0) {
     auto p1 = lxr_block_allocate(block_, 1, kDefaultAligment);
     auto p2 = lxr_block_allocate(block_, 1, kDefaultAligment);
     
-    ASSERT_EQ(0x9900000, block_->bitmap[257]);
+    ASSERT_EQ(1, block_->bitmap[0]);
     ASSERT_EQ(block_, lxr_owns_block(p1));
     ASSERT_EQ(block_, lxr_owns_block(p2));
     
     lxr_block_free(block_, p1);
     lxr_block_free(block_, p2);
-    ASSERT_EQ(0, block_->bitmap[257]);
+    ASSERT_EQ(0, block_->bitmap[0]);
 }
 
 TEST_F(LxrBlockTest, Allocation1) {
@@ -81,5 +81,39 @@ TEST_F(LxrBlockTest, AllocatingWithCache) {
     
     lxr_block_free(block_, p1);
     lxr_block_free(block_, p2);
+}
+
+TEST_F(LxrBlockTest, FuzzAllocating) {
+    std::vector<void *> chunks;
+    int i = 0;
+    for (;;) {
+        auto chunk = lxr_block_allocate(block_, 16, kDefaultAligment);
+        if (!chunk) {
+            break;
+        }
+        chunks.push_back(chunk);
+        i++;
+    }
+    ASSERT_EQ(63482, i);
+    for (int j = 0; j < chunks.size(); j++) {
+        lxr_block_free(block_, chunks[j]);
+    }
+}
+
+TEST_F(LxrBlockTest, FuzzAllocatingFree) {
+    std::vector<void *> chunks;
+    int i = 0;
+    for (;;) {
+        auto size = 16 + std::abs(rand()) % 4079;
+        auto chunk = lxr_block_allocate(block_, size, kDefaultAligment);
+        if (!chunk) {
+            break;
+        }
+        chunks.push_back(chunk);
+        i++;
+    }
+    for (int j = 0; j < chunks.size(); j++) {
+        lxr_block_free(block_, chunks[j]);
+    }
 }
 
