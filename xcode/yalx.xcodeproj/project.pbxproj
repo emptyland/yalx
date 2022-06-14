@@ -63,6 +63,10 @@
 		23448B6128534A16007013EB /* issue-03-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6028534A16007013EB /* issue-03-posix-x64.s */; };
 		23448B6428573B97007013EB /* immix-heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6328573B97007013EB /* immix-heap.c */; };
 		23448B6528573B97007013EB /* immix-heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6328573B97007013EB /* immix-heap.c */; };
+		23448B6828583024007013EB /* logging.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6728583024007013EB /* logging.c */; };
+		23448B6928583024007013EB /* logging.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6728583024007013EB /* logging.c */; };
+		23448B6B28586C93007013EB /* logging-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6A28586C92007013EB /* logging-test.cc */; };
+		23448B6C28586C93007013EB /* logging-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6A28586C92007013EB /* logging-test.cc */; };
 		2355560A278929C0003ADACE /* io-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23555609278929C0003ADACE /* io-test.cc */; };
 		2355560B278929C0003ADACE /* io-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23555609278929C0003ADACE /* io-test.cc */; };
 		2355560E278936EC003ADACE /* utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2355560D278936EC003ADACE /* utils.cc */; };
@@ -368,6 +372,9 @@
 		23448B6028534A16007013EB /* issue-03-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-03-posix-x64.s"; path = "../src/backend/x64/issue-03-posix-x64.s"; sourceTree = "<group>"; };
 		23448B6228573B66007013EB /* immix-heap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "immix-heap.h"; path = "../src/runtime/lxr/immix-heap.h"; sourceTree = "<group>"; };
 		23448B6328573B97007013EB /* immix-heap.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "immix-heap.c"; path = "../src/runtime/lxr/immix-heap.c"; sourceTree = "<group>"; };
+		23448B6628582DE5007013EB /* logging.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = logging.h; path = ../src/runtime/lxr/logging.h; sourceTree = "<group>"; };
+		23448B6728583024007013EB /* logging.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = logging.c; path = ../src/runtime/lxr/logging.c; sourceTree = "<group>"; };
+		23448B6A28586C92007013EB /* logging-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "logging-test.cc"; path = "../src/runtime/lxr/logging-test.cc"; sourceTree = "<group>"; };
 		2351F80E26648CB200D337EA /* runtime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = runtime.h; path = ../src/runtime/runtime.h; sourceTree = "<group>"; };
 		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
 		2351F8112664939700D337EA /* macros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macros.h; path = ../src/runtime/macros.h; sourceTree = "<group>"; };
@@ -804,6 +811,9 @@
 				23893F7E28447351000FA9F7 /* block.h */,
 				23448B6328573B97007013EB /* immix-heap.c */,
 				23448B6228573B66007013EB /* immix-heap.h */,
+				23448B6A28586C92007013EB /* logging-test.cc */,
+				23448B6728583024007013EB /* logging.c */,
+				23448B6628582DE5007013EB /* logging.h */,
 			);
 			name = LXR;
 			sourceTree = "<group>";
@@ -980,6 +990,7 @@
 				2332DAF627EFFEC100EBB3E4 /* throwable.c in Sources */,
 				23B997DE26A468D500DD037B /* scope.cc in Sources */,
 				23448B6528573B97007013EB /* immix-heap.c in Sources */,
+				23448B6928583024007013EB /* logging.c in Sources */,
 				23C1345F27A4DDFA00C0DEB4 /* instruction-generating-x64.cc in Sources */,
 				233AB98427EB4C6100E68B90 /* unwind-posix.c in Sources */,
 				23D4A4482680D17D0090C631 /* number.h in Sources */,
@@ -1025,6 +1036,7 @@
 				23D4A45B2680D17D0090C631 /* scheduler.h in Sources */,
 				23D4A45C2680D17D0090C631 /* scheduler.cc in Sources */,
 				23D4A45D2680D17D0090C631 /* label.h in Sources */,
+				23448B6C28586C93007013EB /* logging-test.cc in Sources */,
 				23D4A45E2680D17D0090C631 /* asm-arm64-test.cc in Sources */,
 				23D4A45F2680D17D0090C631 /* asm-arm64.h in Sources */,
 				2362A0EA26A67D1000A972B1 /* type-reducing-test.cc in Sources */,
@@ -1136,6 +1148,7 @@
 				232AA00426861D4C0098E6A3 /* parser.cc in Sources */,
 				23D5A663266718F900635ADB /* at-exit.cc in Sources */,
 				23201D5227E9BC6C00D5EA36 /* yalx-lang-posix-x64.s in Sources */,
+				23448B6828583024007013EB /* logging.c in Sources */,
 				2331FFA6268DC66B00F69508 /* ast-utils.cc in Sources */,
 				23448B6428573B97007013EB /* immix-heap.c in Sources */,
 				23D5A664266718F900635ADB /* at-exit.h in Sources */,
@@ -1149,6 +1162,7 @@
 				23D5A667266718F900635ADB /* bit-ops.h in Sources */,
 				23D5A668266718F900635ADB /* crc32.c in Sources */,
 				23D5A669266718F900635ADB /* env-test.cc in Sources */,
+				23448B6B28586C93007013EB /* logging-test.cc in Sources */,
 				2387EFB3268586F5002E6DCF /* lexer-test.cc in Sources */,
 				23D5A66A266718F900635ADB /* env-posix.cc in Sources */,
 				232FDB1026818CF900D52154 /* number-test.cc in Sources */,

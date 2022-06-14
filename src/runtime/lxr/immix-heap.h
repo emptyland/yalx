@@ -5,16 +5,16 @@
 #include <pthread.h>
 
 struct lxr_block_header;
-struct lxr_large_block;
+struct lxr_large_header;
 
 struct lxr_immix_heap {
     int max_tls_blocks;
     int n_tls_blocks;
     
     struct lxr_block_header *dummy;
-    struct lxr_large_block  *large;
+    struct lxr_large_header *large;
     struct lxr_block_header *stub0[2];
-    struct lxr_large_block  *stub1[2];
+    struct lxr_large_header *stub1[2];
     
     pthread_mutex_t mutex;
 }; // struct lxr_immix_heap

@@ -146,9 +146,17 @@ struct lxr_block_header *lxr_new_normal_block(const uint32_t *offset_of_logging)
     return block;
 }
 
-struct lxr_large_block *lxr_new_large_block(size_t n) {
-    // TODO:
-    return NULL;
+struct lxr_large_header *lxr_new_large_block(size_t n) {
+    size_t request_size = n + sizeof(struct lxr_large_header);
+    request_size = ROUND_UP(request_size, os_page_size);
+    struct lxr_large_header *block = (struct lxr_large_header *)aligned_page_allocate(request_size, LXR_NORMAL_BLOCK_SIZE);
+    if (!block) {
+        return NULL;
+    }
+    block->size_in_bytes = request_size;
+    block->next = block;
+    block->prev = block;
+    return block;
 }
 
 
