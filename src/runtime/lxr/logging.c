@@ -29,13 +29,16 @@ void lxr_free_fields_logger(struct lxr_fields_logger *logger) {
 }
 
 static inline struct lxr_log_stripe *load_stripe(struct lxr_log_stripe *_Atomic *slot) {
+    int i = 0;
     struct lxr_log_stripe *stripe = NULL;
     do {
         stripe = atomic_load_explicit(slot, memory_order_relaxed);
         if (!stripe) {
             break;;
         }
-        sched_yield();
+        if (i++ > 10000) {
+            sched_yield();
+        }
     } while((uintptr_t)stripe == kPendingMask);
     return stripe;
 }

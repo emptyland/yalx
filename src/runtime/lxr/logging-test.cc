@@ -28,7 +28,7 @@ protected:
 struct Dummy {
     void *a;
     void *b;
-    int c;
+    int   c;
 };
 
 TEST_F(LxrLoggingTest, Sanity) {
@@ -57,11 +57,12 @@ TEST_F(LxrLoggingTest, FuzzToLog) {
 
 TEST_F(LxrLoggingTest, ThreadSafeSanity) {
     const uintptr_t base = reinterpret_cast<uintptr_t>(block_);
+    static const int k = 1000000;
     std::thread workers[5];
     std::atomic<int> succ(0);
     for (int i = 0; i < arraysize(workers); i++) {
         workers[i] = std::move(std::thread([&succ, base, this](){
-            for (int i = 0; i < 4000000; i+=4) {
+            for (int i = 0; i < 4 * k; i += 4) {
                 auto ok = lxr_attempt_to_log(&logger_, reinterpret_cast<void *>(base + i));
                 if (ok) {
                     succ.fetch_add(1);
@@ -73,5 +74,9 @@ TEST_F(LxrLoggingTest, ThreadSafeSanity) {
     for (int i = 0; i < arraysize(workers); i++) {
         workers[i].join();
     }
-    ASSERT_EQ(1000000, succ.load(std::__1::memory_order_relaxed));
+    ASSERT_EQ(k, succ.load(std::__1::memory_order_relaxed));
+    
+    for (int i = 0; i < 4 * k; i += 4) {
+        ASSERT_TRUE(lxr_has_logged(&logger_, reinterpret_cast<void *>(base + i)));
+    }
 }
