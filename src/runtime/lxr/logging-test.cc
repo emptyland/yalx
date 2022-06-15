@@ -80,3 +80,43 @@ TEST_F(LxrLoggingTest, ThreadSafeSanity) {
         ASSERT_TRUE(lxr_has_logged(&logger_, reinterpret_cast<void *>(base + i)));
     }
 }
+
+
+TEST_F(LxrLoggingTest, LogQueueSanity) {
+    auto node = lxr_log_queue_push(&logger_.decrments, reinterpret_cast<void *>(1));
+    ASSERT_NE(nullptr, node);
+    ASSERT_EQ(nullptr, node->next);
+    auto take = lxr_log_queue_take(&logger_.decrments);
+    ASSERT_EQ(take, node);
+    ASSERT_EQ(reinterpret_cast<void *>(1), take->data);
+    
+    take = lxr_log_queue_take(&logger_.decrments);
+    ASSERT_EQ(nullptr, take);
+}
+
+
+TEST_F(LxrLoggingTest, LogQueuePushThreadSafe) {
+    static const int k = 10000;
+    
+    std::thread workers[5];
+    for (int i = 0; i < arraysize(workers); i++) {
+        workers[i] = std::move(std::thread([this](){
+            for (int i = 0; i < k; i ++) {
+                auto node = lxr_log_queue_push(&logger_.decrments, reinterpret_cast<void *>(i));
+                ASSERT_NE(nullptr, node);
+            }
+        }));
+    }
+    
+    for (int i = 0; i < arraysize(workers); i++) {
+        workers[i].join();
+    }
+    
+    int i = 0;
+    struct lxr_log_node *node = nullptr;
+    do {
+        i++;
+        node = lxr_log_queue_take(&logger_.decrments);
+    } while (node);
+    ASSERT_EQ(5*k, i-1);
+}
