@@ -2,7 +2,7 @@
 #ifndef YALX_RUNTIME_HEAP_HEAP_H_
 #define YALX_RUNTIME_HEAP_HEAP_H_
 
-//#include "runtime/object/number.h"
+#include "runtime/lxr/immix-heap.h"
 #include "runtime/runtime.h"
 #include <pthread.h>
 #include <stdlib.h>
@@ -28,6 +28,11 @@ enum allocate_status {
     ALLOCATE_NOT_ENOUGH_MEMORY,
     ALLOCATE_NO_OS_MEMORY,
 };
+
+typedef enum gc_algorithm {
+    GC_NONE, // No gc
+    GC_LXR,  // LXR gc algorithm
+} gc_t;
 
 struct allocate_result {
     struct yalx_value_any *object;
@@ -73,17 +78,23 @@ struct heap {
     // 1 pad allocation memory pool.
     // Only for no-gc model.
     struct one_time_memory_pool one_time_pool;
+    
+    // LXR immix heap
+    struct lxr_immix_heap lxr_immix;
+    
     struct string_pool kpool_stripes[KPOOL_STRIPES_SIZE];
     struct boxing_number_pool fast_boxing_numbers;
     
     pthread_mutex_t mutex;
     struct allocate_result (*allocate)(struct heap *, size_t, u32_t);
     void (*finalize)(struct heap *);
+    
+    gc_t gc;
 }; // struct heap
 
 extern struct heap heap;
 
-int yalx_init_heap(struct heap *heap);
+int yalx_init_heap(struct heap *heap, gc_t gc);
 void yalx_free_heap(struct heap *heap);
 
 // For GC root marking~

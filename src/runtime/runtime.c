@@ -164,7 +164,7 @@ int yalx_runtime_init() {
     ncpus = (int)cpu_count;
 #endif // defined(YALX_OS_DARWIN)
     yalx_init_hash_table(&pkg_init_records, 1.2);
-    if (yalx_init_heap(&heap) < 0) {
+    if (yalx_init_heap(&heap, GC_LXR) < 0) {
         return -1;
     }
     

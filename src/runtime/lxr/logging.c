@@ -11,7 +11,11 @@ static const uintptr_t kPendingMask = 1;
 static const uintptr_t kCreatedMask = ~kPendingMask;
 
 int lxr_init_fields_logger(struct lxr_fields_logger *logger) {
+    static const size_t kStripesSizeInBytes = TOP_STRIPES_SIZE * sizeof(struct lxr_log_stripe *);
+
     memset(logger, 0, sizeof(*logger));
+    logger->top_stripes = (struct lxr_log_stripe **)malloc(kStripesSizeInBytes);
+    memset(logger->top_stripes, 0, kStripesSizeInBytes);
     lxr_init_log_queue(&logger->decrments);
     lxr_init_log_queue(&logger->modification);
 }
@@ -30,6 +34,7 @@ void lxr_free_fields_logger(struct lxr_fields_logger *logger) {
         }
         free(stripe);
     }
+    free(logger->top_stripes);
 }
 
 static inline struct lxr_log_stripe *load_stripe(struct lxr_log_stripe *_Atomic *slot) {

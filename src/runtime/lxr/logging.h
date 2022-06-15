@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define TOP_STRIPES_SHIFT 12
+#define TOP_STRIPES_SHIFT 14
 #define TOP_STRIPES_SIZE (1u << TOP_STRIPES_SHIFT)
 #define TOP_STRIPES_MASK ((1ull << TOP_STRIPES_SHIFT) - 1)
 
@@ -46,7 +46,7 @@ struct lxr_log_queue {
 }; // struct lxr_log_queue
 
 struct lxr_fields_logger {
-    struct lxr_log_stripe *_Atomic top_stripes[TOP_STRIPES_SIZE];
+    struct lxr_log_stripe *_Atomic *top_stripes;
     _Atomic size_t used_memory_in_bytes;
     struct lxr_log_queue decrments;
     struct lxr_log_queue modification;

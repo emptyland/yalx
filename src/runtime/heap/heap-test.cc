@@ -8,7 +8,7 @@
 class HeapTest : public ::testing::Test {
 public:
     void SetUp() override {
-        yalx_init_heap(&heap_);
+        yalx_init_heap(&heap_, GC_LXR);
         string_pool_init(&kpool_, 4);
     }
     

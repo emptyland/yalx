@@ -120,6 +120,9 @@ static inline size_t get_marked_size(struct lxr_block_header *const block, addre
 }
 
 static inline is_not_free(struct lxr_block_header *const block, address_t addr) {
+    if (addr >= (address_t)block + LXR_NORMAL_BLOCK_SIZE) {
+        return 1;
+    }
     const ptrdiff_t offset = offset_of_block(block, addr);
     const int shift = offset >> 2;
     return test_bit(block, shift);
@@ -251,9 +254,10 @@ void lxr_block_free(struct lxr_block_header *const block, void *chunk) {
     size_t size = mark_freed(block, addr);
     DCHECK(size > 0);
     dbg_free_zag(chunk, size);
-    if (is_free(block, addr + size)) {
+    
+    int valid = addr + size + sizeof(struct lxr_block_chunk) < (address_t)block + LXR_NORMAL_BLOCK_SIZE;
+    if (valid && is_free(block, addr + size)) {
         struct lxr_block_chunk *slibing = (struct lxr_block_chunk *)(addr + size);
-        //assert(in_cache_nodes(block, slibing));
         const merged_size = size + slibing->size;
         if (in_cache_nodes(block, slibing)) {
             remove_cache_node(block, slibing);
@@ -274,5 +278,6 @@ void lxr_delete_block(struct lxr_block_header *block) {
 }
 
 void lxr_delete_large(struct lxr_large_header *block) {
+    dbg_free_zag(block + 1, block->size_in_bytes - sizeof(*block));
     munmap((void *)block, block->size_in_bytes);
 }

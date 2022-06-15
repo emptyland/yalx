@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#define ADDR_CARD_SHIFT 12
+#define ADDR_CARD_SHIFT 14
 #define ADDR_CARD_SIZE (1u << ADDR_CARD_SHIFT)
 #define ADDR_CARD_MASK ((1ull << ADDR_CARD_SHIFT) - 1)
 
@@ -18,15 +18,16 @@ struct lxr_large_header;
 struct lxr_immix_heap {
     int max_tls_blocks;
     int n_tls_blocks;
-    
+    struct lxr_block_header *tls_blocks;
     struct lxr_block_header *dummy;
     struct lxr_large_header *large;
     struct lxr_block_header *stub0[2];
     struct lxr_large_header *stub1[2];
+    struct lxr_large_header *stub2[2];
     
     pthread_mutex_t mutex;
     
-    void *_Atomic addr_card_table[ADDR_CARD_SIZE];
+    void *_Atomic *addr_card_table;
 }; // struct lxr_immix_heap
 
 typedef enum {
@@ -52,6 +53,8 @@ void lxr_thread_exit(struct lxr_immix_heap *immix);
 void *lxr_allocate(struct lxr_immix_heap *immix, size_t n);
 void *lxr_allocate_fallback(struct lxr_immix_heap *immix, size_t n);
 void *lxr_allocate_large(struct lxr_immix_heap *immix, size_t n);
+
+void lxr_free(struct lxr_immix_heap *immix, void *chunk);
 
 struct lxr_addr_test_result lxr_test_addr(struct lxr_immix_heap *immix, void *addr);
 

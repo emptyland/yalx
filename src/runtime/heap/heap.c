@@ -39,6 +39,23 @@ static void finalize_for_pool(struct heap *heap) {
     free(heap->one_time_pool.chunk);
 }
 
+static struct allocate_result allocate_from_lxr(struct heap *heap, size_t size, u32_t flags) {
+    USE(flags);
+    struct allocate_result rs = {NULL, ALLOCATE_NOTHING};
+    void *chunk = lxr_allocate(&heap->lxr_immix, size);
+    if (!chunk) {
+        rs.status = ALLOCATE_NO_OS_MEMORY;
+        return rs;
+    }
+    rs.object = (struct yalx_value_any *)chunk;
+    rs.status = ALLOCATE_OK;
+    return rs;
+}
+
+static void finalize_for_lxr(struct heap *heap) {
+    lxr_free_immix_heap(&heap->lxr_immix);
+}
+
 static f32_t fast_boxing_f32_table[] = {
     -1.0,
     0,
@@ -186,18 +203,33 @@ struct string_pool_entry *string_pool_ensure_space(struct string_pool *pool, con
     return node;
 }
 
-int yalx_init_heap(struct heap *heap) {
+int yalx_init_heap(struct heap *heap, gc_t gc) {
     memset(heap, 0, sizeof(*heap));
-    // TODO:
-    heap->one_time_pool.size  = 10 * MB;
-    heap->one_time_pool.chunk = (address_t)malloc(heap->one_time_pool.size);
-    if (!heap->one_time_pool.chunk) {
-        return -1;
-    }
-    heap->one_time_pool.free  = heap->one_time_pool.chunk;
+    heap->gc = gc;
     
-    heap->allocate = allocate_from_pool;
-    heap->finalize = finalize_for_pool;
+    switch (heap->gc) {
+        case GC_NONE:
+            heap->one_time_pool.size  = 10 * MB;
+            heap->one_time_pool.chunk = (address_t)malloc(heap->one_time_pool.size);
+            if (!heap->one_time_pool.chunk) {
+                return -1;
+            }
+            heap->one_time_pool.free  = heap->one_time_pool.chunk;
+            
+            heap->allocate = allocate_from_pool;
+            heap->finalize = finalize_for_pool;
+            break;
+        case GC_LXR:
+            lxr_init_immix_heap(&heap->lxr_immix, 16);
+            
+            heap->allocate = allocate_from_lxr;
+            heap->finalize = finalize_for_lxr;
+            break;
+        default:
+            assert(!"unreachable");
+            break;
+    }
+    
     
     //string_pool_init(&heap->string_pool, 4);
     for (int i = 0; i < KPOOL_STRIPES_SIZE; i++) {
