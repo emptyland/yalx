@@ -100,6 +100,8 @@
 		237D551E27B0C0530067A633 /* operand-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 237D551C27B0C0530067A633 /* operand-allocator.cc */; };
 		23863A8027EF64B60089F9BA /* yalx-lang-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23863A7F27EF64B60089F9BA /* yalx-lang-posix-arm64.s */; };
 		23863A8127EF65680089F9BA /* any.c in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68526676DFC00635ADB /* any.c */; };
+		2387D4B02859C0590088F1A6 /* immix-heap-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387D4AF2859C0590088F1A6 /* immix-heap-test.cc */; };
+		2387D4B12859C0590088F1A6 /* immix-heap-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387D4AF2859C0590088F1A6 /* immix-heap-test.cc */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA42684627B002E6DCF /* lexer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFA32684627B002E6DCF /* lexer.cc */; };
@@ -434,6 +436,7 @@
 		237D551B27B0BAD60067A633 /* operand-allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "operand-allocator.h"; path = "../src/backend/operand-allocator.h"; sourceTree = "<group>"; };
 		237D551C27B0C0530067A633 /* operand-allocator.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "operand-allocator.cc"; path = "../src/backend/operand-allocator.cc"; sourceTree = "<group>"; };
 		23863A7F27EF64B60089F9BA /* yalx-lang-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "yalx-lang-posix-arm64.s"; path = "../src/backend/arm64/yalx-lang-posix-arm64.s"; sourceTree = "<group>"; };
+		2387D4AF2859C0590088F1A6 /* immix-heap-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "immix-heap-test.cc"; path = "../src/runtime/lxr/immix-heap-test.cc"; sourceTree = "<group>"; };
 		2387EF9D2681C80D002E6DCF /* compiler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = compiler.h; path = ../src/compiler/compiler.h; sourceTree = "<group>"; };
 		2387EF9E2681C8D3002E6DCF /* compiler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = compiler.cc; path = ../src/compiler/compiler.cc; sourceTree = "<group>"; };
 		2387EFA126842BFF002E6DCF /* object-visitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "object-visitor.h"; path = "../src/runtime/heap/object-visitor.h"; sourceTree = "<group>"; };
@@ -809,6 +812,7 @@
 				23893F8228449CE4000FA9F7 /* block-test.cc */,
 				23893F7F28447368000FA9F7 /* block.c */,
 				23893F7E28447351000FA9F7 /* block.h */,
+				2387D4AF2859C0590088F1A6 /* immix-heap-test.cc */,
 				23448B6328573B97007013EB /* immix-heap.c */,
 				23448B6228573B66007013EB /* immix-heap.h */,
 				23448B6A28586C92007013EB /* logging-test.cc */,
@@ -1099,6 +1103,7 @@
 				23D4A4742680D17D0090C631 /* hash.h in Sources */,
 				23BCAEB227A83D8800EC9D92 /* stackslot-allocator-test.cc in Sources */,
 				236D0E5827C7357200E86AD2 /* instruction-generating-arm64-test.cc in Sources */,
+				2387D4B12859C0590088F1A6 /* immix-heap-test.cc in Sources */,
 				23D4A4752680D17D0090C631 /* io.h in Sources */,
 				23D4A4762680D17D0090C631 /* io.cc in Sources */,
 				236466CD26F07E870066D168 /* checking.cc in Sources */,
@@ -1198,6 +1203,7 @@
 				23F6C24B278FC85B00899C4F /* runtime.cc in Sources */,
 				23667C3127B2532E00612546 /* machine-type.cc in Sources */,
 				23CF342527E037DC0095441B /* gnu-asm-generator.cc in Sources */,
+				2387D4B02859C0590088F1A6 /* immix-heap-test.cc in Sources */,
 				23C1346127A4E30B00C0DEB4 /* instruction-test.cc in Sources */,
 				2332DAF527EFFEC100EBB3E4 /* throwable.c in Sources */,
 				23D5A674266718F900635ADB /* sha256.c in Sources */,

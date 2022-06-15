@@ -168,7 +168,7 @@ void *lxr_block_allocate(struct lxr_block_header *const block, const size_t size
     DCHECK(aligment >= LXR_BLOCK_MIN_ALIGMENT);
     DCHECK(aligment % 2 == 0);
     size_t request_size = ROUND_UP(size, aligment);
-    DCHECK(request_size < 4096);
+    DCHECK(request_size < LXR_LARGE_BLOCK_THRESHOLD_SIZE);
     if (request_size == 0) {
         return NULL;
     }
@@ -271,4 +271,8 @@ size_t lxr_block_marked_size(struct lxr_block_header *const block, void *chunk) 
 
 void lxr_delete_block(struct lxr_block_header *block) {
     munmap((void *)block, LXR_NORMAL_BLOCK_SIZE);
+}
+
+void lxr_delete_large(struct lxr_large_header *block) {
+    munmap((void *)block, block->size_in_bytes);
 }

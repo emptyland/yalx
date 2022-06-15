@@ -9,14 +9,6 @@
 extern "C" {
 #endif
 
-enum lxr_block_kind {
-    LXR_1MB_BLOCK,
-    LXR_4MB_BLOCK,
-    LXR_10MB_BLOCK,
-    LXR_LARGE_BLOCK,
-};
-
-//typedef unsigned char *lxr_block_ptr;
 
 #define LXR_NORMAL_BLOCK_SHIFT 20
 #define LXR_NORMAL_BLOCK_SIZE (1u << LXR_NORMAL_BLOCK_SHIFT)
@@ -25,6 +17,7 @@ enum lxr_block_kind {
 #define LXR_BLOCK_MIN_ALIGMENT 8
 #define LXR_BLOCK_MASK ((1ull << LXR_NORMAL_BLOCK_SHIFT) - 1)
 
+#define LXR_LARGE_BLOCK_THRESHOLD_SIZE 4096
 
 struct lxr_block_chunk {
     struct lxr_block_chunk *next;
@@ -56,6 +49,7 @@ struct lxr_block_header *lxr_new_normal_block(const uint32_t *offset_of_bitmap);
 void lxr_delete_block(struct lxr_block_header *block);
 
 struct lxr_large_header *lxr_new_large_block(size_t n);
+void lxr_delete_large(struct lxr_large_header *block);
 
 // 16,0|32,1|64,2|128,3|512,4|1024,5
 void *lxr_block_allocate(struct lxr_block_header *const block, const size_t size, const size_t aligment);
