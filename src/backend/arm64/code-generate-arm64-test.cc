@@ -100,7 +100,7 @@ TEST_F(Arm64CodeGeneratorTest, GlobalVars) {
     bool ok = true;
     CodeGen("tests/42-code-gen-globals", "issue03:issue03", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
     
 }
 

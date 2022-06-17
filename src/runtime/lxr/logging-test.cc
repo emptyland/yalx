@@ -9,7 +9,7 @@ public:
     static constexpr size_t kDefaultAligment = 8;
     
     void SetUp() override {
-        block_ = lxr_new_normal_block(NULL);
+        block_ = lxr_new_normal_block();
         ASSERT_NE(nullptr, block_);
         lxr_init_fields_logger(&logger_);
     }

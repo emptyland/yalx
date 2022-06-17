@@ -132,13 +132,13 @@ static inline is_free(struct lxr_block_header *const block, address_t addr) {
     return !is_not_free(block, addr);
 }
 
-struct lxr_block_header *lxr_new_normal_block(const uint32_t *offset_of_logging) {
+struct lxr_block_header *lxr_new_normal_block() {
     struct lxr_block_header *block = (struct lxr_block_header *)aligned_page_allocate(LXR_NORMAL_BLOCK_SIZE,
                                                                                       LXR_NORMAL_BLOCK_SIZE);
     if (!block) {
         return NULL;
     }
-    block->offset_of_logging_bits = (address_t)offset_of_logging - (address_t)block;
+    yalx_init_spin_lock(&block->mutex);
     block->next = block;
     block->prev = block;
     
@@ -178,6 +178,7 @@ void *lxr_block_allocate(struct lxr_block_header *const block, const size_t size
     if (request_size < 16) {
         request_size = 16;
     }
+    yalx_spin_lock(&block->mutex);
     int shift = get_fit_region_shift(request_size);
     struct lxr_block_chunk **location = NULL;
     while (shift < LXR_BLOCK_MAX_REGIONS) {
@@ -187,10 +188,12 @@ void *lxr_block_allocate(struct lxr_block_header *const block, const size_t size
         }
     }
     if (!*location) {
+        yalx_spin_unlock(&block->mutex);
         return NULL;
     }
     struct lxr_block_chunk *chunk = *location;
     if (chunk->size < request_size) {
+        yalx_spin_unlock(&block->mutex);
         return NULL;
     }
     DCHECK(chunk->size >= request_size);
@@ -201,11 +204,12 @@ void *lxr_block_allocate(struct lxr_block_header *const block, const size_t size
         struct lxr_block_chunk *remain = (struct lxr_block_chunk *)((address_t)chunk + request_size);
         link_to_fit_region(block, remain, remain_size);
     }
-    
 
     address_t result = (address_t)chunk;
     mark_allocated(block, result, request_size);
     dbg_init_zag(result, size);
+    
+    yalx_spin_unlock(&block->mutex);
     return result;
 }
 
@@ -251,6 +255,7 @@ void lxr_block_free(struct lxr_block_header *const block, void *chunk) {
     DCHECK(addr > (address_t)block && "invalid chunk address");
     DCHECK(addr < (address_t)block + LXR_NORMAL_BLOCK_SIZE);
 
+    yalx_spin_lock(&block->mutex);
     size_t size = mark_freed(block, addr);
     DCHECK(size > 0);
     dbg_free_zag(chunk, size);
@@ -266,11 +271,16 @@ void lxr_block_free(struct lxr_block_header *const block, void *chunk) {
     } else {
         link_to_fit_region(block, chunk, size);
     }
+    
+    yalx_spin_unlock(&block->mutex);
 }
 
 
 size_t lxr_block_marked_size(struct lxr_block_header *const block, void *chunk) {
-    return get_marked_size(block, (address_t)chunk);
+    yalx_spin_lock(&block->mutex);
+    size_t rv = get_marked_size(block, (address_t)chunk);
+    yalx_spin_unlock(&block->mutex);
+    return rv;
 }
 
 void lxr_delete_block(struct lxr_block_header *block) {

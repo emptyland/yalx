@@ -199,7 +199,6 @@ void lxr_free(struct lxr_immix_heap *immix, void *chunk) {
         case LXR_ADDR_CHUNK: {
             struct lxr_block_header *block = rs.block.normal;
             if (block == tls_block) {
-                // TODO: lock
                 lxr_block_free(block, chunk);
             } else {
                 pthread_mutex_lock(&immix->mutex);

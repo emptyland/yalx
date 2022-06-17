@@ -2,6 +2,7 @@
 #ifndef YALX_RUNTIME_LXR_BLOCK_H_
 #define YALX_RUNTIME_LXR_BLOCK_H_
 
+#include "runtime/locks.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -35,7 +36,7 @@ struct lxr_block_header {
     // [5] 512 bytes
     // [6] > 1024 bytes
     struct lxr_block_chunk *regions[LXR_BLOCK_MAX_REGIONS];
-    ptrdiff_t offset_of_logging_bits;
+    struct yalx_spin_lock mutex;
     uint32_t bitmap[LXR_BLOCK_BITMAP_LEN];
 }; // struct lxr_block_header
 
@@ -45,7 +46,7 @@ struct lxr_large_header {
     size_t size_in_bytes;
 };
 
-struct lxr_block_header *lxr_new_normal_block(const uint32_t *offset_of_bitmap);
+struct lxr_block_header *lxr_new_normal_block();
 void lxr_delete_block(struct lxr_block_header *block);
 
 struct lxr_large_header *lxr_new_large_block(size_t n);
