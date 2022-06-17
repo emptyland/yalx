@@ -128,6 +128,7 @@
 		239735CD27B54D2800FAD063 /* linkage-symbols.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735CB27B54D2800FAD063 /* linkage-symbols.cc */; };
 		239735CF27B551A500FAD063 /* linkage-symbols-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735CE27B551A500FAD063 /* linkage-symbols-test.cc */; };
 		239735D027B551A500FAD063 /* linkage-symbols-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735CE27B551A500FAD063 /* linkage-symbols-test.cc */; };
+		239E02BD285C7C0C002E6BA6 /* issue-03-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 239E02BC285C7C0C002E6BA6 /* issue-03-posix-arm64.s */; };
 		23A7F0E12699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
 		23A7F0E22699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
 		23B997D926A4680300DD037B /* type-reducing.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997D826A4680300DD037B /* type-reducing.cc */; };
@@ -464,6 +465,7 @@
 		239735CE27B551A500FAD063 /* linkage-symbols-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "linkage-symbols-test.cc"; path = "../src/backend/linkage-symbols-test.cc"; sourceTree = "<group>"; };
 		23992DBA27E96B2200C3F334 /* arrays.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = arrays.h; path = ../src/runtime/object/arrays.h; sourceTree = "<group>"; };
 		23992DBB27E96DDA00C3F334 /* throwable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = throwable.h; path = ../src/runtime/object/throwable.h; sourceTree = "<group>"; };
+		239E02BC285C7C0C002E6BA6 /* issue-03-posix-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-03-posix-arm64.s"; path = "../src/backend/arm64/issue-03-posix-arm64.s"; sourceTree = "<group>"; };
 		23A3AB5A2664BAE800007658 /* stack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = stack.h; path = ../src/runtime/stack.h; sourceTree = "<group>"; };
 		23A3AB5B2664C1DB00007658 /* stack.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = stack.c; path = ../src/runtime/stack.c; sourceTree = "<group>"; };
 		23A3AB5D2664DB9F00007658 /* stack-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "stack-test.cc"; path = "../src/runtime/stack-test.cc"; sourceTree = "<group>"; };
@@ -613,6 +615,7 @@
 				2332DAF227EFF80600EBB3E4 /* issue-00-posix-arm64.s */,
 				236D0E6027C785D000E86AD2 /* issue-01-posix-arm64.s */,
 				232226A027EEDE9300B18B36 /* issue-02-posix-arm64.s */,
+				239E02BC285C7C0C002E6BA6 /* issue-03-posix-arm64.s */,
 			);
 			name = Arm64;
 			sourceTree = "<group>";
@@ -1053,6 +1056,7 @@
 				23D4A4622680D17D0090C631 /* instr-arm64.h in Sources */,
 				23C1345427A3E8CE00C0DEB4 /* constants-pool.cc in Sources */,
 				23D4A4632680D17D0090C631 /* instr-arm64.cc in Sources */,
+				239E02BD285C7C0C002E6BA6 /* issue-03-posix-arm64.s in Sources */,
 				23C3356F27A82DB500319862 /* stackslot-allocator.cc in Sources */,
 				23D4A4642680D17D0090C631 /* gtest-all.cc in Sources */,
 				23D4A4652680D17D0090C631 /* all-tests.cc in Sources */,

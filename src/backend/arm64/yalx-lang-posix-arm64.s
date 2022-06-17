@@ -227,7 +227,15 @@ Lblk6:
     str w1, [x0, #16]
     str w2, [x0, #20]
     str w3, [x0, #24]
-    str x4, [x0, #32]
+    stur x0, [fp, #-8]
+    stur w1, [fp, #-12]
+    stur w2, [fp, #-16]
+    stur w3, [fp, #-20]
+    stur x4, [fp, #-28]
+    ldur x0, [fp, #-8]
+    add x0, x0, #32
+    ldur x1, [fp, #-28]
+    bl _put_field
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
     ret
@@ -768,17 +776,30 @@ Lblk35:
     ldur x0, [fp, #-8]
     ldur x1, [fp, #-16]
     ldur x2, [fp, #-24]
-    str x1, [x0, #16]
-    str x2, [x0, #24]
     stur x0, [fp, #-8]
     stur x1, [fp, #-16]
     stur x2, [fp, #-24]
+    ldur x0, [fp, #-8]
+    add x0, x0, #16
+    ldur x1, [fp, #-16]
+    bl _put_field
+    ldur x1, [fp, #-24]
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    ldur x0, [fp, #-8]
+    add x0, x0, #24
+    ldur x1, [fp, #-16]
+    bl _put_field
+    stur x0, [fp, #-8]
     add sp, sp, #0
     bl _yalx_Zplang_Zolang_Zdunwind
     sub sp, sp, #0
     ldur x0, [fp, #-8]
-    ldur x19, [fp, #-40]
-    str x19, [x0, #32]
+    stur x0, [fp, #-8]
+    ldur x0, [fp, #-8]
+    add x0, x0, #32
+    ldur x1, [fp, #-40]
+    bl _put_field
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
     ret
@@ -908,9 +929,26 @@ Lblk39:
     ldur x3, [fp, #-32]
     ldur w4, [fp, #-36]
     str x1, [x0, #16]
-    str x2, [x0, #24]
-    str x3, [x0, #32]
-    str w4, [x0, #40]
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    stur x3, [fp, #-32]
+    stur w4, [fp, #-36]
+    ldur x0, [fp, #-8]
+    add x0, x0, #24
+    ldur x1, [fp, #-24]
+    bl _put_field
+    ldur x1, [fp, #-32]
+    ldur w2, [fp, #-36]
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-24]
+    stur w2, [fp, #-28]
+    ldur x0, [fp, #-8]
+    add x0, x0, #32
+    ldur x1, [fp, #-24]
+    bl _put_field
+    ldur w1, [fp, #-28]
+    str w1, [x0, #40]
     ldp fp, lr, [sp, #64]
     add sp, sp, #80
     ret

@@ -197,6 +197,7 @@ private:
     void SelectBasicBlock(ir::BasicBlock *block);
     void Select(ir::Value *instr);
     
+    void PutField(ir::Value *instr);
     void CallDirectly(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
     void PassArguments(InstructionOperand *exclude, ir::Value *instr, RegisterSavingScope *saving_scope);
@@ -718,6 +719,48 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             ConditionBr(instr);
         } break;
             
+        case ir::Operator::kStoreGlobal: {
+            //printd("--%s", instr->InputValue(0)->name()->data());
+            auto global_var = instr->InputValue(0);
+            auto rval = Allocate(instr->InputValue(1), kAny);
+            auto symbol = symbols_->Mangle(global_var->name());
+            auto loc = bundle()->AddExternalSymbol(symbol);
+            Move(loc, rval, global_var->type());
+        } break;
+
+        case ir::Operator::kLoadGlobal: {
+            auto global_var = instr->InputValue(0);
+            auto symbol = symbols_->Mangle(global_var->name());
+            auto loc = bundle()->AddExternalSymbol(symbol);
+            auto lval = Allocate(instr, kAny);
+            Move(lval, loc, global_var->type());
+        } break;
+            
+        case ir::Operator::kLazyLoad: {
+            auto global_var = instr->InputValue(0);
+            auto symbol = symbols_->Mangle(global_var->name());
+            auto slot = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
+            assert(global_var->type().IsReference());
+            std::string buf;
+            LinkageSymbols::Build(&buf, global_var->type().model()->full_name()->ToSlice());
+            buf.append("$class");
+            auto clazz = bundle()->AddExternalSymbol(buf, true/*fetch_address*/);
+            
+            RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+            saving_scope.SaveAll();
+            auto arg0 = new (arena_) RegisterOperand(arm64::x0.code(), MachineRepresentation::kWord64);
+            //current()->NewIO(X64Lea, arg0, slot);
+            Move(arg0, slot, ir::Types::Word64);
+            
+            auto arg1 = new (arena_) RegisterOperand(arm64::x1.code(), MachineRepresentation::kWord64);
+            //current()->NewIO(X64Lea, arg1, clazz);
+            Move(arg1, clazz, ir::Types::Word64);
+            
+            current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_lazy_load_object));
+            auto ret0 = new (arena_) RegisterOperand(arm64::x0.code(), MachineRepresentation::kWord64);
+            Move(Allocate(instr, kMoR), ret0, instr->type());
+        } break;
+            
         case ir::Operator::kLoadEffectField: {
             auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
             assert(handle->IsField());
@@ -729,20 +772,9 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             Move(value, loc, instr->InputValue(0)->type());
         } break;
             
-        case ir::Operator::kStoreEffectField: {
-            auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
-            assert(handle->IsField());
-            auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
-            //auto opd = Allocate(instr, kAny);
-            
-            auto opd = Allocate(instr->InputValue(0), kReg);
-            auto value = Allocate(instr->InputValue(1), kAny);
-            // str value, [opd, #offset]
-            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI,
-                                                    opd->AsRegister()->register_id(), -1, field->offset);
-            Move(loc, value, instr->InputValue(1)->type());
-            operands_.Associate(instr, opd);
-        } break;
+        case ir::Operator::kStoreEffectField:
+            PutField(instr);
+            break;
             
         case ir::Operator::kLoadEffectAddress: {
             UNREACHABLE();
@@ -1186,6 +1218,61 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             UNREACHABLE();
         } break;
     }
+}
+
+void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
+    auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+    assert(handle->IsField());
+    auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+    
+    
+    std::unique_ptr<RegisterSavingScope> saving_scope(field->type.IsReference()
+                                                      ? new RegisterSavingScope(&operands_,
+                                                                                instruction_position_,
+                                                                                &moving_delegate_) : nullptr);
+    if (field->type.IsReference()) {
+        //printd("%s.%s", handle->owns()->full_name()->data(), handle->name()->data());
+        saving_scope->SaveAll();
+    }
+    auto opd = Allocate(instr->InputValue(0), kReg);
+    auto value = Allocate(instr->InputValue(1), kAny);
+    
+    LocationOperand *loc = nullptr;
+    if (auto base = opd->AsRegister()) {
+        loc = new (arena_) LocationOperand(Arm64Mode_MRI, base->register_id(), -1, field->offset);
+    } else {
+        assert(opd->IsLocation());
+        auto mem = opd->AsLocation();
+        auto r1 = new (arena_) RegisterOperand(mem->register0_id(), MachineRepresentation::kWord64);
+        auto bak = operands_.Allocate(ir::Types::Word64);
+        if (auto rb = bak->AsRegister()) {
+            current()->NewIO(Arm64Add, rb, r1, ImmediateOperand::Word32(arena_, mem->k()));
+            loc = new (arena_) LocationOperand(Arm64Mode_MRI, rb->register_id(), -1, field->offset);
+            operands_.Free(bak);
+        } else {
+            assert(bak->IsLocation());
+            auto brd = operands_.BorrowRegister(ir::Types::Word64, bak);
+            Move(bak, brd.target, ir::Types::Word64);
+            borrowed_registers_.push_back(brd);
+            current()->NewIO(Arm64Add, brd.target, r1, ImmediateOperand::Word32(arena_, mem->k()));
+            loc = new (arena_) LocationOperand(Arm64Mode_MRI, brd.target->register_id(), -1, field->offset);
+        }
+    }
+
+    if (field->type.IsReference()) {
+        auto arg0 = new (arena_) RegisterOperand(arm64::x0.code(), MachineRepresentation::kWord64);
+        auto base = new (arena_) RegisterOperand(loc->register0_id(), MachineRepresentation::kWord64);
+        current()->NewIO(Arm64Add, arg0, base, ImmediateOperand::Word32(arena_, loc->k()));
+        auto arg1 = new (arena_) RegisterOperand(arm64::x1.code(), MachineRepresentation::kWord64);
+        Move(arg1, value, field->type);
+        
+        auto rel = bundle()->AddExternalSymbol(kRt_put_field);
+        current()->NewI(ArchCall, rel);
+        saving_scope.reset();
+    } else {
+        Move(loc, value, field->type);
+    }
+    operands_.Associate(instr, opd);
 }
 
 void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
@@ -1867,7 +1954,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Constant(ir::Value *value,
 }
 
 void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty) {
-    assert(dest->IsRegister() || dest->IsLocation());
+    assert(dest->IsRegister() || dest->IsLocation() || dest->IsReloaction());
     if (dest->Equals(src)) {
         return;
     }

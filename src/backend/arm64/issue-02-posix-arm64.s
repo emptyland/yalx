@@ -366,7 +366,14 @@ Lblk1:
     ldur x3, [fp, #-24]
     str w1, [x0, #16]
     str w2, [x0, #20]
-    str x3, [x0, #24]
+    stur x0, [fp, #-8]
+    stur w1, [fp, #-12]
+    stur w2, [fp, #-16]
+    stur x3, [fp, #-24]
+    ldur x0, [fp, #-8]
+    add x0, x0, #24
+    ldur x1, [fp, #-24]
+    bl _put_field
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
     ret

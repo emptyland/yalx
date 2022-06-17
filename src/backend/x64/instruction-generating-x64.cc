@@ -1269,10 +1269,6 @@ void X64FunctionInstructionSelector::PutField(ir::Value *instr) {
     auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
     assert(handle->IsField());
     auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
-    auto opd = Allocate(instr->InputValue(0), kMoR);
-    auto value = Allocate(instr->InputValue(1), kAny);
-    
-    
     std::unique_ptr<RegisterSavingScope> saving_scope(field->type.IsReference()
                                                       ? new RegisterSavingScope(&operands_,
                                                                                 instruction_position_,
@@ -1281,6 +1277,8 @@ void X64FunctionInstructionSelector::PutField(ir::Value *instr) {
     if (field->type.IsReference()) {
         saving_scope->SaveAll();
     }
+    auto opd = Allocate(instr->InputValue(0), kMoR);
+    auto value = Allocate(instr->InputValue(1), kAny);
     
     LocationOperand *loc = nullptr;
     if (auto reg = opd->AsRegister()) {

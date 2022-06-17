@@ -93,6 +93,17 @@ TEST_F(Arm64CodeGeneratorTest, FooMetadata) {
     
 }
 
+TEST_F(Arm64CodeGeneratorTest, GlobalVars) {
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    CodeGen("tests/42-code-gen-globals", "issue03:issue03", &printer, &ok);
+    ASSERT_TRUE(ok);
+    printf("%s\n", buf.c_str());
+    
+}
+
 #ifdef YALX_ARCH_ARM64
 
 TEST_F(Arm64CodeGeneratorTest, ReturningVals) {
@@ -145,6 +156,32 @@ TEST_F(Arm64CodeGeneratorTest, StackAndHeapAllocStruct) {
 TEST_F(Arm64CodeGeneratorTest, TryCatchSanity) {
     pkg_init_once(reinterpret_cast<void *>(&issue00_Zoissue00_Zd_Z4init), "issue00:issue00");
     issue00_Zoissue00_Zdissue1_had();
+}
+
+TEST_F(Arm64CodeGeneratorTest, GlobalInit03) {
+    pkg_init_once(reinterpret_cast<void *>(&issue03_Zoissue03_Zd_Z4init), "issue03:issue03");
+    auto slots = pkg_get_global_slots("issue03:issue03");
+    ASSERT_NE(nullptr, slots);
+    ASSERT_GT(slots->mark_size, 0);
+    auto obj = *reinterpret_cast<yalx_ref_t *>(slots->slots + slots->marks[0]);
+    ASSERT_STREQ("Foo", CLASS(obj)->name.z);
+    
+    auto s1 = reinterpret_cast<yalx_str_handle>(slots->slots + slots->marks[1]);
+    ASSERT_STREQ("Hello", yalx_str_bytes(s1));
+    
+    auto s2 = reinterpret_cast<yalx_str_handle>(slots->slots + slots->marks[2]);
+    ASSERT_STREQ("World", yalx_str_bytes(s2));
+    //printd("%s|%s", CLASS(obj)->name.z, CLASS(obj)->location.z);
+    
+    yalx_returning_vals state;
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    auto vals = reinterpret_cast<int *>(state.buf);
+
+    issue03_Zoissue03_Zdissue1_had();
+    ASSERT_EQ(777, vals[2]);
+    ASSERT_EQ(996, vals[3]);
+
+    yalx_exit_returning_scope(&state);
 }
 
 #endif // YALX_ARCH_ARM64
