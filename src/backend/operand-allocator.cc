@@ -545,13 +545,11 @@ void RegisterSavingScope::SaveAll() {
 void RegisterSavingScope::Exit() {
     moving_delegate_->Initialize();
     for (auto bak : backup_) {
-        if (allocator_->WillBeLive(bak.val, position_ + 1)) {
+        //if (allocator_->WillBeLive(bak.val, position_ + 1)) {
             auto opd = allocator_->Allocate(DCHECK_NOTNULL(bak.val)->type());
             moving_delegate_->MoveTo(opd, bak.current, bak.val->type());
             allocator_->Associate(bak.val, opd);
-        } else {
-            //printd("dead");
-        }
+        //}
     }
     moving_delegate_->Finalize();
 }

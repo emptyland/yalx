@@ -3,6 +3,7 @@
 #define YALX_RUNTIME_HEAP_HEAP_H_
 
 #include "runtime/lxr/immix-heap.h"
+#include "runtime/lxr/logging.h"
 #include "runtime/runtime.h"
 #include <pthread.h>
 #include <stdlib.h>
@@ -81,6 +82,7 @@ struct heap {
     
     // LXR immix heap
     struct lxr_immix_heap lxr_immix;
+    struct lxr_fields_logger lxr_log;
     
     struct string_pool kpool_stripes[KPOOL_STRIPES_SIZE];
     struct boxing_number_pool fast_boxing_numbers;
@@ -113,9 +115,14 @@ void string_pool_rehash(struct string_pool *pool, int slot_shift);
 
 struct allocate_result yalx_heap_allocate(struct heap *heap, const struct yalx_class *klass, size_t size, u32_t flags);
 
-void post_write_barrier(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any *mutator);
+void prefix_write_barrier(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any *mutator);
 
-void post_write_barrier_batch(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any **mutators,
+void prefix_write_barrier_batch(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any **mutators,
+                                size_t nitems);
+
+void post_write_barrier(struct heap *heap, struct yalx_value_any **field, struct yalx_value_any *mutator);
+
+void post_write_barrier_batch(struct heap *heap, struct yalx_value_any **field, struct yalx_value_any **mutators,
                               size_t nitems);
 
 #define yalx_bool_value(b) (heap.fast_boxing_numbers.bool_values[(b) ? 1 : 0])

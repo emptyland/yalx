@@ -15,7 +15,7 @@ struct yalx_value_refs_array *yalx_new_refs_array(struct heap *heap, const struc
     bundle->len = (u32_t)nitems;
     bundle->item = item;
     memcpy(bundle->data, data, (nitems * sizeof(yalx_ref_t)));
-    post_write_barrier_batch(&heap, bundle, data, nitems);
+    post_write_barrier_batch(heap, &bundle->data, data, nitems);
     return bundle;
 }
 

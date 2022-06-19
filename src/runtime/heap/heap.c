@@ -1,5 +1,6 @@
 #include "runtime/heap/heap.h"
 #include "runtime/heap/object-visitor.h"
+#include "runtime/lxr/logging.h"
 #include "runtime/object/yalx-string.h"
 #include "runtime/object/number.h"
 #include "runtime/object/any.h"
@@ -54,6 +55,7 @@ static struct allocate_result allocate_from_lxr(struct heap *heap, size_t size, 
 
 static void finalize_for_lxr(struct heap *heap) {
     lxr_free_immix_heap(&heap->lxr_immix);
+    lxr_free_fields_logger(&heap->lxr_log);
 }
 
 static f32_t fast_boxing_f32_table[] = {
@@ -221,6 +223,7 @@ int yalx_init_heap(struct heap *heap, gc_t gc) {
             break;
         case GC_LXR:
             lxr_init_immix_heap(&heap->lxr_immix, 16);
+            lxr_init_fields_logger(&heap->lxr_log);
             
             heap->allocate = allocate_from_lxr;
             heap->finalize = finalize_for_lxr;
@@ -314,11 +317,47 @@ void yalx_heap_visit_root(struct heap *heap, struct yalx_root_visitor *visitor) 
 }
 
 
-void post_write_barrier(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any *mutator) {
+void prefix_write_barrier(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any *mutator) {
     // TODO:
 }
 
-void post_write_barrier_batch(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any **mutators,
+void prefix_write_barrier_batch(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any **mutators,
                               size_t nitems) {
     // TODO:
+}
+
+static inline lxr_write_barrier(struct lxr_fields_logger *log, struct yalx_value_any **field,
+                                struct yalx_value_any *mutator) {
+    if (lxr_attempt_to_log(log, (void *)field)) {
+        yalx_ref_t old = *field;
+        if (old) {
+            lxr_log_queue_push(&log->decrments, (void *)old);
+        }
+        lxr_log_queue_push(&log->modification, (void *)field);
+    }
+}
+
+void post_write_barrier(struct heap *heap, struct yalx_value_any **field, struct yalx_value_any *mutator) {
+    DCHECK(field != NULL);
+    if (heap->gc == GC_LXR) {
+        if (!lxr_has_logged(&heap->lxr_log, (void *)field)) {
+            lxr_write_barrier(&heap->lxr_log, field, mutator);
+        }
+    }
+}
+
+void post_write_barrier_batch(struct heap *heap, struct yalx_value_any **fields, struct yalx_value_any **mutators,
+                              size_t nitems) {
+    DCHECK(fields != NULL);
+    DCHECK(mutators != NULL);
+    
+    if (heap->gc == GC_LXR) {
+        for (size_t i = 0; i < nitems; i++) {
+            void *field = (void *)(fields + i);
+            void *mutator = (void *)(mutators + i);
+            if (!lxr_has_logged(&heap->lxr_log, field)) {
+                lxr_write_barrier(&heap->lxr_log, field, mutator);
+            }
+        }
+    }
 }

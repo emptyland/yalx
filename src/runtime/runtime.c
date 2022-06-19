@@ -688,7 +688,7 @@ const struct pkg_global_slots *pkg_get_global_slots(const char *const plain_name
 
 void put_field(struct yalx_value_any **address, struct yalx_value_any *field) {
     DCHECK(address != NULL);
-    // TODO: 
+    post_write_barrier(&heap, address, field);
     *address = field;
 }
 

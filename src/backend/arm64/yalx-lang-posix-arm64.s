@@ -236,6 +236,11 @@ Lblk6:
     add x0, x0, #32
     ldur x1, [fp, #-28]
     bl _put_field
+    ldur x1, [fp, #-8]
+    ldur w0, [fp, #-12]
+    ldur w2, [fp, #-16]
+    ldur w3, [fp, #-20]
+    ldur x4, [fp, #-28]
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
     ret
@@ -284,6 +289,8 @@ Lblk8:
     stur x2, [fp, #-16]
     ldur x0, [fp, #-16]
     bl _yalx_Zplang_Zolang_ZdNumber_Dki32_Dl_ZdNumber_Dki32_Dl_Z4constructor
+    ldur x0, [fp, #-8]
+    ldur x2, [fp, #-16]
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
     ret
@@ -332,6 +339,8 @@ Lblk10:
     stur x2, [fp, #-16]
     ldur x0, [fp, #-16]
     bl _yalx_Zplang_Zolang_ZdNumber_Dku32_Dl_ZdNumber_Dku32_Dl_Z4constructor
+    ldur x0, [fp, #-8]
+    ldur x2, [fp, #-16]
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
     ret
@@ -776,30 +785,54 @@ Lblk35:
     ldur x0, [fp, #-8]
     ldur x1, [fp, #-16]
     ldur x2, [fp, #-24]
+    ldur x3, [fp, #-32]
     stur x0, [fp, #-8]
     stur x1, [fp, #-16]
     stur x2, [fp, #-24]
+    stur x3, [fp, #-32]
     ldur x0, [fp, #-8]
     add x0, x0, #16
     ldur x1, [fp, #-16]
     bl _put_field
-    ldur x1, [fp, #-24]
+    ldur x1, [fp, #-8]
+    ldur x0, [fp, #-16]
+    ldur x2, [fp, #-24]
+    ldur x3, [fp, #-32]
     stur x0, [fp, #-8]
     stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    stur x3, [fp, #-32]
     ldur x0, [fp, #-8]
     add x0, x0, #24
-    ldur x1, [fp, #-16]
+    ldur x1, [fp, #-24]
     bl _put_field
+    ldur x1, [fp, #-8]
+    ldur x0, [fp, #-16]
+    ldur x2, [fp, #-24]
+    ldur x3, [fp, #-32]
     stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    stur x3, [fp, #-32]
     add sp, sp, #0
     bl _yalx_Zplang_Zolang_Zdunwind
     sub sp, sp, #0
     ldur x0, [fp, #-8]
+    ldur x1, [fp, #-16]
+    ldur x2, [fp, #-24]
+    ldur x3, [fp, #-32]
     stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    stur x3, [fp, #-32]
     ldur x0, [fp, #-8]
     add x0, x0, #32
     ldur x1, [fp, #-40]
     bl _put_field
+    ldur x1, [fp, #-8]
+    ldur x0, [fp, #-16]
+    ldur x2, [fp, #-24]
+    ldur x3, [fp, #-32]
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
     ret
@@ -825,6 +858,9 @@ Lblk36:
     ldur x0, [fp, #-24]
     ldur x2, [fp, #-8]
     bl _yalx_Zplang_Zolang_ZdThrowable_ZdThrowable_Z4constructor
+    ldur x0, [fp, #-8]
+    ldur x2, [fp, #-16]
+    ldur x3, [fp, #-24]
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
     ret
@@ -851,16 +887,23 @@ Lblk37:
     add x1, x19, _yalx_Zplang_Zolang_ZdException$class@PAGEOFF
     bl _ref_asserted_to
     mov x1, x0
-    ldur x2, [fp, #-16]
-    ldur x3, [fp, #-24]
-    stur x0, [fp, #-16]
-    stur x1, [fp, #-24]
-    stur x2, [fp, #-32]
-    stur x3, [fp, #-40]
+    ldur x2, [fp, #-8]
+    ldur x3, [fp, #-16]
+    ldur x4, [fp, #-24]
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    stur x3, [fp, #-32]
+    stur x4, [fp, #-40]
     ldur x0, [fp, #-40]
     ldur x1, [fp, #-32]
-    ldur x2, [fp, #-24]
+    ldur x2, [fp, #-16]
     bl _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
+    ldur x0, [fp, #-8]
+    ldur x1, [fp, #-16]
+    ldur x2, [fp, #-24]
+    ldur x3, [fp, #-32]
+    ldur x4, [fp, #-40]
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
     ret
@@ -887,16 +930,23 @@ Lblk38:
     add x1, x19, _yalx_Zplang_Zolang_ZdException$class@PAGEOFF
     bl _ref_asserted_to
     mov x1, x0
-    ldur x2, [fp, #-16]
-    ldur x3, [fp, #-24]
-    stur x0, [fp, #-16]
-    stur x1, [fp, #-24]
-    stur x2, [fp, #-32]
-    stur x3, [fp, #-40]
+    ldur x2, [fp, #-8]
+    ldur x3, [fp, #-16]
+    ldur x4, [fp, #-24]
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    stur x3, [fp, #-32]
+    stur x4, [fp, #-40]
     ldur x0, [fp, #-40]
     ldur x1, [fp, #-32]
-    ldur x2, [fp, #-24]
+    ldur x2, [fp, #-16]
     bl _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
+    ldur x0, [fp, #-8]
+    ldur x1, [fp, #-16]
+    ldur x2, [fp, #-24]
+    ldur x3, [fp, #-32]
+    ldur x4, [fp, #-40]
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
     ret
@@ -928,27 +978,41 @@ Lblk39:
     ldur x2, [fp, #-24]
     ldur x3, [fp, #-32]
     ldur w4, [fp, #-36]
+    ldur x5, [fp, #-44]
     str x1, [x0, #16]
     stur x0, [fp, #-8]
     stur x1, [fp, #-16]
     stur x2, [fp, #-24]
     stur x3, [fp, #-32]
     stur w4, [fp, #-36]
+    stur x5, [fp, #-44]
     ldur x0, [fp, #-8]
     add x0, x0, #24
     ldur x1, [fp, #-24]
     bl _put_field
-    ldur x1, [fp, #-32]
-    ldur w2, [fp, #-36]
+    ldur x1, [fp, #-8]
+    ldur x0, [fp, #-16]
+    ldur x2, [fp, #-24]
+    ldur x3, [fp, #-32]
+    ldur w4, [fp, #-36]
+    ldur x5, [fp, #-44]
     stur x0, [fp, #-8]
-    stur x1, [fp, #-24]
-    stur w2, [fp, #-28]
+    stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    stur x3, [fp, #-32]
+    stur w4, [fp, #-36]
+    stur x5, [fp, #-44]
     ldur x0, [fp, #-8]
     add x0, x0, #32
-    ldur x1, [fp, #-24]
+    ldur x1, [fp, #-32]
     bl _put_field
-    ldur w1, [fp, #-28]
-    str w1, [x0, #40]
+    ldur x1, [fp, #-8]
+    ldur x0, [fp, #-16]
+    ldur x2, [fp, #-24]
+    ldur x3, [fp, #-32]
+    ldur w4, [fp, #-36]
+    ldur x5, [fp, #-44]
+    str w4, [x0, #40]
     ldp fp, lr, [sp, #64]
     add sp, sp, #80
     ret
