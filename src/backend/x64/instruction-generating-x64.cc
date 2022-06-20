@@ -1292,6 +1292,7 @@ void X64FunctionInstructionSelector::PutField(ir::Value *instr) {
         if (auto base = bak->AsRegister()) {
             current()->NewIO(X64Lea, base, mem);
             loc = new (arena_) LocationOperand(X64Mode_MRI, base->register_id(), -1, field->offset);
+            bak->Grab();
             operands_.Free(bak);
         } else {
             assert(bak->IsLocation());

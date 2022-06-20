@@ -33,7 +33,7 @@ TEST_F(OperandAllocatorTest, Allocation) {
     ASSERT_TRUE(opd->IsLocation());
     ASSERT_EQ(Arm64Mode_MRI, opd->AsLocation()->mode());
     ASSERT_EQ(29, opd->AsLocation()->register0_id());
-    ASSERT_EQ(-36, opd->AsLocation()->k());
+    ASSERT_EQ(-4, opd->AsLocation()->k());
     
     auto r0 = operands_.AllocateReigster(OperandAllocator::kRef, kPointerSize);
     ASSERT_TRUE(r0->IsRegister());

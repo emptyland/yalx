@@ -20,21 +20,21 @@ TEST_F(StackSlotAllocatorTest, Sanity) {
     ASSERT_EQ(Arm64Mode_MRI, slot1->mode());
     ASSERT_EQ(29, slot1->register0_id());
     ASSERT_EQ(-1, slot1->register1_id());
-    ASSERT_EQ(-36, slot1->k());
+    ASSERT_EQ(-4, slot1->k());
 }
 
 TEST_F(StackSlotAllocatorTest, Allocate) {
     auto slot1 = slots_.AllocateRefSlot(0);
     ASSERT_EQ(Arm64Mode_MRI, slot1->mode());
     ASSERT_EQ(29, slot1->register0_id());
-    ASSERT_EQ(-40, slot1->k());
+    ASSERT_EQ(-8, slot1->k());
     
     auto slot2 = slots_.AllocateRefSlot(0);
-    ASSERT_EQ(-48, slot2->k());
+    ASSERT_EQ(-16, slot2->k());
     
     slots_.FreeSlot(slot1);
     auto slot3 = slots_.AllocateRefSlot(0);
-    ASSERT_EQ(-40, slot3->k());
+    ASSERT_EQ(-8, slot3->k());
 }
 
 TEST_F(StackSlotAllocatorTest, Free) {
