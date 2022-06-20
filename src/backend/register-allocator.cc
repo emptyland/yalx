@@ -128,6 +128,21 @@ void RegisterAllocator::FreeRegister(RegisterOperand *reg) {
     }
 }
 
+void RegisterAllocator::Mark(RegisterOperand *opd) {
+    switch (opd->rep()) {
+        case MachineRepresentation::kFloat32:
+        case MachineRepresentation::kFloat64:
+            float_pool_.erase(opd->register_id());
+            float_allocated_.insert(opd->register_id());
+            break;
+            
+        default:
+            general_pool_.erase(opd->register_id());
+            general_allocated_.insert(opd->register_id());
+            break;
+    }
+}
+
 RegisterOperand *RegisterAllocator::Allocate(std::set<int> *pool, std::set<int> *allocated, MachineRepresentation rep,
                                              int designate) {
     if (designate != kAny) {

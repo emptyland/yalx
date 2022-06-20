@@ -185,10 +185,10 @@ Lblk0:
     stur w1, [fp, #-12]
     stur w2, [fp, #-16]
     stur x3, [fp, #-24]
-    ldur x0, [fp, #-8]
     add x0, x0, #24
-    ldur x1, [fp, #-24]
+    mov x1, x3
     bl _put_field
+    ldur x0, [fp, #-8]
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
     ret
@@ -216,14 +216,14 @@ Lblk1:
     str w1, [x0, #16]
     mov w1, #777
     str w1, [x0, #20]
-    stur x0, [fp, #-8]
-    stur w1, [fp, #-12]
-    ldur x0, [fp, #-8]
     adrp x19, Kstr.0@PAGE
     add x19, x19, Kstr.0@PAGEOFF
     ldr x1, [x19, #0]
+    stur x0, [fp, #-8]
+    stur x1, [fp, #-16]
     add x0, x0, #24
     bl _put_field
+    ldur x0, [fp, #-8]
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
     ret

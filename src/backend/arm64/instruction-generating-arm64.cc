@@ -433,6 +433,7 @@ void Arm64FunctionInstructionSelector::CallOriginalFun() {
     
     for (auto [bak, origin, param] : args) {
         Move(origin, bak, param->type());
+        bak->Grab();
         operands_.Free(bak);
     }
 
@@ -675,7 +676,10 @@ void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
             }
         }
         Select(instr);
-        for (auto tmp : tmps_) { operands_.Free(tmp); }
+        for (auto tmp : tmps_) {
+            tmp->Grab();
+            operands_.Free(tmp);
+        }
         for (const auto &borrow : borrowed_registers_) {
             
             if (borrow.original) {
@@ -749,11 +753,9 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
             saving_scope.SaveAll();
             auto arg0 = new (arena_) RegisterOperand(arm64::x0.code(), MachineRepresentation::kWord64);
-            //current()->NewIO(X64Lea, arg0, slot);
             Move(arg0, slot, ir::Types::Word64);
             
             auto arg1 = new (arena_) RegisterOperand(arm64::x1.code(), MachineRepresentation::kWord64);
-            //current()->NewIO(X64Lea, arg1, clazz);
             Move(arg1, clazz, ir::Types::Word64);
             
             current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_lazy_load_object));
@@ -1226,17 +1228,17 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
     auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
     
     
-    std::unique_ptr<RegisterSavingScope> saving_scope(field->type.IsReference()
-                                                      ? new RegisterSavingScope(&operands_,
-                                                                                instruction_position_,
-                                                                                &moving_delegate_) : nullptr);
-    if (field->type.IsReference()) {
-        //printd("%s.%s", handle->owns()->full_name()->data(), handle->name()->data());
-        saving_scope->SaveAll();
-    }
+    std::unique_ptr<RegisterSavingScope>
+    saving_scope(field->type.IsReference()
+                 ? new RegisterSavingScope(&operands_, instruction_position_, &moving_delegate_)
+                 : nullptr);
+
     auto opd = Allocate(instr->InputValue(0), kReg);
     auto value = Allocate(instr->InputValue(1), kAny);
-    
+    if (field->type.IsReference()) {
+        saving_scope->SaveAll();
+    }
+
     LocationOperand *loc = nullptr;
     if (auto base = opd->AsRegister()) {
         loc = new (arena_) LocationOperand(Arm64Mode_MRI, base->register_id(), -1, field->offset);
@@ -1268,10 +1270,13 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
         
         auto rel = bundle()->AddExternalSymbol(kRt_put_field);
         current()->NewI(ArchCall, rel);
+        saving_scope->AddPersistentIfNeeded(opd);
+        saving_scope->AddPersistent(arm64::x0.code());
         saving_scope.reset();
     } else {
         Move(loc, value, field->type);
     }
+
     operands_.Associate(instr, opd);
 }
 

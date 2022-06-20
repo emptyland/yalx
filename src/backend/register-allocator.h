@@ -111,7 +111,7 @@ public:
     RegisterOperand *AllocateRegister(MachineRepresentation rep, int designate = kAny);
     void FreeRegister(RegisterOperand *reg);
     
-    RegisterOperand *Associate(RegisterOperand *opd);
+    void Mark(RegisterOperand *opd);
 private:
     RegisterOperand *Allocate(std::set<int> *pool, std::set<int> *allocated, MachineRepresentation rep, int designate);
     

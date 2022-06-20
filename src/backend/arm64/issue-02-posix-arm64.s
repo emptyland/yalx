@@ -93,6 +93,7 @@ Lblk6:
     add x19, x19, Kstr.3@PAGEOFF
     ldr x0, [x19, #0]
     stur x0, [fp, #-8]
+    stur w2, [fp, #-12]
     bl _issue02_Zoissue02_ZdassertString
     ldp fp, lr, [sp, #64]
     add sp, sp, #80
@@ -219,23 +220,21 @@ Lblk10:
     add x1, x19, _yalx_Zplang_Zolang_ZdException$class@PAGEOFF
     bl _ref_asserted_to
     mov x1, x0
-    ldur x2, [fp, #-8]
+    ldur x0, [fp, #-8]
     adrp x19, Kstr.5@PAGE
     add x19, x19, Kstr.5@PAGEOFF
     ldr x0, [x19, #0]
     stur x0, [fp, #-8]
     stur x1, [fp, #-16]
-    stur x2, [fp, #-24]
-    ldur x0, [fp, #-24]
     ldur x1, [fp, #-8]
     ldur x2, [fp, #-16]
     bl _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
-    ldur x0, [fp, #-24]
-    ldr x1, [x0, #16]
+    ldr x0, [x0, #16]
     adrp x19, Kstr.5@PAGE
     add x19, x19, Kstr.5@PAGEOFF
     ldr x0, [x19, #0]
     stur x0, [fp, #-8]
+    mov x1, x0
     bl _issue02_Zoissue02_ZdassertString
     ldp fp, lr, [sp, #32]
     add sp, sp, #48
@@ -370,10 +369,10 @@ Lblk1:
     stur w1, [fp, #-12]
     stur w2, [fp, #-16]
     stur x3, [fp, #-24]
-    ldur x0, [fp, #-8]
     add x0, x0, #24
-    ldur x1, [fp, #-24]
+    mov x1, x3
     bl _put_field
+    ldur x0, [fp, #-8]
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
     ret

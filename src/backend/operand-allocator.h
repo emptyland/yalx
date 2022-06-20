@@ -169,6 +169,10 @@ public:
     ~RegisterSavingScope();
     
     void AddExclude(ir::Value *exclude, int designate, int position);
+    
+    void AddPersistentIfNeeded(InstructionOperand *opd);
+    
+    void AddPersistent(int designate) { persistent_.insert(designate); }
 
     bool Include(int designate, bool general) { return !Exclude(designate, general); }
     bool Exclude(int designate, bool general) {
@@ -215,6 +219,7 @@ private:
     std::set<int> general_exclude_;
     std::set<int> float_exclude_;
     MovingDelegate *moving_delegate_;
+    std::set<int> persistent_;
     std::vector<Backup> backup_;
 }; // class RegisterSavingScope
 

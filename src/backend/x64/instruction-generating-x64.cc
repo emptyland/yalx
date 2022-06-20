@@ -404,6 +404,7 @@ void X64FunctionInstructionSelector::TearDownHandleFrame(
 
     for (auto [bak, origin] : saved_registers) {
         current()->NewIO(X64Movq, origin, bak);
+        bak->Grab();
         operands_.Free(bak);
     }
     current()->NewIO(ArchFrameExit, fp, stack_size_);
@@ -432,6 +433,7 @@ void X64FunctionInstructionSelector::CallOriginalFun() {
     
     for (auto [bak, origin, param] : args) {
         Move(origin, bak, param->type());
+        bak->Grab();
         operands_.Free(bak);
     }
     current()->NewI(ArchCall, bundle()->AddExternalSymbol(symbols_->Mangle(fun_->full_name())));

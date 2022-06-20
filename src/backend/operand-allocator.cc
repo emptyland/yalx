@@ -350,6 +350,7 @@ void OperandAllocator::Associate(ir::Value *value, InstructionOperand *operand) 
                 .bak = nullptr,
             };
         }
+        registers_.Mark(reg);
     }
 }
 
@@ -359,6 +360,7 @@ InstructionOperand *OperandAllocator::LinkTo(ir::Value *value, InstructionOperan
         old = iter->second;
     }
     if (old && old->Equals(operand)) {
+        //old->Drop();
         return nullptr;
     }
     operand->Grab();
@@ -369,6 +371,8 @@ InstructionOperand *OperandAllocator::LinkTo(ir::Value *value, InstructionOperan
 
 void OperandAllocator::Free(InstructionOperand *operand) {
     operand->Drop();
+    //printd("[%p] refs=%d", operand, operand->refs());
+    assert(operand->refs() == 0);
     switch (operand->kind()) {
         case InstructionOperand::kRegister: {
             auto reg = operand->AsRegister();
@@ -410,6 +414,7 @@ bool OperandAllocator::WillBeDead(ir::Value *value, int position) const {
 void OperandAllocator::ReleaseDeads(int position) {
     assert(position >= 0);
     assert(position < dead_records_.size());
+    std::vector<ir::Value *> useless;
     
     auto rd = dead_records_[position];
     for (size_t i = rd.index; i < rd.index + rd.size; i++) {
@@ -424,9 +429,13 @@ void OperandAllocator::ReleaseDeads(int position) {
                 } else {
                     UNREACHABLE();
                 }
+                useless.push_back(key);
             }
             assert(operand->refs() >= 0);
         }
+    }
+    for (auto key : useless) {
+        allocated_.erase(key);
     }
 }
 
@@ -494,6 +503,12 @@ RegisterSavingScope::~RegisterSavingScope() {
     Exit();
 }
 
+void RegisterSavingScope::AddPersistentIfNeeded(InstructionOperand *opd) {
+    if (auto reg = opd->AsRegister()) {
+        AddPersistent(reg->register_id());
+    }
+}
+
 void RegisterSavingScope::AddExclude(ir::Value *exclude, int designate, int position) {
     auto opd = allocator_->Allocated(exclude);
     if (opd) {
@@ -545,11 +560,19 @@ void RegisterSavingScope::SaveAll() {
 void RegisterSavingScope::Exit() {
     moving_delegate_->Initialize();
     for (auto bak : backup_) {
-        //if (allocator_->WillBeLive(bak.val, position_ + 1)) {
-            auto opd = allocator_->Allocate(DCHECK_NOTNULL(bak.val)->type());
-            moving_delegate_->MoveTo(opd, bak.current, bak.val->type());
-            allocator_->Associate(bak.val, opd);
-        //}
+        bool should_persistent = false;
+        if (auto reg = bak.old->AsRegister()) {
+            should_persistent = persistent_.find(reg->register_id()) != persistent_.end();
+        }
+        if (should_persistent || allocator_->WillBeLive(bak.val, position_ + 1)) {
+            //auto opd = allocator_->Allocate(DCHECK_NOTNULL(bak.val)->type());
+            moving_delegate_->MoveTo(bak.old, bak.current, bak.val->type());
+            allocator_->Associate(bak.val, bak.old);
+        }
+        
+//        auto opd = allocator_->Allocate(DCHECK_NOTNULL(bak.val)->type());
+//        moving_delegate_->MoveTo(opd, bak.current, bak.val->type());
+//        allocator_->Associate(bak.val, opd);
     }
     moving_delegate_->Finalize();
 }
