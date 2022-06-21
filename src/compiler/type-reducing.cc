@@ -40,13 +40,13 @@ public:
 
 private:
     void Enter() {
-        assert(*location_ != this);
+        DCHECK(*location_ != this);
         prev_ = *location_;
         *location_ = this;
     }
     void Exit() {
-        assert(*location_ == this);
-        assert(*location_ != prev_);
+        DCHECK(*location_ == this);
+        DCHECK(*location_ != prev_);
         *location_ = prev_;
     }
     
@@ -104,7 +104,7 @@ private:
             auto pkg = ast->Pack(true/*force*/);
             auto current_file_scope = owns_->location_->NearlyFileUnitScope();
             auto current_pkg_scope = current_file_scope->NearlyPackageScope();
-            assert(owns->IsFileUnit());
+            DCHECK(owns->IsFileUnit());
             auto pkg_scope = owns_->EnsurePackageScope(pkg);
             auto file_scope = DCHECK_NOTNULL(pkg_scope->FindFileUnitScopeOrNull(owns));
             if (pkg != current_pkg_scope->pkg()) {
@@ -209,7 +209,7 @@ private:
                 if (!base_ast) {
                     if (node->path()->ToString() != "yalx/lang" && clazz->name()->ToString() != "Any") {
                         auto any = FindGlobal(kLangPackageFullName, kAnyClassName); // Any class
-                        assert(any.IsFound());
+                        DCHECK(any.IsFound());
                         clazz->set_base_of(DCHECK_NOTNULL(any.ast->AsClassDefinition()));
                     }
                     continue;
@@ -292,7 +292,7 @@ private:
                 return -1;
             }
         }
-        assert(!types.empty());
+        DCHECK(!types.empty());
         return Returning(types);
     }
     
@@ -638,7 +638,7 @@ private:
         auto this_id = new (arena_) Identifier(String::New(arena_, "this"), node->source_position());
         if (base_of) {
             //printd("base_of: %s", base_of->name()->data());
-            assert(base_of->primary_constructor());
+            DCHECK(base_of->primary_constructor());
             auto super_id = new (arena_) Identifier(base_of->primary_constructor()->name(), node->source_position());
             if (!super_calling) {
                 auto calling = new (arena_) Calling(arena_, super_id, node->source_position());
@@ -770,7 +770,7 @@ private:
                 }
             }
         } else {
-            assert(prototype->return_types_size() == 0);
+            DCHECK(prototype->return_types_size() == 0);
             for (auto ty : receiver) {
                 prototype->mutable_return_types()->push_back(ty);
             }
@@ -840,7 +840,7 @@ private:
                 }
             }
         } else {
-            assert(prototype->return_types_size() == 0);
+            DCHECK(prototype->return_types_size() == 0);
             for (auto ty : receiver) {
                 prototype->mutable_return_types()->push_back(ty);
             }
@@ -1035,7 +1035,7 @@ private:
                                            "actual is `%s'", i, param->ToString().c_str(), args[i]->ToString().c_str());
                         return -1;
                     }
-                    assert(!unlinked);
+                    DCHECK(!unlinked);
                 }
                 
                 if (def->IsClassDefinition()) {
@@ -1045,7 +1045,7 @@ private:
                 }
             }
             
-            //assert(ast->IsFunctionDeclaration());
+            //DCHECK(ast->IsFunctionDeclaration());
             if (auto fun = ast->AsFunctionDeclaration()) {
                 type = fun->prototype();
             }
@@ -1091,7 +1091,7 @@ private:
                                    i, param->ToString().c_str(), args[i]->ToString().c_str());
                 return -1;
             }
-            assert(!unlinked);
+            DCHECK(!unlinked);
         }
         
         std::vector<Type *> results;
@@ -1195,7 +1195,7 @@ private:
                                    lvals[i]->Type()->ToString().c_str(), rvals[i]->ToString().c_str());
                 return -1;
             }
-            assert(!unlinked);
+            DCHECK(!unlinked);
         }
         return Returning(Unit());
     }
@@ -1228,7 +1228,7 @@ private:
                                    prototype->return_type(i)->ToString().c_str(), rets[i]->ToString().c_str());
                 return -1;
             }
-            assert(!unlinked);
+            DCHECK(!unlinked);
         }
         return Returning(Unit());
     }
@@ -1408,7 +1408,7 @@ private:
             return -1;
         }
         if (!type->IsOptionType()) {
-            Feedback()->Printf(node->source_position(), "Attempt asserted-getting for non-option type: `%s'",
+            Feedback()->Printf(node->source_position(), "Attempt DCHECKed-getting for non-option type: `%s'",
                                type->ToString().c_str());
             return -1;
         }
@@ -1455,19 +1455,22 @@ private:
     }
     
     int VisitArrayInitializer(ArrayInitializer *node) override {
-        int dimensions_count = 0;
         if (!node->type()) {
+            int dimensions_count = kMaxArrayInitializerDims;
             auto type = ReduceArrayDimension(node->dimensions(), nullptr/*qualified*/, kMaxArrayInitializerDims,
                                              &dimensions_count, node->source_position());
             if (!type) {
                 return -1;
             }
-            return Returning(new (arena_) ArrayType(arena_, type, dimensions_count, node->source_position()));
+            dimensions_count = kMaxArrayInitializerDims - dimensions_count + 1;
+            node->set_type(new (arena_) ArrayType(arena_, type, dimensions_count, node->source_position()));
+            node->set_dimension_count(dimensions_count);
+            return Returning(node->type());
         }
 
         auto ar = DCHECK_NOTNULL(node->type()->AsArrayType());
         if (ar->HasCapacities()) {
-            assert(node->filling_value());
+            DCHECK(node->filling_value());
             Type *filling = nullptr;
             if (ReduceReturningOnlyOne(node->filling_value(), &filling) < 0) {
                 return -1;
@@ -1478,12 +1481,13 @@ private:
                                    ar->ToString().c_str(), filling->ToString().c_str());
                 return -1;
             }
-            assert(!unlinked);
+            DCHECK(!unlinked);
             return Returning(ar);
         }
         
-        auto rv = ReduceArrayDimension(node->dimensions(), ar->element_type(), ar->dimension_count(),
-                                       &dimensions_count, node->source_position());
+        int dimensions_count = ar->dimension_count();
+        auto rv = ReduceArrayDimension(node->dimensions(), ar->element_type(), ar->dimension_count(), &dimensions_count,
+                                       node->source_position());
         if (!rv) {
             return -1;
         }
@@ -1493,7 +1497,7 @@ private:
                                ar->ToString().c_str(), rv->ToString().c_str());
             return -1;
         }
-        assert(!unlinked);
+        DCHECK(!unlinked);
         return Returning(ar);
     }
     
@@ -1565,7 +1569,7 @@ private:
                                                dest_type->ToString().c_str());
                             return -1;
                         }
-                        assert(!unlinked);
+                        DCHECK(!unlinked);
                     }
                 }
                 
@@ -1616,7 +1620,7 @@ private:
                                        dest_type->ToString().c_str());
                     return -1;
                 }
-                assert(!unlinked);
+                DCHECK(!unlinked);
                 
                 if (Reduce(clause->then_clause(), &branchs_types[i]) < 0) {
                     return -1;
@@ -1728,7 +1732,7 @@ private:
         }
         
         auto sym = FindGlobal(kLangPackageFullName, kThrowableClassName);
-        assert(sym.IsFound());
+        DCHECK(sym.IsFound());
         auto throwable = DCHECK_NOTNULL(sym.ast->AsClassDefinition());
         
         std::map<ClassDefinition *, TryCatchExpression::CatchClause *> unique_types;
@@ -1934,7 +1938,7 @@ private:
                                lhs->ToString().c_str(), rhs->ToString().c_str());
             return -1;
         }
-        assert(!unlinked);
+        DCHECK(!unlinked);
         return Returning(kind == kComparableTy ? Bool() : lhs);
     }
     
@@ -1988,7 +1992,7 @@ private:
             
             Type *reduced = nullptr;
             if (at_least_one_unit) {
-                assert(!all_unit);
+                DCHECK(!all_unit);
                 for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
                     if (branchs_cols[i][j]->primary_type() != Type::kType_unit) {
                         if (!reduced) {
@@ -2031,7 +2035,7 @@ private:
     
     Type *ReduceArrayDimension(const base::ArenaVector<AstNode *> &dimension, Type *qualified, int dimensions_limit,
                                int *dimensions_count, const SourcePosition &source_position) {
-        (*dimensions_count)++;
+        if (dimensions_limit < *dimensions_count) { *dimensions_count = dimensions_limit; }
         
         if (dimensions_limit == 0) {
             Feedback()->Printf(source_position, "Max array initializer dimensons: %d", *dimensions_count);
@@ -2044,6 +2048,9 @@ private:
                 if (auto ar = item->AsArrayInitializer()) {
                     type = ReduceArrayDimension(ar->dimensions(), qualified, dimensions_limit - 1, dimensions_count,
                                                 item->source_position());
+                    ar->set_type(new (arena_) ArrayType(arena_, type, dimensions_limit - *dimensions_count,
+                                                        ar->source_position()));
+                    ar->set_dimension_count(ar->dimension_count());
                 } else {
                     if (ReduceReturningOnlyOne(item, &type) < 0) {
                         return nullptr;
@@ -2071,6 +2078,9 @@ private:
                     type = ReduceArrayDimension(ar->dimensions(), qualified, dimensions_limit - 1, dimensions_count,
                                                 item->source_position());
                     dim_size = ar->dimensions_size();
+                    ar->set_type(new (arena_) ArrayType(arena_, type, dimensions_limit - *dimensions_count,
+                                                        ar->source_position()));
+                    ar->set_dimension_count(ar->dimension_count());
                 } else {
                     if (ReduceReturningOnlyOne(item, &type) < 0) {
                         return nullptr;
@@ -2128,7 +2138,7 @@ private:
                 if (!dest->Acceptable(src, &unlinked)) {
                     goto not_allow;
                 }
-                assert(!unlinked);
+                DCHECK(!unlinked);
             } break;
                 
             case CastingRule::I8_U8_CHAR_ARRAY_ONLY: {
@@ -2281,7 +2291,7 @@ private:
                 if (lhs->Acceptable(rhs, &unlinked)) {
                     return lhs;
                 }
-                assert(!unlinked);
+                DCHECK(!unlinked);
             } break;
                 
             case CastingRule::SELF_ONLY: {
@@ -2377,7 +2387,7 @@ private:
             case Type::kType_f32:
             case Type::kType_f64: {
                 auto symbol = FindGlobal(kLangPackageFullName, Constants::kPrimitiveTypeClassNames[type->primary_type()]);
-                assert(symbol.IsFound());
+                DCHECK(symbol.IsFound());
                 return symbol.ast;
             }
             default:
@@ -2496,11 +2506,11 @@ private:
             case Node::kObjectDeclaration:
                 return Returning(ast->AsObjectDeclaration()->Type());
             case Node::kVariableDeclaration:
-                assert(ast->AsVariableDeclaration()->ItemSize() == 1);
+                DCHECK(ast->AsVariableDeclaration()->ItemSize() == 1);
                 return Returning(ast->AsVariableDeclaration()->Type());
             default: {
                 if (auto var = down_cast<VariableDeclaration::Item>(ast)) {
-                    assert(var->type() != nullptr);
+                    DCHECK(var->type() != nullptr);
                     auto ty = LinkType(var->type());
                     if (!ty) {
                         return -1;
@@ -2541,7 +2551,7 @@ private:
                     } else {
                         scope = DCHECK_NOTNULL(current_pkg_scope->FindFileUnitScopeOrNull(owns));
                     }
-                    assert(scope != current_file_scope);
+                    DCHECK(scope != current_file_scope);
                     scope->Enter();
                     auto rs = Reduce(sym);
                     pkg_scope->Track(sym);
@@ -2753,7 +2763,7 @@ private:
         if (auto id = expr->AsIdentifier()) {
             return std::make_tuple(default_prefix, id->name()->ToSlice());
         } else if (auto dot = expr->AsDot()) {
-            //assert(expr->IsDot());
+            //DCHECK(expr->IsDot());
             auto prefix = DCHECK_NOTNULL(dot->primary()->AsIdentifier());
             auto name = dot->field();
             return std::make_tuple(prefix->name()->ToSlice(), name->ToSlice());
@@ -2845,7 +2855,7 @@ private:
     
     PackageScope *EnsurePackageScope(Package *pkg) const {
         auto iter = package_scopes_.find(pkg);
-        assert(iter != package_scopes_.end());
+        DCHECK(iter != package_scopes_.end());
         return iter->second;
     }
     
@@ -2897,7 +2907,7 @@ private:
     
     void RecursionExit(Statement *ast) {
         auto iter = recursion_tracing_.find(ast);
-        assert(iter != recursion_tracing_.end());
+        DCHECK(iter != recursion_tracing_.end());
         recursion_tracing_.erase(iter);
     }
     

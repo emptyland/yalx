@@ -316,6 +316,62 @@ TEST_F(TypeReducingTest, SimpleExprReducing) {
     ASSERT_TRUE(rs.ok()) << rs.ToString();
 }
 
+// 26-ir-array-init-expr
+TEST_F(TypeReducingTest, ArrayExprReducing) {
+    base::ArenaMap<std::string_view, Package *> all(&arena_);
+    base::ArenaVector<Package *> entries(&arena_);
+    Package *main_pkg = nullptr;
+    auto rs = Compiler::FindAndParseProjectSourceFiles("tests/26-ir-array-init-expr", "libs", &arena_, &feedback_,
+                                                       &main_pkg, &entries, &all);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    std::unordered_map<std::string_view, GlobalSymbol> symbols;
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    
+    auto a0 = down_cast<VariableDeclaration::Item>(symbols["main:main.a0"].ast);
+    ASSERT_NE(nullptr, a0->type());
+    ASSERT_TRUE(a0->type()->IsArrayType());
+    auto ar = a0->type()->AsArrayType();
+    ASSERT_EQ(1, ar->dimension_count());
+    ASSERT_EQ(Type::kType_i32, ar->element_type()->primary_type());
+    ASSERT_EQ(1, a0->owns()->initilaizers_size());
+    ASSERT_EQ(a0->type(), down_cast<ArrayInitializer>(a0->owns()->initilaizer(0))->type());
+    
+    auto a1 = down_cast<VariableDeclaration::Item>(symbols["main:main.a1"].ast);
+    ASSERT_NE(nullptr, a1->type());
+    ASSERT_TRUE(a1->type()->IsArrayType());
+    ar = a1->type()->AsArrayType();
+    ASSERT_EQ(2, ar->dimension_count());
+    ASSERT_EQ(Type::kType_i32, ar->element_type()->primary_type());
+    ASSERT_EQ(1, a1->owns()->initilaizers_size());
+    auto init = down_cast<ArrayInitializer>(a1->owns()->initilaizer(0));
+    ASSERT_NE(nullptr, init);
+    ASSERT_EQ(a1->type(), init->type());
+    
+    auto a2 = down_cast<VariableDeclaration::Item>(symbols["main:main.a2"].ast);
+    ASSERT_NE(nullptr, a2->type());
+    ASSERT_TRUE(a2->type()->IsArrayType());
+    ar = a2->type()->AsArrayType();
+    ASSERT_EQ(3, ar->dimension_count());
+    ASSERT_EQ(Type::kType_i32, ar->element_type()->primary_type());
+    init = down_cast<ArrayInitializer>(a2->owns()->initilaizer(0));
+    ASSERT_NE(nullptr, init);
+    ASSERT_EQ(a2->type(), init->type());
+    
+    auto a3 = down_cast<VariableDeclaration::Item>(symbols["main:main.a3"].ast);
+    ASSERT_NE(nullptr, a3->type());
+    ASSERT_TRUE(a3->type()->IsArrayType());
+    ar = a3->type()->AsArrayType();
+    ASSERT_EQ(2, ar->dimension_count());
+    ASSERT_EQ(Type::kType_i32, ar->element_type()->primary_type());
+    init = down_cast<ArrayInitializer>(a3->owns()->initilaizer(0));
+    ASSERT_NE(nullptr, init);
+    ASSERT_EQ(a3->type(), init->type());
+    init = down_cast<ArrayInitializer>(init->dimension(0));
+    ASSERT_NE(nullptr, init);
+    ASSERT_EQ(1, init->dimension_count());
+}
+
 } // namespace yalx
 
 } // namespace yalx

@@ -17,10 +17,18 @@ namespace base {
 #define DCHECK_NOTNULL(p) (p)
 #define printd(...)
 
+#ifndef DCHECK
+#define DCHECK(x)
+#endif
+
 #else
 
 #define UNREACHABLE() assert(0 && "unreached")
 #define DCHECK_NOTNULL(p) (::yalx::base::CheckNotNull(p, __FILE__, __LINE__))
+
+#ifndef DCHECK
+#define DCHECK(x) assert(x)
+#endif
 
 #define printd(...) ::yalx::base::DebugOutput(__FILE__, __LINE__, __func__).Print(__VA_ARGS__)
 

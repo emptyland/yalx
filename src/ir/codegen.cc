@@ -45,14 +45,14 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(LoopContext);
 private:
     void Enter() {
-        assert(location_ != nullptr);
+        DCHECK(location_ != nullptr);
         prev_ = *location_;
-        assert(*location_ != this);
+        DCHECK(*location_ != this);
         *location_ = this;
     }
     
     void Exit() {
-        assert(*location_ == this);
+        DCHECK(*location_ == this);
         *location_ = prev_;
     }
     
@@ -78,14 +78,14 @@ public:
     DEF_PTR_GETTER(BasicBlock, finally_block);
 private:
     void Enter() {
-        assert(location_ != nullptr);
+        DCHECK(location_ != nullptr);
         prev_ = *location_;
-        assert(*location_ != this);
+        DCHECK(*location_ != this);
         *location_ = this;
     }
     
     void Exit() {
-        assert(*location_ == this);
+        DCHECK(*location_ == this);
         *location_ = prev_;
     }
     
@@ -116,14 +116,14 @@ public:
     TryContext **try_location() { return &current_try_; }
 private:
     void Enter() {
-        assert(location_ != nullptr);
+        DCHECK(location_ != nullptr);
         prev_ = *location_;
-        assert(*location_ != this);
+        DCHECK(*location_ != this);
         *location_ = this;
     }
     
     void Exit() {
-        assert(*location_ == this);
+        DCHECK(*location_ == this);
         *location_ = prev_;
     }
     
@@ -140,7 +140,7 @@ public:
     IRGeneratorAstVisitor(IntermediateRepresentationGenerator *owns): owns_(owns) {}
     
     int VisitPackage(cpl::Package *node) override {
-        assert(module_ == nullptr);
+        DCHECK(module_ == nullptr);
         
         auto name = node->path()->ToString().append(":").append(node->name()->ToString());
         module_ = DCHECK_NOTNULL(owns_->AssertedGetModule(name));
@@ -194,7 +194,7 @@ public:
         }
         auto [owns, _] = deps->ast()->Owns(true/*force*/);
         //auto pkg = deps->ast()->Pack(true/*force*/);
-        assert(pkg_scope->pkg() == deps->ast()->Pack(true/*force*/));
+        DCHECK(pkg_scope->pkg() == deps->ast()->Pack(true/*force*/));
         NamespaceScope::Keeper<FileUnitScope> holder(pkg_scope->FindFileUnitScopeOrNull(owns));
         return Reduce(deps->ast());
     }
@@ -216,8 +216,8 @@ public:
         return GenerateStructureModel(node, [this, node](StructureModel *clazz) {
             for (auto concept: node->concepts()) {
                 auto ty = BuildType(concept);
-                assert(ty.kind() == Type::kValue);
-                assert(ty.model()->declaration() == Model::kInterface);
+                DCHECK(ty.kind() == Type::kValue);
+                DCHECK(ty.model()->declaration() == Model::kInterface);
                 clazz->mutable_interfaces()->push_back(down_cast<InterfaceModel>(ty.model()));
             }
         });
@@ -268,7 +268,7 @@ public:
         
         for (auto ast : node->methods()) {
             auto method = clazz->FindMethod(ast->name()->ToSlice());
-            assert(method.has_value());
+            DCHECK(method.has_value());
             if (!GenerateFun(ast, clazz, method->fun)) {
                 return -1;
             }
@@ -308,7 +308,7 @@ public:
     
     int VisitObjectDeclaration(cpl::ObjectDeclaration *node) override {
         SourcePositionTable::Scope ss_root(CURRENT_SOUCE_POSITION(node));
-        assert(location_->IsFileUnitScope());
+        DCHECK(location_->IsFileUnitScope());
         
         auto full_name = MakeFullName(node->name());
         auto value = owns_->AssertedGetVal(full_name);
@@ -327,8 +327,8 @@ public:
                 return -1;
             }
         }
-        
-        assert(init_vals.size() >= node->ItemSize());
+
+        DCHECK(init_vals.size() >= node->ItemSize());
         for (auto i = 0; i < node->ItemSize(); i++) {
             auto ast = node->AtItem(i);
             SourcePositionTable::Scope ss(ast->source_position(), &ss_root);
@@ -343,7 +343,7 @@ public:
             
             //printd("%s", ast->Identifier()->data());
             auto dest = location_->FindSymbol(ast->Identifier()->ToSlice());
-            assert(dest.IsFound());
+            DCHECK(dest.IsFound());
             auto op = ops()->StoreGlobal();
             b()->NewNode(ss.Position(), Types::Void, op, dest.core.value, init_vals[i]);
         }
@@ -388,7 +388,7 @@ public:
                 return -1;
             }
         }
-        assert(!values.empty());
+        DCHECK(!values.empty());
         return Returning(values);
     }
     
@@ -415,7 +415,7 @@ public:
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
         
         auto symbol = location_->FindSymbol(node->name()->ToSlice());
-        assert(symbol.IsFound());
+        DCHECK(symbol.IsFound());
         switch (symbol.kind) {
             case Symbol::kValue: {
                 auto value = symbol.core.value;
@@ -434,7 +434,7 @@ public:
             case Symbol::kHandle: {
                 auto handle = symbol.core.handle;
                 auto this_val = location_->FindSymbol(cpl::kThisName);
-                assert(this_val.IsFound());
+                DCHECK(this_val.IsFound());
                 return Returning(EmitLoadField(this_val.core.value, handle, root_ss.Position()));
             } break;
             case Symbol::kFun: {
@@ -484,7 +484,7 @@ public:
                 auto def = static_cast<cpl::Definition *>(inst);
                 full_name = def->package()->path()->ToString().append(":").append(def->FullName());
             } else {
-                assert(inst->IsFunctionDeclaration());
+                DCHECK(inst->IsFunctionDeclaration());
                 auto decl = static_cast<cpl::Declaration *>(inst);
                 full_name = decl->package()->path()->ToString().append(":").append(decl->FullName());
             }
@@ -499,7 +499,7 @@ public:
         if (symbol.kind == Symbol::kHandle) {
             handle = symbol.core.handle;
             auto arg0 = location_->FindSymbol(cpl::kThisName);
-            assert(arg0.kind == Symbol::kValue);
+            DCHECK(arg0.kind == Symbol::kValue);
             args.insert(args.begin(), arg0.core.value);
         }
         if (handle) { // It's method calling
@@ -508,7 +508,7 @@ public:
             auto type = proto->return_type(0);
             auto value_in = static_cast<int>(proto->params_size());
             Operator *op = nullptr;
-            assert(args[0]->type().kind() == Type::kValue || args[0]->type().IsReference());
+            DCHECK(args[0]->type().kind() == Type::kValue || args[0]->type().IsReference());
             auto self = DCHECK_NOTNULL(args[0]->type().model());
             if (self->declaration() == Model::kInterface) {
                 op = ops()->CallAbstract(handle, 1/*value_out*/, value_in, invoke_control_out());
@@ -553,7 +553,7 @@ public:
         }
         
         if (symbol.kind == Symbol::kModel) {
-            assert(symbol.core.model->declaration() == Model::kClass ||
+            DCHECK(symbol.core.model->declaration() == Model::kClass ||
                    symbol.core.model->declaration() == Model::kStruct);
             
             auto clazz = down_cast<StructureModel>(symbol.core.model);
@@ -594,7 +594,7 @@ public:
             }
         }
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
-        assert(rvals.size() == node->lvals_size());
+        DCHECK(rvals.size() == node->lvals_size());
         for (auto i = 0; i < node->lvals_size(); i++) {
             Symbol symbol = Symbol::NotFound();
             
@@ -603,7 +603,7 @@ public:
             SourcePositionTable::Scope ss(lval->source_position(), &root_ss);
             if (auto ast = lval->AsIdentifier()) {
                 symbol = location_->FindSymbol(ast->name()->ToSlice());
-                assert(symbol.IsFound());
+                DCHECK(symbol.IsFound());
                 if (symbol.kind == Symbol::kValue) {
                     if (symbol.owns->IsFileUnitScope()) { // Global var
                         b()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(),
@@ -616,9 +616,9 @@ public:
                         location_->PutSymbol(ast->name()->ToSlice(), Symbol::Val(symbol.owns, rval, b()));
                     }
                 } else {
-                    assert(symbol.kind == Symbol::kHandle);
+                    DCHECK(symbol.kind == Symbol::kHandle);
                     auto this_symbol = location_->FindSymbol(cpl::kThisName);
-                    assert(this_symbol.kind == Symbol::kValue);
+                    DCHECK(this_symbol.kind == Symbol::kValue);
                     auto this_replace = EmitStoreField(this_symbol.core.value, rval, symbol.core.handle, ss.Position());
                     location_->PutValue(cpl::kThisName, this_replace);
                 }
@@ -628,7 +628,7 @@ public:
                     symbol = file_scope->FindExportSymbol(id->name()->ToSlice(), ast->field()->ToSlice());
                 }
                 if (symbol.IsFound()) {
-                    assert(symbol.owns->IsFileUnitScope());
+                    DCHECK(symbol.owns->IsFileUnitScope());
                     b()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), rval);
                 } else {
                     if (ProcessDotChainAssignment(ast, rval) < 0) {
@@ -646,7 +646,7 @@ public:
         if (!node->generic_params().empty()) {
             return Returning(Unit());
         }
-        assert(location_->IsFileUnitScope());
+        DCHECK(location_->IsFileUnitScope());
         auto full_name = MakeFullName(node->name());
         if (!GenerateFun(node, nullptr/*owns*/, owns_->AssertedGetFun(full_name))) {
             return -1;
@@ -658,7 +658,7 @@ public:
         if (!node->generic_params().empty()) {
             return Returning(Unit());
         }
-        assert(location_->IsFileUnitScope());
+        DCHECK(location_->IsFileUnitScope());
         auto full_name = MakeFullName(node->name());
         auto model = AssertedGetUdt<InterfaceModel>(full_name);
         for (auto ast : node->methods()) {
@@ -783,7 +783,7 @@ public:
             switch (case_clause->pattern()) {
                 case cpl::CaseWhenPattern::kBetweenTo: {
                     auto ast = cpl::WhenExpression::BetweenToCase::Cast(case_clause);
-                    assert(dest != nullptr);
+                    DCHECK(dest != nullptr);
                     
                     b(case_block);
                     Value *lower = nullptr, *upper = nullptr;
@@ -791,8 +791,8 @@ public:
                         ReduceReturningOnlyOne(ast->upper(), &upper) < 0) {
                         return -1;
                     }
-                    assert(dest->type().Equals(lower->type()));
-                    assert(dest->type().Equals(upper->type()));
+                    DCHECK(dest->type().Equals(lower->type()));
+                    DCHECK(dest->type().Equals(upper->type()));
                     
                     case_block = fun->NewBlock(nullptr);
                     next_block = NewNextBlock();
@@ -806,7 +806,7 @@ public:
                     
                 case cpl::CaseWhenPattern::kExpectValues: {
                     auto ast = cpl::WhenExpression::ExpectValuesCase::Cast(case_clause);
-                    assert(dest != nullptr);
+                    DCHECK(dest != nullptr);
 
                     b(case_block);
                     std::vector<Value *> expected_values;
@@ -826,7 +826,7 @@ public:
                     
                 case cpl::CaseWhenPattern::kTypeTesting: {
                     auto ast = cpl::WhenExpression::TypeTestingCase::Cast(case_clause);
-                    assert(dest != nullptr);
+                    DCHECK(dest != nullptr);
                     
                     b(case_block);
                     auto ty = BuildType(ast->match_type());
@@ -843,11 +843,11 @@ public:
                     
                 case cpl::CaseWhenPattern::kStructMatching: {
                     auto ast = cpl::WhenExpression::StructMatchingCase::Cast(case_clause);
-                    assert(dest != nullptr);
+                    DCHECK(dest != nullptr);
                     
                     b(case_block);
                     auto ty = BuildType(ast->match_type());
-                    assert(ty.model() != nullptr);
+                    DCHECK(ty.model() != nullptr);
                     auto cond = EmitTesting(ty, dest, ss.Position());
                     case_block = fun->NewBlock(nullptr);
                     next_block = NewNextBlock();
@@ -1035,7 +1035,7 @@ public:
         b()->NewNode(root_ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), cond_block);
         b(cond_block);
         
-        assert(upper->type().IsIntegral() && lower->type().IsIntegral());
+        DCHECK(upper->type().IsIntegral() && lower->type().IsIntegral());
         Operator *op = nullptr;
         if (upper->type().IsSigned()) {
             op = ops()->ICmp(ast->range().close ? ICondition::slt : ICondition::sle);
@@ -1087,7 +1087,7 @@ public:
         if (ReduceReturningOnlyOne(node->throwing_val(), &value) < 0) {
             return -1;
         }
-        assert(value->type().kind() == Type::kReference);
+        DCHECK(value->type().kind() == Type::kReference);
         auto op = ops()->CallRuntime(0/*value_out*/, 1/*value_in*/, invoke_control_out(), RuntimeLib::Raise);
         if (op->control_out() > 0) {
             b()->NewNode(root_ss.Position(), Types::Void, op, value, invoke_control());
@@ -1166,7 +1166,7 @@ public:
         }
         Value *val = nullptr;
         if (symbol.IsFound()) {
-            assert(symbol.owns->IsFileUnitScope());
+            DCHECK(symbol.owns->IsFileUnitScope());
             switch (symbol.kind) {
                 case Symbol::kValue:
                     val = b()->NewNode(root_ss.Position(), symbol.core.value->type(), ops()->LoadGlobal(),
@@ -1267,7 +1267,7 @@ public:
             op = ops()->Br(1/*vlaue_in*/, 2/*control_out*/);
             
             block = fun->NewBlock(nullptr);
-            assert(i + 2 < blocks.size());
+            DCHECK(i + 2 < blocks.size());
             b()->NewNode(ss.Position(), Types::Void, op, cond, block, blocks[i + 2]);
             blocks[i + 1] = block;
             
@@ -1275,7 +1275,7 @@ public:
             EmitUnwind();
             op = ops()->RefAssertedTo();
             ty = BuildType(ast->match_type());
-            assert(ty.kind() == Type::kReference);
+            DCHECK(ty.kind() == Type::kReference);
             ex = b()->NewNode(ss.Position(), ty, op, ex);
             br->PutValue(ast->name()->name()->ToSlice(), ex, b());
 
@@ -1299,6 +1299,29 @@ public:
         return Returning(results);
     }
     
+    int VisitArrayInitializer(cpl::ArrayInitializer *node) override {
+        DCHECK(node->dimension_count() >= 1);
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        
+        if (node->filling_value()) {
+            // TODO:
+            UNREACHABLE();
+        } else {
+            std::vector<Value *> elements;
+            for (auto dim : node->dimensions()) {
+                Value *value = nullptr;
+                if (ReduceReturningOnlyOne(dim, &value) < 0) {
+                    return -1;
+                }
+                elements.push_back(value);
+            }
+            auto ty = BuildType(DCHECK_NOTNULL(node->type()));
+            auto op = ops()->ArrayAlloc(down_cast<const ArrayModel>(ty.model()), static_cast<int>(elements.size()));
+            auto rv = b()->NewNodeWithValues(nullptr, root_ss.Position(), ty, op, elements);
+            return Returning(rv);
+        }
+    }
+    
     int VisitNot(cpl::Not *node) override { UNREACHABLE(); }
     
     int VisitRecv(cpl::Recv *node) override { UNREACHABLE(); }
@@ -1309,7 +1332,7 @@ public:
     int VisitIndexedGet(cpl::IndexedGet *node) override { UNREACHABLE(); }
     
     int VisitLambdaLiteral(cpl::LambdaLiteral *node) override { UNREACHABLE(); }
-    int VisitArrayInitializer(cpl::ArrayInitializer *node) override { UNREACHABLE(); }
+    
     
     int VisitAssertedGet(cpl::AssertedGet *node) override { UNREACHABLE(); }
     int VisitChannelInitializer(cpl::ChannelInitializer *node) override { UNREACHABLE(); }
@@ -1368,8 +1391,8 @@ public:
         if (ReduceReturningOnlyOne(ast->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(ast->rhs(), &rhs) < 0) {
             return -1;
         }
-        assert(lhs->type().IsNumber());
-        assert(rhs->type().IsNumber());
+        DCHECK(lhs->type().IsNumber());
+        DCHECK(rhs->type().IsNumber());
         
         Operator *op = nullptr;
         if (lhs->type().IsIntegral() && lhs->type().IsUnsigned() &&
@@ -1378,8 +1401,8 @@ public:
         } else if (lhs->type().IsFloating() && rhs->type().IsFloating()) {
             op = candidate[2];
         } else {
-            assert(lhs->type().IsIntegral() && lhs->type().IsSigned());
-            assert(rhs->type().IsIntegral() && rhs->type().IsSigned());
+            DCHECK(lhs->type().IsIntegral() && lhs->type().IsSigned());
+            DCHECK(rhs->type().IsIntegral() && rhs->type().IsSigned());
             op = candidate[0];
         }
         return Returning(b()->NewNode(root_ss.Position(), lhs->type(), op, lhs, rhs));
@@ -1433,8 +1456,8 @@ public:
         if (ReduceReturningOnlyOne(ast->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(ast->rhs(), &rhs) < 0) {
             return -1;
         }
-        assert(lhs->type().IsIntegral());
-        assert(rhs->type().IsIntegral());
+        DCHECK(lhs->type().IsIntegral());
+        DCHECK(rhs->type().IsIntegral());
         
         Operator *op = nullptr;
         if (lhs->type().IsSigned()) {
@@ -1613,7 +1636,7 @@ private:
     void HandleMergeConflictsV2(std::string_view name, std::vector<Conflict> &&paths, BasicBlock *blk,
                                 std::map<Value *, Value *> *updates) {
         auto origin = location_->FindSymbol(name);
-        assert(origin.IsFound());
+        DCHECK(origin.IsFound());
         std::vector<Node *> inputs;
         for (auto path : paths) {
             inputs.push_back(path.value);
@@ -1630,7 +1653,7 @@ private:
     
     void HandleMergeConflicts(std::string_view name, std::vector<Conflict> &&paths) {
         auto origin = location_->FindSymbol(name);
-        assert(origin.IsFound());
+        DCHECK(origin.IsFound());
         std::vector<Node *> inputs;
         for (auto path : paths) {
             inputs.push_back(path.value);
@@ -1686,7 +1709,7 @@ private:
             }
             
             if (at_least_one_unit) {
-                assert(!all_unit);
+                DCHECK(!all_unit);
                 for (size_t j = 0; j < number_of_branchs_without_else + 1/*else branch*/; j++) {
                     Value *reduced = nullptr;
                     if (branchs_cols[i][j]->type().kind() != Type::kVoid) {
@@ -1760,7 +1783,7 @@ private:
         if (ReduceReturningOnlyOne(node, &primary) < 0) {
             return -1;
         }
-        assert(primary->type().kind() == Type::kValue || primary->type().IsReference());
+        DCHECK(primary->type().kind() == Type::kValue || primary->type().IsReference());
         
         // a.b.c.d = x
         // ["b", "c", "d"]
@@ -1786,7 +1809,7 @@ private:
             auto handle = DCHECK_NOTNULL(value->type().model()->FindMemberOrNull(parts[i]->ToSlice()));
             records.push(value);
             value = EmitLoadField(value, handle, root_ss.Position());
-            assert(value->type().kind() == Type::kValue || value->type().kind() == Type::kReference);
+            DCHECK(value->type().kind() == Type::kValue || value->type().kind() == Type::kReference);
         } {
             auto handle = DCHECK_NOTNULL(value->type().model()->FindMemberOrNull(parts.back()->ToSlice()));
             value = EmitStoreField(value, rval, handle, root_ss.Position());
@@ -1801,7 +1824,7 @@ private:
         if (auto id = node->AsIdentifier()) {
             SourcePositionTable::Scope ss(id->source_position(), &root_ss);
             auto symbol = location_->FindSymbol(id->name()->ToSlice());
-            assert(symbol.IsFound());
+            DCHECK(symbol.IsFound());
             if (symbol.owns->IsFileUnitScope()) { // is global?
                 b()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(), value);
             } else {
@@ -1873,7 +1896,7 @@ private:
             // TODO:
             UNREACHABLE();
         }
-        assert(args.size() == proto->params_size());
+        DCHECK(args.size() == proto->params_size());
         for (size_t i = 0; i < proto->params_size(); i++) {
             args[i] = EmitCastingIfNeeded(proto->param(i), args[i], source_position);
         }
@@ -1902,10 +1925,10 @@ private:
         if (value->type().IsReference()) {
             op = ops()->LoadEffectField(handle);
         } else if (value->type().IsPointer()) {
-            assert(value->type().kind() == Type::kValue);
+            DCHECK(value->type().kind() == Type::kValue);
             op = ops()->LoadAccessField(handle);
         } else {
-            assert(value->type().kind() == Type::kValue);
+            DCHECK(value->type().kind() == Type::kValue);
             op = ops()->LoadInlineField(handle);
         }
         auto field = std::get<const Model::Field *>(handle->owns()->GetMember(handle));
@@ -1917,10 +1940,10 @@ private:
         if (value->type().IsReference()) {
             op = ops()->StoreEffectField(handle);
         } else if (value->type().IsPointer()) {
-            assert(value->type().kind() == Type::kValue);
+            DCHECK(value->type().kind() == Type::kValue);
             op = ops()->StoreAccessField(handle);
         } else {
-            assert(value->type().kind() == Type::kValue);
+            DCHECK(value->type().kind() == Type::kValue);
             op = ops()->StoreInlineField(handle);
         }
         auto type = handle->owns()->constraint() == Model::kRef
@@ -1957,7 +1980,7 @@ private:
             fun->mutable_paramaters()->push_back(arg);
         }
         for (auto param : ast->prototype()->params()) {
-            assert(!cpl::Type::Is(param));
+            DCHECK(!cpl::Type::Is(param));
             auto item = static_cast<cpl::VariableDeclaration::Item *>(param);
             
             auto type = BuildType(item->type());
@@ -2008,7 +2031,7 @@ private:
     void EmitLessOrLessEquals(Value *lhs, Value *rhs, bool is_close, BasicBlock *if_true, BasicBlock *if_false,
                               cpl::Node *ast) {
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
-        assert(lhs->type().Equals(rhs->type()));
+        DCHECK(lhs->type().Equals(rhs->type()));
         Operator *op = nullptr;
         if (lhs->type().IsFloating()) {
             op = ops()->FCmp(is_close ? FCondition::ule : FCondition::ult);
@@ -2028,7 +2051,7 @@ private:
     void EmitGreaterOrGreaterEquals(Value *lhs, Value *rhs, bool is_close, BasicBlock *if_true, BasicBlock *if_false,
                                     cpl::Node *ast) {
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
-        assert(lhs->type().Equals(rhs->type()));
+        DCHECK(lhs->type().Equals(rhs->type()));
         Operator *op = nullptr;
         if (lhs->type().IsFloating()) {
             op = ops()->FCmp(is_close ? FCondition::uge : FCondition::ugt);
@@ -2048,7 +2071,7 @@ private:
     void EmitEquals(Value *lhs, Value *rhs, BasicBlock *if_true, BasicBlock *if_false,
                     cpl::AstNode *ast) {
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
-        assert(lhs->type().Equals(rhs->type()));
+        DCHECK(lhs->type().Equals(rhs->type()));
         
         Value *cond = nullptr;
         if (lhs->type().IsFloating()) {
@@ -2072,7 +2095,7 @@ private:
         if (ReduceReturningOnlyOne(ast->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(ast->rhs(), &rhs) < 0) {
             return -1;
         }
-        assert(lhs->type().kind() == rhs->type().kind());
+        DCHECK(lhs->type().kind() == rhs->type().kind());
         
         SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(ast));
         if (lhs->type().kind() == Type::kString) {
@@ -2160,7 +2183,7 @@ private:
         if (fail() || nrets < 0) {
             return -1;
         }
-        assert(nrets == 1);
+        DCHECK(nrets == 1);
         *receiver = results_.top();
         int i = nrets - 1;
         while (i--) { results_.pop(); }
@@ -2210,7 +2233,7 @@ private:
     
     Value *Nil(const Type &type) {
         auto op = ops()->NilConstant();
-        assert(type.IsReference());
+        DCHECK(type.IsReference());
         return Value::New(arena(), SourcePosition::Unknown(), type, op);
     }
     
@@ -2350,7 +2373,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
     full_name.append(":").append(pkg->name()->ToString());
     
     auto iter = modules_.find(full_name);
-    assert(iter != modules_.end());
+    DCHECK(iter != modules_.end());
     auto module = iter->second;
     if (Track(module, 1/*dest*/)) {
         return;
@@ -2481,7 +2504,7 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
         case cpl::Type::kType_option: {
             auto ast_ty = type->AsOptionType();
             auto element_ty = BuildType(ast_ty->element_type());
-            assert(element_ty.IsReference() || element_ty.kind() == Type::kValue);
+            DCHECK(element_ty.IsReference() || element_ty.kind() == Type::kValue);
             return Type::Ref(Boxing(element_ty), true/*nullable*/);
         } break;
         case cpl::Type::kType_channel:
@@ -2529,7 +2552,7 @@ PrototypeModel *IntermediateRepresentationGenerator::BuildPrototype(const cpl::F
         if (owns->declaration() == Model::kClass) {
             params.push_back(Type::Ref(owns));
         } else {
-            assert(owns->declaration() == Model::kStruct);
+            DCHECK(owns->declaration() == Model::kStruct);
             params.push_back(Type::Val(owns, true/*is_pointer*/));
         }
     }

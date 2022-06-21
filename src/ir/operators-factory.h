@@ -16,6 +16,7 @@ class Handle;
 class Function;
 class StructureModel;
 class InterfaceModel;
+class ArrayModel;
 class Model;
 
 
@@ -66,6 +67,11 @@ public:
         return new (arena_) OperatorWith<const StructureModel *>(Operator::kStackAlloc, 0, 0/*value_in*/,
                                                                  0/*control_in*/, 1/*value_out*/, 0/*control_out*/,
                                                                  model);
+    }
+    
+    Operator *ArrayAlloc(const ArrayModel *model, int value_in) {
+        return new (arena_) OperatorWith<const ArrayModel *>(Operator::kArrayAlloc, 0, value_in, 0/*control_in*/,
+                                                             1/*value_out*/, 0/*control_out*/, model);
     }
     
     Operator *GlobalValue(const String *symbol) {
