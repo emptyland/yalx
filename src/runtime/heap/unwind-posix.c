@@ -44,12 +44,12 @@ struct backtrace_frame **yalx_unwind(size_t *depth, int dummy) {
         char name[256];
         if (unw_get_proc_name(&cursor, name, arraysize(name), &offset) == 0) {
             size_t n = yalx_symbol_demangle_on_place(name, strlen(name));
-            frame->function = yalx_new_string(&heap, name, n);
+            put_field(&frame->function, yalx_new_string(&heap, name, n));
         } else {
-            frame->function = yalx_new_string(&heap, "<unknown>", 9);
+            put_field(&frame->function, yalx_new_string(&heap, "<unknown>", 9));
         }
         frame->line = 0;
-        frame->file = yalx_new_string(&heap, "<unknown>", 9);
+        put_field(&frame->file, yalx_new_string(&heap, "<unknown>", 9));
 
         if (size + 1 > capacity) {
             capacity <<= 1;

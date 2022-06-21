@@ -565,9 +565,9 @@ void RegisterSavingScope::Exit() {
             should_persistent = persistent_.find(reg->register_id()) != persistent_.end();
         }
         if (should_persistent || allocator_->WillBeLive(bak.val, position_ + 1)) {
-            //auto opd = allocator_->Allocate(DCHECK_NOTNULL(bak.val)->type());
-            moving_delegate_->MoveTo(bak.old, bak.current, bak.val->type());
-            allocator_->Associate(bak.val, bak.old);
+            auto opd = allocator_->Allocate(DCHECK_NOTNULL(bak.val)->type());
+            moving_delegate_->MoveTo(opd, bak.current, bak.val->type());
+            allocator_->Associate(bak.val, opd);
         }
         
 //        auto opd = allocator_->Allocate(DCHECK_NOTNULL(bak.val)->type());
