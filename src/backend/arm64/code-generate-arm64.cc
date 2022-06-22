@@ -440,6 +440,7 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             break;
             
         case Arm64Mov:
+        case Arm64Mov32:
             printer()->Write("mov ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
@@ -624,10 +625,20 @@ void Arm64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *oper
         case InstructionOperand::kReloaction: {
             auto opd = operand->AsReloaction();
             if (opd->label()) {
-                printer()->Print("Lblk%d", opd->label()->label());
+                if (opd->offset() == 0) {
+                    printer()->Print("Lblk%d", opd->label()->label());
+                } else {
+                    printer()->Print("Lblk%d%s%d", opd->label()->label(), opd->offset() < 0 ? "-" : "+",
+                                     std::abs(opd->offset()));
+                }
             } else {
-                assert(opd->symbol_name() != nullptr);
-                printer()->Print("%s", opd->symbol_name()->data());
+                DCHECK(opd->symbol_name() != nullptr);
+                if (opd->offset() == 0) {
+                    printer()->Print("%s", opd->symbol_name()->data());
+                } else {
+                    printer()->Print("%s%s%d", opd->symbol_name()->data(), opd->offset() < 0 ? "-" : "+",
+                                     std::abs(opd->offset()));
+                }
                 switch (style) {
                     case kDefault:
                         break;

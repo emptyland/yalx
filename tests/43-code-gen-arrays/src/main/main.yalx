@@ -1,0 +1,5 @@
+package main
+
+import "issue04"
+
+fun main() {}

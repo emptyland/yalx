@@ -8,6 +8,8 @@ namespace backend {
 DECLARE_STATIC_STRING(kLibc_memcpy, "_memcpy");
 DECLARE_STATIC_STRING(kLibc_memset, "_memset");
 
+DECLARE_STATIC_STRING(kRt_builtin_classes, "_builtin_classes");
+
 DECLARE_STATIC_STRING(kRt_pkg_init_once, "_pkg_init_once");
 DECLARE_STATIC_STRING(kRt_reserve_handle_returning_vals, "_reserve_handle_returning_vals");
 DECLARE_STATIC_STRING(kRt_current_root, "_current_root");
@@ -19,6 +21,7 @@ DECLARE_STATIC_STRING(kRt_is_instance_of, "_is_instance_of");
 DECLARE_STATIC_STRING(kRt_ref_asserted_to, "_ref_asserted_to");
 DECLARE_STATIC_STRING(kRt_put_field, "_put_field");
 DECLARE_STATIC_STRING(kRt_lazy_load_object, "_lazy_load_object");
+DECLARE_STATIC_STRING(kRt_array_alloc, "_array_alloc");
 
 LinkageSymbols::LinkageSymbols(base::Arena *arena)
 : arena_(arena)

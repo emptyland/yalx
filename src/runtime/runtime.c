@@ -7,6 +7,7 @@
 #include "runtime/object/yalx-string.h"
 #include "runtime/object/number.h"
 #include "runtime/object/throwable.h"
+#include "runtime/object/arrays.h"
 #include "runtime/object/type.h"
 #include <unistd.h>
 #if defined(YALX_OS_DARWIN)
@@ -753,6 +754,37 @@ struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz) {
         return NULL; // TODO: throw Exception
     }
     return result.object;
+}
+
+struct yalx_value_array_header *array_alloc(const struct yalx_class *const element_ty, void *const elements,
+                                            int nitems) {
+    DCHECK(element_ty != NULL);
+    DCHECK(elements != NULL);
+    DCHECK(nitems >= 0);
+
+    enum yalx_builtin_type maybe_builtin_ty = yalx_builtin_type(element_ty);
+    switch (maybe_builtin_ty) {
+        case Type_any:
+        case Type_string:
+            return yalx_new_refs_array(&heap, element_ty, (yalx_ref_t *)elements, nitems);
+            
+        case Type_refs_array:
+        case Type_dims_array:
+        case Type_typed_array:
+            return yalx_new_dims_array(&heap, element_ty, elements, nitems);
+            
+        case NOT_BUILTIN_TYPE: // It's user definition types
+            break;
+            
+        default:
+            DCHECK(element_ty->constraint == K_PRIMITIVE);
+            return yalx_new_typed_array(&heap, element_ty, elements, nitems);
+    }
+    if (element_ty->constraint == K_CLASS) {
+        return yalx_new_refs_array(&heap, element_ty, (yalx_ref_t *)elements, nitems);
+    }
+    DCHECK(element_ty->constraint == K_STRUCT);
+    return yalx_new_typed_array(&heap, element_ty, elements, nitems);
 }
 
 struct coroutine *current_root() { return CURRENT_COROUTINE; }

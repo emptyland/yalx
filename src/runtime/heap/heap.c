@@ -361,3 +361,31 @@ void post_write_barrier_batch(struct heap *heap, struct yalx_value_any **fields,
         }
     }
 }
+
+static inline lxr_init_write_barrier(struct lxr_fields_logger *log, struct yalx_value_any **field) {
+    if (lxr_attempt_to_log(log, (void *)field)) {
+        lxr_log_queue_push(&log->modification, (void *)field);
+    }
+}
+
+void init_write_barrier(struct heap *heap, struct yalx_value_any **field) {
+    DCHECK(field != NULL);
+    if (heap->gc == GC_LXR) {
+        if (!lxr_has_logged(&heap->lxr_log, (void *)field)) {
+            lxr_init_write_barrier(&heap->lxr_log, field);
+        }
+    }
+}
+
+void init_write_barrier_batch(struct heap *heap, struct yalx_value_any **fields, size_t nitems) {
+    DCHECK(fields != NULL);
+    
+    if (heap->gc == GC_LXR) {
+        for (size_t i = 0; i < nitems; i++) {
+            void *field = (void *)(fields + i);
+            if (!lxr_has_logged(&heap->lxr_log, field)) {
+                lxr_init_write_barrier(&heap->lxr_log, field);
+            }
+        }
+    }
+}

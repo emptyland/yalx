@@ -25,6 +25,8 @@ val a4 = string[][][]{{{"hello"}}}
 
 val a5 = {foo.Foo(1,2), foo.Foo(2,3)}
 
+val a6 = int[11](0)
+
 fun main() {
 
 }

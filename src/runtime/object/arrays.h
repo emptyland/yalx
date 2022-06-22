@@ -31,6 +31,7 @@ struct yalx_value_dims_array {
     YALX_VALUE_HEADER;
     u32_t len;
     u32_t dims;
+    const struct yalx_class *item;
     yalx_ref_t arrays[0];
 }; // struct yalx_value_dims_array
 
@@ -41,6 +42,12 @@ struct yalx_value_array_header {
 
 struct yalx_value_refs_array *yalx_new_refs_array(struct heap *heap, const struct yalx_class *item, yalx_ref_t *data,
                                                   size_t nitems);
+
+struct yalx_value_dims_array *yalx_new_dims_array(struct heap *heap, const struct yalx_class *item, yalx_ref_t *data,
+                                                  size_t nitems);
+
+struct yalx_value_typed_array *yalx_new_typed_array(struct heap *heap, const struct yalx_class *item, const void *data,
+                                                    size_t nitems);
 
 struct yalx_value_array_header *yalx_cast_to_array_if_possibly(yalx_ref_t obj);
 

@@ -227,6 +227,9 @@ void *reserve_handle_returning_vals(u32_t size);
 
 struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz);
 
+struct yalx_value_array_header *array_alloc(const struct yalx_class *const element_ty, void *const elements,
+                                            int nitems);
+
 struct coroutine *current_root();
 
 void throw_it(struct yalx_value_any *exception);

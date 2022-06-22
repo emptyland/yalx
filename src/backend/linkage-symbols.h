@@ -43,6 +43,8 @@ private:
 extern const String *const kLibc_memcpy;
 extern const String *const kLibc_memset;
 
+extern const String *const kRt_builtin_classes;
+
 extern const String *const kRt_pkg_init_once;
 extern const String *const kRt_reserve_handle_returning_vals;
 extern const String *const kRt_current_root;
@@ -54,6 +56,7 @@ extern const String *const kRt_is_instance_of;
 extern const String *const kRt_ref_asserted_to;
 extern const String *const kRt_put_field;
 extern const String *const kRt_lazy_load_object;
+extern const String *const kRt_array_alloc;
 
 } // namespace backend
 } // namespace yalx

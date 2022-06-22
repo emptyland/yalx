@@ -12,7 +12,7 @@
 
 struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {    
     [Type_bool] = {
-        .id = 1,
+        .id = (uint64_t)Type_bool,
         .constraint = K_PRIMITIVE,
         .reference_size = sizeof(char),
         .instance_size = sizeof(char),
@@ -31,7 +31,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
     }, // bool
     
     [Type_i8] = {
-        .id = 2,
+        .id = (uint64_t)Type_i8,
         .constraint = K_PRIMITIVE,
         .reference_size = sizeof(i8_t),
         .instance_size = sizeof(i8_t),
@@ -50,7 +50,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
     }, // i8
     
     [Type_u8] = {
-        .id = 2,
+        .id = (uint64_t)Type_u8,
         .constraint = K_PRIMITIVE,
         .reference_size = sizeof(u8_t),
         .instance_size = sizeof(u8_t),
@@ -67,6 +67,82 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .n_vtab = 0,
         // TODO:
     }, // u8
+    
+    [Type_i16] = {
+        .id = (uint64_t)Type_i16,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(i16_t),
+        .instance_size = sizeof(i16_t),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("i16"),
+        .location = YALX_STR("i16"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL,  // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // i16
+    
+    [Type_u16] = {
+        .id = (uint64_t)Type_u16,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(u16_t),
+        .instance_size = sizeof(u16_t),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("u16"),
+        .location = YALX_STR("u16"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL,  // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // u16
+    
+    [Type_i32] = {
+        .id = (uint64_t)Type_i32,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(i32_t),
+        .instance_size = sizeof(i32_t),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("i32"),
+        .location = YALX_STR("i32"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL,  // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // i32
+    
+    [Type_u32] = {
+        .id = (uint64_t)Type_u32,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(u32_t),
+        .instance_size = sizeof(u32_t),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("u32"),
+        .location = YALX_STR("u32"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL,  // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // u32
     
     //------------------------------------------------------------------------------------------------------------------
     // Boxing types:

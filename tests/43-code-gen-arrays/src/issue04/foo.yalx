@@ -1,0 +1,10 @@
+package issue04
+
+@yalx.Compiler(nativeHandle=true)
+fun issue1() -> int[]{1,2,3,4}
+
+@yalx.Compiler(nativeHandle=true)
+fun issue2() -> string[]{"hello", "world", "!"}
+
+@yalx.Compiler(nativeHandle=true)
+fun issue3() -> int[][]{{1,2},{3,4},{5,6}}

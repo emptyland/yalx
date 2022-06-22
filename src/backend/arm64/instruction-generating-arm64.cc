@@ -1030,6 +1030,44 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             Move(opd, x0, instr->type());
         } break;
             
+        case ir::Operator::kArrayAlloc: {
+            auto array_ty = ir::OperatorWith<const ir::ArrayModel *>::Data(instr->op());
+            std::vector<InstructionOperand *> elements;
+            for (int i = 0; i < instr->op()->value_in(); i++) {
+                elements.push_back(Allocate(instr->InputValue(i), kAny));
+            }
+            auto base_line = operands_.slots()->stack_size();
+            std::vector<LocationOperand *> slots;
+            for (int i = instr->op()->value_in() - 1; i >= 0; i--) {
+                auto element = elements[i];
+                auto slot = operands_.AllocateStackSlot(instr->InputValue(i)->type(), 0, StackSlotAllocator::kLinear);
+                Move(slot, element, instr->InputValue(i)->type());
+                slots.push_back(slot);
+            }
+            auto top_line = operands_.slots()->stack_size();
+            
+            RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+            saving_scope.SaveAll();
+            
+            auto x0 = new (arena_) RegisterOperand(arm64::x0.code(), MachineRepresentation::kWord64);
+            Move(x0, bundle()->AddArrayElementClassSymbol(array_ty, true/*fetch_address*/), ir::Types::Word64);
+            auto x1 = new (arena_) RegisterOperand(arm64::x1.code(), MachineRepresentation::kWord64);
+            
+            auto fp = operands_.registers()->frame_pointer();
+            current()->NewIO(Arm64Sub, x1, fp, ImmediateOperand::Word32(arena_, top_line));
+            auto x2 = new (arena_) RegisterOperand(arm64::x2.code(), MachineRepresentation::kWord32);
+            current()->NewIO(Arm64Mov32, x2, ImmediateOperand::Word32(arena_, instr->op()->value_in()));
+
+            current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_alloc));
+
+            for (auto slot : slots) {
+                slot->Grab();
+                operands_.Free(slot);
+            }
+            auto opd = Allocate(instr, kMoR);
+            Move(opd, x0, instr->type());
+        } break;
+            
         case ir::Operator::kClosure: {
             // TODO:
             UNREACHABLE();

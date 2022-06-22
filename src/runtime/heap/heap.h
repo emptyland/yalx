@@ -125,6 +125,10 @@ void post_write_barrier(struct heap *heap, struct yalx_value_any **field, struct
 void post_write_barrier_batch(struct heap *heap, struct yalx_value_any **field, struct yalx_value_any **mutators,
                               size_t nitems);
 
+void init_write_barrier(struct heap *heap, struct yalx_value_any **field);
+
+void init_write_barrier_batch(struct heap *heap, struct yalx_value_any **field, size_t nitems);
+
 #define yalx_bool_value(b) (heap.fast_boxing_numbers.bool_values[(b) ? 1 : 0])
 #define yalx_true_value() (heap.fast_boxing_numbers.bool_values[1])
 #define yalx_false_value() (heap.fast_boxing_numbers.bool_values[0])

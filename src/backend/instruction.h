@@ -9,6 +9,9 @@
 #include "base/base.h"
 
 namespace yalx {
+namespace ir {
+class ArrayModel;
+} // namespace ir
 namespace base {
 class ArenaString;
 } // namespace base
@@ -186,6 +189,14 @@ public:
     , fetch_address_(fetch_address)
     {}
     
+    ReloactionOperand(const String *symbol_name, int offset = 0, bool fetch_address = false)
+    : InstructionOperand(kReloaction)
+    , label_(nullptr)
+    , symbol_name_(symbol_name)
+    , offset_(offset)
+    , fetch_address_(fetch_address)
+    {}
+    
     ReloactionOperand *OffsetOf(base::Arena *arena, int offset) const;
     
     DEF_PTR_GETTER(const String, symbol_name);
@@ -321,7 +332,23 @@ public:
         external_symbols_[ass->ToSlice()] = rel;
         return rel;
     }
+    
+    ReloactionOperand *AddArrayElementClassSymbol(const ir::ArrayModel *ar, bool fetch_address = false);
+    
+    ReloactionOperand *AddClassSymbol(const ir::Type &ty, bool fetch_address = false);
 private:
+    ReloactionOperand *FindExternalSymbolOrNull(const std::string_view symbol) const {
+        if (auto iter = external_symbols_.find(symbol); iter != external_symbols_.end()) {
+            return iter->second;
+        }
+        return nullptr;
+    }
+    
+    ReloactionOperand *InsertExternalSymbol(const std::string_view symbol, ReloactionOperand *rel) {
+        external_symbols_[symbol] = rel;
+        return rel;
+    }
+    
     const String *const symbol_;
     base::Arena *const arena_;
     InstructionFunction *native_handle_ = nullptr;

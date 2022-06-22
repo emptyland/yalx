@@ -8,6 +8,7 @@
 #include "ir/node.h"
 #include "base/io.h"
 #include "runtime/object/yalx-string.h"
+#include "runtime/object/arrays.h"
 #include "runtime/object/type.h"
 #include "runtime/heap/heap.h"
 #include "runtime/process.h"
@@ -104,7 +105,18 @@ TEST_F(Arm64CodeGeneratorTest, GlobalVars) {
     
 }
 
-#ifdef YALX_ARCH_ARM64
+TEST_F(Arm64CodeGeneratorTest, ArrayInitAndAlloc) {
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    CodeGen("tests/43-code-gen-arrays", "issue04:issue04", &printer, &ok);
+    ASSERT_TRUE(ok);
+    printf("%s\n", buf.c_str());
+    
+}
+
+// #ifdef YALX_ARCH_ARM64
 
 TEST_F(Arm64CodeGeneratorTest, ReturningVals) {
     int buf[4] = {0};
@@ -184,7 +196,77 @@ TEST_F(Arm64CodeGeneratorTest, GlobalInit03) {
     yalx_exit_returning_scope(&state);
 }
 
-#endif // YALX_ARCH_ARM64
+TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
+    pkg_init_once(reinterpret_cast<void *>(&issue04_Zoissue04_Zd_Z4init), "issue04:issue04");
+    
+    yalx_returning_vals state;
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue04_Zoissue04_Zdissue1_had();
+
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto ref = vals[1];
+        ASSERT_NE(nullptr, ref);
+        auto klass = CLASS(ref);
+        ASSERT_NE(nullptr, klass);
+        ASSERT_STREQ("TypedArray", klass->name.z);
+        
+        auto ar = reinterpret_cast<yalx_value_typed_array *>(ref);
+        ASSERT_EQ(&builtin_classes[Type_i32], ar->item);
+        ASSERT_EQ(4, ar->len);
+        auto elements = reinterpret_cast<const int *>(ar->data);
+        EXPECT_EQ(1, elements[0]);
+        EXPECT_EQ(2, elements[1]);
+        EXPECT_EQ(3, elements[2]);
+        EXPECT_EQ(4, elements[3]);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue04_Zoissue04_Zdissue2_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto ref = vals[1];
+        ASSERT_NE(nullptr, ref);
+        auto klass = CLASS(ref);
+        ASSERT_NE(nullptr, klass);
+        ASSERT_STREQ("RefsArray", klass->name.z);
+        
+        auto ar = reinterpret_cast<yalx_value_refs_array *>(ref);
+        ASSERT_STREQ("String", ar->item->name.z);
+        ASSERT_EQ(3, ar->len);
+        auto elements = reinterpret_cast<yalx_value_str **>(ar->data);
+        EXPECT_STREQ("hello", elements[0]->bytes);
+        EXPECT_STREQ("world", elements[1]->bytes);
+        EXPECT_STREQ("!", elements[2]->bytes);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue04_Zoissue04_Zdissue3_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto ref = vals[1];
+        ASSERT_NE(nullptr, ref);
+        auto klass = CLASS(ref);
+        ASSERT_NE(nullptr, klass);
+        ASSERT_STREQ("DimsArray", klass->name.z);
+        
+        auto ar = reinterpret_cast<yalx_value_dims_array *>(ref);
+        ASSERT_STREQ("TypedArray", ar->item->name.z);
+        ASSERT_EQ(3, ar->len);
+        auto elements = reinterpret_cast<yalx_value_typed_array **>(ar->arrays);
+    }
+    yalx_exit_returning_scope(&state);
+}
+
+//#endif // YALX_ARCH_ARM64
 
 } // namespace backend
 } // namespace yalx
