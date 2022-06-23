@@ -74,6 +74,11 @@ public:
                                                              1/*value_out*/, 0/*control_out*/, model);
     }
     
+    Operator *ArrayFill(const ArrayModel *model) {
+        return new (arena_) OperatorWith<const ArrayModel *>(Operator::kArrayFill, 0, 2/*value_in*/, 0/*control_in*/,
+                                                             1/*value_out*/, 0/*control_out*/, model);
+    }
+
     Operator *GlobalValue(const String *symbol) {
         return new (arena_) OperatorWith<const String *>(Operator::kGlobalValue, 0, 0/*value_in*/, 0/*control_in*/,
                                                          0/*value_out*/, 0/*control_out*/, symbol);

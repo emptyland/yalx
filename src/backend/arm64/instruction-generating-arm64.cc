@@ -198,6 +198,7 @@ private:
     void Select(ir::Value *instr);
     
     void PutField(ir::Value *instr);
+    void ArrayFill(ir::Value *instr);
     void CallDirectly(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
     void PassArguments(InstructionOperand *exclude, ir::Value *instr, RegisterSavingScope *saving_scope);
@@ -1068,6 +1069,10 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             Move(opd, x0, instr->type());
         } break;
             
+        case ir::Operator::kArrayFill:
+            ArrayFill(instr);
+            break;
+            
         case ir::Operator::kClosure: {
             // TODO:
             UNREACHABLE();
@@ -1316,6 +1321,102 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
     }
 
     operands_.Associate(instr, opd);
+}
+
+void Arm64FunctionInstructionSelector::ArrayFill(ir::Value *instr) {
+    auto array_ty = ir::OperatorWith<const ir::ArrayModel *>::Data(instr->op());
+    
+    Allocate(instr->InputValue(0), kAny);
+    Allocate(instr->InputValue(1), kAny);
+                
+    RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+    saving_scope.SaveAll();
+    
+    auto a0 = operands_.AllocateReigster(ir::Types::Word64, arm64::x0.code());
+    RegisterOperand *a1 = nullptr;
+    if (array_ty->dimension_count() > 1) {
+        a1 = operands_.AllocateReigster(ir::Types::Word64, arm64::x1.code());
+    } else if (array_ty->element_type().kind() == ir::Type::kFloat32) {
+        a1 = operands_.AllocateReigster(ir::Types::Float32, arm64::s0.code());
+    } else if (array_ty->element_type().kind() == ir::Type::kFloat64) {
+        a1 = operands_.AllocateReigster(ir::Types::Float64, arm64::d0.code());
+    } else if (array_ty->element_type().IsNumber()) {
+        if (array_ty->element_type().ReferenceSizeInBytes() <= 4) {
+            a1 = operands_.AllocateReigster(ir::Types::Word32, arm64::x1.code());
+        } else {
+            a1 = operands_.AllocateReigster(ir::Types::Word64, arm64::x1.code());
+        }
+    } else {
+        a1 = operands_.AllocateReigster(ir::Types::Word64, arm64::x1.code());
+    }
+    auto a2 = operands_.AllocateReigster(ir::Types::Word32, arm64::x2.code());
+    
+    auto capacity = Allocate(instr->InputValue(0), kAny);
+    auto filling = Allocate(instr->InputValue(1), kAny);
+
+    Move(a0, bundle()->AddArrayElementClassSymbol(array_ty, true/*fetch_address*/), ir::Types::Word64);
+    Move(a2, capacity, instr->InputValue(0)->type());
+    
+    if (array_ty->dimension_count() > 1) {
+        Move(a1, filling, instr->InputValue(1)->type());
+        current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_fill_dims));
+    } else {
+        switch (array_ty->element_type().kind()) {
+            case ir::Type::kInt8:
+            case ir::Type::kUInt8:
+            case ir::Type::kWord8:
+                Move(a1, filling, instr->InputValue(1)->type());
+                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_fill_w8));
+                break;
+            case ir::Type::kInt16:
+            case ir::Type::kUInt16:
+            case ir::Type::kWord16:
+                Move(a1, filling, instr->InputValue(1)->type());
+                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_fill_w16));
+                break;
+            case ir::Type::kInt32:
+            case ir::Type::kUInt32:
+            case ir::Type::kWord32:
+                Move(a1, filling, instr->InputValue(1)->type());
+                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_fill_w32));
+                break;
+            case ir::Type::kInt64:
+            case ir::Type::kUInt64:
+            case ir::Type::kWord64:
+                Move(a1, filling, instr->InputValue(1)->type());
+                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_fill_w64));
+                break;
+            case ir::Type::kFloat32:
+                Move(a1, filling, instr->InputValue(1)->type());
+                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_fill_f32));
+                break;
+            case ir::Type::kFloat64:
+                Move(a1, filling, instr->InputValue(1)->type());
+                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_fill_f64));
+                break;
+            case ir::Type::kString:
+            case ir::Type::kReference:
+                Move(a1, filling, instr->InputValue(1)->type());
+                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_fill_refs));
+                break;
+            case ir::Type::kValue:
+                UNREACHABLE();
+                break;
+                
+            default:
+                UNREACHABLE();
+                break;
+        }
+    }
+
+    auto opd = Allocate(instr, kMoR);
+    Move(opd, a0, instr->type());
+    a0->Grab();
+    a1->Grab();
+    a2->Grab();
+    operands_.Free(a0);
+    operands_.Free(a1);
+    operands_.Free(a2);
 }
 
 void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {

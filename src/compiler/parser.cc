@@ -1213,6 +1213,29 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                 expr = new (arena_) Dot(expr, field, dot_location);
             } break;
                 
+            case Token::k2Colon: { // ::
+                MoveNext();
+                if (auto ns = expr->AsIdentifier()) {
+                    if (Peek().Is(Token::kIdentifier)) {
+                        auto id = Peek().text_val();
+                        MoveNext();
+                        if (Peek().Is(Token::kLParen)) {
+                            expr = new (arena_) Dot(expr, id, expr->source_position().Concat(location));
+                            break;
+                        }
+                        auto ty = ParseArrayTypeMaybeWithLimits(ns, id, CHECK_OK);
+                        return ParseArrayInitializer(ty, ty->dimension_count(), CHECK_OK);
+                    } else if (Peek().Is(Token::kClass)) {
+                        // TODO:
+                        UNREACHABLE();
+                    }
+                }
+                
+                error_feedback_->Printf(Peek().source_position(), "Unexpected `class` or identifier for `::', expected: %s",
+                                        Peek().ToString().c_str());
+                *ok = false;
+            } return nullptr;
+                
             case Token::kLBrack: { // [
                 MoveNext();
                 Expression *index = ParseExpression(CHECK_OK);
@@ -1724,7 +1747,7 @@ bool Parser::ProbeAtomType(bool *ok) {
             break;
         case Token::kIdentifier: {
             ProbeNext();
-            if (Probe(Token::kDot)) {
+            if (Probe(Token::kDot) || Probe(Token::k2Colon)) {
                 Probe(Token::kIdentifier, CHECK_OK);
             }
             if (Probe(Token::kLess)) {
@@ -1875,8 +1898,26 @@ Type *Parser::ParseType(bool *ok) {
 }
 
 ArrayType *Parser::ParseArrayTypeMaybeWithLimits(bool *ok) {
+    return ParseArrayTypeMaybeWithLimits(nullptr, nullptr, ok);
+}
+
+ArrayType *Parser::ParseArrayTypeMaybeWithLimits(const Identifier *ns, const String *id, bool *ok) {
     auto location = Peek().source_position();
-    Type *type = ParseAtomType(CHECK_OK);
+    
+    Type *type = nullptr;
+    if (ns && id) {
+        auto symbol = new (arena_) Symbol(ns->name(), id, ns->source_position().Concat(location));
+        type = new (arena_) Type(arena_, symbol, location);
+        if (Test(Token::kLess)) {
+            do {
+                auto arg = ParseType(CHECK_OK);
+                type->mutable_generic_args()->push_back(arg);
+            } while (Test(Token::kComma));
+            Match(Token::kGreater, CHECK_OK);
+        }
+    } else {
+        type = ParseAtomType(CHECK_OK);
+    }
     
     while (Test(Token::kQuestion)) {
         type = new (arena_) OptionType(arena_, type, location);
@@ -2113,11 +2154,11 @@ Identifier *Parser::ParseIdentifier(bool *ok) {
     return new (arena_) Identifier(name, location);
 }
 
-// symbol ::= identifier | identifier `.' identifier
+// symbol ::= identifier | identifier `.' identifier | identifier `::' identifier
 Symbol *Parser::ParseSymbol(bool *ok) {
     auto location = Peek().source_position();
     auto prefix_or_name = MatchText(Token::kIdentifier, CHECK_OK);
-    if (Test(Token::kDot)) {
+    if (Test(Token::kDot) || Test(Token::k2Colon)) {
         auto name = MatchText(Token::kIdentifier, CHECK_OK);
         return new (arena_) Symbol(prefix_or_name, name, ConcatNow(location));
     }

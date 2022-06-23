@@ -205,6 +205,7 @@ Token Lexer::Next() {
                 ch = MoveNext();
                 if (ch == ':') {
                     loc.SetEnd(line_, column_);
+                    MoveNext();
                     return Token(Token::k2Colon, loc);
                 } else {
                     return Token(Token::kColon, SourcePosition{loc.begin_line(), loc.begin_column()});

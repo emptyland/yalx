@@ -31,6 +31,7 @@ namespace ir {
     V(HeapAlloc) \
     V(StackAlloc) \
     V(ArrayAlloc) \
+    V(ArrayFill) \
     V(Closure) \
     V(Unreachable) \
     V(Unwind) \
@@ -133,6 +134,7 @@ namespace ir {
     V(HeapAlloc,        Model const *) \
     V(StackAlloc,       Model const *) \
     V(ArrayAlloc,       Model const *) \
+    V(ArrayFill,        Model const *) \
     V(IsInstanceOf,     Model const *) \
     V(GlobalValue,      String const *) \
     V(LazyValue,        String const *) \

@@ -1468,7 +1468,8 @@ private:
             return Returning(node->type());
         }
 
-        auto ar = DCHECK_NOTNULL(node->type()->AsArrayType());
+        auto ar = DCHECK_NOTNULL(LinkType(node->type())->AsArrayType());
+        node->set_type(ar);
         if (ar->HasCapacities()) {
             DCHECK(node->filling_value());
             Type *filling = nullptr;
@@ -1478,7 +1479,7 @@ private:
             bool unlinked = false;
             if (!ar->element_type()->Acceptable(filling, &unlinked)) {
                 Feedback()->Printf(node->source_position(), "Unexpected array element type: `%s', filling value is `%s'",
-                                   ar->ToString().c_str(), filling->ToString().c_str());
+                                   ar->element_type()->ToString().c_str(), filling->ToString().c_str());
                 return -1;
             }
             DCHECK(!unlinked);
@@ -2508,6 +2509,9 @@ private:
             case Node::kVariableDeclaration:
                 DCHECK(ast->AsVariableDeclaration()->ItemSize() == 1);
                 return Returning(ast->AsVariableDeclaration()->Type());
+            case Node::kClassDefinition:
+            case Node::kStructDefinition:
+                break;
             default: {
                 if (auto var = down_cast<VariableDeclaration::Item>(ast)) {
                     DCHECK(var->type() != nullptr);

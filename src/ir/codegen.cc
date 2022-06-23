@@ -1299,13 +1299,68 @@ public:
         return Returning(results);
     }
     
+
+//    int EmitArrayFilling(cpl::ArrayType *ar, cpl::Expression *filling_value, int dimension_index, Value **receiver) {
+//        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ar));
+//        if (dimension_index == 0) {
+//            return ReduceReturningOnlyOne(filling_value, receiver);
+//        }
+//        std::vector<Value *> inputs;
+//        DCHECK(dimension_index > 0 && dimension_index < ar->dimension_capacitys_size());
+//        if (dimension_index == ar->dimension_capacitys_size() - 1) {
+//            Value *value = nullptr;
+//            if (ReduceReturningOnlyOne(ar->dimension_capacity(dimension_index), &value) < 0) {
+//                return -1;
+//            }
+//            inputs.push_back(value);
+//
+//            if (ReduceReturningOnlyOne(filling_value, &value) < 0) {
+//                return -1;
+//            }
+//            inputs.push_back(value);
+//
+//            auto ty = BuildType(ar);
+//            auto op = ops()->ArrayFill(down_cast<const ArrayModel>(ty.model()), static_cast<int>(inputs.size()));
+//            auto rv = b()->NewNodeWithValues(nullptr, root_ss.Position(), ty, op, inputs);
+//            *receiver = rv;
+//            return 0;
+//        }
+//    }
+    
+    
     int VisitArrayInitializer(cpl::ArrayInitializer *node) override {
         DCHECK(node->dimension_count() >= 1);
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
         
+        // int[2][3][4](0)
+        // %1 = ArrayFill 4, 0   -> [0, 0, 0, 0]
+        // %2 = ArrayFill 3, %1  -> [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        // %3 = ArrayFill 2, %2  -> [[[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]]
         if (node->filling_value()) {
-            // TODO:
-            UNREACHABLE();
+            std::vector<Value *> inputs;
+            const auto ar = DCHECK_NOTNULL(node->type()->AsArrayType());
+            DCHECK(ar->dimension_count() == ar->dimension_capacitys_size());
+
+            Value *capacity = nullptr, *value = nullptr;
+            if (ReduceReturningOnlyOne(node->filling_value(), &value) < 0) {
+                return -1;
+            }
+            for (int i = ar->dimension_capacitys_size() - 1; i >= 0; i--) {
+                if (ReduceReturningOnlyOne(ar->dimension_capacity(i), &capacity) < 0) {
+                    return -1;
+                }
+                auto dims = ar->dimension_count() - i;
+                Type ty;
+                if (dims == ar->dimension_count()) {
+                    ty = BuildType(ar);
+                } else {
+                    auto tar = new (arena()) cpl::ArrayType(arena(), ar->element_type(), dims, ar->source_position());
+                    ty = BuildType(tar);
+                }
+                auto op = ops()->ArrayFill(down_cast<const ArrayModel>(ty.model()));
+                value = b()->NewNode(root_ss.Position(), ty, op, capacity, value);
+            }
+            return Returning(value);
         } else {
             std::vector<Value *> elements;
             for (auto dim : node->dimensions()) {

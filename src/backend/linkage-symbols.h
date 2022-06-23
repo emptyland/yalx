@@ -57,6 +57,15 @@ extern const String *const kRt_ref_asserted_to;
 extern const String *const kRt_put_field;
 extern const String *const kRt_lazy_load_object;
 extern const String *const kRt_array_alloc;
+extern const String *const kRt_array_fill_w8;
+extern const String *const kRt_array_fill_w16;
+extern const String *const kRt_array_fill_w32;
+extern const String *const kRt_array_fill_w64;
+extern const String *const kRt_array_fill_f32;
+extern const String *const kRt_array_fill_f64;
+extern const String *const kRt_array_fill_chunks;
+extern const String *const kRt_array_fill_refs;
+extern const String *const kRt_array_fill_dims;
 
 } // namespace backend
 } // namespace yalx

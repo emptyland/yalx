@@ -255,6 +255,73 @@ Lblk6:
     add sp, sp, #112
     ret
 .cfi_endproc
+.global _issue04_Zoissue04_Zdissue4
+_issue04_Zoissue04_Zdissue4:
+.cfi_startproc
+Lblk7:
+    sub sp, sp, #48
+    stp fp, lr, [sp, #32]
+    add fp, sp, #32
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    mov w0, #8
+    mov w1, #996
+    stur w0, [fp, #-4]
+    stur w1, [fp, #-8]
+    adrp x19, _builtin_classes+864@PAGE
+    add x0, x19, _builtin_classes+864@PAGEOFF
+    ldur w2, [fp, #-4]
+    ldur w1, [fp, #-8]
+    bl _array_fill_w32
+    mov x3, x0
+    mov w0, #10
+    stur w0, [fp, #-4]
+    stur x3, [fp, #-16]
+    adrp x19, _builtin_classes+3456@PAGE
+    add x0, x19, _builtin_classes+3456@PAGEOFF
+    ldur w2, [fp, #-4]
+    ldur x1, [fp, #-16]
+    bl _array_fill_dims
+    mov x3, x0
+    str x3, [fp, #24]
+    ldp fp, lr, [sp, #32]
+    add sp, sp, #48
+    ret
+.cfi_endproc
+.global _issue04_Zoissue04_Zdissue4_had
+_issue04_Zoissue04_Zdissue4_had:
+.cfi_startproc
+Lblk8:
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stp x19, x20, [sp, #80]
+    stp x21, x22, [sp, #64]
+    stp x23, x24, [sp, #48]
+    stp x25, x26, [sp, #32]
+    stp x27, x28, [sp, #16]
+    add fp, sp, #16
+    bl _current_root
+    mov x26, x0
+    bl _issue04_Zoissue04_Zdissue4
+    mov x0, #16
+    bl _reserve_handle_returning_vals
+    mov x1, sp
+    mov x2, #16
+    bl _memcpy
+    ldp x19, x20, [sp, #80]
+    ldp x21, x22, [sp, #64]
+    ldp x23, x24, [sp, #48]
+    ldp x25, x26, [sp, #32]
+    ldp x27, x28, [sp, #16]
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
+    ret
+.cfi_endproc
 ; CString constants
 .section __TEXT,__cstring,cstring_literals
 Lkzs.0:

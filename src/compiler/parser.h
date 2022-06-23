@@ -71,6 +71,7 @@ public:
     StringTemplate *ParseStringTemplate(bool *ok);
     Type *ParseType(bool *ok);
     ArrayType *ParseArrayTypeMaybeWithLimits(bool *ok);
+    ArrayType *ParseArrayTypeMaybeWithLimits(const Identifier *ns, const String *id, bool *ok);
     Type *ParseAtomType(bool *ok);
 private:
     bool ProbeInstantiation() {

@@ -264,6 +264,28 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         auto elements = reinterpret_cast<yalx_value_typed_array **>(ar->arrays);
     }
     yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue04_Zoissue04_Zdissue4_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto ref = vals[1];
+        ASSERT_NE(nullptr, ref);
+        auto klass = CLASS(ref);
+        ASSERT_NE(nullptr, klass);
+        ASSERT_STREQ("DimsArray", klass->name.z);
+        
+        auto ar = reinterpret_cast<yalx_value_dims_array *>(ref);
+        ASSERT_STREQ("TypedArray", ar->item->name.z);
+        ASSERT_EQ(10, ar->len);
+        auto elements = reinterpret_cast<yalx_value_typed_array **>(ar->arrays);
+        for (int i = 0; i < ar->len; i++) {
+            ASSERT_EQ(8, elements[i]->len);
+        }
+    }
+    yalx_exit_returning_scope(&state);
 }
 
 //#endif // YALX_ARCH_ARM64

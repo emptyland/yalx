@@ -22,6 +22,15 @@ DECLARE_STATIC_STRING(kRt_ref_asserted_to, "_ref_asserted_to");
 DECLARE_STATIC_STRING(kRt_put_field, "_put_field");
 DECLARE_STATIC_STRING(kRt_lazy_load_object, "_lazy_load_object");
 DECLARE_STATIC_STRING(kRt_array_alloc, "_array_alloc");
+DECLARE_STATIC_STRING(kRt_array_fill_w8, "_array_fill_w8");
+DECLARE_STATIC_STRING(kRt_array_fill_w16, "_array_fill_w16");
+DECLARE_STATIC_STRING(kRt_array_fill_w32, "_array_fill_w32");
+DECLARE_STATIC_STRING(kRt_array_fill_w64, "_array_fill_w64");
+DECLARE_STATIC_STRING(kRt_array_fill_f32, "_array_fill_f32");
+DECLARE_STATIC_STRING(kRt_array_fill_f64, "_array_fill_f64");
+DECLARE_STATIC_STRING(kRt_array_fill_chunks, "_array_fill_chunks");
+DECLARE_STATIC_STRING(kRt_array_fill_refs, "_array_fill_refs");
+DECLARE_STATIC_STRING(kRt_array_fill_dims, "_array_fill_dims");
 
 LinkageSymbols::LinkageSymbols(base::Arena *arena)
 : arena_(arena)

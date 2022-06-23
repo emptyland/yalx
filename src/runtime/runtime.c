@@ -766,25 +766,76 @@ struct yalx_value_array_header *array_alloc(const struct yalx_class *const eleme
     switch (maybe_builtin_ty) {
         case Type_any:
         case Type_string:
-            return yalx_new_refs_array(&heap, element_ty, (yalx_ref_t *)elements, nitems);
+            return yalx_new_refs_array_with_data(&heap, element_ty, (yalx_ref_t *)elements, nitems);
             
         case Type_refs_array:
         case Type_dims_array:
         case Type_typed_array:
-            return yalx_new_dims_array(&heap, element_ty, elements, nitems);
+            return yalx_new_dims_array_with_data(&heap, element_ty, elements, nitems);
             
-        case NOT_BUILTIN_TYPE: // It's user definition types
+        case NOT_BUILTIN_TYPE: // It's not user definition types
             break;
             
         default:
             DCHECK(element_ty->constraint == K_PRIMITIVE);
-            return yalx_new_typed_array(&heap, element_ty, elements, nitems);
+            return yalx_new_typed_array_with_data(&heap, element_ty, elements, nitems);
     }
     if (element_ty->constraint == K_CLASS) {
-        return yalx_new_refs_array(&heap, element_ty, (yalx_ref_t *)elements, nitems);
+        return yalx_new_refs_array_with_data(&heap, element_ty, (yalx_ref_t *)elements, nitems);
     }
     DCHECK(element_ty->constraint == K_STRUCT);
-    return yalx_new_typed_array(&heap, element_ty, elements, nitems);
+    return yalx_new_typed_array_with_data(&heap, element_ty, elements, nitems);
+}
+
+struct yalx_value_array_header *array_fill_w32(const struct yalx_class *const element_ty, u32_t value, int nitems) {
+    DCHECK(element_ty->constraint == K_PRIMITIVE);
+    DCHECK(element_ty->reference_size == 4);
+    DCHECK(element_ty->instance_size == 4);
+    struct yalx_value_typed_array *ar = yalx_new_typed_array(&heap, element_ty, nitems);
+    for (int i = 0; i < nitems; i++) {
+        ((u32_t *)ar->data)[i] = value;
+    }
+    return (struct yalx_value_array_header *)ar;
+}
+
+struct yalx_value_array_header *array_fill_refs(const struct yalx_class *const element_ty, yalx_ref_t value,
+                                                int nitems) {
+    DCHECK(element_ty->reference_size == sizeof(yalx_ref_t));
+    struct yalx_value_refs_array *ar = yalx_new_refs_array(&heap, element_ty, nitems);
+    for (int i = 0; i < nitems; i++) {
+        ((yalx_ref_t *)ar->data)[i] = value;
+        init_write_barrier(&heap, ((yalx_ref_t *)ar->data) + i);
+    }
+    return (struct yalx_value_array_header *)ar;
+}
+
+struct yalx_value_array_header *array_fill_dims(const struct yalx_class *const element_ty, yalx_ref_t value,
+                                                int nitems) {
+    DCHECK(!value || yalx_is_array(value));
+    struct yalx_value_dims_array *ar = yalx_new_dims_array(&heap, element_ty, nitems);
+    for (int i = 0; i < nitems; i++) {
+        if (value == NULL) {
+            ((yalx_ref_t *)ar->arrays)[i] = value;
+            init_write_barrier(&heap, ((yalx_ref_t *)ar->arrays) + i);
+            continue;
+        }
+        
+        yalx_ref_t copied = NULL;
+        if (CLASS(value) == typed_array_class) {
+            struct yalx_value_typed_array *origin = (struct yalx_value_typed_array *)value;
+            copied = yalx_new_typed_array_with_data(&heap, origin->item, origin->data, origin->len);
+        } else if (CLASS(value) == refs_array_class) {
+            struct yalx_value_refs_array *origin = (struct yalx_value_refs_array *)value;
+            copied = yalx_new_refs_array_with_data(&heap, origin->item, origin->data, origin->len);
+        } else {
+            DCHECK(CLASS(value) == dims_array_class);
+            struct yalx_value_dims_array *origin = (struct yalx_value_dims_array *)value;
+            copied = yalx_new_dims_array_with_data(&heap, origin->item, origin->arrays, origin->len);
+        }
+        ((yalx_ref_t *)ar->arrays)[i] = copied;
+        init_write_barrier(&heap, ((yalx_ref_t *)ar->arrays) + i);
+    }
+    return (struct yalx_value_array_header *)ar;
 }
 
 struct coroutine *current_root() { return CURRENT_COROUTINE; }

@@ -8,3 +8,6 @@ fun issue2() -> string[]{"hello", "world", "!"}
 
 @yalx.Compiler(nativeHandle=true)
 fun issue3() -> int[][]{{1,2},{3,4},{5,6}}
+
+@yalx.Compiler(nativeHandle=true)
+fun issue4() -> int[10][8](996)
