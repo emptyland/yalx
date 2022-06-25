@@ -24,8 +24,9 @@ static void throw_exception(const struct yalx_class *ty,
     struct yalx_value_exception *ex = heap_alloc(ty);
     assert(ex != NULL);
     ex->linked = cause;
+    init_write_barrier(&heap, &ex->linked);
     ex->message = message;
-    post_write_barrier(&heap, ex, message);
+    init_write_barrier(&heap, &ex->message);
     
     size_t n = 0;
     struct backtrace_frame **frames = yalx_unwind(&n, 2/*dummy*/);
@@ -33,7 +34,7 @@ static void throw_exception(const struct yalx_class *ty,
     free(frames);
     
     ex->backtrace = bt;
-    post_write_barrier(&heap, ex, bt);
+    init_write_barrier(&heap, &ex->backtrace);
     
     throw_it(ex);
     assert(!"Unreachable");

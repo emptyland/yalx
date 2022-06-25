@@ -838,6 +838,28 @@ struct yalx_value_array_header *array_fill_dims(const struct yalx_class *const e
     return (struct yalx_value_array_header *)ar;
 }
 
+void *array_location_at(struct yalx_value_array_header *const array, const i32_t index) {
+    DCHECK(array != NULL);
+    DCHECK(yalx_is_array(array));
+    
+    if (index < 0 || index >= array->len) {
+        throw_array_index_out_of_bounds_exception(array, index);
+    }
+    
+    const struct yalx_class *const klass = CLASS(array);
+    if (klass == typed_array_class) {
+        struct yalx_value_typed_array *ar = (struct yalx_value_typed_array *)array;
+        return (address_t)ar->data + index * ar->item->reference_size;
+    } else if (klass == refs_array_class) {
+        struct yalx_value_refs_array *ar = (struct yalx_value_refs_array *)array;
+        return (address_t)ar->data + index * sizeof(yalx_ref_t);
+    } else {
+        DCHECK(klass == dims_array_class);
+        struct yalx_value_dims_array *ar = (struct yalx_value_dimss_array *)array;
+        return (address_t)ar->arrays + index * sizeof(yalx_ref_t);
+    }
+}
+
 struct coroutine *current_root() { return CURRENT_COROUTINE; }
 
 

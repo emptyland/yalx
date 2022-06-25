@@ -199,6 +199,8 @@ private:
     
     void PutField(ir::Value *instr);
     void ArrayFill(ir::Value *instr);
+    void ArrayAt(ir::Value *instr);
+    void ArraySet(ir::Value *instr);
     void CallDirectly(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
     void PassArguments(InstructionOperand *exclude, ir::Value *instr, RegisterSavingScope *saving_scope);
@@ -1073,6 +1075,14 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             ArrayFill(instr);
             break;
             
+        case ir::Operator::kArrayAt:
+            ArrayAt(instr);
+            break;
+            
+        case ir::Operator::kArraySet:
+            ArraySet(instr);
+            break;
+            
         case ir::Operator::kClosure: {
             // TODO:
             UNREACHABLE();
@@ -1419,6 +1429,41 @@ void Arm64FunctionInstructionSelector::ArrayFill(ir::Value *instr) {
     operands_.Free(a2);
 }
 
+void Arm64FunctionInstructionSelector::ArrayAt(ir::Value *instr) {
+    Allocate(instr->InputValue(0), kAny);
+    Allocate(instr->InputValue(1), kAny);
+    
+    RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+    saving_scope.SaveAll();
+    
+    auto a0 = operands_.AllocateReigster(ir::Types::Word64, arm64::x0.code());
+    auto a1 = operands_.AllocateReigster(ir::Types::Word32, arm64::x1.code());
+    
+    auto array = Allocate(instr->InputValue(0), kAny);
+    auto index = Allocate(instr->InputValue(1), kAny);
+    
+    Move(a0, array, instr->InputValue(0)->type());
+    Move(a1, index, instr->InputValue(1)->type());
+    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_location_at));
+    
+    auto opd = Allocate(instr, kMoR);
+    if (instr->type().kind() == ir::Type::kValue) {
+        Move(opd, a0, instr->type());
+    } else {
+        auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, a0->register_id(), -1, 0);
+        Move(opd, loc, instr->type());
+    }
+    
+    a0->Grab();
+    a1->Grab();
+    operands_.Free(a0);
+    operands_.Free(a1);
+}
+
+void Arm64FunctionInstructionSelector::ArraySet(ir::Value *instr) {
+    UNREACHABLE();
+}
+
 void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     ir::Function *callee = nullptr;
     if (instr->Is(ir::Operator::kCallDirectly)) {
@@ -1429,7 +1474,7 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         auto method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
         callee = method->fun;
     }
-    //printd("call: %s", callee->name()->data());
+
     std::vector<ir::Value *> returning_vals;
     returning_vals.push_back(instr);
     if (instr->users().size() > 0) {
@@ -1444,8 +1489,8 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
             return ir::OperatorWith<int>::Data(v1) < ir::OperatorWith<int>::Data(v2);
         });
     }
+
     std::vector<ir::Value *> overflow_args;
-    //std::vector<InstructionOperand *> args;
     RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
     size_t overflow_args_size = 0;
     int general_index = 0, float_index = 0;

@@ -286,6 +286,18 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         }
     }
     yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue04_Zoissue04_Zdissue5_had();
+    
+    {
+        auto vals = reinterpret_cast<int *>(state.buf);
+        ASSERT_EQ(2, vals[3]);
+        ASSERT_EQ(4, vals[2]);
+        ASSERT_EQ(6, vals[1]);
+    }
+    yalx_exit_returning_scope(&state);
 }
 
 //#endif // YALX_ARCH_ARM64

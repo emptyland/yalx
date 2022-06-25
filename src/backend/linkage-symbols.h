@@ -66,6 +66,7 @@ extern const String *const kRt_array_fill_f64;
 extern const String *const kRt_array_fill_chunks;
 extern const String *const kRt_array_fill_refs;
 extern const String *const kRt_array_fill_dims;
+extern const String *const kRt_array_location_at;
 
 } // namespace backend
 } // namespace yalx
