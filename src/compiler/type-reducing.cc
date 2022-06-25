@@ -1110,7 +1110,7 @@ private:
             }
         }
         
-        std::vector<Declaration *> lvals;
+        std::vector<Type *> lvals;
         for (auto lval : node->lvals()) {
             Statement *symbol = nullptr;
             if (auto id = lval->AsIdentifier()) {
@@ -1158,28 +1158,59 @@ private:
                         return -1;
                     }
                 }
+            } else if (auto indexed_get = lval->AsIndexedGet()) {
+                //UNREACHABLE();
+                auto lhs = indexed_get->operand(0);
+                Type *type = nullptr;
+                if (ReduceReturningOnlyOne(lhs, &type) < 0) {
+                    return -1;
+                }
+                if (!type->IsArrayType()) {
+                    Feedback()->Printf(node->source_position(), "Not array type with `[index]' indexed getting");
+                    return -1;
+                }
+                ArrayType *ar = DCHECK_NOTNULL(type->AsArrayType());
+                
+                auto index = indexed_get->operand(1);
+                if (ReduceReturningOnlyOne(index, &type) < 0) {
+                    return -1;
+                }
+                if (type->primary_type() != Type::kType_i32 && type->primary_type() != Type::kType_u32) {
+                    Feedback()->Printf(node->source_position(), "`[index]' must be i32 or u32");
+                    return -1;
+                }
+                
+                if (ar->dimension_count() > 1) {
+                    type = new (arena_) ArrayType(arena_, ar->element_type(), ar->dimension_count() - 1,
+                                                  ar->source_position());
+                } else {
+                    type = ar->element_type();
+                }
+                lvals.push_back(type);
             } else {
                 Feedback()->Printf(node->source_position(), "Invalid rval");
                 return -1;
             }
 
-            if (auto var = symbol->AsVariableDeclaration()) {
-                if (!node->initial() && var->constraint() == VariableDeclaration::kVal) {
-                    Feedback()->Printf(node->source_position(), "Write `val' constraint value");
-                    return -1;
+            if (symbol) {
+                if (auto var = symbol->AsVariableDeclaration()) {
+                    if (!node->initial() && var->constraint() == VariableDeclaration::kVal) {
+                        Feedback()->Printf(node->source_position(), "Write `val' constraint value");
+                        return -1;
+                    }
+                    lvals.push_back(var->Type());
+                } else {
+                    auto item = down_cast<VariableDeclaration::Item>(symbol);
+                    if (!item->owns()) {
+                        Feedback()->Printf(node->source_position(), "Write `val' constraint value");
+                        return -1;
+                    }
+                    if (!node->initial() && item->owns()->constraint() == VariableDeclaration::kVal) {
+                        Feedback()->Printf(node->source_position(), "Write `val' constraint value");
+                        return -1;
+                    }
+                    lvals.push_back(item->Type());
                 }
-                lvals.push_back(var);
-            } else {
-                auto item = down_cast<VariableDeclaration::Item>(symbol);
-                if (!item->owns()) {
-                    Feedback()->Printf(node->source_position(), "Write `val' constraint value");
-                    return -1;
-                }
-                if (!node->initial() && item->owns()->constraint() == VariableDeclaration::kVal) {
-                    Feedback()->Printf(node->source_position(), "Write `val' constraint value");
-                    return -1;
-                }
-                lvals.push_back(item);
             }
         }
         
@@ -1190,9 +1221,9 @@ private:
         }
         for (auto i = 0; i < lvals.size(); i++) {
             bool unlinked = false;
-            if (!DCHECK_NOTNULL(lvals[i]->Type())->Acceptable(rvals[i], &unlinked)) {
+            if (!DCHECK_NOTNULL(lvals[i])->Acceptable(rvals[i], &unlinked)) {
                 Feedback()->Printf(node->source_position(), "Unexpected lvals[%d] type `%s', %s",
-                                   lvals[i]->Type()->ToString().c_str(), rvals[i]->ToString().c_str());
+                                   lvals[i]->ToString().c_str(), rvals[i]->ToString().c_str());
                 return -1;
             }
             DCHECK(!unlinked);

@@ -29,6 +29,10 @@ val a6 = int[11](0)
 
 val a7 = foo::Foo[2][3](foo.Foo(0, 0))
 
-fun main() {
+//val a8 = int[2,2] = {{1,2}, {3,4}}
 
+fun main() {
+    a7[1][2] = foo.Foo(1, 2)
+    //a1.a.b.c = 1
+    //a7[0] = foo::Foo[3](foo.Foo(0, 0))
 }

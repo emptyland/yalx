@@ -141,8 +141,27 @@ void InterfaceModel::PrintTo(int indent, base::PrintingWriter *printer) const {
 ArrayModel::ArrayModel(base::Arena *arena, const String *name, const String *full_name,
                        int dimension_count, const Type element_type)
 : Model(name, full_name, kRef, kArray)
+, arena_(arena)
 , element_type_(element_type)
 , dimension_count_(dimension_count) {
+}
+
+ArrayModel *ArrayModel::DownToIfNeeded() {
+    if (dimension_count() > 1) {
+        auto buf = ToString(dimension_count() - 1, element_type());
+        auto name = String::New(arena_, buf);
+        return new (arena_) ArrayModel(arena_, name, name, dimension_count() - 1, element_type());
+    }
+    return this;
+}
+
+const ArrayModel *ArrayModel::DownToIfNeeded() const {
+    if (dimension_count() > 1) {
+        auto buf = ToString(dimension_count() - 1, element_type());
+        auto name = String::New(arena_, buf);
+        return new (arena_) ArrayModel(arena_, name, name, dimension_count() - 1, element_type());
+    }
+    return this;
 }
 
 std::string ArrayModel::ToString(int dimension_count, const Type element_type) {

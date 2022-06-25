@@ -158,6 +158,9 @@ public:
     ArrayModel(base::Arena *arena, const String *name, const String *full_name,
                int dimension_count, const Type element_type);
     
+    ArrayModel *DownToIfNeeded();
+    const ArrayModel *DownToIfNeeded() const;
+    
     DEF_VAL_GETTER(Type, element_type);
     DEF_VAL_GETTER(int, dimension_count);
 
@@ -166,6 +169,7 @@ public:
     size_t ReferenceSizeInBytes() const override;
     size_t PlacementSizeInBytes() const override;
 private:
+    base::Arena *const arena_;
     const Type element_type_;
     const int dimension_count_;
 }; // class ArrayModel

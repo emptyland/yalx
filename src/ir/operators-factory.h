@@ -114,6 +114,16 @@ public:
                                      0/*control_out*/);
     }
     
+    Operator *ArrayAt(const ArrayModel *type) {
+        return new (arena_) OperatorWith<const ArrayModel *>(Operator::kArrayAt, 0, 2/*value_in*/, 0/*control_in*/,
+                                                             1/*value_out*/, 0/*control_out*/, type);
+    }
+    
+    Operator *ArraySet(const ArrayModel *type) {
+        return new (arena_) OperatorWith<const ArrayModel *>(Operator::kArraySet, 0, 3/*value_in*/, 0/*control_in*/,
+                                                             1/*value_out*/, 0/*control_out*/, type);
+    }
+    
     // Load Value type's pointer of field
     // input[0]: Value pinter
     Operator *LoadEffectAddress(const Handle *handle) {
