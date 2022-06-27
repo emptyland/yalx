@@ -1948,7 +1948,7 @@ private:
         if (auto expr = std::get_if<cpl::Expression *>(&parts.back())) {
             Value *index = nullptr;
             if (ReduceReturningOnlyOne(*expr, &index) < 0) { return -1; }
-            value = EmitArraySet(value, index, rval, root_ss.Position());
+            value = EmitArraySet(value, rval, index, root_ss.Position());
         }
         
         for (int64_t i = static_cast<int64_t>(parts.size()) - 2; i >= 0; i--) {

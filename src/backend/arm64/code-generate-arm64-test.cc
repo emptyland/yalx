@@ -298,6 +298,43 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         ASSERT_EQ(6, vals[1]);
     }
     yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue04_Zoissue04_Zdissue6_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto ref = vals[1];
+        ASSERT_NE(nullptr, ref);
+        auto klass = CLASS(ref);
+        ASSERT_NE(nullptr, klass);
+        ASSERT_STREQ("TypedArray", klass->name.z);
+        
+        auto ar = reinterpret_cast<yalx_value_typed_array *>(ref);
+        ASSERT_STREQ("Foo", ar->item->name.z);
+        ASSERT_STREQ("issue04:issue04.Foo", ar->item->location.z);
+        ASSERT_EQ(ar->len, 10);
+        
+        struct FooDummy {
+            uintptr_t padding0;
+            uintptr_t padding1;
+            i32_t i;
+            yalx_value_str *name;
+        };
+        
+        FooDummy *foo = ((FooDummy *)ar->data);
+        ASSERT_EQ(0, foo[0].i);
+        ASSERT_EQ(0, foo[0].name->len);
+        
+        ASSERT_EQ(1, foo[1].i);
+        ASSERT_EQ(2, foo[1].name->len);
+        ASSERT_STREQ("ok", foo[1].name->bytes);
+        
+        ASSERT_EQ(0, foo[2].i);
+        ASSERT_EQ(0, foo[2].name->len);
+    }
+    yalx_exit_returning_scope(&state);
 }
 
 //#endif // YALX_ARCH_ARM64

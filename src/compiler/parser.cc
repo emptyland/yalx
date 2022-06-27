@@ -1745,11 +1745,20 @@ bool Parser::ProbeAtomType(bool *ok) {
                 ProbeType(CHECK_OK);
             }
             break;
+        case Token::k2Colon:
         case Token::kIdentifier: {
-            ProbeNext();
-            if (Probe(Token::kDot) || Probe(Token::k2Colon)) {
+            bool prefix_id = false;
+            if (!Probe(Token::k2Colon)) {
+                prefix_id = Probe(Token::kIdentifier);
+            }
+            if (prefix_id) {
+                if (Probe(Token::kDot) || Probe(Token::k2Colon)) {
+                    Probe(Token::kIdentifier, CHECK_OK);
+                }
+            } else {
                 Probe(Token::kIdentifier, CHECK_OK);
             }
+
             if (Probe(Token::kLess)) {
                 do {
                     ProbeType(CHECK_OK);
@@ -2016,6 +2025,7 @@ Type *Parser::ParseAtomType(bool *ok) {
             MoveNext();
             type = new (arena_) Type(arena_, Type::kType_string, location);
             break;
+        case Token::k2Colon:
         case Token::kIdentifier: {
             auto symbol = ParseSymbol(CHECK_OK);
             type = new (arena_) Type(arena_, symbol, location);
@@ -2157,6 +2167,9 @@ Identifier *Parser::ParseIdentifier(bool *ok) {
 // symbol ::= identifier | identifier `.' identifier | identifier `::' identifier
 Symbol *Parser::ParseSymbol(bool *ok) {
     auto location = Peek().source_position();
+    if (Peek().Is(Token::k2Colon)) {
+        MoveNext();
+    }
     auto prefix_or_name = MatchText(Token::kIdentifier, CHECK_OK);
     if (Test(Token::kDot) || Test(Token::k2Colon)) {
         auto name = MatchText(Token::kIdentifier, CHECK_OK);

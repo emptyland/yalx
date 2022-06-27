@@ -32,6 +32,8 @@ DECLARE_STATIC_STRING(kRt_array_fill_chunks, "_array_fill_chunks");
 DECLARE_STATIC_STRING(kRt_array_fill_refs, "_array_fill_refs");
 DECLARE_STATIC_STRING(kRt_array_fill_dims, "_array_fill_dims");
 DECLARE_STATIC_STRING(kRt_array_location_at, "_array_location_at");
+DECLARE_STATIC_STRING(kRt_array_set_ref, "_array_set_ref");
+DECLARE_STATIC_STRING(kRt_array_set_chunk, "_array_set_chunk");
 
 LinkageSymbols::LinkageSymbols(base::Arena *arena)
 : arena_(arena)

@@ -120,6 +120,10 @@ void prefix_write_barrier(struct heap *heap, struct yalx_value_any *host, struct
 void prefix_write_barrier_batch(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any **mutators,
                                 size_t nitems);
 
+void init_typing_write_barrier_if_needed(struct heap *heap, const struct yalx_class *item, address_t data);
+void post_typing_write_barrier_if_needed(struct heap *heap, const struct yalx_class *item, address_t location,
+                                         address_t data);
+
 void post_write_barrier(struct heap *heap, struct yalx_value_any **field, struct yalx_value_any *mutator);
 
 void post_write_barrier_batch(struct heap *heap, struct yalx_value_any **field, struct yalx_value_any **mutators,

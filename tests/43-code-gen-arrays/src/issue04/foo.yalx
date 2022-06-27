@@ -17,3 +17,12 @@ fun issue5(): int, int, int {
     val ar = int[] {1,2,3,4,5,6,7}
     return ar[1], ar[3], ar[5]
 }
+
+@yalx.Compiler(nativeHandle=true)
+fun issue6(): Foo[] {
+    val a = ::Foo[10](Foo(0, ""))
+    a[1] = Foo(1, "ok")
+    return a
+}
+
+struct Foo(val i: int, val name: string)

@@ -809,6 +809,18 @@ struct yalx_value_array_header *array_fill_refs(const struct yalx_class *const e
     return (struct yalx_value_array_header *)ar;
 }
 
+struct yalx_value_array_header *array_fill_chunks(const struct yalx_class *const element_ty, address_t value,
+                                                  int nitems) {
+    DCHECK(element_ty != NULL);
+    struct yalx_value_typed_array *ar = yalx_new_typed_array(&heap, element_ty, nitems);
+    for (int i = 0; i < nitems; i++) {
+        address_t location = ar->data + i * element_ty->instance_size;
+        memcpy(location, value, element_ty->instance_size);
+        init_typing_write_barrier_if_needed(&heap, element_ty, location);
+    }
+    return (struct yalx_value_array_header *)ar;
+}
+
 struct yalx_value_array_header *array_fill_dims(const struct yalx_class *const element_ty, yalx_ref_t value,
                                                 int nitems) {
     DCHECK(!value || yalx_is_array(value));
@@ -849,7 +861,7 @@ void *array_location_at(struct yalx_value_array_header *const array, const i32_t
     const struct yalx_class *const klass = CLASS(array);
     if (klass == typed_array_class) {
         struct yalx_value_typed_array *ar = (struct yalx_value_typed_array *)array;
-        return (address_t)ar->data + index * ar->item->reference_size;
+        return (address_t)ar->data + index * ar->item->instance_size;
     } else if (klass == refs_array_class) {
         struct yalx_value_refs_array *ar = (struct yalx_value_refs_array *)array;
         return (address_t)ar->data + index * sizeof(yalx_ref_t);
@@ -858,6 +870,36 @@ void *array_location_at(struct yalx_value_array_header *const array, const i32_t
         struct yalx_value_dims_array *ar = (struct yalx_value_dimss_array *)array;
         return (address_t)ar->arrays + index * sizeof(yalx_ref_t);
     }
+}
+
+void array_set_ref(struct yalx_value_array_header *const array, const i32_t index, yalx_ref_t value) {
+    DCHECK(array != NULL);
+    DCHECK(yalx_is_array(array) && CLASS(array) != typed_array_class);
+    
+    if (index < 0 || index >= array->len) {
+        throw_array_index_out_of_bounds_exception(array, index);
+    }
+    
+    const struct yalx_class *const klass = CLASS(array);
+    if (klass == refs_array_class) {
+        struct yalx_value_refs_array *ar = (struct yalx_value_refs_array *)array;
+        put_field(((yalx_ref_t *)ar->data) + index, value);
+    } else {
+        DCHECK(klass == dims_array_class);
+        struct yalx_value_dims_array *ar = (struct yalx_value_dimss_array *)array;
+        put_field(((yalx_ref_t *)ar->arrays) + index, value);
+    }
+}
+
+void array_set_chunk(struct yalx_value_array_header *const array, const i32_t index, address_t chunk) {
+    DCHECK(array != NULL);
+    DCHECK(chunk != NULL);
+    DCHECK(CLASS(array) == typed_array_class);
+    
+    struct yalx_value_typed_array *ar = (struct yalx_value_typed_array *)array;
+    ptrdiff_t offset = index * ar->item->instance_size;
+    post_typing_write_barrier_if_needed(&heap, ar->item, ar->data + offset, chunk);
+    memcpy(ar->data + offset, chunk, ar->item->instance_size);
 }
 
 struct coroutine *current_root() { return CURRENT_COROUTINE; }

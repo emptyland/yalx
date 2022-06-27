@@ -1409,9 +1409,21 @@ void Arm64FunctionInstructionSelector::ArrayFill(ir::Value *instr) {
                 Move(a1, filling, instr->InputValue(1)->type());
                 current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_fill_refs));
                 break;
-            case ir::Type::kValue:
-                UNREACHABLE();
-                break;
+            case ir::Type::kValue: {
+                if (auto ptr = filling->AsRegister()) {
+                    Move(a1, ptr, ir::Types::Word64);
+                } else if (auto mem = filling->AsLocation()) {
+                    current()->NewIO(Arm64Add, a1,
+                                     new (arena_) RegisterOperand(mem->register0_id(), MachineRepresentation::kWord64),
+                                     ImmediateOperand::Word32(arena_, mem->k()));
+                } else if (auto rel = filling->AsReloaction()) {
+                    DCHECK(rel->fetch_address());
+                    Move(a1, rel, ir::Types::Word64);
+                } else {
+                    UNREACHABLE();
+                }
+                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_fill_chunks));
+            } break;
                 
             default:
                 UNREACHABLE();
@@ -1461,7 +1473,86 @@ void Arm64FunctionInstructionSelector::ArrayAt(ir::Value *instr) {
 }
 
 void Arm64FunctionInstructionSelector::ArraySet(ir::Value *instr) {
-    UNREACHABLE();
+    Allocate(instr->InputValue(0), kAny);
+    Allocate(instr->InputValue(1), kAny);
+    Allocate(instr->InputValue(2), kAny);
+    
+    RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+    saving_scope.SaveAll();
+    
+    auto a0 = operands_.AllocateReigster(ir::Types::Word64, arm64::x0.code());
+    auto a1 = operands_.AllocateReigster(ir::Types::Word32, arm64::x1.code());
+    
+#define SET_RET() \
+    auto a2 = operands_.AllocateReigster(ir::Types::Word64, arm64::x2.code()); \
+    auto array = Allocate(instr->InputValue(0), kAny); \
+    auto index = Allocate(instr->InputValue(1), kAny); \
+    auto value = Allocate(instr->InputValue(2), kAny); \
+    Move(a0, array, instr->InputValue(0)->type()); \
+    Move(a1, index, instr->InputValue(1)->type()); \
+    Move(a2, value, instr->InputValue(2)->type()); \
+    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_set_ref)); \
+    a2->Grab(); \
+    operands_.Free(a2); \
+    operands_.Associate(instr, array)
+    
+    auto ar = ir::OperatorWith<const ir::ArrayModel *>::Data(instr->op());
+    if (ar->dimension_count() > 1) {
+        SET_RET();
+    } else {
+        switch (ar->element_type().kind()) {
+            case ir::Type::kString:
+            case ir::Type::kReference: {
+                SET_RET();
+            } break;
+                
+            case ir::Type::kValue: {
+                auto a2 = operands_.AllocateReigster(ir::Types::Word64, arm64::x2.code());
+                auto array = Allocate(instr->InputValue(0), kAny);
+                auto index = Allocate(instr->InputValue(1), kAny);
+                auto value = Allocate(instr->InputValue(2), kAny);
+                Move(a0, array, instr->InputValue(0)->type());
+                Move(a1, index, instr->InputValue(1)->type());
+                if (auto ptr = value->AsRegister()) {
+                    Move(a2, ptr, ir::Types::Word64);
+                } else if (auto mem = value->AsLocation()) {
+                    current()->NewIO(Arm64Add, a2,
+                                     new (arena_) RegisterOperand(mem->register0_id(), MachineRepresentation::kWord64),
+                                     ImmediateOperand::Word32(arena_, mem->k()));
+                } else if (auto rel = value->AsReloaction()) {
+                    DCHECK(rel->fetch_address());
+                    Move(a2, rel, ir::Types::Word64);
+                } else {
+                    UNREACHABLE();
+                }
+                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_set_chunk));
+                operands_.Associate(instr, array);
+            } break;
+                
+            default: {
+                DCHECK(ar->element_type().IsNumber() ||
+                       ar->element_type().IsPointer());
+                auto array = Allocate(instr->InputValue(0), kAny);
+                auto index = Allocate(instr->InputValue(1), kAny);
+                auto value = Allocate(instr->InputValue(2), kAny);
+                Move(a0, array, instr->InputValue(0)->type());
+                Move(a1, index, instr->InputValue(1)->type());
+                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_location_at));
+                auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::x0.code(), -1, 0);
+                Move(loc, value, instr->InputValue(2)->type());
+                operands_.Associate(instr, array);
+            } break;
+        }
+    }
+    
+    
+#undef SET_REF
+
+    a0->Grab();
+    a1->Grab();
+    operands_.Free(a0);
+    operands_.Free(a1);
+    //UNREACHABLE();
 }
 
 void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {

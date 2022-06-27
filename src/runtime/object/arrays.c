@@ -25,18 +25,7 @@ yalx_new_dims_array_with_data(struct heap *heap, const struct yalx_class *item, 
     return bundle;
 }
 
-static void internal_write_barrier(struct heap *heap, const struct yalx_class *item, address_t data) {
-    for (int i = 0; i < item->n_fields; i++) {
-        const struct yalx_class_field *field = &item->fields[i];
-        if (yalx_is_ref_type(field->type)) {
-            init_write_barrier(heap, (yalx_ref_t *)(data + field->offset_of_head));
-        } else if (field->type->constraint == K_STRUCT) {
-            internal_write_barrier(heap, field->type, data + field->offset_of_head);
-        } else {
-            DCHECK(!"TODO:");
-        }
-    }
-}
+
 
 struct yalx_value_typed_array *
 yalx_new_typed_array_with_data(struct heap *heap, const struct yalx_class *item, const void *data, size_t nitems) {
@@ -47,7 +36,7 @@ yalx_new_typed_array_with_data(struct heap *heap, const struct yalx_class *item,
     if (item->constraint == K_STRUCT) {
         address_t p = (address_t)data;
         for (size_t i = 0; i < nitems; i++) {
-            internal_write_barrier(heap, item, p);
+            init_typing_write_barrier_if_needed(heap, item, p);
             p += item->reference_size;
         }
     }
@@ -83,7 +72,7 @@ struct yalx_value_typed_array *yalx_new_typed_array(struct heap *heap, const str
     DCHECK(item != NULL);
     DCHECK(item->constraint == K_STRUCT || item->constraint == K_PRIMITIVE);
 
-    size_t size = sizeof(struct yalx_value_typed_array) + (nitems * item->reference_size);
+    size_t size = sizeof(struct yalx_value_typed_array) + (nitems * item->instance_size);
     struct allocate_result result = yalx_heap_allocate(heap, typed_array_class, size, 0);
     if (result.status != ALLOCATE_OK) {
         return NULL;

@@ -316,6 +316,35 @@ void yalx_heap_visit_root(struct heap *heap, struct yalx_root_visitor *visitor) 
     }
 }
 
+void init_typing_write_barrier_if_needed(struct heap *heap, const struct yalx_class *item, address_t data) {
+    for (int i = 0; i < item->n_fields; i++) {
+        const struct yalx_class_field *field = &item->fields[i];
+        if (yalx_is_ref_type(field->type)) {
+            init_write_barrier(heap, (yalx_ref_t *)(data + field->offset_of_head));
+        } else if (field->type->constraint == K_STRUCT) {
+            init_typing_write_barrier_if_needed(heap, field->type, data + field->offset_of_head);
+        } else {
+            //DCHECK(!"TODO:");
+        }
+    }
+}
+
+void post_typing_write_barrier_if_needed(struct heap *heap, const struct yalx_class *item, address_t location,
+                                         address_t data) {
+    for (int i = 0; i < item->n_fields; i++) {
+        const struct yalx_class_field *field = &item->fields[i];
+        if (yalx_is_ref_type(field->type)) {
+            post_write_barrier(heap, (yalx_ref_t *)(location + field->offset_of_head),
+                               *(yalx_ref_t *)(data + field->offset_of_head));
+        } else if (field->type->constraint == K_STRUCT) {
+            post_typing_write_barrier_if_needed(heap, field->type, location + field->offset_of_head,
+                                                data + field->offset_of_head);
+        } else {
+            //DCHECK(!"TODO:");
+        }
+    }
+}
+
 
 void prefix_write_barrier(struct heap *heap, struct yalx_value_any *host, struct yalx_value_any *mutator) {
     // TODO:

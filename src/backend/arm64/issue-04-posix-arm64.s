@@ -8,7 +8,7 @@
 .global _issue04_Zoissue04_Zd_Z4init
 _issue04_Zoissue04_Zd_Z4init:
 .cfi_startproc
-Lblk0:
+Lblk1:
     sub sp, sp, #16
     stp fp, lr, [sp, #0]
     add fp, sp, #0
@@ -27,7 +27,7 @@ Lblk0:
 .global _issue04_Zoissue04_Zdissue1
 _issue04_Zoissue04_Zdissue1:
 .cfi_startproc
-Lblk1:
+Lblk2:
     sub sp, sp, #64
     stp fp, lr, [sp, #48]
     add fp, sp, #48
@@ -59,7 +59,7 @@ Lblk1:
 .global _issue04_Zoissue04_Zdissue1_had
 _issue04_Zoissue04_Zdissue1_had:
 .cfi_startproc
-Lblk2:
+Lblk3:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -92,7 +92,7 @@ Lblk2:
 .global _issue04_Zoissue04_Zdissue2
 _issue04_Zoissue04_Zdissue2:
 .cfi_startproc
-Lblk3:
+Lblk4:
     sub sp, sp, #80
     stp fp, lr, [sp, #64]
     add fp, sp, #64
@@ -127,7 +127,7 @@ Lblk3:
 .global _issue04_Zoissue04_Zdissue2_had
 _issue04_Zoissue04_Zdissue2_had:
 .cfi_startproc
-Lblk4:
+Lblk5:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -160,7 +160,7 @@ Lblk4:
 .global _issue04_Zoissue04_Zdissue3
 _issue04_Zoissue04_Zdissue3:
 .cfi_startproc
-Lblk5:
+Lblk6:
     sub sp, sp, #80
     stp fp, lr, [sp, #64]
     add fp, sp, #64
@@ -225,7 +225,7 @@ Lblk5:
 .global _issue04_Zoissue04_Zdissue3_had
 _issue04_Zoissue04_Zdissue3_had:
 .cfi_startproc
-Lblk6:
+Lblk7:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -258,7 +258,7 @@ Lblk6:
 .global _issue04_Zoissue04_Zdissue4
 _issue04_Zoissue04_Zdissue4:
 .cfi_startproc
-Lblk7:
+Lblk8:
     sub sp, sp, #48
     stp fp, lr, [sp, #32]
     add fp, sp, #32
@@ -292,7 +292,7 @@ Lblk7:
 .global _issue04_Zoissue04_Zdissue4_had
 _issue04_Zoissue04_Zdissue4_had:
 .cfi_startproc
-Lblk8:
+Lblk9:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -325,7 +325,7 @@ Lblk8:
 .global _issue04_Zoissue04_Zdissue5
 _issue04_Zoissue04_Zdissue5:
 .cfi_startproc
-Lblk9:
+Lblk10:
     sub sp, sp, #80
     stp fp, lr, [sp, #64]
     add fp, sp, #64
@@ -397,7 +397,7 @@ Lblk9:
 .global _issue04_Zoissue04_Zdissue5_had
 _issue04_Zoissue04_Zdissue5_had:
 .cfi_startproc
-Lblk10:
+Lblk11:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -427,6 +427,107 @@ Lblk10:
     add sp, sp, #112
     ret
 .cfi_endproc
+.global _issue04_Zoissue04_Zdissue6
+_issue04_Zoissue04_Zdissue6:
+.cfi_startproc
+Lblk12:
+    sub sp, sp, #80
+    stp fp, lr, [sp, #64]
+    add fp, sp, #64
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    add x0, fp, #-32
+    mov w1, #0
+    adrp x19, Kstr.4@PAGE
+    add x19, x19, Kstr.4@PAGEOFF
+    ldr x2, [x19, #0]
+    stur w1, [fp, #-36]
+    stur x2, [fp, #-44]
+    bl _issue04_Zoissue04_ZdFoo_ZdFoo_Z4constructor
+    mov w0, #10
+    stur w0, [fp, #-36]
+    adrp x19, _issue04_Zoissue04_ZdFoo$class@PAGE
+    add x0, x19, _issue04_Zoissue04_ZdFoo$class@PAGEOFF
+    ldur w2, [fp, #-36]
+    add x1, fp, #-32
+    bl _array_fill_chunks
+    mov x3, x0
+    add x0, fp, #-32
+    mov w1, #1
+    adrp x19, Kstr.5@PAGE
+    add x19, x19, Kstr.5@PAGEOFF
+    ldr x2, [x19, #0]
+    stur w1, [fp, #-36]
+    stur x2, [fp, #-44]
+    stur x3, [fp, #-52]
+    bl _issue04_Zoissue04_ZdFoo_ZdFoo_Z4constructor
+    ldur x1, [fp, #-52]
+    mov w0, #1
+    stur w0, [fp, #-36]
+    stur x1, [fp, #-44]
+    ldur x0, [fp, #-44]
+    ldur w1, [fp, #-36]
+    add x2, fp, #-32
+    bl _array_set_chunk
+    ldur x19, [fp, #-44]
+    str x19, [fp, #24]
+    ldp fp, lr, [sp, #64]
+    add sp, sp, #80
+    ret
+.cfi_endproc
+.global _issue04_Zoissue04_Zdissue6_had
+_issue04_Zoissue04_Zdissue6_had:
+.cfi_startproc
+Lblk13:
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stp x19, x20, [sp, #80]
+    stp x21, x22, [sp, #64]
+    stp x23, x24, [sp, #48]
+    stp x25, x26, [sp, #32]
+    stp x27, x28, [sp, #16]
+    add fp, sp, #16
+    bl _current_root
+    mov x26, x0
+    bl _issue04_Zoissue04_Zdissue6
+    mov x0, #16
+    bl _reserve_handle_returning_vals
+    mov x1, sp
+    mov x2, #16
+    bl _memcpy
+    ldp x19, x20, [sp, #80]
+    ldp x21, x22, [sp, #64]
+    ldp x23, x24, [sp, #48]
+    ldp x25, x26, [sp, #32]
+    ldp x27, x28, [sp, #16]
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
+    ret
+.cfi_endproc
+.global _issue04_Zoissue04_ZdFoo_ZdFoo_Z4constructor
+_issue04_Zoissue04_ZdFoo_ZdFoo_Z4constructor:
+.cfi_startproc
+Lblk0:
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    str w1, [x0, #16]
+    str x2, [x0, #24]
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
+    ret
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
+    ret
+.cfi_endproc
 ; CString constants
 .section __TEXT,__cstring,cstring_literals
 Lkzs.0:
@@ -437,6 +538,90 @@ Lkzs.2:
     .asciz "world"
 Lkzs.3:
     .asciz "!"
+Lkzs.4:
+    .asciz ""
+Lkzs.5:
+    .asciz "ok"
+Lkzs.6:
+    .asciz "fun (issue04:issue04.Foo,i32,string)->(void)"
+Lkzs.7:
+    .asciz "Foo$constructor"
+Lkzs.8:
+    .asciz "i"
+Lkzs.9:
+    .asciz "name"
+Lkzs.10:
+    .asciz "Foo"
+Lkzs.11:
+    .asciz "issue04:issue04.Foo"
+.section __DATA,__data
+.p2align 4
+; classes:
+.global _issue04_Zoissue04_ZdFoo$class
+_issue04_Zoissue04_ZdFoo$class:
+    .quad 0 ; id
+    .byte 1 ; constraint
+    .space 3 ; padding
+    .long 8 ; reference_size
+    .long 32 ; instance_size
+    .space 4 ; padding
+    .quad 0 ; super
+    .quad Lkzs.10 ; name
+    .long 3 ; name
+    .space 4 ; padding
+    .quad Lkzs.11 ; location
+    .long 19 ; location
+    .space 4 ; padding
+    .long 0 ; n_annotations
+    .space 4 ; padding
+    .quad 0 ; reserved0
+    .long 2 ; n_fields
+    .space 4 ; padding
+    .quad _issue04_Zoissue04_ZdFoo$fields ; fields
+    .quad _issue04_Zoissue04_ZdFoo$ctor ; ctor
+    .long 1 ; n_methods
+    .space 4 ; padding
+    .quad _issue04_Zoissue04_ZdFoo$methods ; methods
+    .long 0 ; n_vtab
+    .long 0 ; n_itab
+    .quad 0 ; vtab
+    .quad 0 ; itab
+_issue04_Zoissue04_ZdFoo$fields:
+    ; Foo::i
+    .long 0 ; access|constraint
+    .long 0 ; n_annotations
+    .quad 0 ; reserved0
+    .quad Lkzs.8 ; name
+    .long 1 ; name
+    .space 4 ; padding
+    .quad _builtin_classes+864 ; type
+    .long 16 ; offset_of_head
+    .space 4 ; padding
+    ; Foo::name
+    .long 0 ; access|constraint
+    .long 0 ; n_annotations
+    .quad 0 ; reserved0
+    .quad Lkzs.9 ; name
+    .long 4 ; name
+    .space 4 ; padding
+    .quad _yalx_Zplang_Zolang_ZdString$class ; type
+    .long 24 ; offset_of_head
+    .space 4 ; padding
+_issue04_Zoissue04_ZdFoo$methods:
+_issue04_Zoissue04_ZdFoo$ctor:
+    ; Foo::Foo$constructor
+    .long 0 ; index
+    .long 0 ; access|is_native|is_override|...
+    .long 0 ; n_annotations
+    .space 4 ; padding
+    .quad 0 ; reserved0
+    .quad Lkzs.7 ; name
+    .long 15 ; name
+    .space 4 ; padding
+    .quad Lkzs.6 ; prototype_desc
+    .long 44 ; prototype_desc
+    .space 4 ; padding
+    .quad _issue04_Zoissue04_ZdFoo_ZdFoo_Z4constructor ; entry
 .section __DATA,__data
 .p2align 4
 .global _issue04_Zoissue04$global_slots
@@ -448,15 +633,23 @@ _issue04_Zoissue04$global_slots:
 ; Yalx-String constants
 .global _issue04_Zoissue04_Lksz
 _issue04_Zoissue04_Lksz:
-    .long 4
+    .long 12
     .long 0 ; padding for struct lksz_header
     .quad Lkzs.0
     .quad Lkzs.1
     .quad Lkzs.2
     .quad Lkzs.3
+    .quad Lkzs.4
+    .quad Lkzs.5
+    .quad Lkzs.6
+    .quad Lkzs.7
+    .quad Lkzs.8
+    .quad Lkzs.9
+    .quad Lkzs.10
+    .quad Lkzs.11
 .global _issue04_Zoissue04_Kstr
 _issue04_Zoissue04_Kstr:
-    .long 4
+    .long 12
     .long 0 ; padding for struct kstr_header
 Kstr.0:
     .quad 0
@@ -465,4 +658,20 @@ Kstr.1:
 Kstr.2:
     .quad 0
 Kstr.3:
+    .quad 0
+Kstr.4:
+    .quad 0
+Kstr.5:
+    .quad 0
+Kstr.6:
+    .quad 0
+Kstr.7:
+    .quad 0
+Kstr.8:
+    .quad 0
+Kstr.9:
+    .quad 0
+Kstr.10:
+    .quad 0
+Kstr.11:
     .quad 0
