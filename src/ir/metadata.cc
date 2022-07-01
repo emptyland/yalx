@@ -146,24 +146,6 @@ ArrayModel::ArrayModel(base::Arena *arena, const String *name, const String *ful
 , dimension_count_(dimension_count) {
 }
 
-ArrayModel *ArrayModel::DownToIfNeeded() {
-    if (dimension_count() > 1) {
-        auto buf = ToString(dimension_count() - 1, element_type());
-        auto name = String::New(arena_, buf);
-        return new (arena_) ArrayModel(arena_, name, name, dimension_count() - 1, element_type());
-    }
-    return this;
-}
-
-const ArrayModel *ArrayModel::DownToIfNeeded() const {
-    if (dimension_count() > 1) {
-        auto buf = ToString(dimension_count() - 1, element_type());
-        auto name = String::New(arena_, buf);
-        return new (arena_) ArrayModel(arena_, name, name, dimension_count() - 1, element_type());
-    }
-    return this;
-}
-
 std::string ArrayModel::ToString(int dimension_count, const Type element_type) {
     std::string full_name(element_type.ToString());
     for (int i = 0; i < dimension_count; i++) {

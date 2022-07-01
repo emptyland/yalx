@@ -20,15 +20,15 @@ val v13 = "hello" as u8[]
 val v14 = "world" as i8[]
 val v15 = "hong kong doggy" as char[]
 
-val v16 = u8[] {1,2,3,4} as string
-val v17 = i8[] {1,2,3,4} as string
-val v18 = char[] {'😀', '😂', '😛'} as string
+val v16 = @u8[] {1,2,3,4} as string
+val v17 = @i8[] {1,2,3,4} as string
+val v18 = @char[] {'😀', '😂', '😛'} as string
 
 val v19 = v5.toF32()
 val v20 = v6.toF64()
 
-val v21 = char[16]('a')
-val v22 = int[16](0)
+val v21 = @char[16]('a')
+val v22 = @int[16](0)
 
 val v23: foo.C1? = none
 val v24, v25 = if (v23) {1, 2} else {2, 1}

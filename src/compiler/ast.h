@@ -1094,6 +1094,19 @@ protected:
     Expression *operands_[N];
 }; // class ExpressionWithOperands
 
+class IndexedGet : public Expression {
+public:
+    IndexedGet(base::Arena *arena, Expression *primary, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Expression, primary);
+    DEF_ARENA_VECTOR_GETTER(Expression *, index);
+
+    DECLARE_AST_NODE(IndexedGet);
+private:
+    Expression *primary_;
+    base::ArenaVector<Expression *> indexs_;
+}; // class IndexedGet
+
 class BinaryExpression : public ExpressionWithOperands<2> {
 public:
     BinaryExpression(Kind kind, Expression *lhs, Expression *rhs, const SourcePosition &source_position);
@@ -1141,8 +1154,7 @@ public:
     V(BitwiseShr,      Binary) \
     V(Recv,            Unary)  \
     V(Send,            Binary) \
-    V(IndexedGet,      Binary) \
-    V(AssertedGet,     Unary) \
+    V(AssertedGet,     Unary)  \
 
 #define DEFINE_CLASS(name, base) \
     class name : public base##Expression { \
@@ -1504,6 +1516,8 @@ private:
 class ArrayType : public Type {
 public:
     ArrayType(base::Arena *arena, Type *element_type, int dimension_count, const SourcePosition &source_position);
+    ArrayType(base::Arena *arena, Type *element_type, base::ArenaVector<Expression *> &&dimension_capacities,
+              const SourcePosition &source_position);
     
     int dimension_count() const { return static_cast<int>(dimension_capacitys_size()); }
     Type *element_type() const { return generic_arg(0); }

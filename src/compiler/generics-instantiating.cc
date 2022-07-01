@@ -478,9 +478,13 @@ private:
     }
     
     int VisitIndexedGet(IndexedGet *node) override {
-        DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
-        DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) IndexedGet(lhs, rhs, node->source_position()));
+        DECL_AND_INSTANTIATE(Expression, primary, node->primary());
+        auto expr = new (arena_) IndexedGet(arena_, primary, node->source_position());
+        for (auto index : node->indexs()) {
+            DECL_AND_INSTANTIATE(Expression, idx, index);
+            expr->mutable_indexs()->push_back(idx);
+        }
+        return Return(expr);
     }
     
     int VisitAssertedGet(AssertedGet *node) override {

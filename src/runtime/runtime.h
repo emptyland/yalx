@@ -216,6 +216,10 @@ const struct pkg_global_slots *pkg_get_global_slots(const char *const plain_name
 // put field for post write barrier
 void put_field(struct yalx_value_any **address, struct yalx_value_any *field);
 
+void put_field_chunk(struct yalx_value_any *const host, address_t address, address_t field);
+
+void put_field_chunk_by_index(struct yalx_value_any *const host, const int index_of_field, address_t field);
+
 // lazy load object
 struct yalx_value_any *lazy_load_object(struct yalx_value_any * _Atomic *address, const struct yalx_class *clazz);
 

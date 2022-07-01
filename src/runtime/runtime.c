@@ -693,6 +693,34 @@ void put_field(struct yalx_value_any **address, struct yalx_value_any *field) {
     *address = field;
 }
 
+void put_field_chunk(struct yalx_value_any *const host, address_t address, address_t incoming) {
+    const struct yalx_class *const klass = CLASS(host);
+    DCHECK(address > (address_t)host);
+    
+    struct yalx_class_field *field = NULL;
+    const ptrdiff_t offset_of_head = address - (address_t)host;
+    for (int i = 0; i < klass->n_fields; i++) {
+        if (klass->fields[i].offset_of_head == offset_of_head) {
+            field = &klass->fields[i];
+            break;
+        }
+    }
+    DCHECK(field != NULL);
+    post_typing_write_barrier_if_needed(&heap, field->type, address, incoming);
+    memcpy(address, incoming, field->type->instance_size);
+}
+
+void put_field_chunk_by_index(struct yalx_value_any *const host, const int index_of_field, address_t incoming) {
+    const struct yalx_class *const klass = CLASS(host);
+    DCHECK(index_of_field >= 0);
+    DCHECK(index_of_field < klass->n_fields);
+    
+    const struct yalx_class_field *const field = &klass->fields[index_of_field];
+    address_t location = (address_t)host + field->offset_of_head;
+    post_typing_write_barrier_if_needed(&heap, field->type, location, incoming);
+    memcpy(location, incoming, field->type->instance_size);
+}
+
 static const uintptr_t kPendingMask = 1;
 static const uintptr_t kCreatedMask = ~kPendingMask;
 

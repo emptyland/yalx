@@ -112,7 +112,7 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitAndAlloc) {
     bool ok = true;
     CodeGen("tests/43-code-gen-arrays", "issue04:issue04", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
     
 }
 

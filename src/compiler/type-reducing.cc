@@ -1160,7 +1160,7 @@ private:
                 }
             } else if (auto indexed_get = lval->AsIndexedGet()) {
                 //UNREACHABLE();
-                auto lhs = indexed_get->operand(0);
+                auto lhs = indexed_get->primary();
                 Type *type = nullptr;
                 if (ReduceReturningOnlyOne(lhs, &type) < 0) {
                     return -1;
@@ -1169,24 +1169,31 @@ private:
                     Feedback()->Printf(node->source_position(), "Not array type with `[index]' indexed getting");
                     return -1;
                 }
+
+                std::vector<Type *> indices;
+                for (auto index : indexed_get->indexs()) {
+                    if (Reduce(index, &indices) < 0) {
+                        return -1;
+                    }
+                }
+                
                 ArrayType *ar = DCHECK_NOTNULL(type->AsArrayType());
-                
-                auto index = indexed_get->operand(1);
-                if (ReduceReturningOnlyOne(index, &type) < 0) {
-                    return -1;
-                }
-                if (type->primary_type() != Type::kType_i32 && type->primary_type() != Type::kType_u32) {
-                    Feedback()->Printf(node->source_position(), "`[index]' must be i32 or u32");
+                if (indices.size() != ar->dimension_count()) {
+                    Feedback()->Printf(node->source_position(), "Bad indices number, expected: %zd, need: %zd",
+                                       indices.size(), ar->dimension_count());
                     return -1;
                 }
                 
-                if (ar->dimension_count() > 1) {
-                    type = new (arena_) ArrayType(arena_, ar->element_type(), ar->dimension_count() - 1,
-                                                  ar->source_position());
-                } else {
-                    type = ar->element_type();
+                for (auto index : indices) {
+                    if (index->primary_type() != Type::kType_i32 && index->primary_type() != Type::kType_u32) {
+                        Feedback()->Printf(node->source_position(), "Bad index type, expected: %s, need: i32/u32",
+                                           index->ToString().c_str());
+                        return -1;
+                    }
                 }
-                lvals.push_back(type);
+                
+            
+                lvals.push_back(ar->element_type());
             } else {
                 Feedback()->Printf(node->source_position(), "Invalid rval");
                 return -1;
@@ -1817,7 +1824,7 @@ private:
     
     int VisitIndexedGet(IndexedGet *node) override {
         Type *type = nullptr;
-        if (ReduceReturningOnlyOne(node->lhs(), &type) < 0) {
+        if (ReduceReturningOnlyOne(node->primary(), &type) < 0) {
             return -1;
         }
         if (!type->IsArrayType()) {
@@ -1825,13 +1832,28 @@ private:
                                type->ToString().c_str());
             return -1;
         }
-        
         auto ar = type->AsArrayType();
-        if (ar->dimension_count() == 1) {
-            return Returning(ar->element_type());
+        
+        std::vector<Type *> indices;
+        for (auto index : node->indexs()) {
+            if (Reduce(index, &indices) < 0) {
+                return -1;
+            }
         }
-        return Returning(new (arena_) ArrayType(arena_, ar->element_type(), ar->dimension_count() - 1,
-                                                ar->source_position()));
+        if (indices.size() != ar->dimension_count()) {
+            Feedback()->Printf(node->source_position(), "Bad indices number, expected: %zd, needed: %zd",
+                               indices.size(), ar->dimension_count());
+            return -1;
+        }
+        for (auto index : indices) {
+            if (index->primary_type() != Type::kType_u32 && index->primary_type() != Type::kType_i32) {
+                Feedback()->Printf(node->source_position(), "Bad index type, expected: %zd, needed: i32/u32",
+                                   index->ToString().c_str());
+                return -1;
+            }
+        }
+        
+        return Returning(ar->element_type());
     }
 
     int VisitAdd(Add *node) override { return ReduceBinaryExpression("+", node, kNumberTy); }

@@ -19,17 +19,17 @@ val a2 = {
     }
 }
 
-val a3 = int[][]{{1,2}}
+val a3 = @int[][]{{1,2}}
 
-val a4 = string[][][]{{{"hello"}}}
+val a4 = @string[][][]{{{"hello"}}}
 
 val a5 = {foo.Foo(1,2), foo.Foo(2,3)}
 
-val a6 = int[11](0)
+val a6 = @int[11](0)
 
-val a7 = foo::Foo[2][3](foo.Foo(0, 0))
+val a7 = @foo.Foo[2][3](foo.Foo(0, 0))
 
-//val a8 = int[2,2] = {{1,2}, {3,4}}
+//val a8 = @int[2,2] = {{1,2}, {3,4}}
 
 fun main() {
     a7[1][2] = foo.Foo(1, 2)

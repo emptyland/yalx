@@ -114,9 +114,9 @@ public:
                                      0/*control_out*/);
     }
     
-    Operator *ArrayAt(const ArrayModel *type) {
-        return new (arena_) OperatorWith<const ArrayModel *>(Operator::kArrayAt, 0, 2/*value_in*/, 0/*control_in*/,
-                                                             1/*value_out*/, 0/*control_out*/, type);
+    Operator *ArrayAt(const ArrayModel *type, int value_in) {
+        return new (arena_) OperatorWith<const ArrayModel *>(Operator::kArrayAt, 0, value_in/*value_in*/,
+                                                             0/*control_in*/, 1/*value_out*/, 0/*control_out*/, type);
     }
     
     Operator *ArraySet(const ArrayModel *type) {

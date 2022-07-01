@@ -551,6 +551,12 @@ ChannelInitializer::ChannelInitializer(Type *type, Expression *capacity, const S
     , capacity_(capacity) {
 }
 
+IndexedGet::IndexedGet(base::Arena *arena, Expression *primary, const SourcePosition &source_position)
+: Expression(kIndexedGet, true, true, source_position)
+, primary_(primary)
+, indexs_(arena) {
+}
+
 BinaryExpression::BinaryExpression(Kind kind, Expression *lhs, Expression *rhs, const SourcePosition &source_position)
     : ExpressionWithOperands<2>(kind, source_position) {
     set_operand(0, lhs);
@@ -854,6 +860,13 @@ ArrayType::ArrayType(base::Arena *arena, Type *element_type, int dimension_count
     mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
 }
 
+ArrayType::ArrayType(base::Arena *arena, Type *element_type, base::ArenaVector<Expression *> &&dimension_capacities,
+                     const SourcePosition &source_position)
+    : Type(arena, Type::kArray, kType_array, nullptr, source_position)
+    , dimension_capacitys_(std::move(dimension_capacities)) {
+    mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
+}
+
 bool ArrayType::Acceptable(const Type *rhs, bool *unlinked) const {
     if (!rhs->IsArrayType() || dimension_count() != rhs->AsArrayType()->dimension_count()) {
         return false;
@@ -869,12 +882,11 @@ bool ArrayType::Acceptable(const Type *rhs, bool *unlinked) const {
 std::string ArrayType::ToString() const {
     std::string dim;
     assert(dimension_count() > 0);
-    for (int i = 0; i <dimension_count(); i++) {
-        dim.append("[");
+    dim.append("[");
+    for (int i = 0; i <dimension_count() - 1; i++) {
+        dim.append(",");
     }
-    for (int i = 0; i <dimension_count(); i++) {
-        dim.append("]");
-    }
+    dim.append("]");
     return element_type()->ToString() + dim;
 }
 

@@ -1,26 +1,26 @@
 package issue04
 
 @yalx.Compiler(nativeHandle=true)
-fun issue1() -> int[]{1,2,3,4}
+fun issue1() -> @int[]{1,2,3,4}
 
 @yalx.Compiler(nativeHandle=true)
-fun issue2() -> string[]{"hello", "world", "!"}
+fun issue2() -> @string[]{"hello", "world", "!"}
 
 @yalx.Compiler(nativeHandle=true)
-fun issue3() -> int[][]{{1,2},{3,4},{5,6}}
+fun issue3() -> @int[][]{{1,2},{3,4},{5,6}}
 
 @yalx.Compiler(nativeHandle=true)
-fun issue4() -> int[10][8](996)
+fun issue4() -> @int[10][8](996)
 
 @yalx.Compiler(nativeHandle=true)
 fun issue5(): int, int, int {
-    val ar = int[] {1,2,3,4,5,6,7}
+    val ar = @int[] {1,2,3,4,5,6,7}
     return ar[1], ar[3], ar[5]
 }
 
 @yalx.Compiler(nativeHandle=true)
 fun issue6(): Foo[] {
-    val a = ::Foo[10](Foo(0, ""))
+    val a = @Foo[10](Foo(0, ""))
     a[1] = Foo(1, "ok")
     return a
 }

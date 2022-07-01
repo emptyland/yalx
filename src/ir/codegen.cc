@@ -1366,27 +1366,26 @@ public:
     
     int VisitNegative(cpl::Negative *node) override { UNREACHABLE(); }
     
+    // indices
     int VisitIndexedGet(cpl::IndexedGet *node) override {
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
         Value *lhs = nullptr;
-        if (ReduceReturningOnlyOne(node->lhs(), &lhs) < 0) {
+        if (ReduceReturningOnlyOne(node->primary(), &lhs) < 0) {
             return -1;
         }
         DCHECK(lhs->type().model()->declaration() == Model::kArray);
-        Value *index = nullptr;
-        if (ReduceReturningOnlyOne(node->rhs(), &index) < 0) {
-            return -1;
+        std::vector<Value *> indices;
+        indices.push_back(lhs);
+        for (auto index : node->indexs()) {
+            if (Reduce(index, &indices) < 0) {
+                return -1;
+            }
         }
-        DCHECK(index->type().IsIntegral());
+        
         auto ar = down_cast<ArrayModel>(lhs->type().model());
-        Type element_ty;
-        if (ar->dimension_count() > 1) {
-            element_ty = Type::Ref(ar->DownToIfNeeded());
-        } else {
-            element_ty = ar->element_type();
-        }
-        auto op = ops()->ArrayAt(ar);
-        auto rv = b()->NewNode(root_ss.Position(), element_ty, op, lhs, index);
+        Type element_ty = ar->element_type();
+        auto op = ops()->ArrayAt(ar, static_cast<int>(indices.size()));
+        auto rv = b()->NewNodeWithValues(nullptr, root_ss.Position(), element_ty, op, indices);
         return Returning(rv);
     }
     
@@ -1894,6 +1893,9 @@ private:
     }
     
     int ProcessDotOrIndexedChainAssignment(cpl::Statement *ast, Value *rval) {
+        using IndicesTy = base::ArenaVector<cpl::Expression *>;
+        using PartTy = std::variant<const String *, IndicesTy>;
+        
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(ast));
         // a.b.c.d
         // ["a","b","c","d"]
@@ -1903,7 +1905,7 @@ private:
         // %2 = load %1 <c>
         // %3 = store %2, 1 <d>
         //
-        std::vector<std::variant<const String *, cpl::Expression *>> parts;
+        std::vector<PartTy> parts;
         cpl::Statement *node = ast;
         while (node->IsDot() || node->IsIndexedGet()) {
             if (auto dot = node->AsDot()) {
@@ -1912,8 +1914,8 @@ private:
                 node = dot->primary();
             } else {
                 auto get = DCHECK_NOTNULL(node->AsIndexedGet());
-                parts.insert(parts.begin(), get->rhs());
-                node = get->lhs();
+                parts.insert(parts.begin(), get->indexs());
+                node = get->primary();
             }
         }
         // `node` is first part of dot chain
@@ -1932,11 +1934,13 @@ private:
                 records.push(value);
                 value = EmitLoadField(value, handle, root_ss.Position());
             }
-            if (auto expr = std::get_if<cpl::Expression *>(&parts[i])) {
-                Value *index = nullptr;
-                if (ReduceReturningOnlyOne(*expr, &index) < 0) { return -1; }
+            if (auto exprs = std::get_if<IndicesTy>(&parts[i])) {
+                std::vector<Value *> indices;
+                for (auto index : *exprs) {
+                    if (Reduce(index, &indices) < 0) { return -1; }
+                }
                 records.push(value);
-                value = EmitArrayAt(value, index, root_ss.Position());
+                value = EmitArrayAt(value, indices, root_ss.Position());
             }
             DCHECK(value->type().kind() == Type::kValue || value->type().kind() == Type::kReference);
         }
@@ -1945,10 +1949,12 @@ private:
             auto handle = DCHECK_NOTNULL(value->type().model()->FindMemberOrNull((*field)->ToSlice()));
             value = EmitStoreField(value, rval, handle, root_ss.Position());
         }
-        if (auto expr = std::get_if<cpl::Expression *>(&parts.back())) {
-            Value *index = nullptr;
-            if (ReduceReturningOnlyOne(*expr, &index) < 0) { return -1; }
-            value = EmitArraySet(value, rval, index, root_ss.Position());
+        if (auto exprs = std::get_if<IndicesTy>(&parts.back())) {
+            std::vector<Value *> indices;
+            for (auto index : *exprs) {
+                if (Reduce(index, &indices) < 0) { return -1; }
+            }
+            value = EmitArrayAt(value, indices, root_ss.Position());
         }
         
         for (int64_t i = static_cast<int64_t>(parts.size()) - 2; i >= 0; i--) {
@@ -1959,10 +1965,12 @@ private:
                 auto handle = DCHECK_NOTNULL(value->type().model()->FindMemberOrNull((*field)->ToSlice()));
                 value = EmitStoreField(lval, value, handle, root_ss.Position());
             }
-            if (auto expr = std::get_if<cpl::Expression *>(&parts[i])) {
-                Value *index = nullptr;
-                if (ReduceReturningOnlyOne(*expr, &index) < 0) { return -1; }
-                value = EmitArraySet(lval, value, index, root_ss.Position());
+            if (auto exprs = std::get_if<IndicesTy>(&parts[i])) {
+                std::vector<Value *> indices;
+                for (auto index : *exprs) {
+                    if (Reduce(index, &indices) < 0) { return -1; }
+                }
+                value = EmitArrayAt(value, indices, root_ss.Position());
             }
         }
         
@@ -2065,14 +2073,15 @@ private:
         return call;
     }
     
-    Value *EmitArrayAt(Value *value, Value *index, SourcePosition source_position) {
+    Value *EmitArrayAt(Value *value, const std::vector<Value *> &indices, SourcePosition source_position) {
         DCHECK(value->type().model() != nullptr);
         DCHECK(value->type().IsReference());
         
-        auto origin = down_cast<ArrayModel>(value->type().model());
-        ArrayModel *ar = origin->DownToIfNeeded();
-        Operator *op = ops()->ArrayAt(ar);
-        return b()->NewNode(source_position, Type::Ref(ar), op, value, index);
+        auto ar = down_cast<ArrayModel>(value->type().model());
+        std::vector<Value *> input(indices);
+        input.insert(input.begin(), value);
+        Operator *op = ops()->ArrayAt(ar, static_cast<int>(input.size()));
+        return b()->NewNodeWithValues(nullptr, source_position, ar->element_type(), op, input);
     }
     
     Value *EmitLoadField(Value *value, Handle *handle, SourcePosition source_position) {

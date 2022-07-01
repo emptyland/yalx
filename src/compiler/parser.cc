@@ -1213,35 +1213,16 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                 expr = new (arena_) Dot(expr, field, dot_location);
             } break;
                 
-            case Token::k2Colon: { // ::
-                MoveNext();
-                if (auto ns = expr->AsIdentifier()) {
-                    if (Peek().Is(Token::kIdentifier)) {
-                        auto id = Peek().text_val();
-                        MoveNext();
-                        if (Peek().Is(Token::kLParen)) {
-                            expr = new (arena_) Dot(expr, id, expr->source_position().Concat(location));
-                            break;
-                        }
-                        auto ty = ParseArrayTypeMaybeWithLimits(ns, id, CHECK_OK);
-                        return ParseArrayInitializer(ty, ty->dimension_count(), CHECK_OK);
-                    } else if (Peek().Is(Token::kClass)) {
-                        // TODO:
-                        UNREACHABLE();
-                    }
-                }
-                
-                error_feedback_->Printf(Peek().source_position(), "Unexpected `class` or identifier for `::', expected: %s",
-                                        Peek().ToString().c_str());
-                *ok = false;
-            } return nullptr;
-                
             case Token::kLBrack: { // [
                 MoveNext();
-                Expression *index = ParseExpression(CHECK_OK);
                 auto idx_location = location.Concat(Peek().source_position());
+                auto get = new (arena_) IndexedGet(arena_, expr, idx_location);
+                do {
+                    Expression *index = ParseExpression(CHECK_OK);
+                    get->mutable_indexs()->push_back(index);
+                } while (Test(Token::kComma));
                 Match(Token::kRBrack, CHECK_OK);
-                expr = new (arena_) IndexedGet(expr, index, idx_location);
+                expr = get;
             } break;
                 
             case Token::kLParen: { // (
@@ -1305,15 +1286,6 @@ Expression *Parser::ParsePrimary(bool *ok) {
         return new (arena_) ChannelInitializer(type, capacity, location);
     }
     
-    bool is_type = true;
-    auto saved = lookahead_;
-    ProbeAtomType(&is_type);
-    lookahead_ = saved;
-    if (is_type) {
-        auto type = ParseArrayTypeMaybeWithLimits(CHECK_OK);
-        return ParseArrayInitializer(type, type->dimension_count(), CHECK_OK);
-    }
-    
     Expression *expr = nullptr;
     switch (Peek().kind()) {
         case Token::kLParen:
@@ -1344,6 +1316,12 @@ Expression *Parser::ParsePrimary(bool *ok) {
             expr = new (arena_) CharLiteral(arena_, Peek().char_val(), location);
             MoveNext();
             break;
+        case Token::kAtOutlined: {
+            MoveNext();
+            auto type = ParseArrayTypeMaybeWithLimits(CHECK_OK);
+            expr = ParseArrayInitializer(type, type->dimension_count(), CHECK_OK);
+        } break;
+            
         case Token::kStringLine:
         case Token::kStringBlock:
             expr = new (arena_) StringLiteral(arena_, Peek().text_val(), location);
@@ -1932,20 +1910,53 @@ ArrayType *Parser::ParseArrayTypeMaybeWithLimits(const Identifier *ns, const Str
         type = new (arena_) OptionType(arena_, type, location);
     }
     
-    auto ar = new (arena_) ArrayType(arena_, type, 0, location);
+    //int[,][][,,]?
+    //val ar = some(int[,][][,,])
+    
+    //auto ar = new (arena_) ArrayType(arena_, type, 0, location);
+    //ArrayType *ar = reinterpret_cast<ArrayType *>(type);
+    // [][]...
+    // [expr,expr,expr,...]
+    std::vector<base::ArenaVector<Expression *>> stack;
+    base::ArenaVector<Expression *> capacities(arena_);
     while (Test(Token::kLBrack)) {
         if (Peek().Is(Token::kRBrack)) {
-            ar->mutable_dimension_capacitys()->push_back(nullptr);
+            MoveNext();
+            capacities.push_back(nullptr);
+            //ar = new (arena_) ArrayType(arena_, ar, std::move(capacities), location);
+            stack.push_back(std::move(capacities));
+            continue;
+        }
+        
+        if (Peek().Is(Token::kComma)) {
+            while (Test(Token::kComma)) {
+                capacities.push_back(nullptr);
+            }
+            if (Test(Token::kRBrack)) {
+                capacities.push_back(nullptr);
+                //ar = new (arena_) ArrayType(arena_, ar, std::move(capacities), location);
+                stack.push_back(std::move(capacities));
+            }
+            continue;
+        }
+
+        auto expr = ParseExpression(CHECK_OK);
+        capacities.push_back(expr);
+        if (!Test(Token::kComma)) {
             Match(Token::kRBrack, CHECK_OK);
-        } else {
-            auto expr = ParseExpression(CHECK_OK);
-            ar->mutable_dimension_capacitys()->push_back(expr);
-            Match(Token::kRBrack, CHECK_OK);
+            //ar = new (arena_) ArrayType(arena_, ar, std::move(capacities), location);
+            stack.push_back(std::move(capacities));
         }
     }
+    DCHECK(!stack.empty());
     
-    if (!ar->HasCapacities() != ar->HasNotCapacities() ||
-        !ar->HasNotCapacities() != ar->HasCapacities()) {
+    ArrayType *ar = reinterpret_cast<ArrayType *>(type);
+    for (int i = stack.size() - 1; i >= 1; i--) {
+        ar = new (arena_) ArrayType(arena_, ar, std::move(stack[i]), location);
+    }
+    ar = new (arena_) ArrayType(arena_, ar, std::move(stack[0]), location);
+    
+    if (!ar->HasCapacities() != ar->HasNotCapacities() || !ar->HasNotCapacities() != ar->HasCapacities()) {
         error_feedback_->Printf(ar->source_position(), "Bad array type: `%s'", ar->ToString().c_str());
         *ok = false;
         return nullptr;
@@ -2025,7 +2036,6 @@ Type *Parser::ParseAtomType(bool *ok) {
             MoveNext();
             type = new (arena_) Type(arena_, Type::kType_string, location);
             break;
-        case Token::k2Colon:
         case Token::kIdentifier: {
             auto symbol = ParseSymbol(CHECK_OK);
             type = new (arena_) Type(arena_, symbol, location);

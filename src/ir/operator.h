@@ -47,6 +47,7 @@ namespace ir {
     V(LoadFunAddr) \
     V(LoadEffectAddress) \
     V(ArrayAt) \
+    V(ArrayUncheckedAt) \
     V(ArraySet) \
     V(LoadAccessField) \
     V(StoreAccessField) \
@@ -142,6 +143,7 @@ namespace ir {
     V(LazyValue,        String const *) \
     V(LoadFunAddr,      Function *) \
     V(ArrayAt,          Model const *) \
+    V(ArrayUncheckedAt, Model const *) \
     V(ArraySet,         Model const *) \
     V(LoadInlineField,  Handle const *) \
     V(LoadAccessField,  Handle const *) \

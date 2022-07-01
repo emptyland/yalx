@@ -625,7 +625,7 @@ TEST_F(ParserTest, BreakContinueThrowStatements) {
 TEST_F(ParserTest, ArrayInitializer) {
     SwitchInput("{1,2,3}\n"
                 "{{1,2},{3,4}}\n"
-                "int[]{1,2,3}\n");
+                "@int[]{1,2,3}\n");
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
@@ -648,6 +648,25 @@ TEST_F(ParserTest, ArrayInitializer) {
     ASSERT_EQ(3, ar3->dimensions_size());
     ASSERT_NE(nullptr, ar3->type());
     ASSERT_TRUE(ar3->type()->IsArrayType());
+}
+
+TEST_F(ParserTest, MutliDimsArrayInitializer) {
+    SwitchInput("@int[,][][,,]{{1},{2}}\n"
+                "@int[,]{{1},{2}}\n"
+                "@int[2,2]{{1,2},{3,4}}\n");
+    bool ok = true;
+    auto ast = parser_.ParseExpression(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(ast->IsArrayInitializer());
+    auto ar = down_cast<ArrayType>(ast->AsArrayInitializer()->type());
+    ASSERT_EQ(2, ar->dimension_count());
+    ASSERT_TRUE(ar->element_type()->IsArrayType());
+    ar = down_cast<ArrayType>(ar->element_type());
+    ASSERT_EQ(1, ar->dimension_count());
+    ASSERT_TRUE(ar->element_type()->IsArrayType());
+    ar = down_cast<ArrayType>(ar->element_type());
+    ASSERT_EQ(3, ar->dimension_count());
 }
 
 } // namespace cpl

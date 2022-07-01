@@ -35,6 +35,9 @@ struct backtrace_frame **yalx_unwind(size_t *depth, int dummy) {
         if (dummy-- > 0) {
             continue;
         }
+        if (dummy == -5) {
+            break;
+        }
         struct backtrace_frame *frame = (struct backtrace_frame *)heap_alloc(backtrace_frame_class);
     #if defined(YALX_ARCH_ARM64)
         pc &= 0xfffffffffffull; // valid address only 48 bits

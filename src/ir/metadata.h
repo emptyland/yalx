@@ -102,6 +102,7 @@ public:
     virtual Handle *FindMemberOrNull(std::string_view name) const;
     virtual size_t ReferenceSizeInBytes() const = 0;
     virtual size_t PlacementSizeInBytes() const = 0;
+    //virtual bool HasRefTypeAtLeastOne() const = 0;
     bool IsNotBaseOf(const Model *base) const { return !IsBaseOf(base); }
     virtual bool IsBaseOf(const Model *base) const;
     virtual void PrintTo(int indent, base::PrintingWriter *printer) const;
@@ -158,8 +159,8 @@ public:
     ArrayModel(base::Arena *arena, const String *name, const String *full_name,
                int dimension_count, const Type element_type);
     
-    ArrayModel *DownToIfNeeded();
-    const ArrayModel *DownToIfNeeded() const;
+//    ArrayModel *DownToIfNeeded();
+//    const ArrayModel *DownToIfNeeded() const;
     
     DEF_VAL_GETTER(Type, element_type);
     DEF_VAL_GETTER(int, dimension_count);

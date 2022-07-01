@@ -67,6 +67,8 @@
 		23448B6928583024007013EB /* logging.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6728583024007013EB /* logging.c */; };
 		23448B6B28586C93007013EB /* logging-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6A28586C92007013EB /* logging-test.cc */; };
 		23448B6C28586C93007013EB /* logging-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6A28586C92007013EB /* logging-test.cc */; };
+		2348E619286AB26200E2C365 /* type.c in Sources */ = {isa = PBXBuildFile; fileRef = 2348E618286AB26200E2C365 /* type.c */; };
+		2348E61A286AB26200E2C365 /* type.c in Sources */ = {isa = PBXBuildFile; fileRef = 2348E618286AB26200E2C365 /* type.c */; };
 		2355560A278929C0003ADACE /* io-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23555609278929C0003ADACE /* io-test.cc */; };
 		2355560B278929C0003ADACE /* io-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23555609278929C0003ADACE /* io-test.cc */; };
 		2355560E278936EC003ADACE /* utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2355560D278936EC003ADACE /* utils.cc */; };
@@ -383,6 +385,7 @@
 		23448B6628582DE5007013EB /* logging.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = logging.h; path = ../src/runtime/lxr/logging.h; sourceTree = "<group>"; };
 		23448B6728583024007013EB /* logging.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = logging.c; path = ../src/runtime/lxr/logging.c; sourceTree = "<group>"; };
 		23448B6A28586C92007013EB /* logging-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "logging-test.cc"; path = "../src/runtime/lxr/logging-test.cc"; sourceTree = "<group>"; };
+		2348E618286AB26200E2C365 /* type.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = type.c; path = ../src/runtime/object/type.c; sourceTree = "<group>"; };
 		2351F80E26648CB200D337EA /* runtime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = runtime.h; path = ../src/runtime/runtime.h; sourceTree = "<group>"; };
 		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
 		2351F8112664939700D337EA /* macros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macros.h; path = ../src/runtime/macros.h; sourceTree = "<group>"; };
@@ -861,6 +864,7 @@
 				232FDB0F26818CF900D52154 /* number-test.cc */,
 				232FDB0B26806D8B00D52154 /* number.c */,
 				232FDB0A26806CDB00D52154 /* number.h */,
+				2348E618286AB26200E2C365 /* type.c */,
 				23D5A6872667719200635ADB /* type.h */,
 				23D5A6882667734A00635ADB /* builtin-types.c */,
 				23D5A68A26677D4B00635ADB /* type-test.cc */,
@@ -1135,6 +1139,7 @@
 				2387EFA926846309002E6DCF /* source-position-test.cc in Sources */,
 				231C4B91268DA7D200D4AC62 /* any-posix-arm64.s in Sources */,
 				23D4A4792680D17D0090C631 /* reference-count.h in Sources */,
+				2348E61A286AB26200E2C365 /* type.c in Sources */,
 				23C1344B27A3CF0B00C0DEB4 /* instruction.cc in Sources */,
 				2362A0F126A6CB1700A972B1 /* generics-instantiating-test.cc in Sources */,
 				2313C4D327A238B000F6A34B /* pass.cc in Sources */,
@@ -1285,6 +1290,7 @@
 				2355560A278929C0003ADACE /* io-test.cc in Sources */,
 				239735CF27B551A500FAD063 /* linkage-symbols-test.cc in Sources */,
 				23893F8328449CE4000FA9F7 /* block-test.cc in Sources */,
+				2348E619286AB26200E2C365 /* type.c in Sources */,
 				2313C4D627A23E8500F6A34B /* constants-folding.cc in Sources */,
 				23D5A655266718ED00635ADB /* process.c in Sources */,
 				23D5A656266718ED00635ADB /* checking.h in Sources */,
