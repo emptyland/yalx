@@ -104,9 +104,9 @@ enum yalx_builtin_type {
     Type_F32,
     Type_F64,
     Type_string,
-    Type_typed_array,
-    Type_refs_array,
-    Type_dims_array,
+    Type_array,
+    Type_unused0,
+    Type_multi_dims_array,
     MAX_BUILTIN_TYPES,
     NOT_BUILTIN_TYPE,
 };
@@ -148,9 +148,8 @@ extern const struct yalx_class *const string_class;
 
 
 // Classes of arrays
-extern const struct yalx_class *const typed_array_class;
-extern const struct yalx_class *const refs_array_class;
-extern const struct yalx_class *const dims_array_class;
+extern const struct yalx_class *const array_class;
+extern const struct yalx_class *const multi_dims_array_class;
 
 // Classes of throwing
 extern const struct yalx_class *backtrace_frame_class;

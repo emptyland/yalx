@@ -116,16 +116,15 @@ InstructionFunction::InstructionFunction(base::Arena *arena, const String *symbo
 
 ReloactionOperand *InstructionFunction::AddArrayElementClassSymbol(const ir::ArrayModel *ar, bool fetch_address) {
     switch (ar->dimension_count()) {
+        case 0:
+            UNREACHABLE();
+            break;
+
         case 1:
             return AddClassSymbol(ar->element_type(), fetch_address);
 
-        case 2: {
-            auto offset = (ar->element_type().IsReference() ? Type_refs_array : Type_typed_array) * sizeof(yalx_class);
-            return new (arena_) ReloactionOperand(kRt_builtin_classes, offset, fetch_address);
-        } break;
-
         default: {
-            auto offset = Type_dims_array * sizeof(yalx_class);
+            auto offset = Type_multi_dims_array * sizeof(yalx_class);
             return new (arena_) ReloactionOperand(kRt_builtin_classes, offset, fetch_address);
         } break;
     }
@@ -162,26 +161,10 @@ ReloactionOperand *InstructionFunction::AddClassSymbol(const ir::Type &ty, bool 
                 } break;
                     
                 case ir::Model::kArray: {
-                    
                     auto array_ty = down_cast<ir::ArrayModel>(clazz);
-                    int id = 0;
-                    if (auto element_ty = array_ty->element_type().model()) {
-                        if (element_ty->declaration() == ir::Model::kArray) {
-                            id = Type_dims_array;
-                        } else if (element_ty->declaration() == ir::Model::kStruct ||
-                                   element_ty->declaration() == ir::Model::kInterface) {
-                            id = Type_typed_array;
-                        } else {
-                            id = Type_refs_array;
-                        }
-                    } else {
-                        if (array_ty->element_type().kind() == ir::Type::kString) {
-                            id = Type_refs_array;
-                        } else {
-                            id = Type_typed_array;
-                        }
-                    }
-                    auto offset = id * sizeof(yalx_class);
+                    auto offset = array_ty->dimension_count() > 1
+                        ? Type_multi_dims_array * sizeof(yalx_class)
+                        : Type_array * sizeof(yalx_class);
                     return new (arena_) ReloactionOperand(kRt_builtin_classes, offset, fetch_address);
                 } break;
                 

@@ -212,7 +212,7 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         ASSERT_NE(nullptr, klass);
         ASSERT_STREQ("TypedArray", klass->name.z);
         
-        auto ar = reinterpret_cast<yalx_value_typed_array *>(ref);
+        auto ar = reinterpret_cast<yalx_value_array *>(ref);
         ASSERT_EQ(&builtin_classes[Type_i32], ar->item);
         ASSERT_EQ(4, ar->len);
         auto elements = reinterpret_cast<const int *>(ar->data);
@@ -235,7 +235,7 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         ASSERT_NE(nullptr, klass);
         ASSERT_STREQ("RefsArray", klass->name.z);
         
-        auto ar = reinterpret_cast<yalx_value_refs_array *>(ref);
+        auto ar = reinterpret_cast<yalx_value_array *>(ref);
         ASSERT_STREQ("String", ar->item->name.z);
         ASSERT_EQ(3, ar->len);
         auto elements = reinterpret_cast<yalx_value_str **>(ar->data);
@@ -258,10 +258,10 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         ASSERT_NE(nullptr, klass);
         ASSERT_STREQ("DimsArray", klass->name.z);
         
-        auto ar = reinterpret_cast<yalx_value_dims_array *>(ref);
+        auto ar = reinterpret_cast<yalx_value_array *>(ref);
         ASSERT_STREQ("TypedArray", ar->item->name.z);
         ASSERT_EQ(3, ar->len);
-        auto elements = reinterpret_cast<yalx_value_typed_array **>(ar->arrays);
+        auto elements = reinterpret_cast<yalx_value_array **>(ar->data);
     }
     yalx_exit_returning_scope(&state);
     
@@ -277,10 +277,10 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         ASSERT_NE(nullptr, klass);
         ASSERT_STREQ("DimsArray", klass->name.z);
         
-        auto ar = reinterpret_cast<yalx_value_dims_array *>(ref);
+        auto ar = reinterpret_cast<yalx_value_array *>(ref);
         ASSERT_STREQ("TypedArray", ar->item->name.z);
         ASSERT_EQ(10, ar->len);
-        auto elements = reinterpret_cast<yalx_value_typed_array **>(ar->arrays);
+        auto elements = reinterpret_cast<yalx_value_array **>(ar->data);
         for (int i = 0; i < ar->len; i++) {
             ASSERT_EQ(8, elements[i]->len);
         }
@@ -311,7 +311,7 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         ASSERT_NE(nullptr, klass);
         ASSERT_STREQ("TypedArray", klass->name.z);
         
-        auto ar = reinterpret_cast<yalx_value_typed_array *>(ref);
+        auto ar = reinterpret_cast<yalx_value_array *>(ref);
         ASSERT_STREQ("Foo", ar->item->name.z);
         ASSERT_STREQ("issue04:issue04.Foo", ar->item->location.z);
         ASSERT_EQ(ar->len, 10);

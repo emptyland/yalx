@@ -356,14 +356,14 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         // TODO:
     }, // F64
     
-    [Type_typed_array] = {
-        .id = (uint64_t)Type_typed_array,
+    [Type_array] = {
+        .id = (uint64_t)Type_array,
         .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
-        .instance_size = sizeof(struct yalx_value_typed_array),
+        .instance_size = sizeof(struct yalx_value_array),
         .super = &builtin_classes[Type_any],
-        .name = YALX_STR("TypedArray"),
-        .location = YALX_STR("TypedArray"),
+        .name = YALX_STR("Array"),
+        .location = YALX_STR("Array"),
         .n_annotations = 0,
         .n_fields = 0,
         .fields = NULL,
@@ -375,33 +375,16 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         // TODO:
     }, // TypedArray
     
-    [Type_refs_array] = {
-        .id = (uint64_t)Type_refs_array,
-        .constraint = K_CLASS,
-        .reference_size = sizeof(yalx_ref_t),
-        .instance_size = sizeof(struct yalx_value_refs_array),
-        .super = &builtin_classes[Type_any],
-        .name = YALX_STR("RefsArray"),
-        .location = YALX_STR("RefsArray"),
-        .n_annotations = 0,
-        .n_fields = 0,
-        .fields = NULL,
-        .ctor = NULL,
-        .n_methods = 0,
-        .methods = NULL, // TODO:
-        .n_itab = 0,
-        .n_vtab = 0,
-        // TODO:
-    }, // RefsArray
+    [Type_unused0] = {}, // unused
     
-    [Type_dims_array] = {
-        .id = (uint64_t)Type_dims_array,
+    [Type_multi_dims_array] = {
+        .id = (uint64_t)Type_multi_dims_array,
         .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
-        .instance_size = sizeof(struct yalx_value_dims_array),
+        .instance_size = sizeof(struct yalx_value_multi_dims_array),
         .super = &builtin_classes[Type_any],
-        .name = YALX_STR("DimsArray"),
-        .location = YALX_STR("DimsArray"),
+        .name = YALX_STR("MultiDimsArray"),
+        .location = YALX_STR("MultiDimsArray"),
         .n_annotations = 0,
         .n_fields = 0,
         .fields = NULL,
@@ -432,9 +415,8 @@ const struct yalx_class *const U64_class = &builtin_classes[Type_U64];
 const struct yalx_class *const F32_class = &builtin_classes[Type_F32];
 const struct yalx_class *const F64_class = &builtin_classes[Type_F64];
 
-const struct yalx_class *const typed_array_class = &builtin_classes[Type_typed_array];
-const struct yalx_class *const refs_array_class = &builtin_classes[Type_refs_array];
-const struct yalx_class *const dims_array_class = &builtin_classes[Type_dims_array];
+const struct yalx_class *const array_class = &builtin_classes[Type_array];
+const struct yalx_class *const multi_dims_array_class = &builtin_classes[Type_multi_dims_array];
 
 const struct yalx_class *const any_class = &builtin_classes[Type_any];
 const struct yalx_class *const string_class = &builtin_classes[Type_string];

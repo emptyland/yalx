@@ -422,11 +422,9 @@ void GnuAsmGenerator::EmitTypeRelocation(const ir::Type &ty, base::PrintingWrite
             if (ty.model()->declaration() == ir::Model::kArray) {
                 auto model = down_cast<ir::ArrayModel>(ty.model());
                 if (model->dimension_count() > 1) {
-                    printer->Print("_builtin_classes+%d", Type_dims_array * sizeof(yalx_class));
-                } else if (model->element_type().IsReference()) {
-                    printer->Print("_builtin_classes+%d", Type_refs_array * sizeof(yalx_class));
+                    printer->Print("_builtin_classes+%d", Type_multi_dims_array * sizeof(yalx_class));
                 } else {
-                    printer->Print("_builtin_classes+%d", Type_typed_array * sizeof(yalx_class));
+                    printer->Print("_builtin_classes+%d", Type_array * sizeof(yalx_class));
                 }
             } else if (ty.model()->declaration() == ir::Model::kChannel) {
                 UNREACHABLE();

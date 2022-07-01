@@ -794,32 +794,29 @@ struct yalx_value_array_header *array_alloc(const struct yalx_class *const eleme
     switch (maybe_builtin_ty) {
         case Type_any:
         case Type_string:
+        case Type_array:
+        case Type_multi_dims_array:
             return yalx_new_refs_array_with_data(&heap, element_ty, (yalx_ref_t *)elements, nitems);
-            
-        case Type_refs_array:
-        case Type_dims_array:
-        case Type_typed_array:
-            return yalx_new_dims_array_with_data(&heap, element_ty, elements, nitems);
             
         case NOT_BUILTIN_TYPE: // It's not user definition types
             break;
             
         default:
             DCHECK(element_ty->constraint == K_PRIMITIVE);
-            return yalx_new_typed_array_with_data(&heap, element_ty, elements, nitems);
+            return yalx_new_vals_array_with_data(&heap, element_ty, elements, nitems);
     }
     if (element_ty->constraint == K_CLASS) {
         return yalx_new_refs_array_with_data(&heap, element_ty, (yalx_ref_t *)elements, nitems);
     }
     DCHECK(element_ty->constraint == K_STRUCT);
-    return yalx_new_typed_array_with_data(&heap, element_ty, elements, nitems);
+    return yalx_new_vals_array_with_data(&heap, element_ty, elements, nitems);
 }
 
 struct yalx_value_array_header *array_fill_w32(const struct yalx_class *const element_ty, u32_t value, int nitems) {
     DCHECK(element_ty->constraint == K_PRIMITIVE);
     DCHECK(element_ty->reference_size == 4);
     DCHECK(element_ty->instance_size == 4);
-    struct yalx_value_typed_array *ar = yalx_new_typed_array(&heap, element_ty, nitems);
+    struct yalx_value_array *ar = yalx_new_array(&heap, element_ty, nitems);
     for (int i = 0; i < nitems; i++) {
         ((u32_t *)ar->data)[i] = value;
     }
@@ -829,7 +826,7 @@ struct yalx_value_array_header *array_fill_w32(const struct yalx_class *const el
 struct yalx_value_array_header *array_fill_refs(const struct yalx_class *const element_ty, yalx_ref_t value,
                                                 int nitems) {
     DCHECK(element_ty->reference_size == sizeof(yalx_ref_t));
-    struct yalx_value_refs_array *ar = yalx_new_refs_array(&heap, element_ty, nitems);
+    struct yalx_value_array *ar = yalx_new_array(&heap, element_ty, nitems);
     for (int i = 0; i < nitems; i++) {
         ((yalx_ref_t *)ar->data)[i] = value;
         init_write_barrier(&heap, ((yalx_ref_t *)ar->data) + i);
@@ -840,7 +837,7 @@ struct yalx_value_array_header *array_fill_refs(const struct yalx_class *const e
 struct yalx_value_array_header *array_fill_chunks(const struct yalx_class *const element_ty, address_t value,
                                                   int nitems) {
     DCHECK(element_ty != NULL);
-    struct yalx_value_typed_array *ar = yalx_new_typed_array(&heap, element_ty, nitems);
+    struct yalx_value_array *ar = yalx_new_array(&heap, element_ty, nitems);
     for (int i = 0; i < nitems; i++) {
         address_t location = ar->data + i * element_ty->instance_size;
         memcpy(location, value, element_ty->instance_size);
@@ -852,28 +849,26 @@ struct yalx_value_array_header *array_fill_chunks(const struct yalx_class *const
 struct yalx_value_array_header *array_fill_dims(const struct yalx_class *const element_ty, yalx_ref_t value,
                                                 int nitems) {
     DCHECK(!value || yalx_is_array(value));
-    struct yalx_value_dims_array *ar = yalx_new_dims_array(&heap, element_ty, nitems);
+    struct yalx_value_array *ar = yalx_new_array(&heap, element_ty, nitems);
     for (int i = 0; i < nitems; i++) {
         if (value == NULL) {
-            ((yalx_ref_t *)ar->arrays)[i] = value;
-            init_write_barrier(&heap, ((yalx_ref_t *)ar->arrays) + i);
+            ((yalx_ref_t *)ar->data)[i] = value;
+            init_write_barrier(&heap, ((yalx_ref_t *)ar->data) + i);
             continue;
         }
         
         yalx_ref_t copied = NULL;
-        if (CLASS(value) == typed_array_class) {
-            struct yalx_value_typed_array *origin = (struct yalx_value_typed_array *)value;
-            copied = yalx_new_typed_array_with_data(&heap, origin->item, origin->data, origin->len);
-        } else if (CLASS(value) == refs_array_class) {
-            struct yalx_value_refs_array *origin = (struct yalx_value_refs_array *)value;
-            copied = yalx_new_refs_array_with_data(&heap, origin->item, origin->data, origin->len);
-        } else {
-            DCHECK(CLASS(value) == dims_array_class);
-            struct yalx_value_dims_array *origin = (struct yalx_value_dims_array *)value;
-            copied = yalx_new_dims_array_with_data(&heap, origin->item, origin->arrays, origin->len);
-        }
-        ((yalx_ref_t *)ar->arrays)[i] = copied;
-        init_write_barrier(&heap, ((yalx_ref_t *)ar->arrays) + i);
+        DCHECK(!"TODO");
+//        if (CLASS(value) == array_class) {
+//            struct yalx_value_array *origin = (struct yalx_value_typed_array *)value;
+//            copied = yalx_new_typed_array_with_data(&heap, origin->item, origin->data, origin->len);
+//        } else {
+//            DCHECK(CLASS(value) == multi_dims_array_class);
+//            struct yalx_value_dims_array *origin = (struct yalx_value_dims_array *)value;
+//            copied = yalx_new_dims_array_with_data(&heap, origin->item, origin->arrays, origin->len);
+//        }
+        ((yalx_ref_t *)ar->data)[i] = copied;
+        init_write_barrier(&heap, ((yalx_ref_t *)ar->data) + i);
     }
     return (struct yalx_value_array_header *)ar;
 }
@@ -887,44 +882,36 @@ void *array_location_at(struct yalx_value_array_header *const array, const i32_t
     }
     
     const struct yalx_class *const klass = CLASS(array);
-    if (klass == typed_array_class) {
-        struct yalx_value_typed_array *ar = (struct yalx_value_typed_array *)array;
-        return (address_t)ar->data + index * ar->item->instance_size;
-    } else if (klass == refs_array_class) {
-        struct yalx_value_refs_array *ar = (struct yalx_value_refs_array *)array;
-        return (address_t)ar->data + index * sizeof(yalx_ref_t);
+    DCHECK(klass == array_class);
+    struct yalx_value_array *ar = (struct yalx_value_array *)array;
+    if (yalx_is_ref_type(ar->item)) {
+        return ar->data + index * ar->item->reference_size;
     } else {
-        DCHECK(klass == dims_array_class);
-        struct yalx_value_dims_array *ar = (struct yalx_value_dimss_array *)array;
-        return (address_t)ar->arrays + index * sizeof(yalx_ref_t);
+        return ar->data + index * ar->item->instance_size;
     }
 }
 
 void array_set_ref(struct yalx_value_array_header *const array, const i32_t index, yalx_ref_t value) {
     DCHECK(array != NULL);
-    DCHECK(yalx_is_array(array) && CLASS(array) != typed_array_class);
+    DCHECK(CLASS(array) == array_class);
+    DCHECK(yalx_is_ref_type(array->item));
     
     if (index < 0 || index >= array->len) {
         throw_array_index_out_of_bounds_exception(array, index);
     }
     
     const struct yalx_class *const klass = CLASS(array);
-    if (klass == refs_array_class) {
-        struct yalx_value_refs_array *ar = (struct yalx_value_refs_array *)array;
-        put_field(((yalx_ref_t *)ar->data) + index, value);
-    } else {
-        DCHECK(klass == dims_array_class);
-        struct yalx_value_dims_array *ar = (struct yalx_value_dimss_array *)array;
-        put_field(((yalx_ref_t *)ar->arrays) + index, value);
-    }
+    struct yalx_value_array *ar = (struct yalx_value_array *)array;
+    put_field(((yalx_ref_t *)ar->data) + index, value);
 }
 
 void array_set_chunk(struct yalx_value_array_header *const array, const i32_t index, address_t chunk) {
     DCHECK(array != NULL);
     DCHECK(chunk != NULL);
-    DCHECK(CLASS(array) == typed_array_class);
+    DCHECK(CLASS(array) == array_class);
+    DCHECK(!yalx_is_ref_type(array->item));
     
-    struct yalx_value_typed_array *ar = (struct yalx_value_typed_array *)array;
+    struct yalx_value_array *ar = (struct yalx_value_array *)array;
     ptrdiff_t offset = index * ar->item->instance_size;
     post_typing_write_barrier_if_needed(&heap, ar->item, ar->data + offset, chunk);
     memcpy(ar->data + offset, chunk, ar->item->instance_size);
