@@ -1344,6 +1344,10 @@ public:
             }
             return Returning(value);
         } else {
+            // val ar = @int[,] {{1,2},{3,4}}
+            // val ar = @int[][,] = {{{1,2},{3,4}}, {{5,6},{7,8}}}
+            // val ar = @int[,][] = {{{1,2},{3,4}}, {{5,6},{7,8}}} // 2x2 -> int[2]
+            
             std::vector<Value *> elements;
             for (auto dim : node->dimensions()) {
                 Value *value = nullptr;
@@ -2083,7 +2087,7 @@ private:
         Operator *op = ops()->ArrayAt(ar, static_cast<int>(input.size()));
         return b()->NewNodeWithValues(nullptr, source_position, ar->element_type(), op, input);
     }
-    
+
     Value *EmitLoadField(Value *value, Handle *handle, SourcePosition source_position) {
         Operator *op = nullptr;
         if (value->type().IsReference()) {

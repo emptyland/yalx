@@ -1496,11 +1496,16 @@ private:
         if (!node->type()) {
             int dimensions_count = kMaxArrayInitializerDims;
             auto type = ReduceArrayDimension(node->dimensions(), nullptr/*qualified*/, kMaxArrayInitializerDims,
-                                             &dimensions_count, node->source_position());
+                                             dimensions_count, node->source_position());
             if (!type) {
                 return -1;
             }
-            dimensions_count = kMaxArrayInitializerDims - dimensions_count + 1;
+            //printd("%s", type->ToString().c_str());
+            if (auto ar = type->AsArrayType()) {
+                dimensions_count = ar->GetActualDimensionCount() + 1;
+            } else {
+                dimensions_count = 1;
+            }
             node->set_type(new (arena_) ArrayType(arena_, type, dimensions_count, node->source_position()));
             node->set_dimension_count(dimensions_count);
             return Returning(node->type());
@@ -1515,25 +1520,40 @@ private:
                 return -1;
             }
             bool unlinked = false;
-            if (!ar->element_type()->Acceptable(filling, &unlinked)) {
+            auto elem_ty = ar->GetActualElementType();
+            if (!elem_ty->Acceptable(filling, &unlinked)) {
                 Feedback()->Printf(node->source_position(), "Unexpected array element type: `%s', filling value is `%s'",
-                                   ar->element_type()->ToString().c_str(), filling->ToString().c_str());
+                                   elem_ty->ToString().c_str(), filling->ToString().c_str());
                 return -1;
             }
             DCHECK(!unlinked);
             return Returning(ar);
         }
         
-        int dimensions_count = ar->dimension_count();
-        auto rv = ReduceArrayDimension(node->dimensions(), ar->element_type(), ar->dimension_count(), &dimensions_count,
-                                       node->source_position());
+        // int[,][][,,]
+        // { ---+ array<array> 2
+        //   { --/
+        //     { ----+ array<array> 1
+        //        {-------------------+ array<int> 3
+        //           {----------------/
+        //               {0}---------/
+        //           }
+        //        }
+        //     }
+        //   }
+        // }
+        //  array<array> 2
+        //    array<array> 1
+        //      array<int> 3
+        auto rv = ReduceArrayDimension(node->dimensions(), ar->element_type(), ar->GetActualDimensionCount(),
+                                       ar->dimension_count(), node->source_position());
         if (!rv) {
             return -1;
         }
         bool unlinked = false;
         if (!ar->element_type()->Acceptable(rv, &unlinked)) {
             Feedback()->Printf(node->source_position(), "Unexpected array element type: `%s', element is `%s'",
-                               ar->ToString().c_str(), rv->ToString().c_str());
+                               ar->element_type()->ToString().c_str(), rv->ToString().c_str());
             return -1;
         }
         DCHECK(!unlinked);
@@ -2088,59 +2108,80 @@ private:
     }
     
     Type *ReduceArrayDimension(const base::ArenaVector<AstNode *> &dimension, Type *qualified, int dimensions_limit,
-                               int *dimensions_count, const SourcePosition &source_position) {
-        if (dimensions_limit < *dimensions_count) { *dimensions_count = dimensions_limit; }
+                               int dimensions_count, const SourcePosition &source_position) {
+        //if (dimensions_limit < *dimensions_count) { *dimensions_count = dimensions_limit; }
         
         if (dimensions_limit == 0) {
-            Feedback()->Printf(source_position, "Max array initializer dimensons: %d", *dimensions_count);
+            Feedback()->Printf(source_position, "Max array initializer dimensons: %d", dimensions_count);
             return nullptr;
         }
         
+        // {
+        //     {1, 2},
+        //     {1, 2}
+        // }
+        //
+        // [0] {1, 2}, {1, 2} d=2
+        // [0,1] {1,2}        d=1
         if (qualified) {
-            for (auto item : dimension) {
-                Type *type = nullptr;
-                if (auto ar = item->AsArrayInitializer()) {
-                    type = ReduceArrayDimension(ar->dimensions(), qualified, dimensions_limit - 1, dimensions_count,
-                                                item->source_position());
-                    ar->set_type(new (arena_) ArrayType(arena_, type, dimensions_limit - *dimensions_count,
-                                                        ar->source_position()));
-                    ar->set_dimension_count(ar->dimension_count());
-                } else {
-                    if (ReduceReturningOnlyOne(item, &type) < 0) {
+            Type *type = nullptr;
+            if (auto ar = qualified->AsArrayType()) {
+                for (auto elem : dimension) {
+                    auto init = elem->AsArrayInitializer();
+                    if (!init) {
+                        Feedback()->Printf(source_position, "Incorrect array initializer dimensons: %d", dimensions_count);
+                        return nullptr;
+                    }
+                    if (dimensions_count == 1) {
+                        dimensions_count = qualified->IsArrayType() ? qualified->AsArrayType()->dimension_count() : 1;
+                        qualified = ar->element_type();
+                    } else {
+                        dimensions_count--;
+                        qualified = ar;
+                    }
+                    type = ReduceArrayDimension(init->dimensions(), qualified, dimensions_limit - 1, dimensions_count,
+                                                elem->source_position());
+                    init->set_type(new (arena_) ArrayType(arena_, type, dimensions_limit - dimensions_count,
+                                                          init->source_position()));
+                    init->set_dimension_count(ar->dimension_count());
+                }
+                return ar;
+            } else {
+                for (auto elem : dimension) {
+                    if (ReduceReturningOnlyOne(elem, &type) < 0) {
+                        return nullptr;
+                    }
+                    if (!ReduceType(qualified, type)) {
+                        Feedback()->Printf(elem->source_position(), "Unexpected array type: `%s', element is `%s'",
+                                           qualified->ToString().c_str(), type->ToString().c_str());
                         return nullptr;
                     }
                 }
-
-                if (!ReduceType(qualified, type)) {
-                    Feedback()->Printf(item->source_position(), "Unexpected array type: `%s', element is `%s'",
-                                       qualified->ToString().c_str(), type->ToString().c_str());
-                    return nullptr;
-                }
+                return qualified;
             }
-            return qualified;
         } else {
             std::vector<Type *> types;
-            for (auto item : dimension) {
-                Type *type = nullptr;
+            for (auto elem : dimension) {
                 size_t dim_size = 0;
-                if (auto ar = item->AsArrayInitializer()) {
+                if (auto ar = elem->AsArrayInitializer()) {
                     if (dim_size != 0 && dim_size != ar->dimensions_size()) {
-                        Feedback()->Printf(item->source_position(), "Diffecent dimension size: %zd vs %zd", dim_size,
+                        Feedback()->Printf(elem->source_position(), "Diffecent dimension size: %zd vs %zd", dim_size,
                                            ar->dimensions_size());
                         return nullptr;
                     }
-                    type = ReduceArrayDimension(ar->dimensions(), qualified, dimensions_limit - 1, dimensions_count,
-                                                item->source_position());
+                    auto type = ReduceArrayDimension(ar->dimensions(), qualified, dimensions_limit - 1, dimensions_count,
+                                                     elem->source_position());
                     dim_size = ar->dimensions_size();
-                    ar->set_type(new (arena_) ArrayType(arena_, type, dimensions_limit - *dimensions_count,
-                                                        ar->source_position()));
-                    ar->set_dimension_count(ar->dimension_count());
+                    ar->set_type(new (arena_) ArrayType(arena_, type, 1, ar->source_position()));
+                    ar->set_dimension_count(1);
+                    types.push_back(ar->type());
                 } else {
-                    if (ReduceReturningOnlyOne(item, &type) < 0) {
+                    Type *type = nullptr;
+                    if (ReduceReturningOnlyOne(elem, &type) < 0) {
                         return nullptr;
                     }
+                    types.push_back(type);
                 }
-                types.push_back(type);
             }
             
             if (types.empty()) {

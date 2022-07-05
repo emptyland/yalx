@@ -1519,6 +1519,30 @@ public:
     ArrayType(base::Arena *arena, Type *element_type, base::ArenaVector<Expression *> &&dimension_capacities,
               const SourcePosition &source_position);
     
+    // int[][] -> 2
+    // int[,] -> 2
+    // int[,][][,,] -> 2+1+3=6
+    int GetActualDimensionCount() const {
+        auto p = this;
+        int count = 0;
+        while (p) {
+            count += p->dimension_count();
+            p = !p->element_type() ? nullptr : p->element_type()->AsArrayType();
+        }
+        return count;
+    }
+    
+    // int[][] -> int
+    // int[,]  -> int
+    // int[,][][,,] -> int
+    Type *GetActualElementType() const {
+        Type *p = element_type();
+        while (p->IsArrayType()) {
+            p = p->AsArrayType()->element_type();
+        }
+        return p;
+    }
+    
     int dimension_count() const { return static_cast<int>(dimension_capacitys_size()); }
     Type *element_type() const { return generic_arg(0); }
     DEF_ARENA_VECTOR_GETTER(Expression *, dimension_capacity);

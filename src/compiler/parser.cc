@@ -1319,7 +1319,7 @@ Expression *Parser::ParsePrimary(bool *ok) {
         case Token::kAtOutlined: {
             MoveNext();
             auto type = ParseArrayTypeMaybeWithLimits(CHECK_OK);
-            expr = ParseArrayInitializer(type, type->dimension_count(), CHECK_OK);
+            expr = ParseArrayInitializer(type, type->GetActualDimensionCount(), CHECK_OK);
         } break;
             
         case Token::kStringLine:
@@ -1360,7 +1360,7 @@ Expression *Parser::ParseArrayInitializer(ArrayType *qualified, int dimension_li
     }
     Match(Token::kLBrace, CHECK_OK);
     
-    auto dimension_count = !qualified ? 1 : qualified->dimension_count();
+    auto dimension_count = !qualified ? 1 : qualified->GetActualDimensionCount();
     auto init = new (arena_) ArrayInitializer(arena_, qualified, dimension_count, location);
     if (Peek().Is(Token::kLBrace)) {
         do {
@@ -1942,13 +1942,22 @@ ArrayType *Parser::ParseArrayTypeMaybeWithLimits(const Identifier *ns, const Str
 
         auto expr = ParseExpression(CHECK_OK);
         capacities.push_back(expr);
-        if (!Test(Token::kComma)) {
-            Match(Token::kRBrack, CHECK_OK);
-            //ar = new (arena_) ArrayType(arena_, ar, std::move(capacities), location);
+        if (Test(Token::kRBrack)) {
             stack.push_back(std::move(capacities));
+            continue;
         }
+        while (Test(Token::kComma)) {
+            expr = ParseExpression(CHECK_OK);
+            capacities.push_back(expr);
+        }
+        stack.push_back(std::move(capacities));
+        Match(Token::kRBrack, CHECK_OK);
     }
-    DCHECK(!stack.empty());
+    if (stack.empty()) {
+        error_feedback_->Printf(location, "Invalid array initializer.");
+        *ok = false;
+        return nullptr;
+    }
     
     ArrayType *ar = reinterpret_cast<ArrayType *>(type);
     for (int i = stack.size() - 1; i >= 1; i--) {
