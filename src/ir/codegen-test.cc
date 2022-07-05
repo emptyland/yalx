@@ -669,7 +669,7 @@ TEST_F(IntermediateRepresentationGeneratorTest, TryCatchExpression) {
 TEST_F(IntermediateRepresentationGeneratorTest, ArrayInitExpression) {
     bool ok = false;
     base::ArenaMap<std::string_view, Module *> modules(&arean_);
-    IRGen("tests/26-ir-array-init-expr", &modules, &ok);
+    IRGen("tests/27-ir-array-init-expr2", &modules, &ok);
     ASSERT_TRUE(ok);
     
     ASSERT_TRUE(modules.find("yalx/lang:lang") != modules.end());

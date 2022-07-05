@@ -147,11 +147,28 @@ ArrayModel::ArrayModel(base::Arena *arena, const String *name, const String *ful
 }
 
 std::string ArrayModel::ToString(int dimension_count, const Type element_type) {
-    std::string full_name(element_type.ToString());
-    for (int i = 0; i < dimension_count; i++) {
-        full_name.append("[]");
+    DCHECK(dimension_count > 0);
+    std::string full_name;
+    
+    full_name.append("[");
+    for (int i = 0; i < dimension_count - 1; i++) {
+        full_name.append(",");
     }
-    return full_name;
+    full_name.append("]");
+    
+    auto ty = element_type;
+    while (ty.model() && ty.model()->declaration() == kArray) {
+        auto ar = down_cast<ArrayModel>(ty.model());
+        full_name.append("[");
+        for (int i = 0; i < ar->dimension_count() - 1; i++) {
+            full_name.append(",");
+        }
+        full_name.append("]");
+        
+        ty = ar->element_type();
+    }
+    
+    return std::string(ty.ToString()).append(full_name);
 }
 
 size_t ArrayModel::ReferenceSizeInBytes() const { return kPointerSize; }

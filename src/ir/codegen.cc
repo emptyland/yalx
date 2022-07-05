@@ -1347,20 +1347,79 @@ public:
             // val ar = @int[,] {{1,2},{3,4}}
             // val ar = @int[][,] = {{{1,2},{3,4}}, {{5,6},{7,8}}}
             // val ar = @int[,][] = {{{1,2},{3,4}}, {{5,6},{7,8}}} // 2x2 -> int[2]
-            
-            std::vector<Value *> elements;
-            for (auto dim : node->dimensions()) {
-                Value *value = nullptr;
-                if (ReduceReturningOnlyOne(dim, &value) < 0) {
+            const auto ar = DCHECK_NOTNULL(node->type()->AsArrayType());
+            std::vector<Value *> init_vals;
+            if (EmitArrayDimensions(ar, node->dimensions(), root_ss.Position(), ar->dimension_count(), &init_vals) < 0) {
+                return -1;
+            }
+            auto value = EmitArrayInit(ar, init_vals, root_ss.Position());
+            if (!value) {
+                return -1;
+            }
+            return Returning(value);
+        }
+    }
+    
+    int EmitArrayDimensions(const cpl::ArrayType *ty,
+                            const base::ArenaVector<cpl::AstNode *> &dimensions,
+                            const SourcePosition &source_position,
+                            int dimensions_count,
+                            std::vector<Value *> *values) {
+        //ar->dimension_count() >
+        if (dimensions_count == 1) {
+            auto elem_ty = ty->element_type();
+            if (auto ar = elem_ty->AsArrayType()) {
+                for (auto elem : dimensions) {
+                    SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(elem));
+                    std::vector<Value *> receivers;
+                    auto init = DCHECK_NOTNULL(elem->AsArrayInitializer());
+                    if (EmitArrayDimensions(ar, init->dimensions(), root_ss.Position(), ar->dimension_count(),
+                                            &receivers) < 0) {
+                        return -1;
+                    }
+                    auto value = EmitArrayInit(ar, receivers, root_ss.Position());
+                    if (!value) {
+                        return -1;
+                    }
+                    values->push_back(value);
+                }
+            } else {
+                for (auto elem : dimensions) {
+                    Value *value = nullptr;
+                    if (ReduceReturningOnlyOne(elem, &value) < 0) {
+                        return -1;
+                    }
+                    values->push_back(value);
+                }
+            }
+        } else {
+            DCHECK(dimensions_count > 1);
+            for (auto elem : dimensions) {
+                SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(elem));
+                auto init = DCHECK_NOTNULL(elem->AsArrayInitializer());
+                if (EmitArrayDimensions(ty, init->dimensions(), root_ss.Position(), dimensions_count - 1, values) < 0) {
                     return -1;
                 }
-                elements.push_back(value);
             }
-            auto ty = BuildType(DCHECK_NOTNULL(node->type()));
-            auto op = ops()->ArrayAlloc(down_cast<const ArrayModel>(ty.model()), static_cast<int>(elements.size()));
-            auto rv = b()->NewNodeWithValues(nullptr, root_ss.Position(), ty, op, elements);
-            return Returning(rv);
         }
+    }
+    
+    Value *EmitArrayInit(const cpl::ArrayType *ty, const std::vector<Value *> init_vals,
+                         const SourcePosition &source_position) {
+        auto ar = BuildType(DCHECK_NOTNULL(ty));
+        std::vector<Value *> values;
+        for (auto capacity : ty->dimension_capacitys()) {
+            Value *val = nullptr;
+            if (ReduceReturningOnlyOne(capacity, &val) < 0) {
+                return nullptr;
+            }
+            values.push_back(val);
+        }
+        for (auto val : init_vals) {
+            values.push_back(val);
+        }
+        auto op = ops()->ArrayAlloc(down_cast<const ArrayModel>(ar.model()), static_cast<int>(values.size()));
+        return b()->NewNodeWithValues(nullptr, source_position, ar, op, values);
     }
     
     int VisitNot(cpl::Not *node) override { UNREACHABLE(); }

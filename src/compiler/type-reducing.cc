@@ -1493,6 +1493,7 @@ private:
     }
     
     int VisitArrayInitializer(ArrayInitializer *node) override {
+        //std::vector<int> dimensions_capacities;
         if (!node->type()) {
             int dimensions_count = kMaxArrayInitializerDims;
             auto type = ReduceArrayDimension(node->dimensions(), nullptr/*qualified*/, kMaxArrayInitializerDims,
@@ -1508,6 +1509,8 @@ private:
             }
             node->set_type(new (arena_) ArrayType(arena_, type, dimensions_count, node->source_position()));
             node->set_dimension_count(dimensions_count);
+            InitArrayCapacitiesIfNeeded(node->dimensions(), 0, node->type()->AsArrayType()->dimension_count(),
+                                        node->type()->AsArrayType());
             return Returning(node->type());
         }
 
@@ -1557,7 +1560,33 @@ private:
             return -1;
         }
         DCHECK(!unlinked);
+        InitArrayCapacitiesIfNeeded(node->dimensions(), 0, ar->dimension_count(), ar);
         return Returning(ar);
+    }
+    
+    int InitArrayCapacitiesIfNeeded(const base::ArenaVector<AstNode *> &dimensions, int level,
+                                    int dimension_count,
+                                    ArrayType *input) {
+        DCHECK(level >= 0);
+        (*input->mutable_dimension_capacitys())[level] =
+            new (arena_) cpl::IntLiteral(arena_, dimensions.size(), input->source_position());
+
+        if (dimensions.empty()) {
+            return 0;
+        }
+        
+        if (dimension_count == 1) {
+            if (auto init = dimensions.front()->AsArrayInitializer()) {
+                DCHECK(input->element_type()->IsArrayType());
+                auto ar = input->element_type()->AsArrayType();
+                InitArrayCapacitiesIfNeeded(init->dimensions(), 0, ar->dimension_count(), ar);
+            }
+            return 0;
+        }
+        DCHECK(dimension_count > 1);
+        auto init = DCHECK_NOTNULL(dimensions.front()->AsArrayInitializer());
+        //auto ar = DCHECK_NOTNULL(input->element_type()->AsArrayType());
+        return InitArrayCapacitiesIfNeeded(init->dimensions(), level + 1, dimension_count - 1, input);
     }
     
     int VisitIfExpression(IfExpression *node) override {
@@ -2107,8 +2136,11 @@ private:
         return 0;
     }
     
-    Type *ReduceArrayDimension(const base::ArenaVector<AstNode *> &dimension, Type *qualified, int dimensions_limit,
-                               int dimensions_count, const SourcePosition &source_position) {
+    Type *ReduceArrayDimension(const base::ArenaVector<AstNode *> &dimension,
+                               Type *qualified,
+                               int dimensions_limit,
+                               int dimensions_count,
+                               const SourcePosition &source_position) {
         //if (dimensions_limit < *dimensions_count) { *dimensions_count = dimensions_limit; }
         
         if (dimensions_limit == 0) {
