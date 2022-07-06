@@ -113,3 +113,68 @@ struct yalx_value_array_header *yalx_cast_to_array_if_possibly(yalx_ref_t obj) {
         return NULL;
     }
 }
+
+void *yalx_array_location2(struct yalx_value_multi_dims_array *ar, int d0, int d1) {
+    const size_t item_size_in_bytes = yalx_is_ref_type(ar->item) ? ar->item->reference_size : ar->item->instance_size;
+    DCHECK(ar->dims == 2);
+    DCHECK(d0 >= 0 && d0 < ar->caps[0]);
+    DCHECK(d1 >= 0 && d1 < ar->caps[1]);
+    return yalx_multi_dims_array_data(ar) + (d1 * ar->caps[1] + d0) * item_size_in_bytes;
+}
+
+/* int[2,2,3]
+at [1,1,1] == 11 => at[x * 6 + (y * 3) + z] = at[10]
+at [1,1,2] == 12 => at[x * 6 + (y * 3) + z] = at[11]
+at [0,1,2] == 6  => at[x * 6 + (y * 3) + z] = at[5]
+ [0] 1
+ [1] 2
+ [2] 3
+ [3] 4
+ [4] 5
+ [5] 6
+ ....
+{
+    {
+        {
+            1, 2, 3
+        }, {
+            4, 5, 6
+        }
+    }, {
+        {
+            7, 8, 9
+        }, {
+            10, 11, 12
+        }
+    }
+}
+ */
+void *yalx_array_location3(struct yalx_value_multi_dims_array *ar, int d0, int d1, int d2) {
+    const size_t item_size_in_bytes = yalx_is_ref_type(ar->item) ? ar->item->reference_size : ar->item->instance_size;
+    DCHECK(ar->dims == 3);
+    DCHECK(d0 >= 0 && d0 < ar->caps[0]);
+    DCHECK(d1 >= 0 && d1 < ar->caps[1]);
+    DCHECK(d2 >= 0 && d2 < ar->caps[2]);
+    const size_t index = (d0 * (ar->caps[1] * ar->caps[2]) + d1 * ar->caps[2] + d2);
+    return yalx_multi_dims_array_data(ar) + index * item_size_in_bytes;
+}
+
+void *yalx_array_location_more(struct yalx_value_multi_dims_array *ar, const int *indices) {
+    const size_t item_size_in_bytes = yalx_is_ref_type(ar->item) ? ar->item->reference_size : ar->item->instance_size;
+    
+#ifndef NDEBUG
+    for (int i = 0; i < ar->dims; i++) {
+        DCHECK(indices[i] >= 0 && indices[i] < ar->caps[i]);
+    }
+#endif
+
+    size_t offset = 0;
+    for (int i = 0; i < ar->dims; i++) {
+        size_t quantity = indices[i];
+        for (int j = i + 1; j < ar->dims; j++) {
+            quantity *= ar->caps[j];
+        }
+        offset += quantity;
+    }
+    return yalx_multi_dims_array_data(ar) + offset * item_size_in_bytes;
+}

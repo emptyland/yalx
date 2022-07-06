@@ -57,6 +57,10 @@ static inline address_t yalx_multi_dims_array_data(struct yalx_value_multi_dims_
     return (address_t)(&ar->caps[0]) + ar->dims * sizeof(u32_t);
 }
 
+void *yalx_array_location2(struct yalx_value_multi_dims_array *ar, int d1, int d2);
+void *yalx_array_location3(struct yalx_value_multi_dims_array *ar, int d1, int d2, int d3);
+void *yalx_array_location_more(struct yalx_value_multi_dims_array *ar, const int *indices);
+
 struct yalx_value_array_header *yalx_cast_to_array_if_possibly(yalx_ref_t obj);
 
 static inline int yalx_is_array(yalx_ref_t obj) { return yalx_cast_to_array_if_possibly(obj) != NULL; }
