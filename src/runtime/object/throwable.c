@@ -30,7 +30,7 @@ static void throw_exception(const struct yalx_class *ty,
     
     size_t n = 0;
     struct backtrace_frame **frames = yalx_unwind(&n, 2/*dummy*/);
-    struct yalx_value_refs_array *bt = yalx_new_refs_array_with_data(&heap, backtrace_frame_class, frames, n);
+    struct yalx_value_refs_array *bt = yalx_new_refs_array_with_data(&heap, backtrace_frame_class, 1, NULL, frames, n);
     free(frames);
     
     ex->backtrace = bt;

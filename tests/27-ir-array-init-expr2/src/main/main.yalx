@@ -49,3 +49,9 @@ fun issue06() -> @int[,][][,,]{ // [1,1][1][1,1,1]
         }
     }
 }
+
+fun issue07() -> @int[4,4](0)
+
+fun issue08() -> @string[4][4]("hello")
+
+fun issue09() -> @int[2,2][3][4,4,4](1)

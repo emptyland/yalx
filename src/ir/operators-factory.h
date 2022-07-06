@@ -74,8 +74,8 @@ public:
                                                              1/*value_out*/, 0/*control_out*/, model);
     }
     
-    Operator *ArrayFill(const ArrayModel *model) {
-        return new (arena_) OperatorWith<const ArrayModel *>(Operator::kArrayFill, 0, 2/*value_in*/, 0/*control_in*/,
+    Operator *ArrayFill(const ArrayModel *model, int value_in) {
+        return new (arena_) OperatorWith<const ArrayModel *>(Operator::kArrayFill, 0, value_in, 0/*control_in*/,
                                                              1/*value_out*/, 0/*control_out*/, model);
     }
 

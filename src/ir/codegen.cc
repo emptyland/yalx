@@ -1319,28 +1319,35 @@ public:
         // %2 = ArrayFill 3, %1  -> [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
         // %3 = ArrayFill 2, %2  -> [[[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]]
         if (node->filling_value()) {
-            std::vector<Value *> inputs;
-            const auto ar = DCHECK_NOTNULL(node->type()->AsArrayType());
+            
+            auto ar = DCHECK_NOTNULL(node->type()->AsArrayType());
             DCHECK(ar->dimension_count() == ar->dimension_capacitys_size());
 
-            Value *capacity = nullptr, *value = nullptr;
+            Value *value = nullptr;
             if (ReduceReturningOnlyOne(node->filling_value(), &value) < 0) {
                 return -1;
             }
-            for (int i = ar->dimension_capacitys_size() - 1; i >= 0; i--) {
-                if (ReduceReturningOnlyOne(ar->dimension_capacity(i), &capacity) < 0) {
-                    return -1;
+            
+            std::stack<cpl::ArrayType *> arrays;
+            for (cpl::Type *pt = ar; pt->IsArrayType(); pt = pt->AsArrayType()->element_type()) {
+                arrays.push(pt->AsArrayType());
+            }
+            
+            while (!arrays.empty()) {
+                ar = arrays.top();
+                arrays.pop();
+                
+                std::vector<Value *> inputs;
+                for (auto expr : ar->dimension_capacitys()) {
+                    inputs.push_back(nullptr);
+                    if (ReduceReturningOnlyOne(expr, &inputs.back()) < 0) {
+                        return -1;
+                    }
                 }
-                auto dims = ar->dimension_count() - i;
-                Type ty;
-                if (dims == ar->dimension_count()) {
-                    ty = BuildType(ar);
-                } else {
-                    auto tar = new (arena()) cpl::ArrayType(arena(), ar->element_type(), dims, ar->source_position());
-                    ty = BuildType(tar);
-                }
-                auto op = ops()->ArrayFill(down_cast<const ArrayModel>(ty.model()));
-                value = b()->NewNode(root_ss.Position(), ty, op, capacity, value);
+                inputs.push_back(value);
+                auto ty = BuildType(ar);
+                auto op = ops()->ArrayFill(down_cast<ArrayModel>(ty.model()), static_cast<int>(inputs.size()));
+                value = b()->NewNodeWithValues(nullptr, root_ss.Position(), ty, op, inputs);
             }
             return Returning(value);
         } else {

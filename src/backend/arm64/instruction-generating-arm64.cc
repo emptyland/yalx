@@ -1035,16 +1035,29 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             
         case ir::Operator::kArrayAlloc: {
             auto array_ty = ir::OperatorWith<const ir::ArrayModel *>::Data(instr->op());
+            std::vector<InstructionOperand *> capacities;
+            capacities.push_back(ImmediateOperand::Word32(arena_, array_ty->dimension_count()));
+            for (int i = 0; i < array_ty->dimension_count(); i++) {
+                capacities.push_back(Allocate(instr->InputValue(i), kAny));
+            }
+            
             std::vector<InstructionOperand *> elements;
-            for (int i = 0; i < instr->op()->value_in(); i++) {
+            for (int i = array_ty->dimension_count(); i < instr->op()->value_in(); i++) {
                 elements.push_back(Allocate(instr->InputValue(i), kAny));
             }
             auto base_line = operands_.slots()->stack_size();
             std::vector<LocationOperand *> slots;
-            for (int i = instr->op()->value_in() - 1; i >= 0; i--) {
-                auto element = elements[i];
+
+            for (int i = instr->op()->value_in() - 1; i >= array_ty->dimension_count(); i--) {
+                auto element = elements[i - array_ty->dimension_count()];
                 auto slot = operands_.AllocateStackSlot(instr->InputValue(i)->type(), 0, StackSlotAllocator::kLinear);
                 Move(slot, element, instr->InputValue(i)->type());
+                slots.push_back(slot);
+            }
+            for (int i = capacities.size() - 1; i >= 0; i--) {
+                auto capacity = capacities[i];
+                auto slot = operands_.AllocateStackSlot(ir::Types::Word32, 0, StackSlotAllocator::kLinear);
+                Move(slot, capacity, ir::Types::Word32);
                 slots.push_back(slot);
             }
             auto top_line = operands_.slots()->stack_size();
@@ -1059,7 +1072,9 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             auto fp = operands_.registers()->frame_pointer();
             current()->NewIO(Arm64Sub, x1, fp, ImmediateOperand::Word32(arena_, top_line));
             auto x2 = new (arena_) RegisterOperand(arm64::x2.code(), MachineRepresentation::kWord32);
-            current()->NewIO(Arm64Mov32, x2, ImmediateOperand::Word32(arena_, instr->op()->value_in()));
+            current()->NewIO(Arm64Mov32, x2, ImmediateOperand::Word32(arena_,
+                                                                      instr->op()->value_in()
+                                                                      - array_ty->dimension_count()));
 
             current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_alloc));
 
@@ -2346,7 +2361,10 @@ void Arm64FunctionInstructionSelector::MoveMachineWords(Instruction::Code load_o
             }
             current()->NewIO(store_op, dest, tmp0);
         } else if (src->IsImmediate()) {
-            current()->NewIO(Arm64Mov, dest, src);
+            auto tmp0 = operands_.registers()->GeneralScratch0(scratch_rep);
+            current()->NewIO(Arm64Mov, tmp0, src);
+            current()->NewIO(store_op, dest, tmp0);
+            //current()->NewIO(Arm64Mov, dest, src);
         } else {
             UNREACHABLE();
         }

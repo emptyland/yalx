@@ -784,11 +784,14 @@ struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz) {
     return result.object;
 }
 
-struct yalx_value_array_header *array_alloc(const struct yalx_class *const element_ty, void *const elements,
-                                            int nitems) {
+struct yalx_value_array_header *array_alloc(const struct yalx_class *const element_ty, void *const input, int nitems) {
     DCHECK(element_ty != NULL);
-    DCHECK(elements != NULL);
+    DCHECK(input != NULL);
     DCHECK(nitems >= 0);
+    
+    const u32_t dims = *(u32_t *)input;
+    const u32_t *caps = (u32_t *)input + 1;
+    void *const elements = (u32_t *)input + dims + 1;
 
     enum yalx_builtin_type maybe_builtin_ty = yalx_builtin_type(element_ty);
     switch (maybe_builtin_ty) {
@@ -796,20 +799,20 @@ struct yalx_value_array_header *array_alloc(const struct yalx_class *const eleme
         case Type_string:
         case Type_array:
         case Type_multi_dims_array:
-            return yalx_new_refs_array_with_data(&heap, element_ty, (yalx_ref_t *)elements, nitems);
+            return yalx_new_refs_array_with_data(&heap, element_ty, dims, caps, (yalx_ref_t *)elements, nitems);
             
         case NOT_BUILTIN_TYPE: // It's not user definition types
             break;
             
         default:
             DCHECK(element_ty->constraint == K_PRIMITIVE);
-            return yalx_new_vals_array_with_data(&heap, element_ty, elements, nitems);
+            return yalx_new_vals_array_with_data(&heap, element_ty, dims, caps, elements, nitems);
     }
     if (element_ty->constraint == K_CLASS) {
-        return yalx_new_refs_array_with_data(&heap, element_ty, (yalx_ref_t *)elements, nitems);
+        return yalx_new_refs_array_with_data(&heap, element_ty, dims, caps, (yalx_ref_t *)elements, nitems);
     }
     DCHECK(element_ty->constraint == K_STRUCT);
-    return yalx_new_vals_array_with_data(&heap, element_ty, elements, nitems);
+    return yalx_new_vals_array_with_data(&heap, element_ty, dims, caps, elements, nitems);
 }
 
 struct yalx_value_array_header *array_fill_w32(const struct yalx_class *const element_ty, u32_t value, int nitems) {

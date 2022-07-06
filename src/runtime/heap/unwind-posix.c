@@ -68,7 +68,8 @@ struct backtrace_frame **yalx_unwind(size_t *depth, int dummy) {
 void yalx_Zplang_Zolang_Zdunwind_stub() {
     size_t size = 0;
     struct backtrace_frame **frames = yalx_unwind(&size, 1);
-    struct yalx_value_refs_array *array = yalx_new_refs_array_with_data(&heap, backtrace_frame_class, (yalx_ref_t *)frames, size);
+    struct yalx_value_refs_array *array = yalx_new_refs_array_with_data(&heap, backtrace_frame_class, 1, NULL,
+                                                                        (yalx_ref_t *)frames, size);
     free(frames);
     yalx_return_ref((yalx_ref_t)array);
 }

@@ -663,7 +663,7 @@ TEST_F(IntermediateRepresentationGeneratorTest, TryCatchExpression) {
     base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
     modules["issue00:issue00"]->PrintTo(&printer);
 
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
 }
 
 TEST_F(IntermediateRepresentationGeneratorTest, ArrayInitExpression) {
@@ -681,7 +681,96 @@ TEST_F(IntermediateRepresentationGeneratorTest, ArrayInitExpression) {
     //    modules["foo:foo"]->PrintTo(&printer);
     modules["main:main"]->PrintTo(&printer);
     
-    printf("%s\n", buf.data());
+    static const char z[] = R"(module main @main:main {
+source-files:
+    [0] tests/27-ir-array-init-expr2/src/main/main.yalx
+
+functions:
+    fun $init(): void {
+    boot:
+        %0 = LoadFunAddr val[fun ()->void]* <fun yalx/lang:lang.$init>
+        CallRuntime void val[fun ()->void]* %0, string "yalx/lang:lang" <PkgInitOnce>
+        Ret void
+    } // main:main.$init
+
+    fun issue00(): ref[i32[,]] {
+    entry:
+        %0 = ArrayAlloc ref[i32[,]] i32 2, i32 2, i32 1, i32 2, i32 3, i32 4 <i32[,]>
+        Ret void ref[i32[,]] %0
+    } // main:main.issue00
+
+    fun issue01(): ref[i32[]] {
+    entry:
+        %0 = ArrayAlloc ref[i32[]] i32 4, i32 1, i32 2, i32 3, i32 4 <i32[]>
+        Ret void ref[i32[]] %0
+    } // main:main.issue01
+
+    fun issue02(): ref[i32[][]] {
+    entry:
+        %0 = ArrayAlloc ref[i32[]] i32 2, i32 1, i32 2 <i32[]>
+        %1 = ArrayAlloc ref[i32[]] i32 2, i32 3, i32 4 <i32[]>
+        %2 = ArrayAlloc ref[i32[]] i32 2, i32 5, i32 6 <i32[]>
+        %3 = ArrayAlloc ref[i32[][]] i32 3, ref[i32[]] %0, ref[i32[]] %1, ref[i32[]] %2 <i32[][]>
+        Ret void ref[i32[][]] %3
+    } // main:main.issue02
+
+    fun issue03(): ref[i32[,][]] {
+    entry:
+        %0 = ArrayAlloc ref[i32[]] i32 2, i32 1, i32 2 <i32[]>
+        %1 = ArrayAlloc ref[i32[]] i32 2, i32 3, i32 4 <i32[]>
+        %2 = ArrayAlloc ref[i32[]] i32 2, i32 5, i32 6 <i32[]>
+        %3 = ArrayAlloc ref[i32[,][]] i32 3, i32 1, ref[i32[]] %0, ref[i32[]] %1, ref[i32[]] %2 <i32[,][]>
+        Ret void ref[i32[,][]] %3
+    } // main:main.issue03
+
+    fun issue04(): ref[i32[][,]] {
+    entry:
+        %0 = ArrayAlloc ref[i32[,]] i32 1, i32 2, i32 1, i32 2 <i32[,]>
+        %1 = ArrayAlloc ref[i32[,]] i32 1, i32 2, i32 3, i32 4 <i32[,]>
+        %2 = ArrayAlloc ref[i32[,]] i32 1, i32 2, i32 5, i32 6 <i32[,]>
+        %3 = ArrayAlloc ref[i32[][,]] i32 3, ref[i32[,]] %0, ref[i32[,]] %1, ref[i32[,]] %2 <i32[][,]>
+        Ret void ref[i32[][,]] %3
+    } // main:main.issue04
+
+    fun issue05(): ref[i32[,,]] {
+    entry:
+        %0 = ArrayAlloc ref[i32[,,]] i32 3, i32 1, i32 2, i32 1, i32 2, i32 3, i32 4, i32 5, i32 6 <i32[,,]>
+        Ret void ref[i32[,,]] %0
+    } // main:main.issue05
+
+    fun issue06(): ref[i32[,][][,,]] {
+    entry:
+        %0 = ArrayAlloc ref[i32[,,]] i32 1, i32 1, i32 1, i32 1 <i32[,,]>
+        %1 = ArrayAlloc ref[i32[][,,]] i32 1, ref[i32[,,]] %0 <i32[][,,]>
+        %2 = ArrayAlloc ref[i32[,][][,,]] i32 1, i32 1, ref[i32[][,,]] %1 <i32[,][][,,]>
+        Ret void ref[i32[,][][,,]] %2
+    } // main:main.issue06
+
+    fun issue07(): ref[i32[,]] {
+    entry:
+        %0 = ArrayFill ref[i32[,]] i32 4, i32 4, i32 0 <i32[,]>
+        Ret void ref[i32[,]] %0
+    } // main:main.issue07
+
+    fun issue08(): ref[string[][]] {
+    entry:
+        %0 = ArrayFill ref[string[]] i32 4, string "hello" <string[]>
+        %1 = ArrayFill ref[string[][]] i32 4, ref[string[]] %0 <string[][]>
+        Ret void ref[string[][]] %1
+    } // main:main.issue08
+
+    fun issue09(): ref[i32[,][][,,]] {
+    entry:
+        %0 = ArrayFill ref[i32[,,]] i32 4, i32 4, i32 4, i32 1 <i32[,,]>
+        %1 = ArrayFill ref[i32[][,,]] i32 3, ref[i32[,,]] %0 <i32[][,,]>
+        %2 = ArrayFill ref[i32[,][][,,]] i32 2, i32 2, ref[i32[][,,]] %1 <i32[,][][,,]>
+        Ret void ref[i32[,][][,,]] %2
+    } // main:main.issue09
+
+} // @main:main
+)";
+    //printf("%s\n", buf.c_str());
+    ASSERT_EQ(z, buf);
 }
 
 } // namespace ir
