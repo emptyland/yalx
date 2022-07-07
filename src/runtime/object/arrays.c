@@ -47,7 +47,7 @@ yalx_new_vals_array_with_data(struct heap *heap,
         incoming = yalx_multi_dims_array_data(bundle);
         rs = (struct yalx_value_array_header *)bundle;
     }
-    memcpy(incoming, data, (rs->len * item->reference_size));
+    memcpy(incoming, data, (rs->len * item->instance_size));
     if (item->constraint == K_STRUCT) {
         address_t p = incoming;
         for (size_t i = 0; i < rs->len; i++) {
@@ -114,12 +114,35 @@ struct yalx_value_array_header *yalx_cast_to_array_if_possibly(yalx_ref_t obj) {
     }
 }
 
+struct yalx_value_array_header *yalx_array_clone(struct heap *heap, struct yalx_value_array_header *origin) {
+    if (!origin) {
+        return NULL;
+    }
+    if (CLASS(origin) == array_class) {
+        struct yalx_value_array *ar = (struct yalx_value_array *)origin;
+        if (yalx_is_ref_type(ar->item)) {
+            return yalx_new_refs_array_with_data(heap, ar->item, 1, &ar->len, (yalx_ref_t *)ar->data, ar->len);
+        } else {
+            return yalx_new_vals_array_with_data(heap, ar->item, 1, &ar->len, (const void *)ar->data, ar->len);
+        }
+    } else {
+        DCHECK(CLASS(origin) == multi_dims_array_class);
+        struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)origin;
+        void *data = yalx_multi_dims_array_data(ar);
+        if (yalx_is_ref_type(ar->item)) {
+            return yalx_new_refs_array_with_data(heap, ar->item, ar->dims, ar->caps, (yalx_ref_t *)data, ar->len);
+        } else {
+            return yalx_new_vals_array_with_data(heap, ar->item, ar->dims, ar->caps, data, ar->len);
+        }
+    }
+}
+
 void *yalx_array_location2(struct yalx_value_multi_dims_array *ar, int d0, int d1) {
     const size_t item_size_in_bytes = yalx_is_ref_type(ar->item) ? ar->item->reference_size : ar->item->instance_size;
     DCHECK(ar->dims == 2);
     DCHECK(d0 >= 0 && d0 < ar->caps[0]);
     DCHECK(d1 >= 0 && d1 < ar->caps[1]);
-    return yalx_multi_dims_array_data(ar) + (d1 * ar->caps[1] + d0) * item_size_in_bytes;
+    return yalx_multi_dims_array_data(ar) + (d0 * ar->caps[1] + d1) * item_size_in_bytes;
 }
 
 /* int[2,2,3]

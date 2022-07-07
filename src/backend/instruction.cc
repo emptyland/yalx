@@ -115,19 +115,7 @@ InstructionFunction::InstructionFunction(base::Arena *arena, const String *symbo
 }
 
 ReloactionOperand *InstructionFunction::AddArrayElementClassSymbol(const ir::ArrayModel *ar, bool fetch_address) {
-    switch (ar->dimension_count()) {
-        case 0:
-            UNREACHABLE();
-            break;
-
-        case 1:
-            return AddClassSymbol(ar->element_type(), fetch_address);
-
-        default: {
-            auto offset = Type_multi_dims_array * sizeof(yalx_class);
-            return new (arena_) ReloactionOperand(kRt_builtin_classes, offset, fetch_address);
-        } break;
-    }
+    return AddClassSymbol(ar->element_type(), fetch_address);
 }
 
 ReloactionOperand *InstructionFunction::AddClassSymbol(const ir::Type &ty, bool fetch_address) {

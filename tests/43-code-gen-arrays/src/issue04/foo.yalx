@@ -25,4 +25,19 @@ fun issue6(): Foo[] {
     return a
 }
 
+@yalx.Compiler(nativeHandle=true)
+fun issue7() -> @Foo[]{Foo(996, "hello"), Foo(700, "ok")}
+
+@yalx.Compiler(nativeHandle=true)
+fun issue8() -> @int[,]{{1,2},{3,4},{5,6}}
+
+@yalx.Compiler(nativeHandle=true)
+fun issue9() -> @u8[,]{{9u8, 8u8, 7u8}}
+
+@yalx.Compiler(nativeHandle=true)
+fun issue10() -> @f32[,]{{1.1, 1.2}, {1.3, 1.4}}
+
+@yalx.Compiler(nativeHandle=true)
+fun issue11() -> @i16[4,4,4](99i16)
+
 struct Foo(val i: int, val name: string)

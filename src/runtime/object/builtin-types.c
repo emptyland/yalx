@@ -144,6 +144,82 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         // TODO:
     }, // u32
     
+    [Type_i64] = {
+        .id = (uint64_t)Type_i64,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(i64_t),
+        .instance_size = sizeof(i64_t),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("i64"),
+        .location = YALX_STR("i64"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL,  // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // i64
+    
+    [Type_u64] = {
+        .id = (uint64_t)Type_u64,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(u64_t),
+        .instance_size = sizeof(u64_t),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("u64"),
+        .location = YALX_STR("u64"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL,  // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // u64
+    
+    [Type_f32] = {
+        .id = (uint64_t)Type_f32,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(f32_t),
+        .instance_size = sizeof(f32_t),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("f32"),
+        .location = YALX_STR("f32"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL,  // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // f32
+    
+    [Type_f64] = {
+        .id = (uint64_t)Type_f64,
+        .constraint = K_PRIMITIVE,
+        .reference_size = sizeof(f64_t),
+        .instance_size = sizeof(f64_t),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("f64"),
+        .location = YALX_STR("f64"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL,  // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        // TODO:
+    }, // f64
+    
     //------------------------------------------------------------------------------------------------------------------
     // Boxing types:
     //------------------------------------------------------------------------------------------------------------------

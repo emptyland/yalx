@@ -196,6 +196,14 @@ TEST_F(Arm64CodeGeneratorTest, GlobalInit03) {
     yalx_exit_returning_scope(&state);
 }
 
+struct Issue04DummyFoo {
+    YALX_VALUE_HEADER;
+    i32_t i;
+    yalx_value_str *name;
+};
+
+static_assert(32 == sizeof(Issue04DummyFoo), "");
+
 TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     pkg_init_once(reinterpret_cast<void *>(&issue04_Zoissue04_Zd_Z4init), "issue04:issue04");
     
@@ -223,7 +231,6 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     }
     yalx_exit_returning_scope(&state);
     
-#if 0
     yalx_enter_returning_scope(&state, 16, nullptr);
 
     issue04_Zoissue04_Zdissue2_had();
@@ -234,7 +241,7 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         ASSERT_NE(nullptr, ref);
         auto klass = CLASS(ref);
         ASSERT_NE(nullptr, klass);
-        ASSERT_STREQ("RefsArray", klass->name.z);
+        ASSERT_STREQ("Array", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_array *>(ref);
         ASSERT_STREQ("String", ar->item->name.z);
@@ -257,10 +264,10 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         ASSERT_NE(nullptr, ref);
         auto klass = CLASS(ref);
         ASSERT_NE(nullptr, klass);
-        ASSERT_STREQ("DimsArray", klass->name.z);
+        ASSERT_STREQ("Array", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_array *>(ref);
-        ASSERT_STREQ("TypedArray", ar->item->name.z);
+        ASSERT_STREQ("Array", ar->item->name.z);
         ASSERT_EQ(3, ar->len);
         auto elements = reinterpret_cast<yalx_value_array **>(ar->data);
     }
@@ -276,10 +283,10 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         ASSERT_NE(nullptr, ref);
         auto klass = CLASS(ref);
         ASSERT_NE(nullptr, klass);
-        ASSERT_STREQ("DimsArray", klass->name.z);
+        ASSERT_STREQ("Array", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_array *>(ref);
-        ASSERT_STREQ("TypedArray", ar->item->name.z);
+        ASSERT_STREQ("Array", ar->item->name.z);
         ASSERT_EQ(10, ar->len);
         auto elements = reinterpret_cast<yalx_value_array **>(ar->data);
         for (int i = 0; i < ar->len; i++) {
@@ -288,6 +295,142 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     }
     yalx_exit_returning_scope(&state);
     
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue04_Zoissue04_Zdissue7_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto ref = vals[1];
+        ASSERT_NE(nullptr, ref);
+        auto klass = CLASS(ref);
+        ASSERT_NE(nullptr, klass);
+        ASSERT_STREQ("Array", klass->name.z);
+        
+        auto ar = reinterpret_cast<yalx_value_array *>(ref);
+        ASSERT_STREQ("Foo", ar->item->name.z);
+        ASSERT_STREQ("issue04:issue04.Foo", ar->item->location.z);
+        ASSERT_EQ(32, ar->item->instance_size);
+        ASSERT_EQ(2, ar->len);
+        
+        auto elems = reinterpret_cast<Issue04DummyFoo *>(ar->data);
+        ASSERT_EQ(996, elems[0].i);
+        ASSERT_STREQ("hello", elems[0].name->bytes);
+        ASSERT_EQ(700, elems[1].i);
+        ASSERT_STREQ("ok", elems[1].name->bytes);
+    }
+    yalx_exit_returning_scope(&state);
+
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue04_Zoissue04_Zdissue8_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto ref = vals[1];
+        ASSERT_NE(nullptr, ref);
+        auto klass = CLASS(ref);
+        ASSERT_NE(nullptr, klass);
+        ASSERT_STREQ("MultiDimsArray", klass->name.z);
+        
+        auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(ref);
+        ASSERT_STREQ("i32", ar->item->name.z);
+        ASSERT_EQ(6, ar->len);
+        ASSERT_EQ(2, ar->dims);
+        ASSERT_EQ(3, ar->caps[0]);
+        ASSERT_EQ(2, ar->caps[1]);
+        
+        auto elems = reinterpret_cast<const int *>(yalx_multi_dims_array_data(ar));
+        for (int i = 0; i < ar->len; i++) {
+            EXPECT_EQ(i + 1, elems[i]);
+        }
+        auto n = 1;
+        for (int x = 0; x < ar->caps[0]; x++) {
+            for (int y = 0; y < ar->caps[1]; y++) {
+                ASSERT_EQ(n++, *static_cast<int *>(yalx_array_location2(ar, x, y)));
+            }
+        }
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue04_Zoissue04_Zdissue9_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto ref = vals[1];
+        ASSERT_NE(nullptr, ref);
+        auto klass = CLASS(ref);
+        ASSERT_NE(nullptr, klass);
+        ASSERT_STREQ("MultiDimsArray", klass->name.z);
+        
+        auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(ref);
+        ASSERT_STREQ("u8", ar->item->name.z);
+        ASSERT_EQ(3, ar->len);
+        ASSERT_EQ(2, ar->dims);
+        ASSERT_EQ(1, ar->caps[0]);
+        ASSERT_EQ(3, ar->caps[1]);
+        
+        ASSERT_EQ(9, *static_cast<u8_t *>(yalx_array_location2(ar, 0, 0)));
+        ASSERT_EQ(8, *static_cast<u8_t *>(yalx_array_location2(ar, 0, 1)));
+        ASSERT_EQ(7, *static_cast<u8_t *>(yalx_array_location2(ar, 0, 2)));
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue04_Zoissue04_Zdissue10_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto ref = vals[1];
+        ASSERT_NE(nullptr, ref);
+        auto klass = CLASS(ref);
+        ASSERT_NE(nullptr, klass);
+        ASSERT_STREQ("MultiDimsArray", klass->name.z);
+        
+        auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(ref);
+        ASSERT_STREQ("f32", ar->item->name.z);
+        ASSERT_EQ(4, ar->len);
+        ASSERT_EQ(2, ar->dims);
+        ASSERT_EQ(2, ar->caps[0]);
+        ASSERT_EQ(2, ar->caps[1]);
+        
+        ASSERT_NEAR(1.1f, *static_cast<f32_t *>(yalx_array_location2(ar, 0, 0)), 0.01f);
+        ASSERT_NEAR(1.2f, *static_cast<f32_t *>(yalx_array_location2(ar, 0, 1)), 0.01f);
+        ASSERT_NEAR(1.3f, *static_cast<f32_t *>(yalx_array_location2(ar, 1, 0)), 0.01f);
+        ASSERT_NEAR(1.4f, *static_cast<f32_t *>(yalx_array_location2(ar, 1, 1)), 0.01f);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue04_Zoissue04_Zdissue11_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto ref = vals[1];
+        ASSERT_NE(nullptr, ref);
+        auto klass = CLASS(ref);
+        ASSERT_NE(nullptr, klass);
+        ASSERT_STREQ("MultiDimsArray", klass->name.z);
+        
+        auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(ref);
+        ASSERT_STREQ("i16", ar->item->name.z);
+        ASSERT_EQ(64, ar->len);
+        ASSERT_EQ(3, ar->dims);
+        ASSERT_EQ(4, ar->caps[0]);
+        ASSERT_EQ(4, ar->caps[1]);
+        ASSERT_EQ(4, ar->caps[2]);
+        
+        auto elems = reinterpret_cast<const i16_t *>(yalx_multi_dims_array_data(ar));
+        for (int i = 0; i < ar->len; i++) {
+            ASSERT_EQ(99, elems[i]) << "i=" << i;
+        }
+    }
+    yalx_exit_returning_scope(&state);
+#if 0
     yalx_enter_returning_scope(&state, 16, nullptr);
     
     issue04_Zoissue04_Zdissue5_had();

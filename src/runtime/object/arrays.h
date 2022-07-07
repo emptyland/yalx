@@ -63,6 +63,8 @@ void *yalx_array_location_more(struct yalx_value_multi_dims_array *ar, const int
 
 struct yalx_value_array_header *yalx_cast_to_array_if_possibly(yalx_ref_t obj);
 
+struct yalx_value_array_header *yalx_array_clone(struct heap *heap, struct yalx_value_array_header *);
+
 static inline int yalx_is_array(yalx_ref_t obj) { return yalx_cast_to_array_if_possibly(obj) != NULL; }
 static inline int yalx_is_not_array(yalx_ref_t obj) { return !yalx_is_array(obj); }
 
