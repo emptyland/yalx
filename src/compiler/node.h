@@ -146,6 +146,12 @@ namespace cpl {
     V(UnitLiteral) \
     V(EmptyLiteral) \
     V(OptionLiteral) \
+    V(I8Literal) \
+    V(U8Literal) \
+    V(I32Literal) \
+    V(U32Literal) \
+    V(I16Literal) \
+    V(U16Literal) \
     V(IntLiteral) \
     V(UIntLiteral) \
     V(I64Literal) \

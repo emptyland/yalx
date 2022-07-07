@@ -931,6 +931,38 @@ template<> struct LiteralTraits<unsigned> {
     static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
 }; // struct LiteralTraits<unsigned>
 
+template<> struct LiteralTraits<int8_t> {
+    static constexpr Node::Kind kKind = Node::kI8Literal;
+    using NodeType = I8Literal;
+    
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitI8Literal(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
+}; // struct LiteralTraits<int8_t>
+
+template<> struct LiteralTraits<uint8_t> {
+    static constexpr Node::Kind kKind = Node::kU8Literal;
+    using NodeType = U8Literal;
+    
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitU8Literal(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
+}; // struct LiteralTraits<uint8_t>
+
+template<> struct LiteralTraits<int16_t> {
+    static constexpr Node::Kind kKind = Node::kI16Literal;
+    using NodeType = I16Literal;
+    
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitI16Literal(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
+}; // struct LiteralTraits<int16_t>
+
+template<> struct LiteralTraits<uint16_t> {
+    static constexpr Node::Kind kKind = Node::kU16Literal;
+    using NodeType = U16Literal;
+    
+    static int Accept(NodeType *node, AstVisitor *visitor) { return visitor->VisitU16Literal(node); }
+    static inline Type *Mold(base::Arena *arena, const SourcePosition &location);
+}; // struct LiteralTraits<uint16_t>
+
 template<> struct LiteralTraits<int64_t> {
     static constexpr Node::Kind kKind = Node::kI64Literal;
     using NodeType = I64Literal;
@@ -1011,6 +1043,12 @@ protected:
             ActualLiteral<type>(arena, value, source_position) {} \
     }
 
+DEFINE_ACTUAL_LITERAL(I8, int8_t);
+DEFINE_ACTUAL_LITERAL(U8, uint8_t);
+DEFINE_ACTUAL_LITERAL(I16, int16_t);
+DEFINE_ACTUAL_LITERAL(U16, uint16_t);
+DEFINE_ACTUAL_LITERAL(I32, int32_t);
+DEFINE_ACTUAL_LITERAL(U32, uint32_t);
 DEFINE_ACTUAL_LITERAL(Int, int);
 DEFINE_ACTUAL_LITERAL(UInt, unsigned);
 DEFINE_ACTUAL_LITERAL(I64, int64_t);
@@ -1708,6 +1746,22 @@ inline name *Node::As##name() { return !Is##name() ? nullptr : static_cast<name 
     DECLARE_AST_NODES(DEFINE_METHODS)
     DECLARE_TYPE_NODES(DEFINE_METHODS)
 #undef DEFINE_METHODS
+
+inline Type *LiteralTraits<int8_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_i8, location);
+}
+
+inline Type *LiteralTraits<uint8_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_u8, location);
+}
+
+inline Type *LiteralTraits<int16_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_i16, location);
+}
+
+inline Type *LiteralTraits<uint16_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new (arena) Type(arena, Type::kType_u16, location);
+}
 
 inline Type *LiteralTraits<int>::Mold(base::Arena *arena, const SourcePosition &location) {
     return new (arena) Type(arena, Type::kType_i32, location);

@@ -1296,12 +1296,44 @@ Expression *Parser::ParsePrimary(bool *ok) {
             expr = new (arena_) Identifier(Peek().text_val(), location);
             MoveNext();
             break;
+        case Token::kI8Val:
+            expr = new (arena_) I8Literal(arena_, Peek().i8_val(), location);
+            MoveNext();
+            break;
+        case Token::kU8Val:
+            expr = new (arena_) U8Literal(arena_, Peek().u8_val(), location);
+            MoveNext();
+            break;
+        case Token::kI16Val:
+            expr = new (arena_) I16Literal(arena_, Peek().i16_val(), location);
+            MoveNext();
+            break;
+        case Token::kU16Val:
+            expr = new (arena_) U16Literal(arena_, Peek().u16_val(), location);
+            MoveNext();
+            break;
+        case Token::kI32Val:
+            expr = new (arena_) I32Literal(arena_, Peek().i32_val(), location);
+            MoveNext();
+            break;
+        case Token::kU32Val:
+            expr = new (arena_) U32Literal(arena_, Peek().u32_val(), location);
+            MoveNext();
+            break;
         case Token::kIntVal:
-            expr = new (arena_) IntLiteral(arena_, static_cast<int>(Peek().i64_val()), location);
+            expr = new (arena_) IntLiteral(arena_, Peek().i32_val(), location);
             MoveNext();
             break;
         case Token::kUIntVal:
-            expr = new (arena_) UIntLiteral(arena_, static_cast<unsigned>(Peek().u64_val()), location);
+            expr = new (arena_) UIntLiteral(arena_, Peek().u32_val(), location);
+            MoveNext();
+            break;
+        case Token::kI64Val:
+            expr = new (arena_) I64Literal(arena_, Peek().i64_val(), location);
+            MoveNext();
+            break;
+        case Token::kU64Val:
+            expr = new (arena_) U64Literal(arena_, Peek().u64_val(), location);
             MoveNext();
             break;
         case Token::kF32Val:
@@ -2110,12 +2142,44 @@ Expression *Parser::ParseStaticLiteral(bool *ok) {
     Expression *literal = nullptr;
     auto location = Peek().source_position();
     switch (Peek().kind()) {
+        case Token::kI8Val:
+            literal = new (arena_) I8Literal(arena_, Peek().i8_val(), location);
+            MoveNext();
+            break;
+        case Token::kU8Val:
+            literal = new (arena_) U8Literal(arena_, Peek().u8_val(), location);
+            MoveNext();
+            break;
+        case Token::kI16Val:
+            literal = new (arena_) I16Literal(arena_, Peek().i16_val(), location);
+            MoveNext();
+            break;
+        case Token::kU16Val:
+            literal = new (arena_) U16Literal(arena_, Peek().u16_val(), location);
+            MoveNext();
+            break;
+        case Token::kI32Val:
+            literal = new (arena_) I32Literal(arena_, Peek().i32_val(), location);
+            MoveNext();
+            break;
+        case Token::kU32Val:
+            literal = new (arena_) U32Literal(arena_, Peek().u32_val(), location);
+            MoveNext();
+            break;
         case Token::kIntVal:
-            literal = new (arena_) IntLiteral(arena_, static_cast<int>(Peek().i64_val()), location);
+            literal = new (arena_) IntLiteral(arena_, Peek().i32_val(), location);
             MoveNext();
             break;
         case Token::kUIntVal:
-            literal = new (arena_) UIntLiteral(arena_, static_cast<unsigned>(Peek().u64_val()), location);
+            literal = new (arena_) UIntLiteral(arena_, Peek().u32_val(), location);
+            MoveNext();
+            break;
+        case Token::kI64Val:
+            literal = new (arena_) I64Literal(arena_, Peek().i64_val(), location);
+            MoveNext();
+            break;
+        case Token::kU64Val:
+            literal = new (arena_) U64Literal(arena_, Peek().u64_val(), location);
             MoveNext();
             break;
         case Token::kF32Val:

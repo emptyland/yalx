@@ -599,6 +599,12 @@ private:
     int VisitI64Literal(I64Literal *node) override { return Return(node); }
     int VisitIntLiteral(IntLiteral *node) override { return Return(node); }
     int VisitUIntLiteral(UIntLiteral *node) override { return Return(node); }
+    int VisitI8Literal(I8Literal *node) override { return Return(node); }
+    int VisitU8Literal(U8Literal *node) override { return Return(node); }
+    int VisitI16Literal(I16Literal *node) override { return Return(node); }
+    int VisitU16Literal(U16Literal *node) override { return Return(node); }
+    int VisitI32Literal(I32Literal *node) override { return Return(node); }
+    int VisitU32Literal(U32Literal *node) override { return Return(node); }
     int VisitU64Literal(U64Literal *node) override { return Return(node); }
     int VisitBoolLiteral(BoolLiteral *node) override { return Return(node); }
     int VisitUnitLiteral(UnitLiteral *node) override { return Return(node); }

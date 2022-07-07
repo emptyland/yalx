@@ -29,6 +29,14 @@ using String = base::ArenaString;
     V(CharVal, nullptr, char) \
     V(IntVal, nullptr, i64) \
     V(UIntVal, nullptr, u64) \
+    V(I8Val, nullptr, i8) \
+    V(U8Val, nullptr, u8) \
+    V(I16Val, nullptr, i16) \
+    V(U16Val, nullptr, u16) \
+    V(I32Val, nullptr, i32) \
+    V(U32Val, nullptr, u32) \
+    V(I64Val, nullptr, i64) \
+    V(U64Val, nullptr, u64) \
     V(F32Val, nullptr, f32) \
     V(F64Val, nullptr, f64) \
     V(Ref, nullptr, none) \
@@ -143,6 +151,7 @@ using String = base::ArenaString;
     V(U64, "u64", none) \
     V(Int, "int", none) \
     V(UInt, "uint", none) \
+    V(Intptr, "intptr", none) \
     V(F32, "f32", none) \
     V(F64, "f64", none) \
     V(Any, "any", none) \
@@ -174,6 +183,12 @@ public:
     DEF_VAL_GETTER(SourcePosition, source_position);
     DEF_VAL_PROP_RW(float, f32_val);
     DEF_VAL_PROP_RW(double, f64_val);
+    DEF_VAL_PROP_RW(int8_t, i8_val);
+    DEF_VAL_PROP_RW(uint8_t, u8_val);
+    DEF_VAL_PROP_RW(int16_t, i16_val);
+    DEF_VAL_PROP_RW(uint16_t, u16_val);
+    DEF_VAL_PROP_RW(int32_t, i32_val);
+    DEF_VAL_PROP_RW(uint32_t, u32_val);
     DEF_VAL_PROP_RW(int64_t, i64_val);
     DEF_VAL_PROP_RW(uint64_t, u64_val);
     DEF_VAL_PROP_RW(char32_t, char_val);
@@ -218,6 +233,36 @@ private:
     };
     
     template<>
+    struct Setter<int8_t> {
+        void Set(Token *token, int8_t value) { token->i8_val_ = value; }
+    };
+    
+    template<>
+    struct Setter<uint8_t> {
+        void Set(Token *token, uint8_t value) { token->u8_val_ = value; }
+    };
+    
+    template<>
+    struct Setter<int16_t> {
+        void Set(Token *token, int16_t value) { token->i16_val_ = value; }
+    };
+    
+    template<>
+    struct Setter<uint16_t> {
+        void Set(Token *token, uint16_t value) { token->u16_val_ = value; }
+    };
+    
+    template<>
+    struct Setter<int32_t> {
+        void Set(Token *token, int32_t value) { token->i32_val_ = value; }
+    };
+    
+    template<>
+    struct Setter<uint32_t> {
+        void Set(Token *token, uint32_t value) { token->u32_val_ = value; }
+    };
+    
+    template<>
     struct Setter<int64_t> {
         void Set(Token *token, int64_t value) { token->i64_val_ = value; }
     };
@@ -250,6 +295,12 @@ private:
         const String *text_val_;
         float    f32_val_;
         double   f64_val_;
+        uint8_t  u8_val_;
+        int8_t   i8_val_;
+        uint16_t u16_val_;
+        int16_t  i16_val_;
+        uint32_t u32_val_;
+        int32_t  i32_val_;
         uint64_t u64_val_;
         int64_t  i64_val_;
         char32_t char_val_;

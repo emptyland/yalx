@@ -78,6 +78,12 @@ public:
     int VisitF64Literal(F64Literal *node) override { return -1; }
     int VisitI64Literal(I64Literal *node) override { return -1; }
     int VisitIndexedGet(IndexedGet *node) override { return -1; }
+    int VisitI8Literal(I8Literal *node) override { return -1; }
+    int VisitU8Literal(U8Literal *node) override { return -1; }
+    int VisitI16Literal(I16Literal *node) override { return -1; }
+    int VisitU16Literal(U16Literal *node) override { return -1; }
+    int VisitI32Literal(I32Literal *node) override { return -1; }
+    int VisitU32Literal(U32Literal *node) override { return -1; }
     int VisitIntLiteral(IntLiteral *node) override { return -1; }
     int VisitU64Literal(U64Literal *node) override { return -1; }
     int VisitBoolLiteral(BoolLiteral *node) override { return -1; }

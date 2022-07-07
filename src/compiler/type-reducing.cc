@@ -1993,14 +1993,20 @@ private:
     
     int VisitF32Literal(F32Literal *node) override { return Returning(node->type()); }
     int VisitF64Literal(F64Literal *node) override { return Returning(node->type()); }
-    int VisitI64Literal(I64Literal *node) override { return Returning(node->type()); }
+    int VisitI8Literal(I8Literal *node) override { return Returning(node->type()); }
+    int VisitU8Literal(U8Literal *node) override { return Returning(node->type()); }
+    int VisitI16Literal(I16Literal *node) override { return Returning(node->type()); }
+    int VisitU16Literal(U16Literal *node) override { return Returning(node->type()); }
+    int VisitI32Literal(I32Literal *node) override { return Returning(node->type()); }
+    int VisitU32Literal(U32Literal *node) override { return Returning(node->type()); }
     int VisitIntLiteral(IntLiteral *node) override { return Returning(node->type()); }
+    int VisitUIntLiteral(UIntLiteral *node) override { return Returning(node->type()); }
+    int VisitI64Literal(I64Literal *node) override { return Returning(node->type()); }
     int VisitU64Literal(U64Literal *node) override { return Returning(node->type()); }
     int VisitBoolLiteral(BoolLiteral *node) override { return Returning(node->type()); }
     int VisitUnitLiteral(UnitLiteral *node) override { return Returning(Unit()); }
     int VisitEmptyLiteral(EmptyLiteral *node) override { UNREACHABLE(); }
     int VisitStringLiteral(StringLiteral *node) override { return Returning(node->type()); }
-    int VisitUIntLiteral(UIntLiteral *node) override { return Returning(node->type()); }
     int VisitCharLiteral(CharLiteral *node) override { return Returning(node->type()); }
     
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { UNREACHABLE(); }

@@ -1,6 +1,7 @@
 #include "compiler/lexer.h"
 #include "compiler/syntax-feedback.h"
 #include "base/arena-utils.h"
+#include "base/utils.h"
 #include "base/io.h"
 
 
@@ -426,7 +427,41 @@ Token Lexer::MatchNumber(int sign, int line, int row) {
             }
 
             ch = MoveNext();
-            type = sign_ch == 'i' ? Token::kIntVal : Token::kUIntVal;
+            if (ch == '8') {
+                type = sign_ch == 'i' ? Token::kI8Val : Token::kU8Val;
+                ch = MoveNext();
+                continue;
+            }
+            
+            if (ch == '1') {
+                ch = MoveNext();
+                if (ch != '6') {
+                    return OneCharacterError(line_, column_, "Incorrect number literal suffix: %x", ch);
+                }
+                type = sign_ch == 'i' ? Token::kI16Val : Token::kU16Val;
+                ch = MoveNext();
+                continue;
+            }
+            
+            if (ch == '3') {
+                ch = MoveNext();
+                if (ch != '2') {
+                    return OneCharacterError(line_, column_, "Incorrect number literal suffix: %x", ch);
+                }
+                type = sign_ch == 'i' ? Token::kI32Val : Token::kU32Val;
+                ch = MoveNext();
+                continue;
+            }
+
+            if (ch == '6') {
+                ch = MoveNext();
+                if (ch != '4') {
+                    return OneCharacterError(line_, column_, "Incorrect number literal suffix: %x", ch);
+                }
+                type = sign_ch == 'i' ? Token::kI64Val : Token::kU64Val;
+                ch = MoveNext();
+                continue;
+            }
         } else if (IsTermChar(ch)) {
             loc.SetEnd(line_, column_);
             break;
@@ -437,6 +472,14 @@ Token Lexer::MatchNumber(int sign, int line, int row) {
     
     uint64_t val = 0;
     switch (type) {
+        case Token::kI8Val:
+        case Token::kU8Val:
+        case Token::kI16Val:
+        case Token::kU16Val:
+        case Token::kI32Val:
+        case Token::kU32Val:
+        case Token::kI64Val:
+        case Token::kU64Val:
         case Token::kIntVal:
         case Token::kUIntVal: {
             int rv = 0;
@@ -444,13 +487,20 @@ Token Lexer::MatchNumber(int sign, int line, int row) {
                 rv = base::ParseO64(buf.c_str() + 1, buf.length() - 1, &val);
             } else if (base == 10) {
                 int64_t tmp;
-                if (type == Token::kIntVal) {
-                    rv = base::ParseI64(buf.c_str(), &tmp);
-                    val = tmp;
-                } else {
-                    rv = base::ParseU64(buf.c_str(), &val);
+                switch (type) {
+                    case Token::kI8Val:
+                    case Token::kI16Val:
+                    case Token::kI32Val:
+                    case Token::kIntVal:
+                    case Token::kI64Val:
+                        rv = base::ParseI64(buf.c_str(), &tmp);
+                        val = tmp;
+                        break;
+                        
+                    default:
+                        rv = base::ParseU64(buf.c_str(), &val);
+                        break;
                 }
-                
             } else if (base == 16) {
                 rv = base::ParseH64(buf.c_str() + 2, buf.length() - 2, &val);
             }
@@ -477,12 +527,57 @@ Token Lexer::MatchNumber(int sign, int line, int row) {
     }
 
     switch (type) {
+            
+        case Token::kI8Val: {
+            if (base::is_int7(val)) {
+                auto test = sign < 0 ? -static_cast<int8_t>(val) : static_cast<int8_t>(val);
+                return Token(type, loc).With(test);
+            }
+        } break;
+            
+        case Token::kU8Val: {
+            if (base::is_uint8(val)) {
+                auto test = sign < 0 ? -static_cast<uint8_t>(val) : static_cast<uint8_t>(val);
+                return Token(type, loc).With(test);
+            }
+        } break;
+            
+        case Token::kI16Val: {
+            if (base::is_int16(val)) {
+                auto test = sign < 0 ? -static_cast<int16_t>(val) : static_cast<int16_t>(val);
+                return Token(type, loc).With(test);
+            }
+        } break;
+            
+        case Token::kU16Val: {
+            if (base::is_uint16(val)) {
+                auto test = sign < 0 ? -static_cast<uint16_t>(val) : static_cast<uint16_t>(val);
+                return Token(type, loc).With(test);
+            }
+        } break;
+        
+        case Token::kI32Val:
         case Token::kIntVal: {
+            if (base::is_int31(val)) {
+                auto test = sign < 0 ? -static_cast<int32_t>(val) : static_cast<int32_t>(val);
+                return Token(type, loc).With(test);
+            }
+        } break;
+            
+        case Token::kU32Val:
+        case Token::kUIntVal: {
+            if (base::is_uint32(val)) {
+                auto test = sign < 0 ? -static_cast<uint32_t>(val) : static_cast<uint32_t>(val);
+                return Token(type, loc).With(test);
+            }
+        } break;
+            
+        case Token::kI64Val: {
             auto test = sign < 0 ? -static_cast<int64_t>(val) : static_cast<int64_t>(val);
             return Token(type, loc).With(test);
         } break;
             
-        case Token::kUIntVal: {
+        case Token::kU64Val: {
             auto test = sign < 0 ? -static_cast<uint64_t>(val) : static_cast<uint64_t>(val);
             return Token(type, loc).With(test);
         } break;
@@ -491,6 +586,7 @@ Token Lexer::MatchNumber(int sign, int line, int row) {
             UNREACHABLE();
             break;
     }
+    error_feedback_->Printf(loc, "Integral number: %s overflow", buf.data());
     return Token(Token::kError, loc);
 }
 

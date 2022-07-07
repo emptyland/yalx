@@ -1648,6 +1648,36 @@ public:
         return EmitComparsion(node, RuntimeLib::StringGE, candidate, arraysize(candidate));
     }
     
+    int VisitI8Literal(cpl::I8Literal *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::Int8, ops()->I8Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitU8Literal(cpl::U8Literal *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::UInt8, ops()->U8Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitI16Literal(cpl::I16Literal *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::Int16, ops()->I16Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitU16Literal(cpl::U16Literal *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::UInt16, ops()->U16Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitI32Literal(cpl::I32Literal *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::Int32, ops()->I32Constant(node->value()));
+        return Returning(val);
+    }
+    
+    int VisitU32Literal(cpl::U32Literal *node) override {
+        auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::UInt32, ops()->U32Constant(node->value()));
+        return Returning(val);
+    }
+    
     int VisitIntLiteral(cpl::IntLiteral *node) override {
         auto val = Value::New0(arena(), SourcePosition::Unknown(), Types::Int32, ops()->I32Constant(node->value()));
         return Returning(val);
