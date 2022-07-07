@@ -1398,34 +1398,96 @@ void Arm64FunctionInstructionSelector::ArrayFill(ir::Value *instr) {
 }
 
 void Arm64FunctionInstructionSelector::ArrayAt(ir::Value *instr) {
-    Allocate(instr->InputValue(0), kAny);
-    Allocate(instr->InputValue(1), kAny);
+    const auto number_of_indices = instr->op()->value_in() - 1;
+    
+    std::vector<InstructionOperand *> indices;
+    if (number_of_indices > 3) {
+        Allocate(instr->InputValue(0), kAny);
+        for (int i = 1; i < instr->op()->value_in(); i++) {
+            indices.push_back(Allocate(instr->InputValue(i), kAny));
+        }
+    } else {
+        for (int i = 0; i < instr->op()->value_in(); i++) {
+            Allocate(instr->InputValue(i), kAny);
+        }
+    }
+    
+    std::vector<LocationOperand *> slots;
+    for (int i = indices.size() - 1; i >= 0; i--) {
+        auto slot = operands_.AllocateStackSlot(ir::Types::Word32, 0, StackSlotAllocator::kLinear);
+        Move(slot, indices[i], ir::Types::Word32);
+        slots.push_back(slot);
+    }
+    const auto top_line = operands_.slots()->stack_size();
     
     RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
     saving_scope.SaveAll();
     
-    auto a0 = operands_.AllocateReigster(ir::Types::Word64, arm64::x0.code());
-    auto a1 = operands_.AllocateReigster(ir::Types::Word32, arm64::x1.code());
+    std::vector<RegisterOperand *> args;
+    args.push_back(operands_.AllocateReigster(ir::Types::Word64, arm64::x0.code()));
     
     auto array = Allocate(instr->InputValue(0), kAny);
-    auto index = Allocate(instr->InputValue(1), kAny);
+    Move(args[0], array, instr->InputValue(0)->type());
     
-    Move(a0, array, instr->InputValue(0)->type());
-    Move(a1, index, instr->InputValue(1)->type());
-    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_location_at));
+    switch (number_of_indices) {
+        case 1: {
+            args.push_back(operands_.AllocateReigster(ir::Types::Word32, arm64::x1.code()));
+            
+            auto d0 = Allocate(instr->InputValue(1), kAny);
+            Move(args[1], d0, instr->InputValue(1)->type());
+            current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_location_at1));
+        } break;
+            
+        case 2: {
+            args.push_back(operands_.AllocateReigster(ir::Types::Word32, arm64::x1.code()));
+            args.push_back(operands_.AllocateReigster(ir::Types::Word32, arm64::x2.code()));
+            
+            auto d0 = Allocate(instr->InputValue(1), kAny);
+            Move(args[1], d0, instr->InputValue(1)->type());
+            auto d1 = Allocate(instr->InputValue(2), kAny);
+            Move(args[2], d1, instr->InputValue(2)->type());
+            current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_location_at2));
+        } break;
+            
+        case 3: {
+            args.push_back(operands_.AllocateReigster(ir::Types::Word32, arm64::x1.code()));
+            args.push_back(operands_.AllocateReigster(ir::Types::Word32, arm64::x2.code()));
+            args.push_back(operands_.AllocateReigster(ir::Types::Word32, arm64::x3.code()));
+            
+            auto d0 = Allocate(instr->InputValue(1), kAny);
+            Move(args[1], d0, instr->InputValue(1)->type());
+            auto d1 = Allocate(instr->InputValue(2), kAny);
+            Move(args[2], d1, instr->InputValue(2)->type());
+            auto d2 = Allocate(instr->InputValue(3), kAny);
+            Move(args[3], d2, instr->InputValue(3)->type());
+            current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_location_at3));
+        } break;
+            
+        default: {
+            args.push_back(operands_.AllocateReigster(ir::Types::Word32, arm64::x1.code()));
+
+            auto fp = operands_.registers()->frame_pointer();
+            current()->NewIO(Arm64Sub, args[1], fp, ImmediateOperand::Word32(arena_, top_line));
+            current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_location_at));
+        } break;
+    }
     
     auto opd = Allocate(instr, kMoR);
     if (instr->type().kind() == ir::Type::kValue) {
-        Move(opd, a0, instr->type());
+        Move(opd, args[0], instr->type());
     } else {
-        auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, a0->register_id(), -1, 0);
+        auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, args[0]->register_id(), -1, 0);
         Move(opd, loc, instr->type());
     }
     
-    a0->Grab();
-    a1->Grab();
-    operands_.Free(a0);
-    operands_.Free(a1);
+    for (auto arg : args) {
+        arg->Grab();
+        operands_.Free(arg);
+    }
+    for (auto slot : slots) {
+        slot->Grab();
+        operands_.Free(slot);
+    }
 }
 
 void Arm64FunctionInstructionSelector::ArraySet(ir::Value *instr) {

@@ -24,6 +24,9 @@ DECLARE_STATIC_STRING(kRt_lazy_load_object, "_lazy_load_object");
 DECLARE_STATIC_STRING(kRt_array_alloc, "_array_alloc");
 DECLARE_STATIC_STRING(kRt_array_fill, "_array_fill");
 DECLARE_STATIC_STRING(kRt_array_location_at, "_array_location_at");
+DECLARE_STATIC_STRING(kRt_array_location_at1, "_array_location_at1");
+DECLARE_STATIC_STRING(kRt_array_location_at2, "_array_location_at2");
+DECLARE_STATIC_STRING(kRt_array_location_at3, "_array_location_at3");
 DECLARE_STATIC_STRING(kRt_array_set_ref, "_array_set_ref");
 DECLARE_STATIC_STRING(kRt_array_set_chunk, "_array_set_chunk");
 

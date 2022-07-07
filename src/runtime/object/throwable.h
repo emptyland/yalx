@@ -36,7 +36,7 @@ typedef struct yalx_value_exception **yalx_exception_handle;
 
 void throw_bad_casting_exception(const struct yalx_class *const from, const struct yalx_class *const to);
 
-void throw_array_index_out_of_bounds_exception(const struct yalx_value_array_header *obj, int index);
+void throw_array_index_out_of_bounds_exception(const struct yalx_value_array_header *obj, int dim, int index);
 
 #ifdef __cplusplus
 }

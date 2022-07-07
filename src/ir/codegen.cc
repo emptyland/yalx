@@ -1435,8 +1435,7 @@ public:
     int VisitSend(cpl::Send *node) override { UNREACHABLE(); }
     
     int VisitNegative(cpl::Negative *node) override { UNREACHABLE(); }
-    
-    // indices
+
     int VisitIndexedGet(cpl::IndexedGet *node) override {
         SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
         Value *lhs = nullptr;

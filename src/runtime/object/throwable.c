@@ -2,6 +2,7 @@
 #include "runtime/object/yalx-string.h"
 #include "runtime/object/type.h"
 #include "runtime/heap/heap.h"
+#include "runtime/checking.h"
 #include "runtime/runtime.h"
 #include <stdio.h>
 #include <assert.h>
@@ -48,11 +49,21 @@ void throw_bad_casting_exception(const struct yalx_class *const from, const stru
     throw_exception(bad_casting_exception_class, message, NULL);
 }
 
-void throw_array_index_out_of_bounds_exception(const struct yalx_value_array_header *obj, int index) {
-    assert(yalx_is_array((yalx_ref_t)obj));
+void throw_array_index_out_of_bounds_exception(const struct yalx_value_array_header *obj, int dim, int index) {
+    DCHECK(obj != NULL);
+    const struct yalx_class *const klass = CLASS(obj);
+    
     
     char *buf = (char *)malloc(1024);
-    snprintf(buf, 1024, "Size is %u, but index at %u", obj->len, index);
+    if (klass == array_class) {
+        snprintf(buf, 1024, "Size is %u, but index at %u", obj->len, index);
+    } else {
+        DCHECK(klass == multi_dims_array_class);
+        const struct yalx_value_multi_dims_array *ar = (const struct yalx_value_multi_dims_array *)obj;
+        DCHECK(dim < ar->dims);
+        snprintf(buf, 1024, "Dimension %d size is %u, but index at %u", dim, ar->caps[dim], index);
+    }
+    
     struct yalx_value_str *message = yalx_new_string(&heap, buf, strlen(buf));
     free(buf);
     

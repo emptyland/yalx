@@ -886,16 +886,15 @@ struct yalx_value_array_header *array_fill(const struct yalx_class *const elemen
     return rs;
 }
 
-void *array_location_at(struct yalx_value_array_header *const array, const i32_t index) {
+void *array_location_at1(struct yalx_value_array_header *const array, const i32_t index) {
     DCHECK(array != NULL);
-    DCHECK(yalx_is_array(array));
-    
-    if (index < 0 || index >= array->len) {
-        throw_array_index_out_of_bounds_exception(array, index);
-    }
-    
     const struct yalx_class *const klass = CLASS(array);
     DCHECK(klass == array_class);
+    
+    if (index < 0 || index >= array->len) {
+        throw_array_index_out_of_bounds_exception(array, 0, index);
+    }
+
     struct yalx_value_array *ar = (struct yalx_value_array *)array;
     if (yalx_is_ref_type(ar->item)) {
         return ar->data + index * ar->item->reference_size;
@@ -904,13 +903,59 @@ void *array_location_at(struct yalx_value_array_header *const array, const i32_t
     }
 }
 
+void *array_location_at2(struct yalx_value_multi_dims_array *const array, const i32_t d0, const i32_t d1) {
+    DCHECK(array != NULL);
+    const struct yalx_class *const klass = CLASS(array);
+    DCHECK(klass == multi_dims_array_class);
+    DCHECK(array->dims == 2);
+    
+    if (d0 < 0 || d0 >= array->caps[0]) {
+        throw_array_index_out_of_bounds_exception(array, 0, index);
+    }
+    if (d1 < 0 || d1 >= array->caps[1]) {
+        throw_array_index_out_of_bounds_exception(array, 1, index);
+    }
+    return yalx_array_location2(array, d0, d1);
+}
+
+void *array_location_at3(struct yalx_value_multi_dims_array *const array, const i32_t d0, const i32_t d1,
+                         const i32_t d2) {
+    DCHECK(array != NULL);
+    const struct yalx_class *const klass = CLASS(array);
+    DCHECK(klass == multi_dims_array_class);
+    DCHECK(array->dims == 3);
+    
+    if (d0 < 0 || d0 >= array->caps[0]) {
+        throw_array_index_out_of_bounds_exception(array, 0, index);
+    }
+    if (d1 < 0 || d1 >= array->caps[1]) {
+        throw_array_index_out_of_bounds_exception(array, 1, index);
+    }
+    if (d2 < 0 || d2 >= array->caps[2]) {
+        throw_array_index_out_of_bounds_exception(array, 2, index);
+    }
+    return yalx_array_location3(array, d0, d1, d2);
+}
+
+void *array_location_at(struct yalx_value_array_header *const array, const i32_t *indices) {
+    DCHECK(array != NULL);
+    const struct yalx_class *const klass = CLASS(array);
+    DCHECK(klass == multi_dims_array_class || klass == array_class);
+    
+    if (klass == array_class) {
+        return array_location_at1(array, indices[0]);
+    }
+
+    return yalx_array_location_more((struct yalx_value_multi_dims_array *)array, indices);
+}
+
 void array_set_ref(struct yalx_value_array_header *const array, const i32_t index, yalx_ref_t value) {
     DCHECK(array != NULL);
     DCHECK(CLASS(array) == array_class);
     DCHECK(yalx_is_ref_type(array->item));
     
     if (index < 0 || index >= array->len) {
-        throw_array_index_out_of_bounds_exception(array, index);
+        throw_array_index_out_of_bounds_exception(array, 0, index);
     }
     
     const struct yalx_class *const klass = CLASS(array);

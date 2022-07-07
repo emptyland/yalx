@@ -59,6 +59,9 @@ extern const String *const kRt_lazy_load_object;
 extern const String *const kRt_array_alloc;
 extern const String *const kRt_array_fill;
 extern const String *const kRt_array_location_at;
+extern const String *const kRt_array_location_at1;
+extern const String *const kRt_array_location_at2;
+extern const String *const kRt_array_location_at3;
 extern const String *const kRt_array_set_ref;
 extern const String *const kRt_array_set_chunk;
 

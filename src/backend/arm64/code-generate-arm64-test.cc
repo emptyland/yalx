@@ -430,7 +430,7 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         }
     }
     yalx_exit_returning_scope(&state);
-#if 0
+
     yalx_enter_returning_scope(&state, 16, nullptr);
     
     issue04_Zoissue04_Zdissue5_had();
@@ -443,6 +443,19 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     }
     yalx_exit_returning_scope(&state);
     
+    yalx_enter_returning_scope(&state, 32, nullptr);
+    
+    issue04_Zoissue04_Zdissue12_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_str_handle>(state.buf);
+        ASSERT_STREQ("a", vals[3]->bytes);
+        ASSERT_STREQ("b", vals[2]->bytes);
+        ASSERT_STREQ("d", vals[1]->bytes);
+    }
+    yalx_exit_returning_scope(&state);
+
+#if 0
     yalx_enter_returning_scope(&state, 16, nullptr);
     
     issue04_Zoissue04_Zdissue6_had();
