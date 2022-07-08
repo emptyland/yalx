@@ -244,12 +244,12 @@ public:
     
     int FindInput(BasicBlock *node) {
         auto iter = std::find(inputs_.begin(), inputs_.end(), node);
-        return iter == inputs_.end() ? -1 : iter - inputs_.begin();
+        return iter == inputs_.end() ? -1 : static_cast<int>(iter - inputs_.begin());
     }
     
     int FindOutput(BasicBlock *node) {
         auto iter = std::find(outputs_.begin(), outputs_.end(), node);
-        return iter == outputs_.end() ? -1 : iter - outputs_.begin();
+        return iter == outputs_.end() ? -1 : static_cast<int>(iter - outputs_.begin());
     }
     
     void MoveToFront(Value *instr) {
@@ -266,7 +266,7 @@ public:
     
     int FindInstruction(Value *value) const {
         auto it = std::find(instructions_.begin(), instructions_.end(), value);
-        return it == instructions_.end() ? -1 : it - instructions_.begin();
+        return it == instructions_.end() ? -1 : static_cast<int>(it - instructions_.begin());
     }
     
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;
@@ -458,12 +458,12 @@ public:
     std::vector<std::tuple<int, Value *>> GetUsers(){
         std::vector<std::tuple<int, Value *>> target;
         if (users_size_ == 0) {
-            return std::move(target);
+            return target;
         }
         for (auto edge : users()) {
             target.push_back(std::make_tuple(edge.position, edge.user));
         }
-        return std::move(target);
+        return target;
     }
     
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const;

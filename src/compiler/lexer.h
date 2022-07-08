@@ -25,9 +25,7 @@ public:
         : arena_(DCHECK_NOTNULL(arena))
         , error_feedback_(error_feedback) {}
 
-    ~Lexer() {
-        if (input_file_ownership_) { delete input_file_; }
-    }
+    ~Lexer();
     
     base::Status SwitchInputFile(const std::string &name, base::SequentialFile *file);
 

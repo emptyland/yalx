@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdatomic.h>
+#include <inttypes.h>
 //#define _XOPEN_SOURCE
 //#include <ucontext.h>
 
@@ -111,7 +112,7 @@ static const struct dev_struct_field string_fields[] = {
 
 static void dev_print_fields(const struct dev_struct_field *field) {
     for (;field->name.z != NULL; field++) {
-        printf("    %s %d 0x%04x\n", field->name.z, field->offset, field->offset);
+        printf("    %s %zd 0x%04zx\n", field->name.z, field->offset, field->offset);
     }
 }
 
@@ -140,7 +141,7 @@ extern struct yalx_class builtin_classes[MAX_BUILTIN_TYPES];
 
 struct class_load_entry {
     const char *name;
-    struct yalx_class **location;
+    const struct yalx_class **location;
 } classes_loading_entries[] = {
     {THROWABLE_CLASS_NAME, &throwable_class},
     {EXCEPTION_CLASS_NAME, &exception_class},
@@ -350,11 +351,11 @@ void dbg_output(yalx_ref_t obj) {
             break;
             
         case Type_I64:
-            printf("DBG %ld\n", ((struct yalx_value_number_w *)obj)->box.i64);
+            printf("DBG %"PRId64"\n", ((struct yalx_value_number_w *)obj)->box.i64);
             break;
             
         case Type_U64:
-            printf("DBG %lu\n", ((struct yalx_value_number_w *)obj)->box.u64);
+            printf("DBG %"PRIu64"\n", ((struct yalx_value_number_w *)obj)->box.u64);
             break;
             
         case Type_F32:
@@ -383,7 +384,7 @@ void *yalx_zalloc(size_t n) {
 }
 
 char *yalx_symbol_mangle(const char *const plain_name, const char *postfix) {
-    const extra_len = !postfix ? 0 : strlen(postfix);
+    const size_t extra_len = !postfix ? 0 : strlen(postfix);
     char *symbol = NULL;
     size_t buf_size = 98 + extra_len;
     int mangled_size = 0;
@@ -544,6 +545,7 @@ int yalx_enter_returning_scope(struct yalx_returning_vals *state, size_t reserve
         state->buf = state->inline_buf;
     }
     dbg_init_zag(state->buf, state->total_size);
+    return 0;
 }
 
 int yalx_exit_returning_scope(struct yalx_returning_vals *state) {
@@ -553,6 +555,7 @@ int yalx_exit_returning_scope(struct yalx_returning_vals *state) {
         free(state->buf);
     }
     co->returning_vals = state->prev;
+    return 0;
 }
 
 int yalx_return_cstring(const char *const z, size_t n) {
@@ -587,7 +590,7 @@ const struct yalx_class *yalx_find_class(const char *const plain_name) {
     const char *const symbol = yalx_symbol_mangle(plain_name, "$class");
     const struct yalx_class *const clazz = (struct yalx_class *)dlsym(RTLD_MAIN_ONLY, symbol + 1);
     //puts(symbol);
-    free(symbol);
+    free((void *)symbol);
     return clazz;
 }
 
@@ -726,7 +729,7 @@ static const uintptr_t kCreatedMask = ~kPendingMask;
 
 static inline int need_init(struct yalx_value_any *_Atomic *address) {
     struct yalx_value_any *expected = NULL;
-    if (atomic_compare_exchange_strong(address, &expected, kPendingMask)) {
+    if (atomic_compare_exchange_strong(address, &expected, (yalx_ref_t)kPendingMask)) {
         return 1;
     }
     while ((uintptr_t)atomic_load_explicit(address, memory_order_acquire) == kPendingMask) {
@@ -910,10 +913,10 @@ void *array_location_at2(struct yalx_value_multi_dims_array *const array, const 
     DCHECK(array->dims == 2);
     
     if (d0 < 0 || d0 >= array->caps[0]) {
-        throw_array_index_out_of_bounds_exception(array, 0, index);
+        throw_array_index_out_of_bounds_exception((const struct yalx_value_array_header *)array, 0, d0);
     }
     if (d1 < 0 || d1 >= array->caps[1]) {
-        throw_array_index_out_of_bounds_exception(array, 1, index);
+        throw_array_index_out_of_bounds_exception((const struct yalx_value_array_header *)array, 1, d1);
     }
     return yalx_array_location2(array, d0, d1);
 }
@@ -926,13 +929,13 @@ void *array_location_at3(struct yalx_value_multi_dims_array *const array, const 
     DCHECK(array->dims == 3);
     
     if (d0 < 0 || d0 >= array->caps[0]) {
-        throw_array_index_out_of_bounds_exception(array, 0, index);
+        throw_array_index_out_of_bounds_exception((const struct yalx_value_array_header *)array, 0, d0);
     }
     if (d1 < 0 || d1 >= array->caps[1]) {
-        throw_array_index_out_of_bounds_exception(array, 1, index);
+        throw_array_index_out_of_bounds_exception((const struct yalx_value_array_header *)array, 1, d1);
     }
     if (d2 < 0 || d2 >= array->caps[2]) {
-        throw_array_index_out_of_bounds_exception(array, 2, index);
+        throw_array_index_out_of_bounds_exception((const struct yalx_value_array_header *)array, 2, d2);
     }
     return yalx_array_location3(array, d0, d1, d2);
 }
@@ -946,10 +949,16 @@ void *array_location_at(struct yalx_value_array_header *const array, const i32_t
         return array_location_at1(array, indices[0]);
     }
 
+    struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
+    for (int i = 0; i < ar->dims; i++) {
+        if (indices[i] < 0 || indices[i] >= ar->caps[i]) {
+            throw_array_index_out_of_bounds_exception(array, 2, indices[i]);
+        }
+    }
     return yalx_array_location_more((struct yalx_value_multi_dims_array *)array, indices);
 }
 
-void array_set_ref(struct yalx_value_array_header *const array, const i32_t index, yalx_ref_t value) {
+void array_set_ref1(struct yalx_value_array_header *const array, const i32_t index, yalx_ref_t value) {
     DCHECK(array != NULL);
     DCHECK(CLASS(array) == array_class);
     DCHECK(yalx_is_ref_type(array->item));
@@ -957,10 +966,69 @@ void array_set_ref(struct yalx_value_array_header *const array, const i32_t inde
     if (index < 0 || index >= array->len) {
         throw_array_index_out_of_bounds_exception(array, 0, index);
     }
-    
-    const struct yalx_class *const klass = CLASS(array);
+
     struct yalx_value_array *ar = (struct yalx_value_array *)array;
     put_field(((yalx_ref_t *)ar->data) + index, value);
+}
+
+void array_set_ref2(struct yalx_value_array_header *const array, const i32_t d0, const i32_t d1, yalx_ref_t value) {
+    DCHECK(array != NULL);
+    DCHECK(CLASS(array) == multi_dims_array_class);
+    DCHECK(yalx_is_ref_type(array->item));
+    
+    struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
+    DCHECK(ar->dims == 2);
+    if (d0 < 0 || d0 >= ar->caps[0]) {
+        throw_array_index_out_of_bounds_exception(array, 0, d0);
+    }
+    if (d1 < 0 || d1 >= ar->caps[1]) {
+        throw_array_index_out_of_bounds_exception(array, 1, d1);
+    }
+    
+    put_field((yalx_ref_t *)yalx_array_location2(ar, d0, d1), value);
+}
+
+void array_set_ref3(struct yalx_value_array_header *const array, const i32_t d0, const i32_t d1, const i32_t d2,
+                    yalx_ref_t value) {
+    DCHECK(array != NULL);
+    DCHECK(CLASS(array) == multi_dims_array_class);
+    DCHECK(yalx_is_ref_type(array->item));
+    
+    struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
+    DCHECK(ar->dims == 3);
+    if (d0 < 0 || d0 >= ar->caps[0]) {
+        throw_array_index_out_of_bounds_exception(array, 0, d0);
+    }
+    if (d1 < 0 || d1 >= ar->caps[1]) {
+        throw_array_index_out_of_bounds_exception(array, 1, d1);
+    }
+    if (d2 < 0 || d2 >= ar->caps[2]) {
+        throw_array_index_out_of_bounds_exception(array, 2, d2);
+    }
+    
+    put_field((yalx_ref_t *)yalx_array_location3(ar, d0, d1, d2), value);
+}
+
+void array_set_ref(struct yalx_value_array_header *const array, const i32_t *const indices, yalx_ref_t value) {
+    DCHECK(array != NULL);
+    DCHECK(yalx_is_array((yalx_ref_t)array));
+    DCHECK(yalx_is_ref_type(array->item));
+    
+    const struct yalx_class *const klass = CLASS(array);
+    if (klass == array_class) {
+        array_set_ref1(array, indices[0], value);
+        return;
+    }
+    
+    DCHECK(klass == multi_dims_array_class);
+    struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
+    for (int i = 0; i < ar->dims; i++) {
+        if (indices[i] < 0 || indices[i] >= ar->caps[i]) {
+            throw_array_index_out_of_bounds_exception(array, i, indices[i]);
+        }
+    }
+    
+    put_field((yalx_ref_t *)yalx_array_location_more(ar, indices), value);
 }
 
 void array_set_chunk(struct yalx_value_array_header *const array, const i32_t index, address_t chunk) {

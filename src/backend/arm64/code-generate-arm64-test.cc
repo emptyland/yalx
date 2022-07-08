@@ -270,6 +270,7 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         ASSERT_STREQ("Array", ar->item->name.z);
         ASSERT_EQ(3, ar->len);
         auto elements = reinterpret_cast<yalx_value_array **>(ar->data);
+        USE(elements);
     }
     yalx_exit_returning_scope(&state);
     

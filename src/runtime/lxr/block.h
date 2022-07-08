@@ -46,7 +46,7 @@ struct lxr_large_header {
     size_t size_in_bytes;
 };
 
-struct lxr_block_header *lxr_new_normal_block();
+extern struct lxr_block_header *lxr_new_normal_block(void);
 void lxr_delete_block(struct lxr_block_header *block);
 
 struct lxr_large_header *lxr_new_large_block(size_t n);

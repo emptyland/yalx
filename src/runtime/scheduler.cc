@@ -59,7 +59,8 @@ int yalx_install_coroutine(address_t entry, size_t params_bytes, address_t param
     }
     address_t stub = (address_t)&coroutine_finalize_stub;
     top -= sizeof(&stub);
-    memcpy(top, &stub, sizeof(&stub));
+    *(address_t *)top = stub;
+    //memcpy(top, &stub, sizeof(&stub));
     
     struct coroutine *co = (struct coroutine *)malloc(sizeof(struct coroutine));
     if (!co) {

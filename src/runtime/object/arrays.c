@@ -24,7 +24,7 @@ yalx_new_refs_array_with_data(struct heap *heap,
         rs = (struct yalx_value_array_header *)bundle;
     }
     memcpy(incoming, data, (rs->len * sizeof(yalx_ref_t)));
-    init_write_barrier_batch(heap, incoming, rs->len);
+    init_write_barrier_batch(heap, (yalx_ref_t *)incoming, rs->len);
     return rs;
 }
 

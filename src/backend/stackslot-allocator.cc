@@ -1,5 +1,6 @@
 #include "backend/stackslot-allocator.h"
 #include "base/bit-ops.h"
+#include "base/checking.h"
 
 namespace yalx {
 namespace backend {
@@ -40,10 +41,10 @@ LocationOperand *StackSlotAllocator::AllocateRefSlot(size_t padding_size, Policy
 LocationOperand *StackSlotAllocator::Allocate(size_t padding_size, size_t size, bool is_ref, Policy policy,
                                               ir::Model *model) {
     StackSlot slot;
-    assert(size < (1u << 17));
-    assert(padding_size < (1u << 5));
-    slot.size = RoundUp(size + padding_size, conf_->slot_alignment_size());
-    slot.padding_size = padding_size;
+    DCHECK(size < (1u << 17));
+    DCHECK(padding_size < (1u << 5));
+    slot.size = static_cast<int>(RoundUp(size + padding_size, conf_->slot_alignment_size()));
+    slot.padding_size = static_cast<int>(padding_size);
     slot.is_ref = is_ref;
     slot.model = model;
     
@@ -67,10 +68,10 @@ LocationOperand *StackSlotAllocator::Allocate(size_t padding_size, size_t size, 
 void StackSlotAllocator::FreeSlot(LocationOperand *operand) {
     //operand->Drop();
     //printf("freed: %p(%d) %d\n", operand, operand->k(), operand->refs());
-    assert(!slots_.empty());
+    DCHECK(!slots_.empty());
     auto iter = std::find_if(slots_.begin(), slots_.end(),
                              [operand](const auto &slot) {return slot.operand == operand;} );
-    assert(iter != slots_.end());
+    DCHECK(iter != slots_.end());
     MarkUnused(-operand->k() - iter->size, iter->size);
     if (operand->k() == stack_size_) { // The top one
         UpdateStackSize(-iter->size);

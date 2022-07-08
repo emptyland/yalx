@@ -14,6 +14,10 @@ extern "C" {
 #include <stdatomic.h>
 #endif
 
+#ifdef arraysize
+#undef arraysize
+#endif
+
 #define arraysize(a) (sizeof(a)/sizeof(a[0]))
 
 #define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
@@ -128,12 +132,12 @@ void dbg_class_output(const struct yalx_class *klass);
 
 struct yalx_returning_vals {
     struct yalx_returning_vals *prev;
-    address_t *fun_addr;
+    address_t fun_addr;
     u16_t total_size;
     u16_t allocated;
     u32_t offset;
     address_t buf;
-    char inline_buf[16];
+    u8_t inline_buf[16];
 };
 
 int yalx_enter_returning_scope(struct yalx_returning_vals *state, size_t reserved_size, address_t fun_addr);
@@ -208,7 +212,7 @@ struct pkg_global_slots {
 
 // runtime libs called by generated code
 void pkg_init_once(void *init_fun, const char *const plain_name);
-int pkg_initialized_count();
+int pkg_initialized_count(void);
 int pkg_has_initialized(const char *const plain_name);
 
 const struct pkg_global_slots *pkg_get_global_slots(const char *const plain_name);
@@ -234,7 +238,7 @@ struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz);
 struct yalx_value_array_header *array_alloc(const struct yalx_class *const element_ty, void *const elements,
                                             int nitems);
 
-struct coroutine *current_root();
+struct coroutine *current_root(void);
 
 void throw_it(struct yalx_value_any *exception);
 

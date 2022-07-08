@@ -174,6 +174,13 @@ std::string ArrayModel::ToString(int dimension_count, const Type element_type) {
 size_t ArrayModel::ReferenceSizeInBytes() const { return kPointerSize; }
 size_t ArrayModel::PlacementSizeInBytes() const { UNREACHABLE(); }
 
+ChannelModel::ChannelModel(base::Arena *arena, const String *name, const String *full_name, const Type element_type)
+: Model(name, full_name, kRef, kChannel)
+, element_type_(element_type)
+, ability_(kInbility | kOutbility) {
+    
+}
+
 StructureModel::StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration declaration,
                                Module *owns, StructureModel *base_of)
 : Model(name, full_name, declaration == kClass ? kRef : kVal, declaration)
@@ -372,6 +379,7 @@ int64_t StructureModel::UpdatePlacementSizeInBytes() {
     }
     // size must be aligment of kPointerSize
     placement_size_in_bytes_ = RoundUp(offset, kPointerSize);
+    return placement_size_in_bytes_;
 }
 
 bool StructureModel::IsBaseOf(const Model *base) const {

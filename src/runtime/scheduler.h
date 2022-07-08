@@ -27,7 +27,7 @@ void yalx_free_scheduler(struct scheduler *sched);
 
 coid_t yalx_next_coid(void);
 
-int yalx_schedule();
+int yalx_schedule(void);
 
 int yalx_install_coroutine(address_t entry, size_t params_bytes, address_t params_begin);
 

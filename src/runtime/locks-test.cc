@@ -17,13 +17,13 @@ TEST(LocksTest, ThreadSafe) {
     
     std::thread workers[5];
     for (int i = 0; i < 5; i++) {
-        workers[i] = std::move(std::thread([&c, this](struct yalx_spin_lock *lock){
+        workers[i] = std::thread([&c, this](struct yalx_spin_lock *lock){
             for (int i = 0; i < k; i++) {
                 yalx_spin_lock(lock);
                 c++;
                 yalx_spin_unlock(lock);
             }
-        }, &lock));
+        }, &lock);
     }
     for (int i = 0; i < 5; i++) {
         workers[i].join();

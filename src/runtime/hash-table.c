@@ -42,8 +42,8 @@ static inline struct hash_table_slot *new_hash_table_key(const void *key,
     slot->next = slot;
     slot->prev = slot;
     slot->hash_code = js_hash(key, key_size);
-    slot->key_size = key_size;
-    slot->value_size = value_size;
+    slot->key_size = (int)key_size;
+    slot->value_size = (int)value_size;
     memcpy(slot->key, key, key_size);
     return slot;
 }
@@ -53,7 +53,7 @@ static inline struct hash_table_slot *hash_table_slot_at_hash_code(struct hash_t
     return &map->slots[index];
 }
 
-static inline struct hash_table_slot *hash_table_slot_at(struct hash_table *map, void *key, size_t len) {
+static inline struct hash_table_slot *hash_table_slot_at(struct hash_table *map, const void *key, size_t len) {
     return hash_table_slot_at_hash_code(map, js_hash(key, len));
 }
 

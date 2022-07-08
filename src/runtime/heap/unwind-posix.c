@@ -45,14 +45,14 @@ struct backtrace_frame **yalx_unwind(size_t *depth, int dummy) {
         frame->address = (address_t)pc;
 
         char name[256];
-        if (unw_get_proc_name(&cursor, name, arraysize(name), &offset) == 0) {
+        if (unw_get_proc_name(&cursor, name, 256, &offset) == 0) {
             size_t n = yalx_symbol_demangle_on_place(name, strlen(name));
-            put_field(&frame->function, yalx_new_string(&heap, name, n));
+            put_field((yalx_ref_t *)&frame->function, (yalx_ref_t)yalx_new_string(&heap, name, n));
         } else {
-            put_field(&frame->function, yalx_new_string(&heap, "<unknown>", 9));
+            put_field((yalx_ref_t *)&frame->function, (yalx_ref_t)yalx_new_string(&heap, "<unknown>", 9));
         }
         frame->line = 0;
-        put_field(&frame->file, yalx_new_string(&heap, "<unknown>", 9));
+        put_field((yalx_ref_t *)&frame->file, (yalx_ref_t)yalx_new_string(&heap, "<unknown>", 9));
 
         if (size + 1 > capacity) {
             capacity <<= 1;
@@ -65,11 +65,11 @@ struct backtrace_frame **yalx_unwind(size_t *depth, int dummy) {
     return frames;
 }
 
-void yalx_Zplang_Zolang_Zdunwind_stub() {
+void yalx_Zplang_Zolang_Zdunwind_stub(void) {
     size_t size = 0;
     struct backtrace_frame **frames = yalx_unwind(&size, 1);
-    struct yalx_value_refs_array *array = yalx_new_refs_array_with_data(&heap, backtrace_frame_class, 1, NULL,
-                                                                        (yalx_ref_t *)frames, size);
+    struct yalx_value_array_header *array = yalx_new_refs_array_with_data(&heap, backtrace_frame_class, 1, NULL,
+                                                                          (yalx_ref_t *)frames, size);
     free(frames);
     yalx_return_ref((yalx_ref_t)array);
 }
@@ -105,7 +105,7 @@ void throw_it(struct yalx_value_any *exception) {
         pc &= 0xfffffffffffull; // valid address only 48 bits
     #endif
         if (((address_t)pc - offset) == co->top_unwind_point->addr) {
-            co->exception = exception;
+            co->exception = (struct yalx_value_throwable *)exception;
         #if defined(YALX_ARCH_X64)
             unw_word_t rbp = 0, rsp = 0;
             unw_get_reg(&cursor, UNW_X86_64_RBP, &rbp);

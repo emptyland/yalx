@@ -89,13 +89,13 @@ base::Status ParseOption(const Option *conf, const std::string_view value, Optio
             } else {
                 bool incoming = false;
                 if (value == "true") {
-                    incoming == true;
+                    incoming = true;
                 } else if (value == "false") {
-                    incoming == false;
+                    incoming = false;
                 } else if (value == "1") {
-                    incoming == true;
+                    incoming = true;
                 } else if (value == "0") {
-                    incoming == false;
+                    incoming = false;
                 }
                 *OffsetOf<bool>(options, conf->offset) = incoming;
             }
@@ -104,6 +104,7 @@ base::Status ParseOption(const Option *conf, const std::string_view value, Optio
             UNREACHABLE();
             break;
     }
+    return base::Status::OK();
 }
 
 base::Status ParseOptions(int argc, char *argv[], const Option options_conf[], Options *options) {

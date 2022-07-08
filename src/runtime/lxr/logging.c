@@ -3,6 +3,7 @@
 #include "runtime/runtime.h"
 #include "runtime/checking.h"
 #include "runtime/macros.h"
+#include <pthread/sched.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdatomic.h>
@@ -14,10 +15,11 @@ int lxr_init_fields_logger(struct lxr_fields_logger *logger) {
     static const size_t kStripesSizeInBytes = TOP_STRIPES_SIZE * sizeof(struct lxr_log_stripe *);
 
     memset(logger, 0, sizeof(*logger));
-    logger->top_stripes = (struct lxr_log_stripe **)malloc(kStripesSizeInBytes);
+    logger->top_stripes = (_Atomic(struct lxr_log_stripe *) *)malloc(kStripesSizeInBytes);
     memset(logger->top_stripes, 0, kStripesSizeInBytes);
     lxr_init_log_queue(&logger->decrments);
     lxr_init_log_queue(&logger->modification);
+    return 0;
 }
 
 void lxr_free_fields_logger(struct lxr_fields_logger *logger) {
@@ -54,7 +56,7 @@ static inline struct lxr_log_stripe *load_stripe(struct lxr_log_stripe *_Atomic 
 
 static inline int need_init(struct lxr_log_stripe *_Atomic *slot) {
     struct lxr_log_stripe *expected = NULL;
-    if (atomic_compare_exchange_strong(slot, &expected, kPendingMask)) {
+    if (atomic_compare_exchange_strong(slot, &expected, (struct lxr_log_stripe *)kPendingMask)) {
         return 1;
     }
     while ((uintptr_t)atomic_load_explicit(slot, memory_order_acquire) == kPendingMask) {
@@ -89,7 +91,7 @@ static struct lxr_log_stripe *lazy_init_or_get_scondary_stripe(struct lxr_fields
     return atomic_load_explicit(slot, memory_order_relaxed);
 }
 
-static_assert(SECONDARY_STRIPES_SHIFT + CARD_SHIFT == LXR_NORMAL_BLOCK_SHIFT);
+static_assert(SECONDARY_STRIPES_SHIFT + CARD_SHIFT == LXR_NORMAL_BLOCK_SHIFT, "");
 
 int lxr_attempt_to_log(struct lxr_fields_logger *logger, void *address) {
     const uintptr_t tagged = (uintptr_t)address;

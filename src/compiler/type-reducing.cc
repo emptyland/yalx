@@ -309,7 +309,7 @@ private:
                 }
             }
         } else if (node->owns()->IsFileUnit()) {
-            auto pkg = DCHECK_NOTNULL(location_->NearlyPackageScope())->pkg();
+            //auto pkg = DCHECK_NOTNULL(location_->NearlyPackageScope())->pkg();
             deps_scope.reset(new SymbolDepsScope(&deps_, location_->NearlyPackageScope()));
             for (auto var : node->variables()) {
                 if (Identifier::IsPlaceholder(var->identifier())) {
@@ -429,7 +429,7 @@ private:
             deps_scope.AddBackward(arena_, node->base_of()->name()->ToSlice(), node->base_of());
         }
         
-        auto classes_count = 0;
+        //auto classes_count = 0;
         for (auto i = 0; i < node->concepts_size(); i++) {
             auto concept = LinkType(node->concept(i));
             if (!concept) {
@@ -900,10 +900,12 @@ private:
         const IncompletableDefinition *level = nullptr;
         if (auto clazz = def->AsClassDefinition()) {
             auto [ast, ns] = clazz->FindSymbolWithOwns(node->field()->ToSlice());
-            field = ast, level = ns;
+            field = ast;
+            level = ns;
         } else if (auto clazz = def->AsStructDefinition()) {
             auto [ast, ns] = clazz->FindSymbolWithOwns(node->field()->ToSlice());
-            field = ast, level = ns;
+            field = ast;
+            level = ns;
         } else if (auto clazz = def->AsInterfaceDefinition()) {
             field = clazz->FindSymbolOrNull(node->field()->ToSlice());
         } else {
@@ -1145,10 +1147,12 @@ private:
                     auto owns = DCHECK_NOTNULL(GetTypeSpecifiedDefinition(type));
                     if (auto def = owns->AsClassDefinition()) {
                         auto [ast, ns] = def->FindSymbolWithOwns(dot->field()->ToSlice());
-                        symbol = ast, level = ns;
+                        symbol = ast;
+                        level = ns;
                     } else if (auto def = owns->AsStructDefinition()) {
                         auto [ast, ns] = def->FindSymbolWithOwns(dot->field()->ToSlice());
-                        symbol = ast, level = ns;
+                        symbol = ast;
+                        level = ns;
                     } else {
                         Feedback()->Printf(node->source_position(), "Invalid rval");
                         return -1;
@@ -1179,7 +1183,7 @@ private:
                 
                 ArrayType *ar = DCHECK_NOTNULL(type->AsArrayType());
                 if (indices.size() != ar->dimension_count()) {
-                    Feedback()->Printf(node->source_position(), "Bad indices number, expected: %zd, need: %zd",
+                    Feedback()->Printf(node->source_position(), "Bad indices number, expected: %zd, need: %d",
                                        indices.size(), ar->dimension_count());
                     return -1;
                 }
@@ -1229,7 +1233,7 @@ private:
         for (auto i = 0; i < lvals.size(); i++) {
             bool unlinked = false;
             if (!DCHECK_NOTNULL(lvals[i])->Acceptable(rvals[i], &unlinked)) {
-                Feedback()->Printf(node->source_position(), "Unexpected lvals[%d] type `%s', %s",
+                Feedback()->Printf(node->source_position(), "Unexpected lvals[%d] type `%s', %s", i,
                                    lvals[i]->ToString().c_str(), rvals[i]->ToString().c_str());
                 return -1;
             }
@@ -1262,7 +1266,7 @@ private:
         for (auto i = 0; i < prototype->return_types_size(); i++) {
             bool unlinked = false;
             if (!prototype->return_type(i)->Acceptable(rets[i], &unlinked)) {
-                Feedback()->Printf(node->source_position(), "Unexpected returning[%d] type `%s', actual is `%s'",
+                Feedback()->Printf(node->source_position(), "Unexpected returning[%d] type `%s', actual is `%s'", i,
                                    prototype->return_type(i)->ToString().c_str(), rets[i]->ToString().c_str());
                 return -1;
             }
@@ -1569,7 +1573,7 @@ private:
                                     ArrayType *input) {
         DCHECK(level >= 0);
         (*input->mutable_dimension_capacitys())[level] =
-            new (arena_) cpl::IntLiteral(arena_, dimensions.size(), input->source_position());
+            new (arena_) cpl::IntLiteral(arena_, static_cast<int>(dimensions.size()), input->source_position());
 
         if (dimensions.empty()) {
             return 0;
@@ -1890,13 +1894,13 @@ private:
             }
         }
         if (indices.size() != ar->dimension_count()) {
-            Feedback()->Printf(node->source_position(), "Bad indices number, expected: %zd, needed: %zd",
+            Feedback()->Printf(node->source_position(), "Bad indices number, expected: %zd, needed: %d",
                                indices.size(), ar->dimension_count());
             return -1;
         }
         for (auto index : indices) {
             if (index->primary_type() != Type::kType_u32 && index->primary_type() != Type::kType_i32) {
-                Feedback()->Printf(node->source_position(), "Bad index type, expected: %zd, needed: i32/u32",
+                Feedback()->Printf(node->source_position(), "Bad index type, expected: %s, needed: i32/u32",
                                    index->ToString().c_str());
                 return -1;
             }
@@ -2586,7 +2590,8 @@ private:
         if (types.empty()) {
             symbol = file_scope->FindLocalSymbol(name->ToSlice());
         } else {
-            symbol = file_scope->FindLocalSymbol(MakeFullInstantiatingName(name->ToSlice(), types.size(), &types[0]));
+            symbol = file_scope->FindLocalSymbol(MakeFullInstantiatingName(name->ToSlice(),
+                                                                           static_cast<int>(types.size()), &types[0]));
             if (!symbol) {
                 symbol = file_scope->FindLocalSymbol(name->ToSlice());
             }
@@ -2610,8 +2615,8 @@ private:
         if (types.empty()) {
             symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), name->ToSlice());
         } else {
-            symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(),
-                                                  MakeFullInstantiatingName(name->ToSlice(), types.size(), &types[0]));
+            auto inst_name = MakeFullInstantiatingName(name->ToSlice(), static_cast<int>(types.size()), &types[0]);
+            symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), inst_name);
             if (!symbol) {
                 symbol = file_scope->FindExportSymbol(prefix->name()->ToSlice(), name->ToSlice());
             }
@@ -2785,7 +2790,8 @@ private:
         bool should_inst = false;
         auto file_scope = DCHECK_NOTNULL(location_->NearlyFileUnitScope());
         if (!owns->generic_args().empty()) {
-            auto full_name = MakeFullInstantiatingName(name->name()->ToSlice(), owns->generic_args_size(),
+            auto full_name = MakeFullInstantiatingName(name->name()->ToSlice(),
+                                                       static_cast<int>(owns->generic_args_size()),
                                                        &owns->generic_args()[0]);
             if (name->prefix_name()) {
                 symbol = file_scope->FindExportSymbol(name->prefix_name()->ToSlice(), full_name);

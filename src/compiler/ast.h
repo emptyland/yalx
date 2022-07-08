@@ -136,7 +136,7 @@ public:
         ImportEntry(const String *original_package_name, const String *package_path, const String *alias,
                     const SourcePosition &source_position);
         
-        int Accept(AstVisitor *visitor) override {}
+        int Accept(AstVisitor *visitor) override { return 0; }
         
         DEF_PTR_PROP_RW(const String, original_package_name);
         DEF_PTR_PROP_RW(const String, package_path);
@@ -440,7 +440,7 @@ public:
         Declaration *AtItem(size_t i) const override { return nullptr; }
         size_t ItemSize() const override { return 0; }
         
-        int Accept(AstVisitor *v) override {}
+        int Accept(AstVisitor *v) override { return 0; }
     private:
         VariableDeclaration *const owns_;
         const String *identifier_;

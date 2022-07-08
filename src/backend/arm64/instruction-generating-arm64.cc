@@ -227,7 +227,7 @@ private:
     
     
     bool IsSuccessorConditionBr(ir::Value *cond) {
-        assert(cond->Is(ir::Operator::kICmp) || cond->Is(ir::Operator::kFCmp));
+        DCHECK(cond->Is(ir::Operator::kICmp) || cond->Is(ir::Operator::kFCmp));
         //const auto i = instruction_position_ + 1;
         if (current_block_) {
             for (auto [bb, ib] : blocks_) {
@@ -247,8 +247,8 @@ private:
     
     void SetCatchHandler(ir::BasicBlock *handler) {
         auto iter = blocks_.find(handler);
-        assert(iter != blocks_.end());
-        assert(catch_handler_ == nullptr);
+        DCHECK(iter != blocks_.end());
+        DCHECK(catch_handler_ == nullptr);
         catch_handler_ = iter->second;
     }
     
@@ -305,12 +305,12 @@ private:
 }; // class Arm64FunctionInstructionSelector
 
 void Arm64FunctionInstructionSelector::InstallUnwindHandler() {
-    assert(fun_->should_unwind_handle());
+    DCHECK(fun_->should_unwind_handle());
     // struct unwind_node in top of stack
     auto addr = operands_.AllocateStackSlot(ir::Types::Word64, 0, StackSlotAllocator::kLinear);
     auto prev = operands_.AllocateStackSlot(ir::Types::Word64, 0, StackSlotAllocator::kLinear);
-    assert(prev->k() == -16);
-    assert(prev->register0_id() == arm64::fp.code());
+    DCHECK(prev->k() == -16);
+    DCHECK(prev->register0_id() == arm64::fp.code());
     auto handler = operands_.registers()->frame_pointer();
 
     // current->prev = root->top_unwind_point
@@ -330,9 +330,9 @@ void Arm64FunctionInstructionSelector::InstallUnwindHandler() {
 }
 
 void Arm64FunctionInstructionSelector::UninstallUnwindHandler() {
-    assert(fun_->should_unwind_handle());
+    DCHECK(fun_->should_unwind_handle());
     // struct unwind_node in top of stack
-    auto addr = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::fp.code(), -1, -8);
+    //auto addr = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::fp.code(), -1, -8);
     auto prev = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::fp.code(), -1, -16);
     
     auto top = new (arena_) LocationOperand(Arm64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_TOP_UNWIND);
@@ -356,8 +356,8 @@ void Arm64FunctionInstructionSelector::BuildNativeHandle() {
 }
 
 void Arm64FunctionInstructionSelector::SetUpHandleFrame(RegisterOperand *sp, RegisterOperand *fp, RegisterOperand *lr) {
-    auto stack_size = RoundUp(ReturningValSizeInBytes(fun_->prototype()) + ParametersSizeInBytes(fun_),
-                              kStackConf->stack_alignment_size());
+    auto stack_size = static_cast<int>(RoundUp(ReturningValSizeInBytes(fun_->prototype()) + ParametersSizeInBytes(fun_),
+                                               kStackConf->stack_alignment_size()));
 
 //    stack_total_size_ = ImmediateOperand::Word32(arena_, stack_size + 96);
 //    // sub sp, sp, stack-total-size
@@ -386,8 +386,9 @@ void Arm64FunctionInstructionSelector::TearDownHandleFrame(RegisterOperand *sp, 
     auto x0 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[0], MachineRepresentation::kWord64);
     auto x1 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[1], MachineRepresentation::kWord64);
     auto x2 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[2], MachineRepresentation::kWord64);
-    auto returning_vals_size = ImmediateOperand::Word32(arena_, RoundUp(ReturningValSizeInBytes(fun_->prototype()),
-                                                                        kStackConf->stack_alignment_size()));
+    auto vals_size = static_cast<int>(RoundUp(ReturningValSizeInBytes(fun_->prototype()),
+                                              kStackConf->stack_alignment_size()));
+    auto returning_vals_size = ImmediateOperand::Word32(arena_, vals_size);
     
     if (returning_vals_size->word32() > 0) {
         current()->NewIO(Arm64Mov, x0, returning_vals_size);
@@ -457,8 +458,9 @@ void Arm64FunctionInstructionSelector::BuildNativeStub() {
 }
 
 LocationOperand *Arm64FunctionInstructionSelector::CallNativeStub() {
-    auto returning_vals_size = RoundUp(ReturningValSizeInBytes(fun_->prototype()), kStackConf->stack_alignment_size());
-    auto params_size = fun_->prototype()->params_size() * kPointerSize;
+    auto returning_vals_size = static_cast<int>(RoundUp(ReturningValSizeInBytes(fun_->prototype()),
+                                                        kStackConf->stack_alignment_size()));
+    //auto params_size = fun_->prototype()->params_size() * kPointerSize;
     
     LocationOperand *returning_vals_scope = nullptr;
     if (returning_vals_size > 0) {
@@ -473,14 +475,14 @@ LocationOperand *Arm64FunctionInstructionSelector::CallNativeStub() {
             auto slot = operands_.AllocateStackSlot(param->type(), 0/*padding_size*/, StackSlotAllocator::kLinear);
             RegisterOperand *src = nullptr;
             auto rep = ToMachineRepresentation(param->type());
-            assert(rep != MachineRepresentation::kNone);
-            assert(rep != MachineRepresentation::kBit);
+            DCHECK(rep != MachineRepresentation::kNone);
+            DCHECK(rep != MachineRepresentation::kBit);
             if (param->type().IsFloating()) {
                 src = new (arena_) RegisterOperand(kFloatArgumentsRegisters[float_index++], rep);
-                assert(float_index < kNumberOfFloatArgumentsRegisters);
+                DCHECK(float_index < kNumberOfFloatArgumentsRegisters);
             } else {
                 src = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[general_index++], rep);
-                assert(general_index < kNumberOfGeneralArgumentsRegisters);
+                DCHECK(general_index < kNumberOfGeneralArgumentsRegisters);
             }
             Move(slot, src, param->type());
             args.push_back(std::make_tuple(slot, src, param));
@@ -513,10 +515,10 @@ LocationOperand *Arm64FunctionInstructionSelector::CallNativeStub() {
             }
             auto slot = operands_.AllocateStackSlot(param->type(), 0/*padding_size*/, StackSlotAllocator::kLinear);
             auto rep = ToMachineRepresentation(param->type());
-            assert(rep != MachineRepresentation::kNone);
-            assert(rep != MachineRepresentation::kBit);
+            DCHECK(rep != MachineRepresentation::kNone);
+            DCHECK(rep != MachineRepresentation::kBit);
             auto src = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[general_index++], rep);
-            assert(general_index <= kNumberOfGeneralArgumentsRegisters);
+            DCHECK(general_index <= kNumberOfGeneralArgumentsRegisters);
             Move(slot, src, param->type());
             args.push_back(std::make_tuple(slot, src, param));
         }
@@ -536,8 +538,8 @@ LocationOperand *Arm64FunctionInstructionSelector::CallNativeStub() {
     auto fp = operands_.registers()->frame_pointer();
     for (auto [bak, origin, param] : args) {
         if (param->type().IsReference()) {
-            assert(bak->register0_id() == fp->register_id());
-            assert(bak->k() < 0);
+            DCHECK(bak->register0_id() == fp->register_id());
+            DCHECK(bak->k() < 0);
             current()->NewIO(Arm64Sub, origin, fp, ImmediateOperand::Word32(arena_, -bak->k()));
         } else {
             Move(origin, bak, param->type());
@@ -559,8 +561,6 @@ void Arm64FunctionInstructionSelector::TearDownStubFrame(RegisterOperand *sp, Re
     const auto returning_vals_size = RoundUp(ReturningValSizeInBytes(fun_->prototype()),
                                              kStackConf->stack_alignment_size());
     auto x0 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[0], MachineRepresentation::kWord64);
-    auto x1 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[1], MachineRepresentation::kWord64);
-    auto x2 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[2], MachineRepresentation::kWord64);
     auto root = new (arena_) RegisterOperand(kRootRegister, MachineRepresentation::kWord64);
     
     if (returning_vals_size > 0) {
@@ -616,7 +616,7 @@ void Arm64FunctionInstructionSelector::Run() {
     stack_sp_fp_location_->set_k(stack_size);
 
     for (auto adjust : calling_stack_adjust_) {
-        assert(stack_size >= adjust->word32());
+        DCHECK(stack_size >= adjust->word32());
         adjust->Set32(stack_size - adjust->word32());
     }
 }
@@ -634,8 +634,7 @@ void Arm64FunctionInstructionSelector::HandleCatch(InstructionBlock *handler) {
 
 void Arm64FunctionInstructionSelector::AssociateParameters(InstructionBlock *block) {
     current_block_ = block;
-    
-    auto returning_val_size = ReturningValSizeInBytes(fun_->prototype());
+
     int number_of_float_args = kNumberOfFloatArgumentsRegisters;
     int number_of_general_args = kNumberOfGeneralArgumentsRegisters;
     for (auto param : fun_->paramaters()) {
@@ -643,12 +642,12 @@ void Arm64FunctionInstructionSelector::AssociateParameters(InstructionBlock *blo
         if (ty.IsFloating()) {
             auto index = kNumberOfFloatArgumentsRegisters - number_of_float_args;
             auto arg = operands_.AllocateReigster(param, kFloatArgumentsRegisters[index]);
-            assert(arg != nullptr);
+            DCHECK(arg != nullptr);
             number_of_float_args--;
         } else {
             auto index = kNumberOfGeneralArgumentsRegisters - number_of_general_args;
             auto arg = operands_.AllocateReigster(param, kGeneralArgumentsRegisters[index]);
-            assert(arg != nullptr);
+            DCHECK(arg != nullptr);
             if (param->type().kind() == ir::Type::kValue && !param->type().IsPointer()) {
                 auto opd = operands_.AllocateStackSlot(param->type(), 0/*padding_size*/, StackSlotAllocator::kLinear);
                 Move(opd, arg, param->type());
@@ -747,7 +746,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             auto global_var = instr->InputValue(0);
             auto symbol = symbols_->Mangle(global_var->name());
             auto slot = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
-            assert(global_var->type().IsReference());
+            DCHECK(global_var->type().IsReference());
             std::string buf;
             LinkageSymbols::Build(&buf, global_var->type().model()->full_name()->ToSlice());
             buf.append("$class");
@@ -768,11 +767,12 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             
         case ir::Operator::kLoadEffectField: {
             auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
-            assert(handle->IsField());
+            DCHECK(handle->IsField());
             auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
             
             auto opd = Allocate(instr->InputValue(0), kReg);
-            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, opd->AsRegister()->register_id(), -1, field->offset);
+            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, opd->AsRegister()->register_id(), -1,
+                                                    static_cast<int32_t>(field->offset));
             auto value = Allocate(instr, kAny);
             Move(value, loc, instr->InputValue(0)->type());
         } break;
@@ -787,7 +787,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         
         case ir::Operator::kStoreInlineField: {
             auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
-            assert(handle->IsField());
+            DCHECK(handle->IsField());
             auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
             //auto opd = Allocate(instr, kAny);
             
@@ -795,12 +795,14 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             LocationOperand *loc = nullptr;
             if (opd->IsRegister()) {
                 auto self = opd->AsRegister();
-                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register_id(), -1, field->offset);
+                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register_id(), -1,
+                                                   static_cast<int>(field->offset));
             } else {
-                assert(opd->IsLocation());
+                DCHECK(opd->IsLocation());
                 auto self = opd->AsLocation();
                 //printd("%d", self->k());
-                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register0_id(), -1, self->k() + field->offset);
+                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register0_id(), -1,
+                                                   static_cast<int>(self->k() + field->offset));
             }
             auto value = Allocate(instr->InputValue(1), kAny);
             Move(loc, value, instr->InputValue(1)->type());
@@ -809,33 +811,35 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             
         case ir::Operator::kStoreAccessField: {
             auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
-            assert(handle->IsField());
+            DCHECK(handle->IsField());
             auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
             //auto opd = Allocate(instr, kAny);
             
             auto opd = Allocate(instr->InputValue(0), kReg);
             auto value = Allocate(instr->InputValue(1), kAny);
             // str value, [opd, #offset]
-            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI,
-                                                    opd->AsRegister()->register_id(), -1, field->offset);
+            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, opd->AsRegister()->register_id(), -1,
+                                                    static_cast<int>(field->offset));
             Move(loc, value, instr->InputValue(1)->type());
             operands_.Associate(instr, opd);
         } break;
             
         case ir::Operator::kLoadInlineField: {
             auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
-            assert(handle->IsField());
+            DCHECK(handle->IsField());
             auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
             
             auto opd = Allocate(instr->InputValue(0), kAny);
             LocationOperand *loc = nullptr;
             if (opd->IsRegister()) {
                 auto self = opd->AsRegister();
-                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register_id(), -1, field->offset);
+                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register_id(), -1,
+                                                   static_cast<int>(field->offset));
             } else {
-                assert(opd->IsLocation());
+                DCHECK(opd->IsLocation());
                 auto self = opd->AsLocation();
-                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register0_id(), -1, self->k() + field->offset);
+                loc = new (arena_) LocationOperand(Arm64Mode_MRI, self->register0_id(), -1,
+                                                   static_cast<int>(self->k() + field->offset));
             }
             auto value = Allocate(instr, kAny);
             Move(value, loc, instr->type());
@@ -843,11 +847,12 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             
         case ir::Operator::kLoadAccessField: {
             auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
-            assert(handle->IsField());
+            DCHECK(handle->IsField());
             auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
             
             auto opd = Allocate(instr->InputValue(0), kReg);
-            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, opd->AsRegister()->register_id(), -1, field->offset);
+            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, opd->AsRegister()->register_id(), -1,
+                                                    static_cast<int>(field->offset));
             auto value = Allocate(instr, kAny);
             Move(value, loc, instr->type());
         } break;
@@ -968,7 +973,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             }
             auto opd = Allocate(instr, kMoR);
             if (auto loc = input->AsLocation()) {
-                assert(loc->mode() == Arm64Mode_MRI);
+                DCHECK(loc->mode() == Arm64Mode_MRI);
                 auto bp = new (arena_) RegisterOperand(loc->register0_id(), MachineRepresentation::kWord64);
                 if (auto dest = opd->AsRegister()) {
                     current()->NewIO(Arm64Add, dest, bp, ImmediateOperand::Word32(arena_, loc->k()));
@@ -984,8 +989,8 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             
         case ir::Operator::kRefAssertedTo: {
             auto input = instr->InputValue(0);
-            assert(input->type().IsReference());
-            assert(instr->type().IsReference());
+            DCHECK(input->type().IsReference());
+            DCHECK(instr->type().IsReference());
             auto from_ty = input->type().model();
             auto to_ty = instr->type().model();
             if (from_ty == to_ty || from_ty->IsBaseOf(to_ty)) {
@@ -997,7 +1002,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
                 Move(x0, Allocate(input, kAny), input->type());
                 
                 auto x1 = new (arena_) RegisterOperand(arm64::x1.code(), MachineRepresentation::kWord64);
-                assert(instr->type().IsReference());
+                DCHECK(instr->type().IsReference());
                 std::string symbol;
                 LinkageSymbols::Build(&symbol, to_ty->full_name()->ToSlice());
                 symbol.append("$class");
@@ -1045,7 +1050,6 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             for (int i = array_ty->dimension_count(); i < instr->op()->value_in(); i++) {
                 elements.push_back(Allocate(instr->InputValue(i), kAny));
             }
-            auto base_line = operands_.slots()->stack_size();
             std::vector<LocationOperand *> slots;
 
             for (int i = instr->op()->value_in() - 1; i >= array_ty->dimension_count(); i--) {
@@ -1054,7 +1058,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
                 Move(slot, element, instr->InputValue(i)->type());
                 slots.push_back(slot);
             }
-            for (int i = capacities.size() - 1; i >= 0; i--) {
+            for (ssize_t i = capacities.size() - 1; i >= 0; i--) {
                 auto capacity = capacities[i];
                 auto slot = operands_.AllocateStackSlot(ir::Types::Word32, 0, StackSlotAllocator::kLinear);
                 Move(slot, capacity, ir::Types::Word32);
@@ -1171,7 +1175,6 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             TypingNormalize(&opd, &input, instr->type());
             Move(opd, input, instr->type());
             auto rep = ToMachineRepresentation(instr->type());
-            auto src = instr->InputValue(0)->type().bytes();
             switch (rep) {
                 case MachineRepresentation::kWord8:
                     current()->NewIO(Arm64And32, opd, opd, ImmediateOperand::Word32(arena_, 0xff));
@@ -1266,7 +1269,8 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
                     continue;
                 }
                 auto ret = Allocate(instr->InputValue(i), kAny);
-                auto opd = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::fp.code(), 0, returning_val_offset);
+                auto opd = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::fp.code(), 0,
+                                                        static_cast<int>(returning_val_offset));
                 returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
                 Move(opd, ret, ty);
             }
@@ -1292,7 +1296,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
 
 void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
     auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
-    assert(handle->IsField());
+    DCHECK(handle->IsField());
     auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
     
     
@@ -1309,23 +1313,24 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
 
     LocationOperand *loc = nullptr;
     if (auto base = opd->AsRegister()) {
-        loc = new (arena_) LocationOperand(Arm64Mode_MRI, base->register_id(), -1, field->offset);
+        loc = new (arena_) LocationOperand(Arm64Mode_MRI, base->register_id(), -1, static_cast<int>(field->offset));
     } else {
-        assert(opd->IsLocation());
+        DCHECK(opd->IsLocation());
         auto mem = opd->AsLocation();
         auto r1 = new (arena_) RegisterOperand(mem->register0_id(), MachineRepresentation::kWord64);
         auto bak = operands_.Allocate(ir::Types::Word64);
         if (auto rb = bak->AsRegister()) {
             current()->NewIO(Arm64Add, rb, r1, ImmediateOperand::Word32(arena_, mem->k()));
-            loc = new (arena_) LocationOperand(Arm64Mode_MRI, rb->register_id(), -1, field->offset);
+            loc = new (arena_) LocationOperand(Arm64Mode_MRI, rb->register_id(), -1, static_cast<int>(field->offset));
             operands_.Free(bak);
         } else {
-            assert(bak->IsLocation());
+            DCHECK(bak->IsLocation());
             auto brd = operands_.BorrowRegister(ir::Types::Word64, bak);
             Move(bak, brd.target, ir::Types::Word64);
             borrowed_registers_.push_back(brd);
             current()->NewIO(Arm64Add, brd.target, r1, ImmediateOperand::Word32(arena_, mem->k()));
-            loc = new (arena_) LocationOperand(Arm64Mode_MRI, brd.target->register_id(), -1, field->offset);
+            loc = new (arena_) LocationOperand(Arm64Mode_MRI, brd.target->register_id(), -1,
+                                               static_cast<int>(field->offset));
         }
     }
 
@@ -1365,7 +1370,7 @@ void Arm64FunctionInstructionSelector::ArrayFill(ir::Value *instr) {
     Move(slot, filling, filling_ty);
     slots.push_back(slot);
     
-    for (int i = capacites.size() - 1; i >= 0; i--) {
+    for (ssize_t i = capacites.size() - 1; i >= 0; i--) {
         slot = operands_.AllocateStackSlot(ir::Types::Word32, 0, StackSlotAllocator::kLinear);
         Move(slot, capacites[i], ir::Types::Word32);
         slots.push_back(slot);
@@ -1413,7 +1418,7 @@ void Arm64FunctionInstructionSelector::ArrayAt(ir::Value *instr) {
     }
     
     std::vector<LocationOperand *> slots;
-    for (int i = indices.size() - 1; i >= 0; i--) {
+    for (ssize_t i = indices.size() - 1; i >= 0; i--) {
         auto slot = operands_.AllocateStackSlot(ir::Types::Word32, 0, StackSlotAllocator::kLinear);
         Move(slot, indices[i], ir::Types::Word32);
         slots.push_back(slot);
@@ -1578,7 +1583,7 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     if (instr->Is(ir::Operator::kCallDirectly)) {
         callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
     } else {
-        assert(instr->Is(ir::Operator::kCallHandle));
+        DCHECK(instr->Is(ir::Operator::kCallHandle));
         auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
         auto method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
         callee = method->fun;
@@ -1684,7 +1689,7 @@ void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
     switch (runtime_id.value) {
         case ir::RuntimeId::kPkgInitOnce: {
             symbol = kRt_pkg_init_once;
-            assert(instr->op()->value_in() == 2);
+            DCHECK(instr->op()->value_in() == 2);
         } break;
             
         case ir::RuntimeId::kRaise:
@@ -1702,14 +1707,13 @@ void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
     for (int i = 0; i < instr->op()->value_in(); i++) {
         auto arg = instr->InputValue(i);
         if (symbol == kRt_pkg_init_once && i == 1) {
-            const auto const pkg_name = ir::OperatorWith<const String *>::Data(arg->op());
+            const auto pkg_name = ir::OperatorWith<const String *>::Data(arg->op());
             const auto kid = const_pool_->FindOrInsertString(pkg_name);
             const auto linked_name = String::New(arena_, base::Sprintf("Lkzs.%d", kid));
             exclude = new (arena_) ReloactionOperand(linked_name, nullptr, true/*fetch_address*/);
             general_index++;
             continue;
         }
-        const auto size = RoundUp(arg->type().ReferenceSizeInBytes(), kStackConf->slot_alignment_size());
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
                 saving_scope.AddExclude(arg, kFloatArgumentsRegisters[float_index], instruction_position_);
@@ -1916,7 +1920,7 @@ void Arm64FunctionInstructionSelector::BooleanValue(ir::Value *instr, Instructio
 void Arm64FunctionInstructionSelector::ConditionSelect(ir::Value *instr, InstructionOperand *opd,
                                                        InstructionOperand *true_val,
                                                        InstructionOperand *false_val) {
-    assert(instr->Is(ir::Operator::kICmp) || instr->Is(ir::Operator::kFCmp));
+    DCHECK(instr->Is(ir::Operator::kICmp) || instr->Is(ir::Operator::kFCmp));
     if (instr->Is(ir::Operator::kICmp)) {
         switch (ir::OperatorWith<ir::IConditionId>::Data(instr->op()).value) {
             case ir::IConditionId::k_eq:
@@ -1954,7 +1958,7 @@ void Arm64FunctionInstructionSelector::ConditionSelect(ir::Value *instr, Instruc
                 break;
         }
     } else {
-        assert(instr->Is(ir::Operator::kFCmp));
+        DCHECK(instr->Is(ir::Operator::kFCmp));
         auto unordered = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord8);
         switch (ir::OperatorWith<ir::FConditionId>::Data(instr->op()).value) {
                 // oeq: yields true if both operands are not a QNAN and op1 is equal to op2.
@@ -2032,14 +2036,14 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
             }
             if (value->op()->IsConstant()) {
                 auto kop = Constant(value, 0);
-                assert(kop->IsImmediate() || kop->IsConstant());
+                DCHECK(kop->IsImmediate() || kop->IsConstant());
                 auto bak = operands_.Allocate(value->type());
                 if (bak->IsRegister()) {
                     tmps_.push_back(bak);
                     Move(bak, kop, value->type());
                     return bak;
                 }
-                assert(bak->IsLocation());
+                DCHECK(bak->IsLocation());
                 auto brd = operands_.BorrowRegister(value, bak);
                 Move(bak, brd.target, value->type()); // Saving
                 Move(brd.target, kop, value->type());
@@ -2055,7 +2059,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
                 if (bak->IsRegister()) {
                     Move(bak, opd, value->type());
                     auto old = operands_.LinkTo(value, bak);
-                    assert(old == opd);
+                    DCHECK(old == opd);
                     tmps_.push_back(opd);
                     return bak;
                 }
@@ -2078,7 +2082,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
                 if (opd->IsRegister() || opd->IsImmediate()) {
                     return opd;
                 }
-                assert(opd->IsReloaction());
+                DCHECK(opd->IsReloaction());
                 auto bak = operands_.Allocate(value->type());
                 auto brd = operands_.BorrowRegister(value, bak);
                 Move(bak, brd.target, value->type()); // Saving
@@ -2094,12 +2098,12 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
                 return opd;
             }
 
-            assert(opd->IsLocation());
+            DCHECK(opd->IsLocation());
             auto bak = operands_.Allocate(value->type());
             if (bak->IsRegister()) {
                 Move(bak, opd, value->type());
                 auto old = operands_.LinkTo(value, bak);
-                assert(old == opd);
+                DCHECK(old == opd);
                 tmps_.push_back(opd);
                 return bak;
             }
@@ -2117,7 +2121,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
             }
             if (value->op()->IsConstant()) {
                 auto kop = Constant(value, 0/*imm_bits*/);
-                assert(kop->IsImmediate() || kop->IsConstant());
+                DCHECK(kop->IsImmediate() || kop->IsConstant());
                 auto opd = operands_.Allocate(value);
                 //tmps_.push_back(opd);
                 Move(opd, kop, value->type());
@@ -2252,7 +2256,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Constant(ir::Value *value,
 }
 
 void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionOperand *src, ir::Type ty) {
-    assert(dest->IsRegister() || dest->IsLocation() || dest->IsReloaction());
+    DCHECK(dest->IsRegister() || dest->IsLocation() || dest->IsReloaction());
     if (dest->Equals(src)) {
         return;
     }
@@ -2307,7 +2311,7 @@ void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, Instructio
                                  MachineRepresentation::kWord64);
                 return;
             }
-            MoveMemory(dest, src, ty.ReferenceSizeInBytes());
+            MoveMemory(dest, src, static_cast<int>(ty.ReferenceSizeInBytes()));
         } break;
             
             
@@ -2526,7 +2530,7 @@ void Arm64FunctionInstructionSelector::MoveMemory(InstructionOperand *dest, Inst
         if (auto origin = src->AsRegister()) {
             CopyMemoryFast(dest->AsRegister()->register_id(), origin->register_id(), 0, 0, size);
         } else if (auto origin = src->AsLocation()) {
-            assert(origin->mode() == Arm64Mode_MRI);
+            DCHECK(origin->mode() == Arm64Mode_MRI);
             CopyMemoryFast(dest->AsRegister()->register_id(), origin->register0_id(), 0, origin->k(), size);
         } else if (auto origin = src->AsReloaction()) {
             auto address = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord64);
@@ -2537,11 +2541,11 @@ void Arm64FunctionInstructionSelector::MoveMemory(InstructionOperand *dest, Inst
             UNREACHABLE();
         }
     } else if (auto target = dest->AsLocation()) {
-        assert(target->mode() == Arm64Mode_MRI);
+        DCHECK(target->mode() == Arm64Mode_MRI);
         if (auto origin = src->AsRegister()) {
             CopyMemoryFast(target->register0_id(), origin->register_id(), target->k(), 0, size);
         } else if (auto origin = src->AsLocation()) {
-            assert(origin->mode() == Arm64Mode_MRI);
+            DCHECK(origin->mode() == Arm64Mode_MRI);
             CopyMemoryFast(target->register0_id(), origin->register0_id(), target->k(), origin->k(), size);
         } else if (auto origin = src->AsReloaction()) {
             auto address = operands_.registers()->GeneralScratch1(MachineRepresentation::kWord64);
@@ -2556,7 +2560,7 @@ void Arm64FunctionInstructionSelector::MoveMemory(InstructionOperand *dest, Inst
         if (auto origin = src->AsRegister()) {
             CopyMemoryFast(address0->register_id(), origin->register_id(), 0, 0, size);
         } else if (auto origin = src->AsLocation()) {
-            assert(origin->mode() == Arm64Mode_MRI);
+            DCHECK(origin->mode() == Arm64Mode_MRI);
             CopyMemoryFast(address0->register_id(), origin->register0_id(), 0, origin->k(), size);
         } else if (auto origin = src->AsReloaction()) {
             UNREACHABLE();

@@ -22,22 +22,24 @@ void yalx_Zplang_Zolang_ZdThrowable_ZdprintBacktrace_stub(yalx_throwable_handle 
 static void throw_exception(const struct yalx_class *ty,
                             struct yalx_value_str *const message,
                             struct yalx_value_throwable *const cause) {
-    struct yalx_value_exception *ex = heap_alloc(ty);
+    struct yalx_value_exception *ex = (struct yalx_value_exception *)heap_alloc(ty);
     assert(ex != NULL);
     ex->linked = cause;
-    init_write_barrier(&heap, &ex->linked);
+    init_write_barrier(&heap, (yalx_ref_t *)&ex->linked);
     ex->message = message;
-    init_write_barrier(&heap, &ex->message);
+    init_write_barrier(&heap, (yalx_ref_t *)&ex->message);
     
     size_t n = 0;
     struct backtrace_frame **frames = yalx_unwind(&n, 2/*dummy*/);
-    struct yalx_value_refs_array *bt = yalx_new_refs_array_with_data(&heap, backtrace_frame_class, 1, NULL, frames, n);
+    struct yalx_value_array *ar = (struct yalx_value_array *)yalx_new_refs_array_with_data(&heap, backtrace_frame_class,
+                                                                                           1, NULL, (yalx_ref_t *)frames,
+                                                                                           n);
     free(frames);
     
-    ex->backtrace = bt;
-    init_write_barrier(&heap, &ex->backtrace);
+    ex->backtrace = ar;
+    init_write_barrier(&heap, (yalx_ref_t *)&ex->backtrace);
     
-    throw_it(ex);
+    throw_it((yalx_ref_t)ex);
     assert(!"Unreachable");
 }
 

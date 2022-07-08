@@ -61,14 +61,14 @@ TEST_F(LxrLoggingTest, ThreadSafeSanity) {
     std::thread workers[5];
     std::atomic<int> succ(0);
     for (int i = 0; i < arraysize(workers); i++) {
-        workers[i] = std::move(std::thread([&succ, base, this](){
+        workers[i] = std::thread([&succ, base, this](){
             for (int i = 0; i < 4 * k; i += 4) {
                 auto ok = lxr_attempt_to_log(&logger_, reinterpret_cast<void *>(base + i));
                 if (ok) {
                     succ.fetch_add(1);
                 }
             }
-        }));
+        });
     }
 
     for (int i = 0; i < arraysize(workers); i++) {
@@ -100,12 +100,12 @@ TEST_F(LxrLoggingTest, LogQueuePushThreadSafe) {
     
     std::thread workers[5];
     for (int i = 0; i < arraysize(workers); i++) {
-        workers[i] = std::move(std::thread([this](){
+        workers[i] = std::thread([this](){
             for (int i = 0; i < k; i ++) {
                 auto node = lxr_log_queue_push(&logger_.decrments, reinterpret_cast<void *>(i));
                 ASSERT_NE(nullptr, node);
             }
-        }));
+        });
     }
     
     for (int i = 0; i < arraysize(workers); i++) {

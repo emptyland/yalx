@@ -180,6 +180,8 @@ public:
     static constexpr int kInbility = 1;
     static constexpr int kOutbility = 2;
     
+    ChannelModel(base::Arena *arena, const String *name, const String *full_name, const Type element_type);
+    
     bool CanRead() const { return ability_ & kInbility; }
     bool CanWrite() const { return ability_ & kOutbility; }
     bool CanIO() const { return ability_ & (kInbility | kOutbility); }

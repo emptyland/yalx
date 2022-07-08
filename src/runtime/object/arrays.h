@@ -15,7 +15,7 @@ struct yalx_value_array {
     YALX_VALUE_HEADER;
     const struct yalx_class *item;
     u32_t len;
-    char  data[0];
+    u8_t  data[0];
 }; // struct yalx_value_typed_array
 
 struct yalx_value_multi_dims_array {

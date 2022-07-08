@@ -8,7 +8,7 @@ class LxrImmixHeapTest : public ::testing::Test {
 public:
 
     void SetUp() override {
-        srand(time(nullptr));
+        srand(static_cast<unsigned>(time(nullptr)));
         lxr_init_immix_heap(&heap_, 16);
         lxr_thread_enter(&heap_);
     }
@@ -90,7 +90,7 @@ TEST_F(LxrImmixHeapTest, AllocatingThreadSafe) {
     static const int k = 100000;
     std::thread workers[5];
     for (int i = 0; i < arraysize(workers); i++) {
-        workers[i] = std::move(std::thread([this](int id) {
+        workers[i] = std::thread([this](int id) {
             lxr_thread_enter(&heap_);
             for (int i = 0; i < k; i++) {
                 auto chunk = lxr_allocate(&heap_, 16);
@@ -101,7 +101,7 @@ TEST_F(LxrImmixHeapTest, AllocatingThreadSafe) {
                 ASSERT_NE(nullptr, rs.block.normal);
             }
             lxr_thread_exit(&heap_);
-        }, i));
+        }, i);
     }
     
     for (int i = 0; i < arraysize(workers); i++) {

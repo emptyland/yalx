@@ -258,9 +258,9 @@ public:
     using Operand = InstructionOperand;
     
     DEF_VAL_GETTER(Code, op);
-    DEF_VAL_GETTER(int, inputs_count);
-    DEF_VAL_GETTER(int, outputs_count);
-    DEF_VAL_GETTER(int, temps_count);
+    int inputs_count() const { return inputs_count_; }
+    int outputs_count() const { return outputs_count_; }
+    int temps_count() const { return temps_count_; }
     size_t operands_size() const { return inputs_count() + outputs_count() + temps_count(); }
     
     Operand *InputAt(size_t i) const {

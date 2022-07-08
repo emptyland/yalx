@@ -32,6 +32,10 @@ base::Status Lexer::SwitchInputFile(const std::string &name, base::SequentialFil
     return base::Status::OK();
 }
 
+Lexer::~Lexer() {
+    if (input_file_ownership_) { delete input_file_; }
+}
+
 Token Lexer::Next() {
     
     for (;;) {

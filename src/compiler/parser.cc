@@ -158,6 +158,7 @@ base::Status Parser::SwitchInputFile(const std::string &name, base::SequentialFi
 
 FileUnit *Parser::Parse(bool *ok) {
     auto pkg = ParsePackageName(CHECK_OK);
+    USE(pkg);
     while (lookahead_.kind() != Token::kEOF) {
         Token token = Peek();
         switch (token.kind()) {
@@ -260,7 +261,7 @@ FileUnit *Parser::Parse(bool *ok) {
 }
 
 Statement *Parser::ParseOutsideStatement(bool *ok) {
-    auto location = Peek().source_position();
+    //auto location = Peek().source_position();
     switch (Peek().kind()) {
         case Token::kInterface:
             return ParseInterfaceDefinition(ok);
@@ -575,6 +576,7 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
             
             IncompletableDefinition::Parameter param;
             auto access = static_cast<Access>(ParseDeclarationAccess());
+            USE(access); // FIXME: use access
             if (Peek().Is(Token::kVal) || Peek().Is(Token::kVar) || Peek().Is(Token::kVolatile)) {
                 bool is_volatile = false;
                 VariableDeclaration::Constraint constraint;
@@ -596,12 +598,12 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
                 auto var = new (arena_) VariableDeclaration(arena_, is_volatile, constraint, id, type, location);
                 
                 IncompletableDefinition::Field field;
-                field.as_constructor = def->parameters_size();
+                field.as_constructor = static_cast<int>(def->parameters_size());
                 field.in_constructor = true;
                 field.declaration = var;
                 
                 param.field_declaration = true;
-                param.as_field = def->fields_size();
+                param.as_field = static_cast<int>(def->fields_size());
                 
                 def->mutable_fields()->push_back(field);
             } else {
@@ -983,7 +985,6 @@ UnlessLoop *Parser::ParseUnlessLoop(bool *ok) {
 }
 
 ConditionLoop *Parser::ParseConditionLoop(ConditionLoop *loop, bool *ok) {
-    auto location = Peek().source_position();
     Match(Token::kLParen, CHECK_OK);
     Expression *condition = nullptr;
     Statement *initializer = ParseInitializerIfExistsWithCondition(&condition, CHECK_OK);
@@ -1992,7 +1993,7 @@ ArrayType *Parser::ParseArrayTypeMaybeWithLimits(const Identifier *ns, const Str
     }
     
     ArrayType *ar = reinterpret_cast<ArrayType *>(type);
-    for (int i = stack.size() - 1; i >= 1; i--) {
+    for (ssize_t i = stack.size() - 1; i >= 1; i--) {
         ar = new (arena_) ArrayType(arena_, ar, std::move(stack[i]), location);
     }
     ar = new (arena_) ArrayType(arena_, ar, std::move(stack[0]), location);
@@ -2262,7 +2263,6 @@ Symbol *Parser::ParseSymbol(bool *ok) {
 }
 
 const String *Parser::ParseAliasOrNull(bool *ok) {
-    const String *alias = nullptr;
     if (!Test(Token::kAs)) {
         return nullptr;
     }

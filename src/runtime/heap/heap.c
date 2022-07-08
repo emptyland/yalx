@@ -96,10 +96,10 @@ static int boxing_number_pool_init(struct heap *heap, struct boxing_number_pool 
         pool->i32_values[i] = yalx_new_small_boxing_number(heap, I32_class);
         pool->i32_values[i]->box.i32 = i - 100;
         
-        pool->u64_values[i] = yalx_new_small_boxing_number(heap, U64_class);
+        pool->u64_values[i] = yalx_new_big_boxing_number(heap, U64_class);
         pool->u64_values[i]->box.u64 = i;
         
-        pool->i64_values[i] = yalx_new_small_boxing_number(heap, I64_class);
+        pool->i64_values[i] = yalx_new_big_boxing_number(heap, I64_class);
         pool->i64_values[i]->box.i64 = i - 100;
     }
     
@@ -108,7 +108,7 @@ static int boxing_number_pool_init(struct heap *heap, struct boxing_number_pool 
         pool->f32_values[i]->box.f32 = fast_boxing_f32_table[i];
     }
     for (int i = 0; i < arraysize(fast_boxing_f64_table); i++) {
-        pool->f64_values[i] = yalx_new_small_boxing_number(heap, F64_class);
+        pool->f64_values[i] = yalx_new_big_boxing_number(heap, F64_class);
         pool->f64_values[i]->box.f64 = fast_boxing_f64_table[i];
     }
     return 0;
@@ -120,7 +120,7 @@ void string_pool_init(struct string_pool *pool, int slots_shift) {
     pool->n_entries = 0;
     pool->slots_shift = slots_shift;
     
-    const n_slots = 1 << pool->slots_shift;
+    const size_t n_slots = 1 << pool->slots_shift;
     pool->slots = (struct string_pool_entry *)malloc(n_slots * sizeof(struct string_pool_entry));
     for (int i = 0; i < n_slots; i++) {
         struct string_pool_entry *slot = &pool->slots[i];
@@ -355,8 +355,8 @@ void prefix_write_barrier_batch(struct heap *heap, struct yalx_value_any *host, 
     // TODO:
 }
 
-static inline lxr_write_barrier(struct lxr_fields_logger *log, struct yalx_value_any **field,
-                                struct yalx_value_any *mutator) {
+static inline void lxr_write_barrier(struct lxr_fields_logger *log, struct yalx_value_any **field,
+                                     struct yalx_value_any *mutator) {
     if (lxr_attempt_to_log(log, (void *)field)) {
         yalx_ref_t old = *field;
         if (old) {
@@ -391,7 +391,7 @@ void post_write_barrier_batch(struct heap *heap, struct yalx_value_any **fields,
     }
 }
 
-static inline lxr_init_write_barrier(struct lxr_fields_logger *log, struct yalx_value_any **field) {
+static inline void lxr_init_write_barrier(struct lxr_fields_logger *log, struct yalx_value_any **field) {
     if (lxr_attempt_to_log(log, (void *)field)) {
         lxr_log_queue_push(&log->modification, (void *)field);
     }

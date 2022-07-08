@@ -26,7 +26,7 @@ TEST_F(ConstantsPoolTest, Sanity) {
 }
 
 TEST_F(ConstantsPoolTest, Kind) {
-    for (size_t i = 0; i < 1000; i++) {
+    for (int i = 0; i < 1000; i++) {
         auto id = pool_.FindOrInsertWord32(i);
         EXPECT_EQ(id, pool_.FindOrInsertWord32(i));
         EXPECT_EQ(i, id);

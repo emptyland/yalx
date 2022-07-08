@@ -77,9 +77,9 @@ static inline void mark_allocated(struct lxr_block_header *const block, address_
     size = ROUND_UP(size, LXR_BLOCK_MIN_ALIGMENT);
     
     // offset / 4
-    int shift = offset >> 2;
+    int shift = (int)(offset >> 2);
     set_bit(block, shift);
-    shift = ((offset + size) >> 2) - 1;
+    shift = (int)((offset + size) >> 2) - 1;
     set_bit(block, shift);
 }
 
@@ -89,7 +89,7 @@ static inline size_t mark_freed(struct lxr_block_header *const block, address_t 
     DCHECK(offset % 4 == 0);
     
     // offset / 4
-    int shift = offset >> 2;
+    int shift = (int)(offset >> 2);
     DCHECK(test_bit(block, shift));
     for (int i = shift + 1; i < (shift + 4096 / 4); i++) {
         if ((block->bitmap[(i + 31) >> 5] != 0) && test_bit(block, i)) {
@@ -107,7 +107,7 @@ static inline size_t get_marked_size(struct lxr_block_header *const block, addre
     DCHECK(offset % 4 == 0);
     
     // offset / 4
-    int shift = offset >> 2;
+    int shift = (int)(offset >> 2);
     if(!test_bit(block, shift)) {
         return 0;
     }
@@ -119,20 +119,20 @@ static inline size_t get_marked_size(struct lxr_block_header *const block, addre
     return 0;
 }
 
-static inline is_not_free(struct lxr_block_header *const block, address_t addr) {
+static inline int is_not_free(struct lxr_block_header *const block, address_t addr) {
     if (addr >= (address_t)block + LXR_NORMAL_BLOCK_SIZE) {
         return 1;
     }
     const ptrdiff_t offset = offset_of_block(block, addr);
-    const int shift = offset >> 2;
+    const int shift = (int)(offset >> 2);
     return test_bit(block, shift);
 }
 
-static inline is_free(struct lxr_block_header *const block, address_t addr) {
+static inline int is_free(struct lxr_block_header *const block, address_t addr) {
     return !is_not_free(block, addr);
 }
 
-struct lxr_block_header *lxr_new_normal_block() {
+struct lxr_block_header *lxr_new_normal_block(void) {
     struct lxr_block_header *block = (struct lxr_block_header *)aligned_page_allocate(LXR_NORMAL_BLOCK_SIZE,
                                                                                       LXR_NORMAL_BLOCK_SIZE);
     if (!block) {
@@ -263,7 +263,7 @@ void lxr_block_free(struct lxr_block_header *const block, void *chunk) {
     int valid = addr + size + sizeof(struct lxr_block_chunk) < (address_t)block + LXR_NORMAL_BLOCK_SIZE;
     if (valid && is_free(block, addr + size)) {
         struct lxr_block_chunk *slibing = (struct lxr_block_chunk *)(addr + size);
-        const merged_size = size + slibing->size;
+        const size_t merged_size = size + slibing->size;
         if (in_cache_nodes(block, slibing)) {
             remove_cache_node(block, slibing);
         }

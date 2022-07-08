@@ -450,7 +450,6 @@ OperandAllocator::BorrowedRecord OperandAllocator::BorrowRegister(ir::Type ty, I
                                                                   int designate/* = kAnyRegister*/) {
     constexpr static const BorrowedRecord kNoBorrowed = {nullptr, nullptr, nullptr, nullptr};
     RegisterRecord active_rd;
-    const auto rep = ToMachineRepresentation(ty);
     if (designate != kAnyRegister) {
         if (ty.IsFloating()) {
             auto iter = active_float_registers_.find(designate);

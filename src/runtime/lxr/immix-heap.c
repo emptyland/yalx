@@ -18,7 +18,7 @@ int lxr_init_immix_heap(struct lxr_immix_heap *immix, int max_tls_blocks) {
     immix->dummy->next = immix->dummy;
     immix->dummy->prev = immix->dummy;
     
-    immix->large = (struct lxr_block_header *)immix->stub1;
+    immix->large = (struct lxr_large_header *)immix->stub1;
     immix->large->next = immix->large;
     immix->large->prev = immix->large;
     
@@ -26,7 +26,7 @@ int lxr_init_immix_heap(struct lxr_immix_heap *immix, int max_tls_blocks) {
     immix->tls_blocks->next = immix->tls_blocks;
     immix->tls_blocks->prev = immix->tls_blocks;
     
-    immix->addr_card_table = (void **)malloc(ADDR_CARD_SIZE * sizeof(void *));
+    immix->addr_card_table = (_Atomic(void *) *)malloc(ADDR_CARD_SIZE * sizeof(void *));
     memset(immix->addr_card_table, 0, ADDR_CARD_SIZE * sizeof(void *));
     pthread_mutex_init(&immix->mutex, NULL);
     return 0;
@@ -54,7 +54,7 @@ static int mark_addr_card(struct lxr_immix_heap *immix, void *addr, uintptr_t fl
     DCHECK(flags < 4); // max 2 bits
     
     void *expected = NULL;
-    return atomic_compare_exchange_strong(&immix->addr_card_table[index], &expected, tagged | flags);
+    return atomic_compare_exchange_strong(&immix->addr_card_table[index], &expected, (void *)(tagged | flags));
 }
 
 static int unmark_addr_card(struct lxr_immix_heap *immix, void *addr, uintptr_t flags) {
@@ -92,7 +92,7 @@ int lxr_thread_enter(struct lxr_immix_heap *immix) {
         return -1;
     }
     
-    tls_block = lxr_new_normal_block(NULL);
+    tls_block = lxr_new_normal_block();
     if (!tls_block) {
         pthread_mutex_unlock(&immix->mutex);
         return -1;
@@ -150,7 +150,7 @@ void *lxr_allocate_fallback(struct lxr_immix_heap *immix, size_t n) {
         }
     }
 
-    struct lxr_block_header *block = lxr_new_normal_block(NULL);
+    struct lxr_block_header *block = lxr_new_normal_block();
     if (!block) {
         goto done;
     }

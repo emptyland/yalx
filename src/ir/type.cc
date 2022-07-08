@@ -62,14 +62,14 @@ size_t Type::PlacementSizeInBytes() const {
 
 Type Type::Ref(Model *model, bool nullable) {
     return Type(model->full_name()->Equal(cpl::kStringClassFullName) ? kString : kReference,
-                (DCHECK_NOTNULL(model)->ReferenceSizeInBytes() << 3),
+                static_cast<int>(DCHECK_NOTNULL(model)->ReferenceSizeInBytes() << 3),
                 (nullable ? kNullableBit : 0) | kReferenceBit,
                 DCHECK_NOTNULL(model));
 }
 
 Type Type::Val(Model *model, bool is_pointer) {
     return Type(kValue,
-                (DCHECK_NOTNULL(model)->ReferenceSizeInBytes() << 3),
+                static_cast<int>(DCHECK_NOTNULL(model)->ReferenceSizeInBytes() << 3),
                 (is_pointer ? kPointerBit : 0),
                 DCHECK_NOTNULL(model));
 }

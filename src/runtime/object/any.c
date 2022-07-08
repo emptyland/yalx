@@ -1,5 +1,6 @@
 #include "runtime/object/any.h"
 #include "runtime/process.h"
+#include <stdio.h>
 #include <assert.h>
 
 
@@ -23,7 +24,7 @@ void yalx_Zplang_Zolang_ZdAny_ZdisEmpty_stub(yalx_ref_handle self) {
 
 void yalx_Zplang_Zolang_ZdAny_ZdtoString_stub(yalx_ref_handle self) {
     char buf[64] = {0};
-    snprintf(arraysize(buf), buf, "any@%p", *self);
+    snprintf(buf, 64, "any@%p", *self);
     yalx_return_cstring(buf, strlen(buf));
 }
 

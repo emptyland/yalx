@@ -506,7 +506,6 @@ public:
         if (handle) { // It's method calling
             auto method = std::get<const Model::Method *>(DCHECK_NOTNULL(args[0]->type().model())->GetMember(handle));
             auto proto = method->fun->prototype();
-            auto type = proto->return_type(0);
             auto value_in = static_cast<int>(proto->params_size());
             Operator *op = nullptr;
             DCHECK(args[0]->type().kind() == Type::kValue || args[0]->type().IsReference());
@@ -535,7 +534,6 @@ public:
                 return -1;
             }
             auto proto = down_cast<PrototypeModel>(callee->type().model());
-            auto type = proto->return_type(0);
             auto value_in = static_cast<int>(proto->params_size());
             auto op = ops()->CallIndirectly(1/*value_out*/, value_in, invoke_control_out());
             args.insert(args.begin(), callee);
@@ -775,7 +773,7 @@ public:
         auto else_block = fun->NewBlock(nullptr);
         auto exit_block = node->else_clause() ? fun->NewBlock(nullptr) : else_block;
         
-        const int number_of_branchs = node->case_clauses_size() + (!node->else_clause() ? 0 : 1);
+        const int number_of_branchs = static_cast<int>(node->case_clauses_size()) + (!node->else_clause() ? 0 : 1);
         std::vector<std::vector<Value *>> values(number_of_branchs);
         std::vector<BasicBlock *> blocks(number_of_branchs + 1, nullptr);
         blocks[number_of_branchs] = b(); // Initialize last one
@@ -910,7 +908,7 @@ public:
         
         std::vector<Value *> results;
         if (ReduceValuesOfBranches(types, origin, &blocks[0], &values[0], number_of_branchs,
-                                   node->case_clauses_size(), &results, root_ss.Position()) < 0) {
+                                   static_cast<int>(node->case_clauses_size()), &results, root_ss.Position()) < 0) {
             return -1;
         }
         return Returning(results);
@@ -1244,6 +1242,7 @@ public:
         std::vector<BasicBlock *> blocks;
         blocks.push_back(fun->NewBlock(nullptr));
         for (auto clause : node->catch_clauses()) {
+            USE(clause);
             blocks.push_back(fun->NewBlock(nullptr));
         }
         BasicBlock *finally_block = !node->finally_block() ? nullptr : fun->NewBlock(nullptr);
@@ -1304,7 +1303,7 @@ public:
         
         std::vector<Value *> results;
         if (ReduceValuesOfBranches(types, origin, &blocks[0], &values[0], number_of_branchs,
-                                   node->catch_clauses_size(), &results, root_ss.Position()) < 0) {
+                                   static_cast<int>(node->catch_clauses_size()), &results, root_ss.Position()) < 0) {
             return -1;
         }
         return Returning(results);
@@ -1409,6 +1408,7 @@ public:
                 }
             }
         }
+        return 0;
     }
     
     Value *EmitArrayInit(const cpl::ArrayType *ty, const std::vector<Value *> init_vals,
@@ -2650,6 +2650,7 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
         return;
     }
     auto init = InstallInitFun(module);
+    USE(init);
     
     if (auto iter = symbols_.find(cpl::kAnyArrayFullName); iter == symbols_.end()) {
         auto any = AssertedGetUdt(cpl::kAnyClassFullName);

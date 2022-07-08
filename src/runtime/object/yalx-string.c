@@ -22,7 +22,7 @@ struct yalx_value_str *yalx_new_string_direct(struct heap *heap, const char *z, 
     }
     struct yalx_value_str *str = (struct yalx_value_str *)result.object;
     str->hash_code = yalx_str_hash(z, n);
-    str->len = n;
+    str->len = (u32_t)n;
     memcpy(str->bytes, z, n);
     str->bytes[n] = '\0';
     return str;

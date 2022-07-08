@@ -28,7 +28,7 @@ struct yalx_value_exception {
     YALX_VALUE_HEADER;
     struct yalx_value_str *message;
     struct yalx_value_throwable *linked;
-    struct yalx_value_typed_array *backtrace; // backtrace_frame[]
+    struct yalx_value_array *backtrace; // backtrace_frame[]
 }; // struct yalx_value_throwable
 
 typedef struct yalx_value_throwable **yalx_throwable_handle;

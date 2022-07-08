@@ -40,7 +40,7 @@ static const char *kRegisterFloat64Names[] = {
 static_assert(32 == arraysize(kRegisterFloat64Names), "fatal");
 
 static const char *RegisterName(MachineRepresentation rep, int id) {
-    assert(id >= 0);
+    DCHECK(id >= 0);
     if (id == 63) {
         return "sp";
     }
@@ -142,7 +142,7 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             if (instr->InputAt(0)->IsReloaction()) {
                 printer()->Write("bl ");
             } else {
-                assert(instr->InputAt(0)->IsRegister());
+                DCHECK(instr->InputAt(0)->IsRegister());
                 printer()->Write("blr ");
             }
             EmitOperand(instr->InputAt(0));
@@ -574,7 +574,7 @@ void Arm64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *oper
         case InstructionOperand::kLocation: {
             // TODO:
             auto loc = operand->AsLocation();
-            assert(loc->mode() == Arm64Mode_MRI);
+            DCHECK(loc->mode() == Arm64Mode_MRI);
             printer()->Print("[%s, #%d]", RegisterName(MachineRepresentation::kWord64, loc->register0_id()), loc->k());
         } break;
             
@@ -583,7 +583,7 @@ void Arm64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *oper
             if (opd->type() == ConstantOperand::kString) {
                 printer()->Print("Kstr.%d", opd->symbol_id());
             } else {
-                assert(opd->kind() == ConstantOperand::kNumber);
+                DCHECK(opd->kind() == InstructionOperand::kConstant);
                 printer()->Print("Knnn.%d", opd->symbol_id());
             }
             switch (style) {

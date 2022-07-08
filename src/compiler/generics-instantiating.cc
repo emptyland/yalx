@@ -353,7 +353,7 @@ private:
         return Return(new (arena_) Dot(primary, node->field(), node->source_position()));
     }
     
-    int VisitMod(Mod *node) {
+    int VisitMod(Mod *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
         return Return(new (arena_) Mod(lhs, rhs, node->source_position()));
@@ -702,7 +702,7 @@ private:
             return -1;
         }
         if (argc_ != node->generic_params_size()) {
-            Feedback()->Printf(node->source_position(), "Different generics parameters, %zd vs %zd ",
+            Feedback()->Printf(node->source_position(), "`%s' Different generics parameters, %zd vs %zd ",
                                node->FullName().c_str(), node->generic_params_size(), argc_);
             return -1;
         }

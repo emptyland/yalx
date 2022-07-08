@@ -91,7 +91,8 @@ Instruction::Instruction(Code op, size_t inputs_count, size_t outputs_count, siz
 , inputs_count_(inputs_count)
 , outputs_count_(outputs_count)
 , temps_count_(temps_count) {
-    ::memcpy(operands_, operands, operands_size() * sizeof(Operand *));
+    auto bytes = operands_size() * sizeof(Operand *);
+    ::memcpy(operands_, operands, bytes);
 }
 
 Instruction *Instruction::New(base::Arena *arena, Code op, Operand *operands[], size_t inputs_count,
@@ -153,7 +154,7 @@ ReloactionOperand *InstructionFunction::AddClassSymbol(const ir::Type &ty, bool 
                     auto offset = array_ty->dimension_count() > 1
                         ? Type_multi_dims_array * sizeof(yalx_class)
                         : Type_array * sizeof(yalx_class);
-                    return new (arena_) ReloactionOperand(kRt_builtin_classes, offset, fetch_address);
+                    return new (arena_) ReloactionOperand(kRt_builtin_classes, static_cast<int>(offset), fetch_address);
                 } break;
                 
                 case ir::Model::kChannel:
@@ -220,7 +221,7 @@ ReloactionOperand *InstructionFunction::AddClassSymbol(const ir::Type &ty, bool 
         return rel;
     }
     auto offset = rtty_id * sizeof(yalx_class);
-    auto rel = new (arena_) ReloactionOperand(kRt_builtin_classes, offset, fetch_address);
+    auto rel = new (arena_) ReloactionOperand(kRt_builtin_classes, static_cast<int>(offset), fetch_address);
     return InsertExternalSymbol(ty.ToString(), rel);
 }
 

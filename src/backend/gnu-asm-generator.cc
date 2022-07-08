@@ -179,9 +179,10 @@ int GnuAsmGenerator::EmitGlobalSlots(std::vector<int> *refs_offset) {
 void GnuAsmGenerator::MarkRefsInClass(const ir::StructureModel *clazz, const int offset, std::vector<int> *refs_offset) {
     for (const auto &field : clazz->fields()) {
         if (field.type.IsReference()) {
-            refs_offset->push_back(offset + field.offset);
+            refs_offset->push_back(offset + static_cast<int>(field.offset));
         } else if (field.type.model() && field.type.model()->declaration() == ir::Model::kStruct) {
-            MarkRefsInClass(down_cast<const ir::StructureModel>(field.type.model()), offset + field.offset, refs_offset);
+            MarkRefsInClass(down_cast<const ir::StructureModel>(field.type.model()),
+                            offset + static_cast<int>(field.offset), refs_offset);
         }
     }
 }
