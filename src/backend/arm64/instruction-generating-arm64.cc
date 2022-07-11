@@ -1404,6 +1404,7 @@ void Arm64FunctionInstructionSelector::ArrayFill(ir::Value *instr) {
 
 void Arm64FunctionInstructionSelector::ArrayAt(ir::Value *instr) {
     const auto number_of_indices = instr->op()->value_in() - 1;
+    DCHECK(number_of_indices > 0);
     
     std::vector<InstructionOperand *> indices;
     if (number_of_indices > 3) {
@@ -1496,86 +1497,165 @@ void Arm64FunctionInstructionSelector::ArrayAt(ir::Value *instr) {
 }
 
 void Arm64FunctionInstructionSelector::ArraySet(ir::Value *instr) {
-    Allocate(instr->InputValue(0), kAny);
-    Allocate(instr->InputValue(1), kAny);
-    Allocate(instr->InputValue(2), kAny);
+    const auto number_of_indices = instr->op()->value_in() - 2;
+    DCHECK(number_of_indices > 0);
+    const auto index_of_value = instr->op()->value_in() - 1;
+    
+    std::vector<InstructionOperand *> indices;
+    if (number_of_indices > 3) {
+        Allocate(instr->InputValue(0), kAny);
+        for (int i = 1; i < number_of_indices; i++) {
+            indices.push_back(Allocate(instr->InputValue(i), kAny));
+        }
+        Allocate(instr->InputValue(index_of_value), kAny);
+    } else {
+        for (int i = 0; i < instr->op()->value_in(); i++) {
+            Allocate(instr->InputValue(i), kAny);
+        }
+    }
+    
+    std::vector<LocationOperand *> slots;
+    for (ssize_t i = indices.size() - 1; i >= 0; i--) {
+        auto slot = operands_.AllocateStackSlot(ir::Types::Word32, 0, StackSlotAllocator::kLinear);
+        Move(slot, indices[i], ir::Types::Word32);
+        slots.push_back(slot);
+    }
+    const auto top_line = operands_.slots()->stack_size();
     
     RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
     saving_scope.SaveAll();
     
-    auto a0 = operands_.AllocateReigster(ir::Types::Word64, arm64::x0.code());
-    auto a1 = operands_.AllocateReigster(ir::Types::Word32, arm64::x1.code());
-    
-#define SET_RET() \
-    auto a2 = operands_.AllocateReigster(ir::Types::Word64, arm64::x2.code()); \
-    auto array = Allocate(instr->InputValue(0), kAny); \
-    auto index = Allocate(instr->InputValue(1), kAny); \
-    auto value = Allocate(instr->InputValue(2), kAny); \
-    Move(a0, array, instr->InputValue(0)->type()); \
-    Move(a1, index, instr->InputValue(1)->type()); \
-    Move(a2, value, instr->InputValue(2)->type()); \
-    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_set_ref)); \
-    a2->Grab(); \
-    operands_.Free(a2); \
-    operands_.Associate(instr, array)
+    std::vector<RegisterOperand *> args;
+    args.push_back(operands_.AllocateReigster(ir::Types::Word64, arm64::x0.code()));
+    Move(args[0], Allocate(instr->InputValue(0), kAny), instr->InputValue(0)->type());
     
     auto ar = ir::OperatorWith<const ir::ArrayModel *>::Data(instr->op());
-    if (ar->dimension_count() > 1) {
-        SET_RET();
-    } else {
-        switch (ar->element_type().kind()) {
-            case ir::Type::kString:
-            case ir::Type::kReference: {
-                SET_RET();
-            } break;
-                
-            case ir::Type::kValue: {
-                auto a2 = operands_.AllocateReigster(ir::Types::Word64, arm64::x2.code());
-                auto array = Allocate(instr->InputValue(0), kAny);
-                auto index = Allocate(instr->InputValue(1), kAny);
-                auto value = Allocate(instr->InputValue(2), kAny);
-                Move(a0, array, instr->InputValue(0)->type());
-                Move(a1, index, instr->InputValue(1)->type());
-                if (auto ptr = value->AsRegister()) {
-                    Move(a2, ptr, ir::Types::Word64);
-                } else if (auto mem = value->AsLocation()) {
-                    current()->NewIO(Arm64Add, a2,
-                                     new (arena_) RegisterOperand(mem->register0_id(), MachineRepresentation::kWord64),
-                                     ImmediateOperand::Word32(arena_, mem->k()));
-                } else if (auto rel = value->AsReloaction()) {
-                    DCHECK(rel->fetch_address());
-                    Move(a2, rel, ir::Types::Word64);
-                } else {
-                    UNREACHABLE();
-                }
-                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_set_chunk));
-                operands_.Associate(instr, array);
-            } break;
-                
-            default: {
-                DCHECK(ar->element_type().IsNumber() ||
-                       ar->element_type().IsPointer());
-                auto array = Allocate(instr->InputValue(0), kAny);
-                auto index = Allocate(instr->InputValue(1), kAny);
-                auto value = Allocate(instr->InputValue(2), kAny);
-                Move(a0, array, instr->InputValue(0)->type());
-                Move(a1, index, instr->InputValue(1)->type());
-                current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_location_at));
-                auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::x0.code(), -1, 0);
-                Move(loc, value, instr->InputValue(2)->type());
-                operands_.Associate(instr, array);
-            } break;
-        }
+    if (ar->dimension_count() > 3) {
+        args.push_back(operands_.AllocateReigster(ir::Types::Word64, arm64::x1.code()));
+        auto fp = operands_.registers()->frame_pointer();
+        current()->NewIO(Arm64Sub, args[1], fp, ImmediateOperand::Word32(arena_, top_line));
     }
     
+#define RANK1(V, S) V(1) S(1, 2)
+#define RANK2(V, S) V(1) V(2) S(2, 3)
+#define RANK3(V, S) V(1) V(2) V(3) S(3, 4)
     
-#undef SET_REF
+#define HANDLE_RANK_1TO3(V, S) \
+    case 1: \
+        RANK1(V, S); \
+        break; \
+    case 2: \
+        RANK2(V, S); \
+        break; \
+    case 3: \
+        RANK3(V, S); \
+        break
 
-    a0->Grab();
-    a1->Grab();
-    operands_.Free(a0);
-    operands_.Free(a1);
-    //UNREACHABLE();
+    // indices
+
+#define PASS_INDICES_ARGS(n) \
+    args.push_back(operands_.AllocateReigster(ir::Types::Word32, arm64::x##n.code())); \
+    Move(args[n], Allocate(instr->InputValue(n), kAny), ir::Types::Word32);
+    
+    switch (ar->element_type().kind()) {
+        case ir::Type::kString:
+        case ir::Type::kReference: {
+            
+        #define PASS_VALUE_ARG(r, n) \
+            args.push_back(operands_.AllocateReigster(ir::Types::Word64, arm64::x##n.code())); \
+            Move(args[n], Allocate(instr->InputValue(n), kAny), ir::Types::Word64); \
+            current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_set_ref##r))
+            
+            switch (ar->dimension_count()) {
+                HANDLE_RANK_1TO3(PASS_INDICES_ARGS, PASS_VALUE_ARG);
+                default:
+                    DCHECK(ar->dimension_count() >= 3);
+                    args.push_back(operands_.AllocateReigster(ir::Types::Word64, arm64::x2.code()));
+                    Move(args[2], Allocate(instr->InputValue(index_of_value), kAny), ir::Types::Word64);
+                    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_set_ref));
+                    break;
+            }
+            
+        #undef PASS_VALUE_ARG
+        } break;
+            
+        case ir::Type::kValue: {
+        #define PASS_VALUE_ARG(r, n) \
+            args.push_back(operands_.AllocateReigster(ir::Types::Word64, arm64::x##n.code())); \
+            if (auto ptr = value->AsRegister()) { \
+                Move(args[n], ptr, ir::Types::Word64); \
+            } else if (auto mem = value->AsLocation()) { \
+                current()->NewIO(Arm64Add, args[n], \
+                                 new (arena_) RegisterOperand(mem->register0_id(), MachineRepresentation::kWord64), \
+                                 ImmediateOperand::Word32(arena_, mem->k())); \
+            } else if (auto rel = value->AsReloaction()) { \
+                DCHECK(rel->fetch_address()); \
+                Move(args[n], rel, ir::Types::Word64); \
+            } else { \
+                UNREACHABLE(); \
+            } \
+            current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_set_chunk##r));
+            
+            auto value = Allocate(instr->InputValue(index_of_value), kAny);
+            switch (ar->dimension_count()) {
+                HANDLE_RANK_1TO3(PASS_INDICES_ARGS, PASS_VALUE_ARG);
+                default:
+                    DCHECK(ar->dimension_count() >= 3);
+                    args.push_back(operands_.AllocateReigster(ir::Types::Word64, arm64::x2.code()));
+                    if (auto ptr = value->AsRegister()) {
+                        Move(args[2], ptr, ir::Types::Word64);
+                    } else if (auto mem = value->AsLocation()) {
+                        current()->NewIO(Arm64Add, args[2],
+                                         new (arena_) RegisterOperand(mem->register0_id(), MachineRepresentation::kWord64),
+                                         ImmediateOperand::Word32(arena_, mem->k()));
+                    } else if (auto rel = value->AsReloaction()) {
+                        DCHECK(rel->fetch_address());
+                        Move(args[2], rel, ir::Types::Word64);
+                    } else {
+                        UNREACHABLE();
+                    }
+                    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_set_chunk));
+                    break;
+            }
+        #undef PASS_VALUE_ARG
+        } break;
+            
+        default: {
+            DCHECK(ar->element_type().IsNumber() || ar->element_type().IsPointer());
+            auto receiver = new (arena_) LocationOperand(Arm64Mode_MRI, arm64::x0.code(), -1, 0);
+            auto value = Allocate(instr->InputValue(index_of_value), kAny);
+            
+        #define PASS_VALUE_ARG(r, n) \
+            current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_location_at##r)); \
+            Move(receiver, value, instr->InputValue(index_of_value)->type());
+
+            switch (ar->dimension_count()) {
+                HANDLE_RANK_1TO3(PASS_INDICES_ARGS, PASS_VALUE_ARG);
+                default:
+                    DCHECK(ar->dimension_count() >= 3);
+                    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_array_location_at));
+                    Move(receiver, value, instr->InputValue(index_of_value)->type());
+                    break;
+            }
+            
+        #undef PASS_VALUE_ARG
+        } break;
+    }
+
+#undef HANDLE_RANK_1TO3
+#undef RANK3
+#undef RANK2
+#undef RANK1
+#undef PASS_INDICES_ARGS
+    operands_.Associate(instr, Allocate(instr->InputValue(0), kAny));
+    for (auto arg : args) {
+        arg->Grab();
+        operands_.Free(arg);
+    }
+    for (auto slot : slots) {
+        slot->Grab();
+        operands_.Free(slot);
+    }
 }
 
 void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {

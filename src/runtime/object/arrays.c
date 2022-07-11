@@ -95,7 +95,7 @@ yalx_new_multi_dims_array(struct heap *heap, const struct yalx_class *item, u32_
     struct yalx_value_multi_dims_array *bundle = (struct yalx_value_multi_dims_array *)result.object;
     bundle->len = (u32_t)nitems;
     bundle->item = item;
-    bundle->dims = dims;
+    bundle->rank = dims;
     for (u32_t i = 0; i < dims; i++) {
         bundle->caps[i] = caps[i];
     }
@@ -130,16 +130,16 @@ struct yalx_value_array_header *yalx_array_clone(struct heap *heap, struct yalx_
         struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)origin;
         void *data = yalx_multi_dims_array_data(ar);
         if (yalx_is_ref_type(ar->item)) {
-            return yalx_new_refs_array_with_data(heap, ar->item, ar->dims, ar->caps, (yalx_ref_t *)data, ar->len);
+            return yalx_new_refs_array_with_data(heap, ar->item, ar->rank, ar->caps, (yalx_ref_t *)data, ar->len);
         } else {
-            return yalx_new_vals_array_with_data(heap, ar->item, ar->dims, ar->caps, data, ar->len);
+            return yalx_new_vals_array_with_data(heap, ar->item, ar->rank, ar->caps, data, ar->len);
         }
     }
 }
 
 void *yalx_array_location2(struct yalx_value_multi_dims_array *ar, int d0, int d1) {
     const size_t item_size_in_bytes = yalx_is_ref_type(ar->item) ? ar->item->reference_size : ar->item->instance_size;
-    DCHECK(ar->dims == 2);
+    DCHECK(ar->rank == 2);
     DCHECK(d0 >= 0 && d0 < ar->caps[0]);
     DCHECK(d1 >= 0 && d1 < ar->caps[1]);
     return yalx_multi_dims_array_data(ar) + (d0 * ar->caps[1] + d1) * item_size_in_bytes;
@@ -174,7 +174,7 @@ at [0,1,2] == 6  => at[x * 6 + (y * 3) + z] = at[5]
  */
 void *yalx_array_location3(struct yalx_value_multi_dims_array *ar, int d0, int d1, int d2) {
     const size_t item_size_in_bytes = yalx_is_ref_type(ar->item) ? ar->item->reference_size : ar->item->instance_size;
-    DCHECK(ar->dims == 3);
+    DCHECK(ar->rank == 3);
     DCHECK(d0 >= 0 && d0 < ar->caps[0]);
     DCHECK(d1 >= 0 && d1 < ar->caps[1]);
     DCHECK(d2 >= 0 && d2 < ar->caps[2]);
@@ -186,15 +186,15 @@ void *yalx_array_location_more(struct yalx_value_multi_dims_array *ar, const int
     const size_t item_size_in_bytes = yalx_is_ref_type(ar->item) ? ar->item->reference_size : ar->item->instance_size;
     
 #ifndef NDEBUG
-    for (int i = 0; i < ar->dims; i++) {
+    for (int i = 0; i < ar->rank; i++) {
         DCHECK(indices[i] >= 0 && indices[i] < ar->caps[i]);
     }
 #endif
 
     size_t offset = 0;
-    for (int i = 0; i < ar->dims; i++) {
+    for (int i = 0; i < ar->rank; i++) {
         size_t quantity = indices[i];
-        for (int j = i + 1; j < ar->dims; j++) {
+        for (int j = i + 1; j < ar->rank; j++) {
             quantity *= ar->caps[j];
         }
         offset += quantity;

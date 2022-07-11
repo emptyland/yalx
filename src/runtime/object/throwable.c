@@ -62,7 +62,7 @@ void throw_array_index_out_of_bounds_exception(const struct yalx_value_array_hea
     } else {
         DCHECK(klass == multi_dims_array_class);
         const struct yalx_value_multi_dims_array *ar = (const struct yalx_value_multi_dims_array *)obj;
-        DCHECK(dim < ar->dims);
+        DCHECK(dim < ar->rank);
         snprintf(buf, 1024, "Dimension %d size is %u, but index at %u", dim, ar->caps[dim], index);
     }
     

@@ -63,7 +63,13 @@ extern const String *const kRt_array_location_at1;
 extern const String *const kRt_array_location_at2;
 extern const String *const kRt_array_location_at3;
 extern const String *const kRt_array_set_ref;
+extern const String *const kRt_array_set_ref1;
+extern const String *const kRt_array_set_ref2;
+extern const String *const kRt_array_set_ref3;
 extern const String *const kRt_array_set_chunk;
+extern const String *const kRt_array_set_chunk1;
+extern const String *const kRt_array_set_chunk2;
+extern const String *const kRt_array_set_chunk3;
 
 } // namespace backend
 } // namespace yalx

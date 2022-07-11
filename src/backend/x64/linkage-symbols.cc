@@ -28,7 +28,13 @@ DECLARE_STATIC_STRING(kRt_array_location_at1, "_array_location_at1");
 DECLARE_STATIC_STRING(kRt_array_location_at2, "_array_location_at2");
 DECLARE_STATIC_STRING(kRt_array_location_at3, "_array_location_at3");
 DECLARE_STATIC_STRING(kRt_array_set_ref, "_array_set_ref");
+DECLARE_STATIC_STRING(kRt_array_set_ref1, "_array_set_ref1");
+DECLARE_STATIC_STRING(kRt_array_set_ref2, "_array_set_ref2");
+DECLARE_STATIC_STRING(kRt_array_set_ref3, "_array_set_ref3");
 DECLARE_STATIC_STRING(kRt_array_set_chunk, "_array_set_chunk");
+DECLARE_STATIC_STRING(kRt_array_set_chunk1, "_array_set_chunk1");
+DECLARE_STATIC_STRING(kRt_array_set_chunk2, "_array_set_chunk2");
+DECLARE_STATIC_STRING(kRt_array_set_chunk3, "_array_set_chunk3");
 
 LinkageSymbols::LinkageSymbols(base::Arena *arena)
 : arena_(arena)

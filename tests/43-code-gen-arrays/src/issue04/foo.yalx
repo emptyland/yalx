@@ -52,4 +52,13 @@ fun issue12(): string, string, string {
     return ar[0,0], ar[0,1], ar[1,1]
 }
 
+@yalx.Compiler(nativeHandle=true)
+fun issue13(): int[,] {
+    val ar = @int[4,4](0)
+    ar[0,0] = 1
+    ar[1,1] = 2
+    ar[3,3] = 3
+    return ar
+}
+
 struct Foo(val i: int, val name: string)

@@ -516,19 +516,12 @@ Lblk12:
     bl _issue04_Zoissue04_ZdFoo_ZdFoo_Z4constructor
     ldur x1, [fp, #-44]
     mov w0, #1
-    stur w0, [fp, #-4]
-    stur x1, [fp, #-12]
-    ldur x0, [fp, #-12]
-    ldur w1, [fp, #-4]
-    bl _array_location_at1
-    ldr x19, [x0, #0]
-    stur x19, [fp, #-44]
-    ldr x19, [x0, #8]
-    stur x19, [fp, #-36]
-    ldr x19, [x0, #16]
-    stur x19, [fp, #-28]
-    ldr x19, [x0, #24]
-    stur x19, [fp, #-20]
+    stur w0, [fp, #-36]
+    stur x1, [fp, #-44]
+    ldur x0, [fp, #-44]
+    ldur w1, [fp, #-36]
+    add x2, fp, #-32
+    bl _array_set_chunk1
     ldur x19, [fp, #-44]
     str x19, [fp, #24]
     ldp fp, lr, [sp, #112]
@@ -1074,6 +1067,108 @@ Lblk25:
     ldp x27, x28, [sp, #32]
     ldp fp, lr, [sp, #112]
     add sp, sp, #128
+    ret
+.cfi_endproc
+.global _issue04_Zoissue04_Zdissue13
+_issue04_Zoissue04_Zdissue13:
+.cfi_startproc
+Lblk26:
+    sub sp, sp, #48
+    stp fp, lr, [sp, #32]
+    add fp, sp, #32
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    mov w0, #4
+    mov w1, #4
+    mov w2, #0
+    stur w2, [fp, #-4]
+    stur w1, [fp, #-8]
+    stur w0, [fp, #-12]
+    mov w19, #2
+    stur w19, [fp, #-16]
+    stur w0, [fp, #-20]
+    stur w1, [fp, #-24]
+    stur w2, [fp, #-28]
+    adrp x19, _builtin_classes+864@PAGE
+    add x0, x19, _builtin_classes+864@PAGEOFF
+    sub x1, fp, #16
+    bl _array_fill
+    mov x2, x0
+    mov w0, #0
+    mov w1, #0
+    mov w3, #1
+    stur w0, [fp, #-4]
+    stur w1, [fp, #-8]
+    stur x2, [fp, #-16]
+    stur w3, [fp, #-20]
+    ldur x0, [fp, #-16]
+    ldur w1, [fp, #-4]
+    ldur w2, [fp, #-8]
+    bl _array_location_at2
+    ldur w19, [fp, #-20]
+    str w19, [x0, #0]
+    mov w0, #1
+    mov w1, #1
+    mov w2, #2
+    stur w0, [fp, #-4]
+    stur w1, [fp, #-8]
+    stur w2, [fp, #-20]
+    ldur x0, [fp, #-16]
+    ldur w1, [fp, #-4]
+    ldur w2, [fp, #-8]
+    bl _array_location_at2
+    ldur w19, [fp, #-20]
+    str w19, [x0, #0]
+    mov w0, #3
+    mov w1, #3
+    mov w2, #3
+    stur w0, [fp, #-4]
+    stur w1, [fp, #-8]
+    stur w2, [fp, #-20]
+    ldur x0, [fp, #-16]
+    ldur w1, [fp, #-4]
+    ldur w2, [fp, #-8]
+    bl _array_location_at2
+    ldur w19, [fp, #-20]
+    str w19, [x0, #0]
+    ldur x19, [fp, #-16]
+    str x19, [fp, #24]
+    ldp fp, lr, [sp, #32]
+    add sp, sp, #48
+    ret
+.cfi_endproc
+.global _issue04_Zoissue04_Zdissue13_had
+_issue04_Zoissue04_Zdissue13_had:
+.cfi_startproc
+Lblk27:
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stp x19, x20, [sp, #80]
+    stp x21, x22, [sp, #64]
+    stp x23, x24, [sp, #48]
+    stp x25, x26, [sp, #32]
+    stp x27, x28, [sp, #16]
+    add fp, sp, #16
+    bl _current_root
+    mov x26, x0
+    bl _issue04_Zoissue04_Zdissue13
+    mov x0, #16
+    bl _reserve_handle_returning_vals
+    mov x1, sp
+    mov x2, #16
+    bl _memcpy
+    ldp x19, x20, [sp, #80]
+    ldp x21, x22, [sp, #64]
+    ldp x23, x24, [sp, #48]
+    ldp x25, x26, [sp, #32]
+    ldp x27, x28, [sp, #16]
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
     ret
 .cfi_endproc
 .global _issue04_Zoissue04_ZdFoo_ZdFoo_Z4constructor

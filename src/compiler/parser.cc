@@ -1903,12 +1903,38 @@ Type *Parser::ParseType(bool *ok) {
     }
     
     if (Peek().Is(Token::kLBrack)) {
-        auto ar = new (arena_) ArrayType(arena_, type, 0, location);
+        //auto ar = new (arena_) ArrayType(arena_, type, 0, location);
+        std::vector<base::ArenaVector<Expression *>> stack;
+        base::ArenaVector<Expression *> capacities(arena_);
         while (Test(Token::kLBrack)) {
-            ar->mutable_dimension_capacitys()->push_back(nullptr);
-            Match(Token::kRBrack, CHECK_OK);
+            if (Peek().Is(Token::kRBrack)) {
+                MoveNext();
+                capacities.push_back(nullptr);
+                stack.push_back(std::move(capacities));
+                continue;
+            }
+
+            while (Test(Token::kComma)) {
+                capacities.push_back(nullptr);
+            }
+            if (Test(Token::kRBrack)) {
+                capacities.push_back(nullptr);
+                stack.push_back(std::move(capacities));
+            }
         }
-        type = ar;
+    
+        // type = ar;
+        if (stack.empty()) {
+            error_feedback_->Printf(location, "Invalid array type.");
+            *ok = false;
+            return nullptr;
+        }
+        
+        ArrayType *ar = reinterpret_cast<ArrayType *>(type);
+        for (ssize_t i = stack.size() - 1; i >= 1; i--) {
+            ar = new (arena_) ArrayType(arena_, ar, std::move(stack[i]), location);
+        }
+        type = new (arena_) ArrayType(arena_, ar, std::move(stack[0]), location);
     }
     
     while (Test(Token::kQuestion)) {

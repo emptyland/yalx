@@ -2053,7 +2053,7 @@ private:
             for (auto index : *exprs) {
                 if (Reduce(index, &indices) < 0) { return -1; }
             }
-            value = EmitArrayAt(value, indices, root_ss.Position());
+            value = EmitArraySet(value, indices, rval, root_ss.Position());
         }
         
         for (int64_t i = static_cast<int64_t>(parts.size()) - 2; i >= 0; i--) {
@@ -2182,6 +2182,19 @@ private:
         Operator *op = ops()->ArrayAt(ar, static_cast<int>(input.size()));
         return b()->NewNodeWithValues(nullptr, source_position, ar->element_type(), op, input);
     }
+    
+    Value *EmitArraySet(Value *value, const std::vector<Value *> &indices, Value *incoming,
+                        SourcePosition source_position) {
+        DCHECK(value->type().model() != nullptr);
+        DCHECK(value->type().IsReference());
+        
+        auto ar = down_cast<ArrayModel>(value->type().model());
+        std::vector<Value *> input(indices);
+        input.insert(input.begin(), value);
+        input.push_back(incoming);
+        Operator *op = ops()->ArraySet(ar, static_cast<int>(input.size()));
+        return b()->NewNodeWithValues(nullptr, source_position, value->type(), op, input);
+    }
 
     Value *EmitLoadField(Value *value, Handle *handle, SourcePosition source_position) {
         Operator *op = nullptr;
@@ -2196,14 +2209,6 @@ private:
         }
         auto field = std::get<const Model::Field *>(handle->owns()->GetMember(handle));
         return b()->NewNode(source_position, field->type, op, value);
-    }
-    
-    Value *EmitArraySet(Value *value, Value *incoming, Value *index, SourcePosition source_position) {
-        DCHECK(value->type().model() != nullptr);
-        DCHECK(value->type().IsReference());
-        
-        Operator *op = ops()->ArraySet(down_cast<const ArrayModel>(value->type().model()));
-        return b()->NewNode(source_position, value->type(), op, value, index, incoming);
     }
     
     Value *EmitStoreField(Value *value, Value *input, Handle *handle, SourcePosition source_position) {

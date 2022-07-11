@@ -22,7 +22,7 @@ struct yalx_value_multi_dims_array {
     YALX_VALUE_HEADER;
     const struct yalx_class *item;
     u32_t len; // total-size
-    u32_t dims; // number of dimensions
+    u32_t rank; // number of dimensions
     u32_t caps[1]; // number of capacities each dimensions
 }; // struct yalx_value_multi_dims_array
 
@@ -54,11 +54,11 @@ struct yalx_value_multi_dims_array *
 yalx_new_multi_dims_array(struct heap *heap, const struct yalx_class *item, u32_t dims, const u32_t *caps);
 
 static inline address_t yalx_multi_dims_array_data(struct yalx_value_multi_dims_array * ar) {
-    return (address_t)(&ar->caps[0]) + ar->dims * sizeof(u32_t);
+    return (address_t)(&ar->caps[0]) + ar->rank * sizeof(u32_t);
 }
 
-void *yalx_array_location2(struct yalx_value_multi_dims_array *ar, int d1, int d2);
-void *yalx_array_location3(struct yalx_value_multi_dims_array *ar, int d1, int d2, int d3);
+void *yalx_array_location2(struct yalx_value_multi_dims_array *ar, int d0, int d1);
+void *yalx_array_location3(struct yalx_value_multi_dims_array *ar, int d0, int d1, int d2);
 void *yalx_array_location_more(struct yalx_value_multi_dims_array *ar, const int *indices);
 
 struct yalx_value_array_header *yalx_cast_to_array_if_possibly(yalx_ref_t obj);

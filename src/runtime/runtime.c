@@ -853,7 +853,7 @@ struct yalx_value_array_header *array_fill(const struct yalx_class *const elemen
             memcpy(p, filling, element_ty->instance_size);
             init_typing_write_barrier_if_needed(&heap, element_ty, p);
         }
-    } if (yalx_is_ref_type(element_ty)) {
+    } else if (yalx_is_ref_type(element_ty)) {
         for (yalx_ref_t *p = (yalx_ref_t *)data; p < (yalx_ref_t *)data + rs->len; p++) {
             yalx_ref_t obj = *(yalx_ref_t *)filling;
             
@@ -910,7 +910,7 @@ void *array_location_at2(struct yalx_value_multi_dims_array *const array, const 
     DCHECK(array != NULL);
     const struct yalx_class *const klass = CLASS(array);
     DCHECK(klass == multi_dims_array_class);
-    DCHECK(array->dims == 2);
+    DCHECK(array->rank == 2);
     
     if (d0 < 0 || d0 >= array->caps[0]) {
         throw_array_index_out_of_bounds_exception((const struct yalx_value_array_header *)array, 0, d0);
@@ -926,7 +926,7 @@ void *array_location_at3(struct yalx_value_multi_dims_array *const array, const 
     DCHECK(array != NULL);
     const struct yalx_class *const klass = CLASS(array);
     DCHECK(klass == multi_dims_array_class);
-    DCHECK(array->dims == 3);
+    DCHECK(array->rank == 3);
     
     if (d0 < 0 || d0 >= array->caps[0]) {
         throw_array_index_out_of_bounds_exception((const struct yalx_value_array_header *)array, 0, d0);
@@ -950,7 +950,7 @@ void *array_location_at(struct yalx_value_array_header *const array, const i32_t
     }
 
     struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
-    for (int i = 0; i < ar->dims; i++) {
+    for (int i = 0; i < ar->rank; i++) {
         if (indices[i] < 0 || indices[i] >= ar->caps[i]) {
             throw_array_index_out_of_bounds_exception(array, 2, indices[i]);
         }
@@ -977,7 +977,7 @@ void array_set_ref2(struct yalx_value_array_header *const array, const i32_t d0,
     DCHECK(yalx_is_ref_type(array->item));
     
     struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
-    DCHECK(ar->dims == 2);
+    DCHECK(ar->rank == 2);
     if (d0 < 0 || d0 >= ar->caps[0]) {
         throw_array_index_out_of_bounds_exception(array, 0, d0);
     }
@@ -995,7 +995,7 @@ void array_set_ref3(struct yalx_value_array_header *const array, const i32_t d0,
     DCHECK(yalx_is_ref_type(array->item));
     
     struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
-    DCHECK(ar->dims == 3);
+    DCHECK(ar->rank == 3);
     if (d0 < 0 || d0 >= ar->caps[0]) {
         throw_array_index_out_of_bounds_exception(array, 0, d0);
     }
@@ -1022,7 +1022,7 @@ void array_set_ref(struct yalx_value_array_header *const array, const i32_t *con
     
     DCHECK(klass == multi_dims_array_class);
     struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
-    for (int i = 0; i < ar->dims; i++) {
+    for (int i = 0; i < ar->rank; i++) {
         if (indices[i] < 0 || indices[i] >= ar->caps[i]) {
             throw_array_index_out_of_bounds_exception(array, i, indices[i]);
         }
@@ -1031,16 +1031,84 @@ void array_set_ref(struct yalx_value_array_header *const array, const i32_t *con
     put_field((yalx_ref_t *)yalx_array_location_more(ar, indices), value);
 }
 
-void array_set_chunk(struct yalx_value_array_header *const array, const i32_t index, address_t chunk) {
+void array_set_chunk1(struct yalx_value_array_header *const array, const i32_t index, address_t chunk) {
     DCHECK(array != NULL);
     DCHECK(chunk != NULL);
     DCHECK(CLASS(array) == array_class);
-    DCHECK(!yalx_is_ref_type(array->item));
+    DCHECK(array->item->constraint == K_STRUCT);
     
     struct yalx_value_array *ar = (struct yalx_value_array *)array;
     ptrdiff_t offset = index * ar->item->instance_size;
     post_typing_write_barrier_if_needed(&heap, ar->item, ar->data + offset, chunk);
     memcpy(ar->data + offset, chunk, ar->item->instance_size);
+}
+
+void array_set_chunk2(struct yalx_value_array_header *const array, const i32_t d0, const i32_t d1, address_t chunk) {
+    DCHECK(array != NULL);
+    DCHECK(chunk != NULL);
+    DCHECK(CLASS(array) == multi_dims_array_class);
+    DCHECK(array->item->constraint == K_STRUCT);
+    
+    struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
+    DCHECK(ar->rank == 2);
+    if (d0 < 0 || d0 >= ar->caps[0]) {
+        throw_array_index_out_of_bounds_exception(array, 0, d0);
+    }
+    if (d1 < 0 || d1 >= ar->caps[1]) {
+        throw_array_index_out_of_bounds_exception(array, 1, d1);
+    }
+
+    address_t dest = yalx_array_location2(ar, d0, d1);
+    post_typing_write_barrier_if_needed(&heap, ar->item, dest, chunk);
+    memcpy(dest, chunk, ar->item->instance_size);
+}
+
+void array_set_chunk3(struct yalx_value_array_header *const array, const i32_t d0, const i32_t d1, const i32_t d2,
+                      address_t chunk) {
+    DCHECK(array != NULL);
+    DCHECK(chunk != NULL);
+    DCHECK(CLASS(array) == multi_dims_array_class);
+    DCHECK(array->item->constraint == K_STRUCT);
+    
+    struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
+    DCHECK(ar->rank == 3);
+    if (d0 < 0 || d0 >= ar->caps[0]) {
+        throw_array_index_out_of_bounds_exception(array, 0, d0);
+    }
+    if (d1 < 0 || d1 >= ar->caps[1]) {
+        throw_array_index_out_of_bounds_exception(array, 1, d1);
+    }
+    if (d2 < 0 || d2 >= ar->caps[2]) {
+        throw_array_index_out_of_bounds_exception(array, 2, d2);
+    }
+    
+    address_t dest = yalx_array_location3(ar, d0, d1, d2);
+    post_typing_write_barrier_if_needed(&heap, ar->item, dest, chunk);
+    memcpy(dest, chunk, ar->item->instance_size);
+}
+
+void array_set_chunk(struct yalx_value_array_header *const array, const i32_t *const indices, address_t chunk) {
+    DCHECK(array != NULL);
+    DCHECK(yalx_is_array((yalx_ref_t)array));
+    DCHECK(array->item->constraint == K_STRUCT);
+    
+    const struct yalx_class *const klass = CLASS(array);
+    if (klass == array_class) {
+        array_set_chunk1(array, indices[0], chunk);
+        return;
+    }
+    
+    DCHECK(klass == multi_dims_array_class);
+    struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
+    for (int i = 0; i < ar->rank; i++) {
+        if (indices[i] < 0 || indices[i] >= ar->caps[i]) {
+            throw_array_index_out_of_bounds_exception(array, i, indices[i]);
+        }
+    }
+    
+    address_t dest = yalx_array_location_more(ar, indices);
+    post_typing_write_barrier_if_needed(&heap, ar->item, dest, chunk);
+    memcpy(dest, chunk, ar->item->instance_size);
 }
 
 struct coroutine *current_root() { return CURRENT_COROUTINE; }
