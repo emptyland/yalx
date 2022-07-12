@@ -56,9 +56,77 @@ private:
     std::vector<SymbolDepsNode *> forwards_;
 };
 
+class PrimitiveTypesProperties final {
+public:
+    PrimitiveTypesProperties(base::Arena *arena)
+        : arena_(DCHECK_NOTNULL(arena))
+        , props_(arena) {}
+    
+    void Install();
+    
+    VariableDeclaration *FindFieldOrNull(const Type *ty, std::string_view name) const;
+    
+    Type *kI32Ty = nullptr;
+    
+private:
+    void Put(std::string_view owns, std::string_view name, Type *ty) {
+        auto id = String::New(arena_, name);
+        auto field = new (arena_) VariableDeclaration(arena_, false, VariableDeclaration::kVal, id, ty,
+                                                      SourcePosition::Unknown());
+        
+        auto full_name = static_cast<char *>(arena_->Allocate(owns.size() + name.size() + 3));
+        strncpy(full_name, owns.data(), owns.size() + 1);
+        strncat(full_name, "::", 3);
+        strncat(full_name, name.data(), name.size() + 1);
+        
+        props_[std::string_view(full_name)] = field;
+    }
+    
+    base::Arena *const arena_;
+    base::ArenaMap<std::string_view, Statement *> props_;
+}; // class PrimitiveTypesProperties
+
+void PrimitiveTypesProperties::Install() {
+    kI32Ty = new (arena_) Type(arena_, Type::kType_i32, SourcePosition::Unknown());
+    
+    Put("Array", "size", kI32Ty);
+    
+    Put("MultiDimsArray", "size", kI32Ty);
+    Put("MultiDimsArray", "rank", kI32Ty);
+    
+    Put("String", "size", kI32Ty);
+}
+
+VariableDeclaration *PrimitiveTypesProperties::FindFieldOrNull(const Type *ty, std::string_view name) const {
+    char buf[512] = {0};
+    switch (ty->category()) {
+        case Type::kArray: {
+            auto ar = ty->AsArrayType();
+            if (ar->dimension_count() == 1) {
+                strncpy(buf, "Array::", arraysize(buf));
+            } else {
+                DCHECK(ar->dimension_count() > 1);
+                strncpy(buf, "MultiDimsArray::", arraysize(buf));
+            }
+            strncat(buf, name.data(), name.size());
+            if (auto iter = props_.find(buf); iter != props_.end()) {
+                return down_cast<VariableDeclaration>(iter->second);
+            }
+        } return nullptr;
+        case Type::kPrimary:
+            break;
+        default:
+            return nullptr;
+    }
+    
+    UNREACHABLE();
+    return nullptr;
+}
+
 class TypeReducingVisitor : public AstVisitor {
 public:
-    TypeReducingVisitor(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback);
+    TypeReducingVisitor(Package *entry, PrimitiveTypesProperties *props, base::Arena *arena,
+                        SyntaxFeedback *error_feedback);
     
     // package_scopes_
     ~TypeReducingVisitor() {
@@ -890,7 +958,16 @@ private:
         
         auto def = GetTypeSpecifiedDefinition(types[0]);
         if (!def) {
-            return -1;
+            auto field = props_->FindFieldOrNull(types[0], node->field()->ToSlice());
+            if (!field) {
+                Feedback()->Printf(node->source_position(), "Field: `%s' not found", node->field()->data());
+                return -1;
+            }
+            // TODO:
+            // a.size
+            // a.rank
+            // a.getLength(0)
+            return Returning(field->Type());
         }
         if (ProcessDependencySymbolIfNeeded(def) < 0) {
             return -1;
@@ -2511,7 +2588,7 @@ private:
                 return type->AsInterfaceType()->definition();
             case Type::kType_any:
             case Type::kType_string:
-            case Type::kType_bool:
+            /*case Type::kType_bool:
             case Type::kType_char:
             case Type::kType_i8:
             case Type::kType_u8:
@@ -2522,14 +2599,13 @@ private:
             case Type::kType_i64:
             case Type::kType_u64:
             case Type::kType_f32:
-            case Type::kType_f64: {
+            case Type::kType_f64:*/ {
                 auto symbol = FindGlobal(kLangPackageFullName, Constants::kPrimitiveTypeClassNames[type->primary_type()]);
                 DCHECK(symbol.IsFound());
                 return symbol.ast;
             }
             default:
-                UNREACHABLE();
-                break;
+                return nullptr;
         }
     }
     
@@ -3055,6 +3131,7 @@ private:
     
     base::Arena *const arena_;
     SyntaxFeedback *const error_feedback_;
+    PrimitiveTypesProperties *const props_;
     NamespaceScope *location_ = nullptr;
     SymbolDepsScope *deps_ = nullptr;
     Package *entry_;
@@ -3072,16 +3149,21 @@ private:
     Type *bool_ = nullptr;
 }; // class TypeReducingVisitor
 
-TypeReducingVisitor::TypeReducingVisitor(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback)
+TypeReducingVisitor::TypeReducingVisitor(Package *entry, PrimitiveTypesProperties *props, base::Arena *arena,
+                                         SyntaxFeedback *error_feedback)
 : arena_(arena)
 , error_feedback_(error_feedback)
+, props_(props)
 , entry_(entry) {
 }
 
 
 base::Status Compiler::ReducePackageDependencesType(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback,
                                                     std::unordered_map<std::string_view, GlobalSymbol> *symbols) {
-    TypeReducingVisitor visitor(entry, arena, error_feedback);
+    PrimitiveTypesProperties props(arena);
+    props.Install();
+    
+    TypeReducingVisitor visitor(entry, &props, arena, error_feedback);
     
     auto rs = visitor.Reduce();
     if (rs.ok()) {

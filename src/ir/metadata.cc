@@ -2,6 +2,7 @@
 #include "ir/node.h"
 #include "ir/utils.h"
 #include "compiler/constants.h"
+#include "runtime/object/arrays.h"
 #include "runtime/object/any.h"
 #include "base/io.h"
 #include <stack>
@@ -9,6 +10,71 @@
 namespace yalx {
 
 namespace ir {
+
+class PrimitiveShadow {
+public:
+    PrimitiveShadow(base::Arena *arena)
+        : arena_(arena)
+        , members_(arena)
+        , fields_(arena)
+        , methods_(arena) {}
+    
+    Handle *FindMemberOrNull(ArrayModel *owns, std::string_view name);
+    
+    Model::Member GetMember(const Handle *handle) const {
+        //DCHECK(handle->owns()->declaration() == Model::kArray);
+        if (handle->IsField()) {
+            return &fields_[handle->offset()];
+        } else {
+            return &methods_[handle->offset()];
+        }
+    }
+    
+protected:
+    void Put(Model::Field &&field) {
+        fields_.emplace_back(field);
+        PutHandleTag(field.name, fields_.size() - 1, false/*is_method*/);
+    }
+    
+    void PutHandleTag(const String *name, size_t index, bool is_method) {
+        members_[fields_.back().name->ToSlice()] = reinterpret_cast<Handle *>((index << 1) | (is_method ? 1 : 0));
+    }
+    
+    std::tuple<size_t, bool> ParseHandleTag(Handle *handle) {
+        auto tag = reinterpret_cast<size_t>(handle);
+        return std::make_tuple(tag >> 1, tag & 0x1);
+    }
+    
+    base::Arena *arena() const { return arena_; }
+private:
+    base::Arena *const arena_;
+    base::ArenaMap<std::string_view, Handle *> members_;
+    base::ArenaVector<Model::Field> fields_;
+    base::ArenaVector<Model::Method> methods_;
+}; // class PrimitiveShadow
+
+Handle *PrimitiveShadow::FindMemberOrNull(ArrayModel *owns, std::string_view name) {
+    std::string full_name(owns->full_name()->ToString());
+    full_name.append("::").append(name.data(), name.size());
+    if (auto iter = members_.find(full_name); iter != members_.end()) {
+        return iter->second;
+    }
+    if (auto iter = members_.find(name); iter != members_.end()) {
+        auto [index, is_method] = ParseHandleTag(iter->second);
+        
+        Handle *rs = nullptr;
+        if (is_method) {
+            const auto &method = methods_[index];
+            rs = Handle::Method(arena_, owns, method.fun->name(), index);
+        } else {
+            const auto &field = fields_[index];
+            rs = Handle::Field(arena_, owns, field.name, index);
+        }
+        members_[full_name] = rs;
+        return rs;
+    }
+    return nullptr;
+}
 
 Model::Model(const String *name, const String *full_name, Constraint constraint, Declaration declaration)
 : name_(DCHECK_NOTNULL(name))
@@ -138,6 +204,36 @@ void InterfaceModel::PrintTo(int indent, base::PrintingWriter *printer) const {
     printer->Indent(indent)->Println("} // %s", full_name()->data());
 }
 
+class ArrayShadow final : public PrimitiveShadow {
+public:
+    ArrayShadow(base::Arena *arena): PrimitiveShadow(arena) {}
+    
+    static uintptr_t Uniquely() {
+        static int dummy;
+        return reinterpret_cast<uintptr_t>(&dummy);
+    }
+    
+    void Init();
+}; // class ArrayShadow
+
+void ArrayShadow::Init() {
+    Put({
+        .name = String::New(arena(), "size"),
+        .access = kPublic,
+        .offset = offsetof(yalx_value_array, len),
+        .type = Types::Int32,
+        .is_volatile = false,
+    });
+    
+    Put({
+        .name = String::New(arena(), "rank"),
+        .access = kPublic,
+        .offset = offsetof(yalx_value_multi_dims_array, rank),
+        .type = Types::Int32,
+        .is_volatile = false,
+    });
+}
+
 ArrayModel::ArrayModel(base::Arena *arena, const String *name, const String *full_name,
                        int dimension_count, const Type element_type)
 : Model(name, full_name, kRef, kArray)
@@ -169,6 +265,17 @@ std::string ArrayModel::ToString(int dimension_count, const Type element_type) {
     }
     
     return std::string(ty.ToString()).append(full_name);
+}
+
+Model::Member ArrayModel::GetMember(const Handle *handle) const {
+    DCHECK(handle->owns()->declaration() == Model::kArray);
+    auto shadow = arena_->Lazy<ArrayShadow>();
+    return shadow->GetMember(handle);
+}
+
+Handle *ArrayModel::FindMemberOrNull(std::string_view name) const {
+    auto shadow = arena_->Lazy<ArrayShadow>();
+    return shadow->FindMemberOrNull(const_cast<ArrayModel *>(this), name);
 }
 
 size_t ArrayModel::ReferenceSizeInBytes() const { return kPointerSize; }

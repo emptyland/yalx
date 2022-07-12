@@ -20,11 +20,13 @@ public:
         , end_column_(end_column)
         , end_line_(end_line) {}
     
+    static SourcePosition Unknown() { return {-1, -1}; }
+    
     DEF_VAL_GETTER(int, begin_column);
     DEF_VAL_GETTER(int, begin_line);
     DEF_VAL_GETTER(int, end_column);
     DEF_VAL_GETTER(int, end_line);
-
+    
     void SetEnd(int end_line, int end_column) {
         end_column_ = end_column;
         end_line_   = end_line;

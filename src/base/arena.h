@@ -2,32 +2,86 @@
 #ifndef YALX_BASE_ARENA_H_
 #define YALX_BASE_ARENA_H_
 
+#include <map>
 #include "base/base.h"
 
 namespace yalx {
     
 namespace base {
+
+class Arena;
+
+template <class T>
+class ArenaAllocator {
+public:
+    typedef T* pointer;
+    typedef const T* const_pointer;
+    typedef T& reference;
+    typedef const T& const_reference;
+    typedef T value_type;
+    typedef size_t size_type;
+    typedef ptrdiff_t difference_type;
+    template <class O>
+    struct rebind {
+        typedef ArenaAllocator<O> other;
+    };
+    
+    //#ifdef V8_CC_MSVC
+    //    // MSVS unfortunately requires the default constructor to be defined.
+    //    ZoneAllocator() : ZoneAllocator(nullptr) { UNREACHABLE(); }
+    //#endif
+    explicit ArenaAllocator(Arena* arena) throw() : arena_(arena) {}
+    explicit ArenaAllocator(const ArenaAllocator& other) throw()
+        : ArenaAllocator<T>(other.arena_) {}
+    template <typename U>
+    ArenaAllocator(const ArenaAllocator<U>& other) throw()
+        : ArenaAllocator<T>(other.arena()) {}
+    
+    template <typename U>
+    friend class ZoneAllocator;
+    
+    T* address(T& x) const { return &x; }
+    const T* address(const T& x) const { return &x; }
+    
+    inline T* allocate(size_t n, const void* hint = 0);
+    
+    void deallocate(T* p, size_t) { /* noop for Zones */
+    }
+    
+    size_t max_size() const throw() {
+        return std::numeric_limits<int>::max() / sizeof(T);
+    }
+    template <typename U, typename... Args>
+    void construct(U* p, Args&&... args) {
+        void* v_p = const_cast<void*>(static_cast<const void*>(p));
+        new (v_p) U(std::forward<Args>(args)...);
+    }
+    template <typename U>
+    void destroy(U* p) {
+        p->~U();
+    }
+    
+    bool operator == (ArenaAllocator const& other) const {
+        return arena_ == other.arena_;
+    }
+    bool operator != (ArenaAllocator const& other) const {
+        return arena_ != other.arena_;
+    }
+    
+    Arena* arena() const { return arena_; }
+    
+private:
+    Arena* arena_;
+}; // template <class T> class ArenaAllocator
     
 class Arena {
 public:
     static constexpr size_t kBlockSize = base::kMB;
     
-    Arena() = default;
+    Arena();
+    ~Arena();
     
-    ~Arena() { Purge(); }
-    
-    void Purge() {
-        while (block_) {
-            auto block = block_;
-            block_ = block_->next;
-            ::free(block);
-        }
-        while (large_blocks_) {
-            auto block = large_blocks_;
-            large_blocks_ = large_blocks_->next;
-            ::free(block);
-        }
-    }
+    void Purge();
     
     template<class T, class... Args>
     T *New(Args&&... args) { return new (Allocate(sizeof(T))) T(std::forward<Args>(args)...); }
@@ -36,20 +90,7 @@ public:
         return static_cast<T *>(Allocate(sizeof(T) * n));
     }
     
-    void *Allocate(size_t n) {
-        n = RoundUp(n, 4);
-        if (ShouldUseLargeBlock(n)) {
-            return NewLargeBlock(n);
-        }
-        auto block = block_;
-        if (!block_ || block_->free_size() < n) {
-            block = NewBlock();
-        }
-        
-        void *chunk = block->free_address();
-        block->size += n;
-        return DbgInitZag(chunk, n);
-    }
+    void *Allocate(size_t n);
     
     int CountBlocks() const {
         int n = 0;
@@ -67,8 +108,39 @@ public:
         return n;
     }
     
+    template <class T>
+    inline T *Lazy() {
+        if (auto iter = lazy_objects_.find(T::Uniquely()); iter != lazy_objects_.end()) {
+            return static_cast<T *>(iter->second);
+        }
+        if (auto inst = New<T>(this)) {
+            inst->Init();
+            lazy_objects_[T::Uniquely()] = inst;
+            return inst;
+        }
+        return nullptr;
+    }
+    
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arena);
 private:
+    template<class T> struct Less : public std::binary_function<T, T, bool> {
+        bool operator ()(const T &lhs, const T &rhs) const { return lhs < rhs; }
+    }; // struct ArenaLess
+    
+    class LazyObjectMap : public std::map<uintptr_t,
+                                          void *,
+                                          Less<uintptr_t>,
+                                          ArenaAllocator<std::pair<const uintptr_t, void *>>> {
+    public:
+        // Constructs an empty map.
+        explicit LazyObjectMap(Arena* zone)
+            : std::map<uintptr_t,
+                       void *,
+                       Less<uintptr_t>,
+                       ArenaAllocator<std::pair<const uintptr_t, void *>>>(
+              Less<uintptr_t>(), ArenaAllocator<std::pair<const uintptr_t, void *>>(zone)) {}
+    }; // class LazyObjectMap
+    
     struct BlockHeader {
         BlockHeader *next;
         int32_t      size;
@@ -103,7 +175,13 @@ private:
     
     BlockHeader *block_ = nullptr;
     BlockHeader *large_blocks_ = nullptr;
+    LazyObjectMap lazy_objects_;
 }; // class Arena
+
+template<class T>
+inline T* ArenaAllocator<T>::allocate(size_t n, const void* hint) {
+    return arena_->NewArray<T>(n);
+}
 
 class ArenaObject {
 public:

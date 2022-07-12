@@ -773,6 +773,23 @@ functions:
     ASSERT_EQ(z, buf);
 }
 
+TEST_F(IntermediateRepresentationGeneratorTest, PrimitiveProps) {
+    bool ok = false;
+    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    IRGen("tests/28-ir-primitive-props", &modules, &ok);
+    ASSERT_TRUE(ok);
+    
+    ASSERT_TRUE(modules.find("yalx/lang:lang") != modules.end());
+    ASSERT_TRUE(modules.find("main:main") != modules.end());
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    //    modules["yalx/lang:lang"]->PrintTo(&printer);
+    //    modules["foo:foo"]->PrintTo(&printer);
+    modules["main:main"]->PrintTo(&printer);
+    printf("%s\n", buf.c_str());
+}
+
 } // namespace ir
 
 } // namespace yalx

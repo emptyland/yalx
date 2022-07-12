@@ -60,6 +60,8 @@
 		233AB98127EB46DE00E68B90 /* arrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB97F27EB46DE00E68B90 /* arrays.c */; };
 		233AB98327EB4C6100E68B90 /* unwind-posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB98227EB4C6100E68B90 /* unwind-posix.c */; };
 		233AB98427EB4C6100E68B90 /* unwind-posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB98227EB4C6100E68B90 /* unwind-posix.c */; };
+		233F67E6287D1E2E001982FF /* arena.cc in Sources */ = {isa = PBXBuildFile; fileRef = 233F67E5287D1E2E001982FF /* arena.cc */; };
+		233F67E7287D1E2E001982FF /* arena.cc in Sources */ = {isa = PBXBuildFile; fileRef = 233F67E5287D1E2E001982FF /* arena.cc */; };
 		23448B6128534A16007013EB /* issue-03-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6028534A16007013EB /* issue-03-posix-x64.s */; };
 		23448B6428573B97007013EB /* immix-heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6328573B97007013EB /* immix-heap.c */; };
 		23448B6528573B97007013EB /* immix-heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6328573B97007013EB /* immix-heap.c */; };
@@ -378,6 +380,7 @@
 		2336A2902774168E00346372 /* codegen-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "codegen-test.cc"; path = "../src/ir/codegen-test.cc"; sourceTree = "<group>"; };
 		233AB97F27EB46DE00E68B90 /* arrays.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = arrays.c; path = ../src/runtime/object/arrays.c; sourceTree = "<group>"; };
 		233AB98227EB4C6100E68B90 /* unwind-posix.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "unwind-posix.c"; path = "../src/runtime/heap/unwind-posix.c"; sourceTree = "<group>"; };
+		233F67E5287D1E2E001982FF /* arena.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = arena.cc; path = ../src/base/arena.cc; sourceTree = "<group>"; };
 		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
 		23448B6028534A16007013EB /* issue-03-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-03-posix-x64.s"; path = "../src/backend/x64/issue-03-posix-x64.s"; sourceTree = "<group>"; };
 		23448B6228573B66007013EB /* immix-heap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "immix-heap.h"; path = "../src/runtime/lxr/immix-heap.h"; sourceTree = "<group>"; };
@@ -733,6 +736,7 @@
 				2354CD6426439E9500A2FAC3 /* arena-utils.cc */,
 				2354CD6726439E9500A2FAC3 /* arena-utils.h */,
 				2354CD8D2644D3F200A2FAC3 /* arena-test.cc */,
+				233F67E5287D1E2E001982FF /* arena.cc */,
 				2354CD7626439E9500A2FAC3 /* arena.h */,
 				2354CD6926439E9500A2FAC3 /* at-exit.cc */,
 				2354CD7426439E9500A2FAC3 /* at-exit.h */,
@@ -1102,6 +1106,7 @@
 				2332DAF327EFF80600EBB3E4 /* issue-00-posix-arm64.s in Sources */,
 				23D4A46B2680D17D0090C631 /* at-exit.h in Sources */,
 				23D4A46C2680D17D0090C631 /* base.h in Sources */,
+				233F67E7287D1E2E001982FF /* arena.cc in Sources */,
 				23D4A46D2680D17D0090C631 /* base.cc in Sources */,
 				23C3356B27A8279500319862 /* instruction-generating-arm64.cc in Sources */,
 				23FA869A269FE4D4001CC777 /* metadata.cc in Sources */,
@@ -1296,6 +1301,7 @@
 				23D5A656266718ED00635ADB /* checking.h in Sources */,
 				2322269C27EEB04700B18B36 /* code-generate-arch-test.cc in Sources */,
 				23D5A657266718ED00635ADB /* scheduler.h in Sources */,
+				233F67E6287D1E2E001982FF /* arena.cc in Sources */,
 				23D5A658266718ED00635ADB /* scheduler.cc in Sources */,
 				23D5A659266718ED00635ADB /* label.h in Sources */,
 				23D5A65A266718ED00635ADB /* asm-x64-test.cc in Sources */,

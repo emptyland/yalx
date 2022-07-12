@@ -1,0 +1,11 @@
+package main
+
+fun issue00_size_of_array(): int {
+    val a = @int[]{1,2,3}
+    return a.size
+}
+
+fun issue01_rank_of_array(): int {
+    val a = @int[,]{{1}}
+    return a.rank
+}
