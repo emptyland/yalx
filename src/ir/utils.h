@@ -2,6 +2,8 @@
 #ifndef YALX_IR_UTILS_H_
 #define YALX_IR_UTILS_H_
 
+#include "base/arena-utils.h"
+#include "base/arena.h"
 #include "base/base.h"
 #include <unordered_map>
 
@@ -13,6 +15,7 @@ namespace ir {
 
 class BasicBlock;
 class Value;
+class Module;
 
 class PrintingContext final {
 public:
@@ -52,6 +55,32 @@ private:
     int next_block_id_ = 0;
     std::unordered_map<const BasicBlock *, int> block_ids_;
 }; // class PrintingContext
+
+
+class PackageContext final {
+public:
+    PackageContext(base::Arena *arena);
+    
+    static uintptr_t Uniquely() {
+        static int dummy;
+        return reinterpret_cast<uintptr_t>(&dummy);
+    }
+    
+    void Init() {}
+    
+    void Associate(Module *module);
+
+    Module *FindOrNull(std::string_view name) const {
+        if (auto iter = modules_.find(name); iter != modules_.end()) {
+            return iter->second;
+        }
+        return nullptr;
+    }
+    
+    DISALLOW_IMPLICIT_CONSTRUCTORS(PackageContext);
+private:
+    base::ArenaUnorderedMap<std::string_view, Module *> modules_;
+}; // class PackageContext
 
 } // namespace ir
 

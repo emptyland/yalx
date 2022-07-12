@@ -291,28 +291,26 @@ Lkzs.9:
 _issue00_Zoissue00_ZdBar$class:
     .quad 0 ; id
     .byte 0 ; constraint
-    .byte 0 ; padding
-    .byte 0
-    .byte 0
+    .space 3 ; padding
     .long 8 ; reference_size
     .long 24 ; instance_size
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _yalx_Zplang_Zolang_ZdAny$class ; super
     .quad Lkzs.8 ; name
     .long 3 ; name
-    .long 0 ; padding
+    .space 4 ; padding
     .quad Lkzs.9 ; location
     .long 19 ; location
-    .long 0 ; padding
+    .space 4 ; padding
     .long 0 ; n_annotations
-    .long 0 ; padding
+    .space 4 ; padding
     .quad 0 ; reserved0
     .long 2 ; n_fields
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue00_Zoissue00_ZdBar$fields ; fields
     .quad _issue00_Zoissue00_ZdBar$ctor ; ctor
     .long 1 ; n_methods
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue00_Zoissue00_ZdBar$methods ; methods
     .long 0 ; n_vtab
     .long 0 ; n_itab
@@ -325,37 +323,43 @@ _issue00_Zoissue00_ZdBar$fields:
     .quad 0 ; reserved0
     .quad Lkzs.6 ; name
     .long 1 ; name
-    .long 0 ; padding
-    .quad 0 ; type
+    .space 4 ; padding
+    .quad _builtin_classes+864 ; type
     .long 16 ; offset_of_head
-    .long 0 ; padding
+    .space 4 ; padding
     ; Bar::y
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
     .quad Lkzs.7 ; name
     .long 1 ; name
-    .long 0 ; padding
-    .quad 0 ; type
+    .space 4 ; padding
+    .quad _builtin_classes+864 ; type
     .long 20 ; offset_of_head
-    .long 0 ; padding
+    .space 4 ; padding
 _issue00_Zoissue00_ZdBar$methods:
 _issue00_Zoissue00_ZdBar$ctor:
     ; Bar::Bar$constructor
     .long 0 ; index
     .long 0 ; access|is_native|is_override|...
     .long 0 ; n_annotations
-    .long 0 ; padding
+    .space 4 ; padding
     .quad 0 ; reserved0
     .quad Lkzs.5 ; name
     .long 15 ; name
-    .long 0 ; padding
+    .space 4 ; padding
     .quad Lkzs.4 ; prototype_desc
     .long 41 ; prototype_desc
-    .long 0 ; padding
+    .space 4 ; padding
     .quad _issue00_Zoissue00_ZdBar_ZdBar_Z4constructor ; entry
 .section __DATA,__data
 .p2align 4
+.global _issue00_Zoissue00$global_slots
+_issue00_Zoissue00$global_slots:
+    .quad 0 ; size_in_bytes
+    .quad 0 ; slots
+    .quad 0 ; mark_size
+; string constants:
 ; Yalx-String constants
 .global _issue00_Zoissue00_Lksz
 _issue00_Zoissue00_Lksz:

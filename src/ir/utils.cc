@@ -29,6 +29,12 @@ base::PrintingWriter *PrintingContext::OfName(const BasicBlock *val, base::Print
     return printer;
 }
 
+PackageContext::PackageContext(base::Arena *arena)
+: modules_(arena) {
+}
+
+void PackageContext::Associate(Module *module) { modules_[module->full_name()->ToSlice()] = module; }
+
 } // namespace ir
 
 } // namespace yalx

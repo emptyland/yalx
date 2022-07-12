@@ -21,11 +21,42 @@ Lblk40:
     ldp fp, lr, [sp, #0]
     add sp, sp, #16
     ret
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
+    ret
+.cfi_endproc
+.global _yalx_Zplang_Zolang_ZdmultiDimsArrayGetLength
+_yalx_Zplang_Zolang_ZdmultiDimsArrayGetLength:
+.cfi_startproc
+Lblk41:
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stur x0, [fp, #-56]
+    stur w1, [fp, #-60]
+    sub x0, fp, #48
+    add x1, fp, #16
+    mov x2, #16
+    adr x3, _yalx_Zplang_Zolang_ZdmultiDimsArrayGetLength
+    bl _associate_stub_returning_vals
+    sub x0, fp, #56
+    ldur w1, [fp, #-60]
+    bl _yalx_Zplang_Zolang_ZdmultiDimsArrayGetLength_stub
+    sub x0, fp, #48
+    bl _yalx_exit_returning_scope
+    bl _current_root
+    mov x26, x0
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
+    ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_Zdprintln
 _yalx_Zplang_Zolang_Zdprintln:
 .cfi_startproc
-Lblk41:
+Lblk42:
     sub sp, sp, #32
     stp fp, lr, [sp, #16]
     add fp, sp, #16
@@ -44,7 +75,7 @@ Lblk41:
 .global _yalx_Zplang_Zolang_Zdunwind
 _yalx_Zplang_Zolang_Zdunwind:
 .cfi_startproc
-Lblk42:
+Lblk43:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -1929,7 +1960,7 @@ _yalx_Zplang_Zolang_ZdThrowable$fields:
     .quad Lkzs.79 ; name
     .long 9 ; name
     .space 4 ; padding
-    .quad _builtin_classes+3600 ; type
+    .quad _builtin_classes+3456 ; type
     .long 32 ; offset_of_head
     .space 4 ; padding
 _yalx_Zplang_Zolang_ZdThrowable$methods:

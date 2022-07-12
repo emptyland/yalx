@@ -30,7 +30,7 @@ public:
     
     bool full() const { return !empty(); }
     
-    bool Equal(const char *z) const { return ::strncmp(z, data(), size()) == 0; }
+    bool Equal(const char *z) const { return ::strcmp(z, data()) == 0; }
     
     bool Equal(const ArenaString *z) const { return z->size() == size() && ::strncmp(z->data(), data(), size()) == 0; }
     

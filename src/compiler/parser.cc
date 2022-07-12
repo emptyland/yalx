@@ -1211,6 +1211,7 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                 MoveNext();
                 auto dot_location = location.Concat(Peek().source_position());
                 auto field = MatchText(Token::kIdentifier, CHECK_OK);
+                //printd("%s", field->data());
                 expr = new (arena_) Dot(expr, field, dot_location);
             } break;
                 

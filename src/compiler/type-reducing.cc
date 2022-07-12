@@ -62,42 +62,67 @@ public:
         : arena_(DCHECK_NOTNULL(arena))
         , props_(arena) {}
     
-    void Install();
+    static uintptr_t Uniquely() {
+        static int dummy;
+        return reinterpret_cast<uintptr_t>(&dummy);
+    }
     
-    VariableDeclaration *FindFieldOrNull(const Type *ty, std::string_view name) const;
+    void Init();
+    
+    Statement *FindMemberOrNull(const Type *ty, std::string_view name) const;
     
     Type *kI32Ty = nullptr;
+    Type *kAnyTy = nullptr;
     
 private:
     void Put(std::string_view owns, std::string_view name, Type *ty) {
         auto id = String::New(arena_, name);
         auto field = new (arena_) VariableDeclaration(arena_, false, VariableDeclaration::kVal, id, ty,
                                                       SourcePosition::Unknown());
-        
+        props_[MakeFullName(owns, name)] = field;
+    }
+    
+    void Put(std::string_view owns, std::string_view name, std::initializer_list<Type *> params,
+             std::initializer_list<Type *> returning_ty) {
+        auto proto = new (arena_) FunctionPrototype(arena_, false/*vargs*/, SourcePosition::Unknown());
+        for (auto ty : params) {
+            proto->mutable_params()->push_back(ty);
+        }
+        for (auto ty : returning_ty) {
+            proto->mutable_return_types()->push_back(ty);
+        }
+        auto id = String::New(arena_, name);
+        auto fun = new (arena_) FunctionDeclaration(arena_, FunctionDeclaration::kNative, id, proto, false/*is_reduce*/,
+                                                    SourcePosition::Unknown());
+        props_[MakeFullName(owns, name)] = fun;
+    }
+    
+    std::string_view MakeFullName(std::string_view owns, std::string_view name) {
         auto full_name = static_cast<char *>(arena_->Allocate(owns.size() + name.size() + 3));
         strncpy(full_name, owns.data(), owns.size() + 1);
         strncat(full_name, "::", 3);
         strncat(full_name, name.data(), name.size() + 1);
-        
-        props_[std::string_view(full_name)] = field;
+        return std::string_view(full_name);
     }
     
     base::Arena *const arena_;
     base::ArenaMap<std::string_view, Statement *> props_;
 }; // class PrimitiveTypesProperties
 
-void PrimitiveTypesProperties::Install() {
+void PrimitiveTypesProperties::Init() {
     kI32Ty = new (arena_) Type(arena_, Type::kType_i32, SourcePosition::Unknown());
+    kAnyTy = new (arena_) Type(arena_, Type::kType_any, SourcePosition::Unknown());
     
     Put("Array", "size", kI32Ty);
     
     Put("MultiDimsArray", "size", kI32Ty);
     Put("MultiDimsArray", "rank", kI32Ty);
+    Put("MultiDimsArray", "getLength", {kI32Ty}, {kI32Ty}); // fun getLength(i32): i32
     
     Put("String", "size", kI32Ty);
 }
 
-VariableDeclaration *PrimitiveTypesProperties::FindFieldOrNull(const Type *ty, std::string_view name) const {
+Statement *PrimitiveTypesProperties::FindMemberOrNull(const Type *ty, std::string_view name) const {
     char buf[512] = {0};
     switch (ty->category()) {
         case Type::kArray: {
@@ -110,7 +135,7 @@ VariableDeclaration *PrimitiveTypesProperties::FindFieldOrNull(const Type *ty, s
             }
             strncat(buf, name.data(), name.size());
             if (auto iter = props_.find(buf); iter != props_.end()) {
-                return down_cast<VariableDeclaration>(iter->second);
+                return iter->second;
             }
         } return nullptr;
         case Type::kPrimary:
@@ -125,8 +150,7 @@ VariableDeclaration *PrimitiveTypesProperties::FindFieldOrNull(const Type *ty, s
 
 class TypeReducingVisitor : public AstVisitor {
 public:
-    TypeReducingVisitor(Package *entry, PrimitiveTypesProperties *props, base::Arena *arena,
-                        SyntaxFeedback *error_feedback);
+    TypeReducingVisitor(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback);
     
     // package_scopes_
     ~TypeReducingVisitor() {
@@ -958,8 +982,8 @@ private:
         
         auto def = GetTypeSpecifiedDefinition(types[0]);
         if (!def) {
-            auto field = props_->FindFieldOrNull(types[0], node->field()->ToSlice());
-            if (!field) {
+            auto ast = props_->FindMemberOrNull(types[0], node->field()->ToSlice());
+            if (!ast) {
                 Feedback()->Printf(node->source_position(), "Field: `%s' not found", node->field()->data());
                 return -1;
             }
@@ -967,7 +991,13 @@ private:
             // a.size
             // a.rank
             // a.getLength(0)
-            return Returning(field->Type());
+            if (auto dest = ast->AsVariableDeclaration()) {
+                return Returning(dest->Type());
+            } else if (auto dest = ast->AsFunctionDeclaration()) {
+                return Returning(dest->prototype());
+            } else {
+                UNREACHABLE();
+            }
         }
         if (ProcessDependencySymbolIfNeeded(def) < 0) {
             return -1;
@@ -3149,21 +3179,17 @@ private:
     Type *bool_ = nullptr;
 }; // class TypeReducingVisitor
 
-TypeReducingVisitor::TypeReducingVisitor(Package *entry, PrimitiveTypesProperties *props, base::Arena *arena,
-                                         SyntaxFeedback *error_feedback)
+TypeReducingVisitor::TypeReducingVisitor(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback)
 : arena_(arena)
 , error_feedback_(error_feedback)
-, props_(props)
+, props_(arena->Lazy<PrimitiveTypesProperties>())
 , entry_(entry) {
 }
 
 
 base::Status Compiler::ReducePackageDependencesType(Package *entry, base::Arena *arena, SyntaxFeedback *error_feedback,
                                                     std::unordered_map<std::string_view, GlobalSymbol> *symbols) {
-    PrimitiveTypesProperties props(arena);
-    props.Install();
-    
-    TypeReducingVisitor visitor(entry, &props, arena, error_feedback);
+    TypeReducingVisitor visitor(entry, arena, error_feedback);
     
     auto rs = visitor.Reduce();
     if (rs.ok()) {

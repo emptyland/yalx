@@ -90,6 +90,8 @@ public:
         return static_cast<T *>(Allocate(sizeof(T) * n));
     }
     
+    char *Duplicate(const char *z, size_t n);
+    
     void *Allocate(size_t n);
     
     int CountBlocks() const {

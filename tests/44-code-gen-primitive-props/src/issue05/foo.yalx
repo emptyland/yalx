@@ -1,0 +1,22 @@
+package issue05
+
+@yalx.Compiler(nativeHandle=true)
+fun issue1(): int, int {
+    val a = @int[2,2,2](0)
+    return a.rank, a.size
+}
+
+@yalx.Compiler(nativeHandle=true)
+fun issue2(): int, int, int {
+    val a = @int[3,4,5](0)
+    val r0, r1, r2 = a.getLength(0), a.getLength(1), a.getLength(2)
+    assertInt(3, r0)
+    assertInt(4, r1)
+    assertInt(5, r2)
+    return r0, r1, r2
+}
+
+fun fakeGetLength(i: int) -> i
+
+@yalx.Compiler(nativeStubName="assert_int_stub")
+native fun assertInt(a: int, b: int)

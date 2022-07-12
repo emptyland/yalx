@@ -66,7 +66,7 @@ TEST_F(Arm64CodeGeneratorTest, YalxLang) {
     bool ok = true;
     CodeGen("tests/40-code-gen-sanity", "yalx/lang:lang", &printer, &ok);
     ASSERT_TRUE(ok);
-    //printf("%s\n", buf.c_str());
+    printf("%s\n", buf.c_str());
 }
 
 TEST_F(Arm64CodeGeneratorTest, TryCatch) {
@@ -112,7 +112,19 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitAndAlloc) {
     bool ok = true;
     CodeGen("tests/43-code-gen-arrays", "issue04:issue04", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
+    
+}
+
+TEST_F(Arm64CodeGeneratorTest, PrimitiveProps) {
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    //CodeGen("tests/44-code-gen-primitive-props", "yalx/lang:lang", &printer, &ok);
+    CodeGen("tests/44-code-gen-primitive-props", "issue05:issue05", &printer, &ok);
+    ASSERT_TRUE(ok);
+    //printf("%s\n", buf.c_str());
     
 }
 
@@ -507,6 +519,34 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
         ASSERT_EQ(0, *static_cast<i32_t *>(yalx_array_location2(ar, 0, 2)));
         ASSERT_EQ(2, *static_cast<i32_t *>(yalx_array_location2(ar, 1, 1)));
         ASSERT_EQ(3, *static_cast<i32_t *>(yalx_array_location2(ar, 3, 3)));
+    }
+    yalx_exit_returning_scope(&state);
+}
+
+TEST_F(Arm64CodeGeneratorTest, PrimitiveTypeProps) {
+    pkg_init_once(reinterpret_cast<void *>(&issue05_Zoissue05_Zd_Z4init), "issue05:issue05");
+    
+    yalx_returning_vals state;
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue05_Zoissue05_Zdissue1_had();
+    
+    {
+        auto vals = reinterpret_cast<int *>(state.buf);
+        ASSERT_EQ(3, vals[3]); // a.rank
+        ASSERT_EQ(8, vals[2]); // a.size
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue05_Zoissue05_Zdissue2_had();
+    
+    {
+        auto vals = reinterpret_cast<int *>(state.buf);
+        ASSERT_EQ(3, vals[3]); // 3
+        ASSERT_EQ(4, vals[2]); // 4
+        ASSERT_EQ(5, vals[1]); // 5
     }
     yalx_exit_returning_scope(&state);
 }

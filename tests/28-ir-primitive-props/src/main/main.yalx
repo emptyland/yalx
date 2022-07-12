@@ -5,7 +5,12 @@ fun issue00_size_of_array(): int {
     return a.size
 }
 
-fun issue01_rank_of_array(): int {
+fun issue01_rank_of_array(): int, int {
     val a = @int[,]{{1}}
-    return a.rank
+    return a.rank, a.size
+}
+
+fun issue02_get_length_of_array(): int {
+    val a = @int[2,2,2](0)
+    return a.getLength(0)
 }

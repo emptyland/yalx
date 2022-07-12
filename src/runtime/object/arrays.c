@@ -2,7 +2,7 @@
 #include "runtime/object/type.h"
 #include "runtime/heap/heap.h"
 #include "runtime/checking.h"
-
+#include <stdio.h>
 
 struct yalx_value_array_header *
 yalx_new_refs_array_with_data(struct heap *heap,
@@ -200,4 +200,17 @@ void *yalx_array_location_more(struct yalx_value_multi_dims_array *ar, const int
         offset += quantity;
     }
     return yalx_multi_dims_array_data(ar) + offset * item_size_in_bytes;
+}
+
+
+void yalx_Zplang_Zolang_ZdmultiDimsArrayGetLength_stub(yalx_ref_handle self, i32_t dim) {
+    DCHECK(self != NULL);
+    DCHECK(*self != NULL);
+    
+    struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)(*self);
+    DCHECK(CLASS(ar) == multi_dims_array_class);
+    DCHECK(dim >= 0 && dim < ar->rank);
+    
+    //printf("[%d]=%d\n", dim, ar->caps[dim]);
+    yalx_return_i32(ar->caps[dim]);
 }

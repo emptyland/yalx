@@ -22,6 +22,13 @@ void Arena::Purge() {
     }
 }
 
+char *Arena::Duplicate(const char *z, size_t n) {
+    auto dest = static_cast<char *>(Allocate(n + 1));
+    ::memcpy(dest, z, n);
+    dest[n] = '\0';
+    return dest;
+}
+
 void *Arena::Allocate(size_t n) {
     n = RoundUp(n, 4);
     if (ShouldUseLargeBlock(n)) {

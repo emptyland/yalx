@@ -5,6 +5,7 @@
 #include "ir/node.h"
 #include "ir/metadata.h"
 #include "ir/constants.h"
+#include "ir/utils.h"
 #include "compiler/ast.h"
 #include "compiler/syntax-feedback.h"
 #include "compiler/constants.h"
@@ -519,6 +520,8 @@ public:
                 } else {
                     op = ops()->CallHandle(handle, 1/*value_out*/, value_in, invoke_control_out());
                 }
+            } else if (self->declaration() == Model::kArray) {
+                op = ops()->CallHandle(handle, 1/*value_out*/, value_in, invoke_control_out());
             } else {
                 UNREACHABLE();
             }
@@ -1197,6 +1200,7 @@ public:
                 return -1;
             }
             auto model = GetTypeSpecifiedModel(primary->type());
+            //printd("%s", node->field()->data());
             auto handle = DCHECK_NOTNULL(model->FindMemberOrNull(node->field()->ToSlice()));
             if (handle->IsField())  {
                 Operator *op = nullptr;
@@ -1210,6 +1214,8 @@ public:
                 auto field = std::get<const Model::Field *>(model->GetMember(handle));
                 val = b()->NewNode(root_ss.Position(), field->type, op, primary);
             } else {
+                printd("%s.%s(%s)", handle->owns()->full_name()->data(), handle->name()->data(),
+                       node->field()->data());
                 UNREACHABLE();
                 // TODO: closure
             }
@@ -2610,8 +2616,8 @@ void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
                                       pkg->path()->Duplicate(arena_),
                                       pkg->full_path()->Duplicate(arena_));
     modules_[module->full_name()->ToSlice()] = module;
-    
-    
+    arena_->Lazy<PackageContext>()->Associate(module);
+
     for (auto file_unit : pkg->source_files()) {
         for (auto def : file_unit->class_defs()) {
             if (!def->generic_params().empty()) {

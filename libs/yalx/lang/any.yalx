@@ -8,3 +8,6 @@ class Any {
     native fun isEmpty(): bool
     fun finalize() -> Unit
 }
+
+@Lang
+native fun multiDimsArrayGetLength(ar: Any, dim: int): int

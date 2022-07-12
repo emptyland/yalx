@@ -33,11 +33,20 @@ public:
 protected:
     void Put(Model::Field &&field) {
         fields_.emplace_back(field);
-        PutHandleTag(field.name, fields_.size() - 1, false/*is_method*/);
+        PutHandleTag(field.name->ToSlice(), fields_.size() - 1, false/*is_method*/);
     }
     
-    void PutHandleTag(const String *name, size_t index, bool is_method) {
-        members_[fields_.back().name->ToSlice()] = reinterpret_cast<Handle *>((index << 1) | (is_method ? 1 : 0));
+    void Put(const std::string &name, Model::Method &&method) {
+        methods_.emplace_back(method);
+        if (name.empty()) {
+            PutHandleTag(method.fun->name()->ToSlice(), methods_.size() - 1, true/*is_method*/);
+        } else {
+            PutHandleTag(arena()->Duplicate(name.data(), name.size()), methods_.size() - 1, true/*is_method*/);
+        }
+    }
+    
+    void PutHandleTag(std::string_view name, size_t index, bool is_method) {
+        members_[name] = reinterpret_cast<Handle *>((index << 1) | (is_method ? 1 : 0));
     }
     
     std::tuple<size_t, bool> ParseHandleTag(Handle *handle) {
@@ -70,7 +79,9 @@ Handle *PrimitiveShadow::FindMemberOrNull(ArrayModel *owns, std::string_view nam
             const auto &field = fields_[index];
             rs = Handle::Field(arena_, owns, field.name, index);
         }
-        members_[full_name] = rs;
+        auto dup = static_cast<char *>(arena()->Allocate(full_name.size() + 1));
+        ::strncpy(dup, full_name.data(), full_name.size());
+        members_[dup] = rs;
         return rs;
     }
     return nullptr;
@@ -231,6 +242,29 @@ void ArrayShadow::Init() {
         .offset = offsetof(yalx_value_multi_dims_array, rank),
         .type = Types::Int32,
         .is_volatile = false,
+    });
+    
+    auto base_pkg = DCHECK_NOTNULL(arena()->Lazy<PackageContext>()->FindOrNull(cpl::kLangPackageFullName));
+//    auto name = String::New(arena(), "getLength");
+//    std::string buf(cpl::kLangPackageFullName);
+//    buf.append(".").append("MultiDimsArray.").append(name->ToString());
+//    auto full_name = String::New(arena(), buf);
+//    auto proto = new (arena()) PrototypeModel(arena(), String::New(arena(), "fun (any,i32)->i32"), false/*vargs*/);
+//    auto self = new (arena()) ArrayModel(arena(), String::kEmpty, String::kEmpty, 1, Types::Void);
+//    proto->mutable_params()->push_back(Type::Ref(self));
+//    proto->mutable_params()->push_back(Types::Int32);
+//    proto->mutable_return_types()->push_back(Types::Int32);
+//    auto fun = base_pkg->NewFunction(Function::kNative, name, full_name, proto);
+    auto fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("multiDimsArrayGetLength"));
+    
+    //base_pkg->FindFunOrNull("");
+    Put("getLength",
+        Model::Method{
+        .fun = fun,
+        .access = kPublic,
+        .in_vtab = 0,
+        .id_vtab = 0,
+        .in_itab = 0,
     });
 }
 

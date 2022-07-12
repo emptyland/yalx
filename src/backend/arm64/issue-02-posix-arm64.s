@@ -220,21 +220,23 @@ Lblk10:
     add x1, x19, _yalx_Zplang_Zolang_ZdException$class@PAGEOFF
     bl _ref_asserted_to
     mov x1, x0
-    ldur x0, [fp, #-8]
+    ldur x2, [fp, #-8]
     adrp x19, Kstr.5@PAGE
     add x19, x19, Kstr.5@PAGEOFF
     ldr x0, [x19, #0]
     stur x0, [fp, #-8]
     stur x1, [fp, #-16]
+    stur x2, [fp, #-24]
+    ldur x0, [fp, #-24]
     ldur x1, [fp, #-8]
     ldur x2, [fp, #-16]
     bl _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
-    ldr x0, [x0, #16]
+    ldur x0, [fp, #-24]
+    ldr x1, [x0, #16]
     adrp x19, Kstr.5@PAGE
     add x19, x19, Kstr.5@PAGEOFF
     ldr x0, [x19, #0]
     stur x0, [fp, #-8]
-    mov x1, x0
     bl _issue02_Zoissue02_ZdassertString
     ldp fp, lr, [sp, #32]
     add sp, sp, #48

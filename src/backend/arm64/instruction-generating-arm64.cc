@@ -1728,8 +1728,11 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
             padding_size = RoundUp(current_stack_size, kStackConf->stack_alignment_size()) - current_stack_size;
             first = false;
         }
-        operands_.AllocateStackSlot(rv, padding_size, StackSlotAllocator::kLinear);
+        auto slot = operands_.AllocateStackSlot(rv, padding_size, StackSlotAllocator::kLinear);
+        USE(slot);
+        //printd("%d %d", slot->register0_id(), slot->k());
     }
+    //current_stack_size = operands_.slots()->stack_size();
     
     if (overflow_args_size > 0) {
         for (auto arg : overflow_args) {
@@ -1741,9 +1744,10 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     }
     
     const auto returning_vals_size_in_bytes = ReturningValSizeInBytes(callee->prototype());
-    current_stack_size += returning_vals_size_in_bytes;
-    current_stack_size += overflow_args_size;
-    current_stack_size = RoundUp(current_stack_size, kStackConf->stack_alignment_size());
+//    current_stack_size += returning_vals_size_in_bytes;
+//    current_stack_size += overflow_args_size;
+//    current_stack_size = RoundUp(current_stack_size, kStackConf->stack_alignment_size());
+    current_stack_size = RoundUp(operands_.slots()->stack_size(), kStackConf->stack_alignment_size());
     
     ImmediateOperand *adjust = nullptr;
     auto sp = operands_.registers()->stack_pointer();
@@ -1752,6 +1756,7 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         calling_stack_adjust_.push_back(adjust);
         current()->NewIO(Arm64Add, sp, sp, adjust);
     }
+    //printd("%s", callee->full_name()->data());
     auto rel = new (arena_) ReloactionOperand(symbols_->Mangle(callee->full_name()), nullptr);
     current()->NewI(ArchCall, rel);
     if (returning_vals_size_in_bytes > 0) {
