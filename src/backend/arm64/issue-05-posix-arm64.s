@@ -199,10 +199,78 @@ Lblk4:
     add sp, sp, #112
     ret
 .cfi_endproc
+.global _issue05_Zoissue05_Zdissue3
+_issue05_Zoissue05_Zdissue3:
+.cfi_startproc
+Lblk5:
+    sub sp, sp, #96
+    stp fp, lr, [sp, #80]
+    add fp, sp, #80
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    mov w0, #99
+    sturb w0, [fp, #-4]
+    add sp, sp, #48
+    bl _yalx_Zplang_Zolang_Zdu8ToString
+    sub sp, sp, #48
+    mov w0, #2
+    stur w0, [fp, #-4]
+    add sp, sp, #32
+    bl _yalx_Zplang_Zolang_Zdi32ToString
+    sub sp, sp, #32
+    mov x0, #3
+    stur x0, [fp, #-8]
+    add sp, sp, #16
+    bl _yalx_Zplang_Zolang_Zdu64ToString
+    sub sp, sp, #16
+    ldur x19, [fp, #-56]
+    str x19, [fp, #24]
+    ldur x19, [fp, #-40]
+    str x19, [fp, #32]
+    ldur x19, [fp, #-24]
+    str x19, [fp, #40]
+    ldp fp, lr, [sp, #80]
+    add sp, sp, #96
+    ret
+.cfi_endproc
+.global _issue05_Zoissue05_Zdissue3_had
+_issue05_Zoissue05_Zdissue3_had:
+.cfi_startproc
+Lblk6:
+    sub sp, sp, #128
+    stp fp, lr, [sp, #112]
+    add fp, sp, #112
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stp x19, x20, [sp, #96]
+    stp x21, x22, [sp, #80]
+    stp x23, x24, [sp, #64]
+    stp x25, x26, [sp, #48]
+    stp x27, x28, [sp, #32]
+    add fp, sp, #32
+    bl _current_root
+    mov x26, x0
+    bl _issue05_Zoissue05_Zdissue3
+    mov x0, #32
+    bl _reserve_handle_returning_vals
+    mov x1, sp
+    mov x2, #32
+    bl _memcpy
+    ldp x19, x20, [sp, #96]
+    ldp x21, x22, [sp, #80]
+    ldp x23, x24, [sp, #64]
+    ldp x25, x26, [sp, #48]
+    ldp x27, x28, [sp, #32]
+    ldp fp, lr, [sp, #112]
+    add sp, sp, #128
+    ret
+.cfi_endproc
 .global _issue05_Zoissue05_ZdfakeGetLength
 _issue05_Zoissue05_ZdfakeGetLength:
 .cfi_startproc
-Lblk5:
+Lblk7:
     sub sp, sp, #16
     stp fp, lr, [sp, #0]
     add fp, sp, #0
@@ -217,7 +285,7 @@ Lblk5:
 .global _issue05_Zoissue05_ZdassertInt
 _issue05_Zoissue05_ZdassertInt:
 .cfi_startproc
-Lblk6:
+Lblk8:
     sub sp, sp, #16
     stp fp, lr, [sp, #0]
     add fp, sp, #0

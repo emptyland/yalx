@@ -66,7 +66,7 @@ TEST_F(Arm64CodeGeneratorTest, YalxLang) {
     bool ok = true;
     CodeGen("tests/40-code-gen-sanity", "yalx/lang:lang", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
 }
 
 TEST_F(Arm64CodeGeneratorTest, TryCatch) {
@@ -124,7 +124,7 @@ TEST_F(Arm64CodeGeneratorTest, PrimitiveProps) {
     //CodeGen("tests/44-code-gen-primitive-props", "yalx/lang:lang", &printer, &ok);
     CodeGen("tests/44-code-gen-primitive-props", "issue05:issue05", &printer, &ok);
     ASSERT_TRUE(ok);
-    //printf("%s\n", buf.c_str());
+    printf("%s\n", buf.c_str());
     
 }
 
@@ -547,6 +547,18 @@ TEST_F(Arm64CodeGeneratorTest, PrimitiveTypeProps) {
         ASSERT_EQ(3, vals[3]); // 3
         ASSERT_EQ(4, vals[2]); // 4
         ASSERT_EQ(5, vals[1]); // 5
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 32, nullptr);
+
+    issue05_Zoissue05_Zdissue3_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_str_handle>(state.buf);
+        EXPECT_STREQ("99", yalx_str_bytes(&vals[3]));
+        EXPECT_STREQ("2", yalx_str_bytes(&vals[2]));
+        EXPECT_STREQ("3", yalx_str_bytes(&vals[1]));
     }
     yalx_exit_returning_scope(&state);
 }

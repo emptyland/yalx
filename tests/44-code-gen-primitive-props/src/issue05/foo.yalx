@@ -16,6 +16,9 @@ fun issue2(): int, int, int {
     return r0, r1, r2
 }
 
+@yalx.Compiler(nativeHandle=true)
+fun issue3() -> 99u8.toString(), 2i32.toString(), 3u64.toString()
+
 fun fakeGetLength(i: int) -> i
 
 @yalx.Compiler(nativeStubName="assert_int_stub")

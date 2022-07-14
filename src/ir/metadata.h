@@ -64,8 +64,10 @@ public:
     };
     
     enum Declaration {
+        kPrimitive,
         kClass,
         kStruct,
+        kEnum,
         kInterface,
         kFunction,
         kArray,
@@ -106,6 +108,8 @@ public:
     bool IsNotBaseOf(const Model *base) const { return !IsBaseOf(base); }
     virtual bool IsBaseOf(const Model *base) const;
     virtual void PrintTo(int indent, base::PrintingWriter *printer) const;
+    
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Model);
 protected:
     Model(const String *name, const String *full_name, Constraint constraint, Declaration declaration);
     
@@ -114,6 +118,28 @@ protected:
     Declaration const declaration_;
     Constraint constraint_;
 }; // class Model
+
+class PrimitiveModel : public Model {
+public:
+    DEF_VAL_GETTER(Type, type);
+    
+    static PrimitiveModel *Get(const Type ty, base::Arena *arena);
+    
+    Member GetMember(const Handle *handle) const override;
+    Handle *FindMemberOrNull(std::string_view name) const override;
+    size_t ReferenceSizeInBytes() const override;
+    size_t PlacementSizeInBytes() const override;
+    
+    friend class PrimitiveShadow;
+private:
+    PrimitiveModel(base::Arena *arena, const String *name, const Type ty);
+    
+    void Put(base::Arena *arena, std::string_view name, Method &&method);
+    
+    Type const type_;
+    base::ArenaMap<std::string_view, Handle *> members_;
+    base::ArenaVector<Method> methods_;
+}; // class PrimitiveModel
 
 class PrototypeModel : public Model {
 public:

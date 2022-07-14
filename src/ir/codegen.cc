@@ -470,7 +470,12 @@ public:
                 if (ReduceReturningOnlyOne(ast->primary(), &value) < 0) {
                     return -1;
                 }
-                handle = DCHECK_NOTNULL(value->type().model())->FindMemberOrNull(ast->field()->ToSlice());
+                auto model = value->type().model();
+                if (!model) {
+                    model = DCHECK_NOTNULL(PrimitiveModel::Get(value->type(), arena()));
+                }
+                handle = model->FindMemberOrNull(ast->field()->ToSlice());
+                
                 if (handle && handle->IsMethod()) {
                     args.push_back(value);
                 } else {
@@ -505,22 +510,23 @@ public:
             args.insert(args.begin(), arg0.core.value);
         }
         if (handle) { // It's method calling
-            auto method = std::get<const Model::Method *>(DCHECK_NOTNULL(args[0]->type().model())->GetMember(handle));
+            auto method = std::get<const Model::Method *>(handle->owns()->GetMember(handle));
             auto proto = method->fun->prototype();
             auto value_in = static_cast<int>(proto->params_size());
             Operator *op = nullptr;
-            DCHECK(args[0]->type().kind() == Type::kValue || args[0]->type().IsReference());
-            auto self = DCHECK_NOTNULL(args[0]->type().model());
+            //DCHECK(args[0]->type().kind() == Type::kValue || args[0]->type().IsReference());
+            auto self = handle->owns();
             if (self->declaration() == Model::kInterface) {
                 op = ops()->CallAbstract(handle, 1/*value_out*/, value_in, invoke_control_out());
             } else if (self->declaration() == Model::kClass ||
                        self->declaration() == Model::kStruct) {
-                if (down_cast<StructureModel>(self)->In_vtab(handle)) {
+                if (down_cast<const StructureModel>(self)->In_vtab(handle)) {
                     op = ops()->CallVirtual(handle, 1/*value_out*/, value_in, invoke_control_out());
                 } else {
                     op = ops()->CallHandle(handle, 1/*value_out*/, value_in, invoke_control_out());
                 }
-            } else if (self->declaration() == Model::kArray) {
+            } else if (self->declaration() == Model::kArray ||
+                       self->declaration() == Model::kPrimitive) {
                 op = ops()->CallHandle(handle, 1/*value_out*/, value_in, invoke_control_out());
             } else {
                 UNREACHABLE();
@@ -2096,6 +2102,15 @@ private:
         if (dest.kind() == src->type().kind() && dest.model() == src->type().model()) {
             return src;
         }
+//        if (dest.model() && src->type().model()) {
+//            if (src->type().model()->IsBaseOf(dest.model())) {
+//                return src;
+//            }
+//        }
+//        if (dest.model() && dest.model()->full_name()->Equal(cpl::kAnyClassFullName)) {
+//            // TODO:
+//            return src;
+//        }
         if (dest.IsPointer() && src->type().IsNotPointer()) {
             src = b()->NewNode(source_position, dest, ops()->LoadAddress(), src);
         } else if (dest.IsNotPointer() && src->type().IsPointer()) {
@@ -2113,6 +2128,7 @@ private:
                 
             case kDeny:
             default:
+                printd("%s->%s", src->type().ToString().data(), dest.ToString().data());
                 UNREACHABLE();
                 break;
         }

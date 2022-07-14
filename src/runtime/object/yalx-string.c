@@ -1,6 +1,48 @@
 #include "runtime/object/yalx-string.h"
 #include "runtime/object/type.h"
 #include "runtime/heap/heap.h"
+#include "runtime/checking.h"
+
+static const char digit_table[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+struct yalx_value_str *yalx_uint_to_string(struct heap *heap, uint64_t value, int base) {
+    DCHECK(base > 1);
+    DCHECK(base <= 32);
+    
+    char buf[128] = {0};
+    char *z = buf + sizeof(buf) - 1;
+    *z-- = '\0';
+    do {
+        *z-- = digit_table[value % base];
+        value /= base;
+    } while (value);
+    
+    
+    return yalx_new_string(heap, z + 1, (buf + sizeof(buf) - 1) - z);
+}
+
+struct yalx_value_str *yalx_int_to_string(struct heap *heap, int64_t value, int base) {
+    DCHECK(base > 1);
+    DCHECK(base <= 32);
+    
+    int sign = value < 0;
+    if (sign) {
+        value = -value;
+    }
+    
+    char buf[128] = {0};
+    char *z = buf + sizeof(buf) - 1;
+    *z-- = '\0';
+    do {
+        *z-- = digit_table[value % base];
+        value /= base;
+    } while (value);
+    if (sign) {
+        *z-- = '-';
+    }
+    
+    return yalx_new_string(heap, z + 1, (buf + sizeof(buf) - 1) - z);
+}
 
 struct yalx_value_str *yalx_new_string(struct heap *heap, const char *z, size_t n) {
     struct string_pool_entry *space = yalx_ensure_space_kpool(heap, z, n);

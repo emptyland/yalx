@@ -23,3 +23,36 @@ struct I32(value: i32): Number<i32>(value) {
 struct U32(value: u32): Number<u32>(value) {
     native fun toString(): string
 }
+
+
+@Lang
+native fun u8ToString(v: u8): string
+
+fun u8Equals(s: u8, v: u8) -> s == v
+
+@Lang
+native fun i8ToString(v: i8): string
+
+@Lang
+native fun u16ToString(v: u16): string
+
+@Lang
+native fun i16ToString(v: i16): string
+
+@Lang
+native fun u32ToString(v: u32): string
+
+@Lang
+native fun i32ToString(v: i32): string
+
+@Lang
+native fun u64ToString(v: u64): string
+
+@Lang
+native fun i64ToString(v: i64): string
+
+@Lang
+native fun f32ToString(v: f32): string
+
+@Lang
+native fun f64ToString(v: f64): string

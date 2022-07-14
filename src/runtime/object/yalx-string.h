@@ -29,6 +29,9 @@ static inline u32_t yalx_str_len(yalx_str_handle had) { return (*had)->len; }
 // New string object: short string should be in pool
 struct yalx_value_str *yalx_new_string(struct heap *heap, const char *z, size_t n);
 
+struct yalx_value_str *yalx_uint_to_string(struct heap *heap, uint64_t value, int base);
+struct yalx_value_str *yalx_int_to_string(struct heap *heap, int64_t value, int base);
+
 // Directly new string object
 struct yalx_value_str *yalx_new_string_direct(struct heap *heap, const char *z, size_t n);
 

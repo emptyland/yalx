@@ -18,6 +18,7 @@ enum yalx_access_desc {
 enum yalx_class_constraint {
     K_CLASS,
     K_STRUCT,
+    K_ENUM,
     K_PRIMITIVE,
 };
 
@@ -50,7 +51,7 @@ struct yalx_class_field {
     // tags
     uint32_t access: 2; // yalx_access_desc
     uint32_t constraint: 2; // val? var?
-    
+    uint32_t enum_id: 16; // id of enum
     uint32_t n_annotations;
     //yalx_annotation *annotation;
     void *reserved0;

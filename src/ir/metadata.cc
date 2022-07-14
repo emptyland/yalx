@@ -11,9 +11,9 @@ namespace yalx {
 
 namespace ir {
 
-class PrimitiveShadow {
+class OriginalShadow {
 public:
-    PrimitiveShadow(base::Arena *arena)
+    OriginalShadow(base::Arena *arena)
         : arena_(arena)
         , members_(arena)
         , fields_(arena)
@@ -62,7 +62,7 @@ private:
     base::ArenaVector<Model::Method> methods_;
 }; // class PrimitiveShadow
 
-Handle *PrimitiveShadow::FindMemberOrNull(ArrayModel *owns, std::string_view name) {
+Handle *OriginalShadow::FindMemberOrNull(ArrayModel *owns, std::string_view name) {
     std::string full_name(owns->full_name()->ToString());
     full_name.append("::").append(name.data(), name.size());
     if (auto iter = members_.find(full_name); iter != members_.end()) {
@@ -115,6 +115,185 @@ Handle *Model::FindMemberOrNull(std::string_view name) const {
 
 bool Model::IsBaseOf(const Model *base) const {
     return base == this || base->full_name()->Equal(cpl::kAnyClassFullName);
+}
+
+class PrimitiveShadow {
+public:
+    PrimitiveShadow(base::Arena *const arena): arena_(arena) {}
+    
+    static uintptr_t Uniquely() {
+        static int dummy;
+        return reinterpret_cast<uintptr_t>(&dummy);
+    }
+    
+    void Init();
+    
+    PrimitiveModel *kU8 = nullptr;
+    PrimitiveModel *kI8 = nullptr;
+    PrimitiveModel *kU16 = nullptr;
+    PrimitiveModel *kI16 = nullptr;
+    PrimitiveModel *kU32 = nullptr;
+    PrimitiveModel *kI32 = nullptr;
+    PrimitiveModel *kU64 = nullptr;
+    PrimitiveModel *kI64 = nullptr;
+    PrimitiveModel *kF32 = nullptr;
+    PrimitiveModel *kF64 = nullptr;
+private:
+    base::Arena *const arena_;
+}; // class PrimitiveShadow
+
+void PrimitiveShadow::Init() {
+    auto base_pkg = DCHECK_NOTNULL(arena_->Lazy<PackageContext>()->FindOrNull(cpl::kLangPackageFullName));
+    
+    kU8 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "u8"), Types::UInt8);
+    kU8->Put(arena_, "toString", {
+        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("u8ToString")),
+        .access = kPublic,
+        .in_vtab = 0,
+        .id_vtab = 0,
+        .in_itab = 0,
+    });
+    
+    kI8 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "i8"), Types::Int8);
+    kI8->Put(arena_, "toString", {
+        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("i8ToString")),
+        .access = kPublic,
+        .in_vtab = 0,
+        .id_vtab = 0,
+        .in_itab = 0,
+    });
+    
+    kU16 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "u16"), Types::UInt16);
+    kU16->Put(arena_, "toString", {
+        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("u16ToString")),
+        .access = kPublic,
+        .in_vtab = 0,
+        .id_vtab = 0,
+        .in_itab = 0,
+    });
+    
+    kI16 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "i16"), Types::Int16);
+    kI16->Put(arena_, "toString", {
+        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("i16ToString")),
+        .access = kPublic,
+        .in_vtab = 0,
+        .id_vtab = 0,
+        .in_itab = 0,
+    });
+    
+    kU32 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "u32"), Types::UInt32);
+    kU32->Put(arena_, "toString", {
+        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("u32ToString")),
+        .access = kPublic,
+        .in_vtab = 0,
+        .id_vtab = 0,
+        .in_itab = 0,
+    });
+    
+    kI32 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "i32"), Types::Int32);
+    kI32->Put(arena_, "toString", {
+        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("i32ToString")),
+        .access = kPublic,
+        .in_vtab = 0,
+        .id_vtab = 0,
+        .in_itab = 0,
+    });
+    
+    kU64 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "u64"), Types::UInt64);
+    kU64->Put(arena_, "toString", {
+        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("u64ToString")),
+        .access = kPublic,
+        .in_vtab = 0,
+        .id_vtab = 0,
+        .in_itab = 0,
+    });
+    
+    kI64 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "i64"), Types::Int64);
+    kI64->Put(arena_, "toString", {
+        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("i64ToString")),
+        .access = kPublic,
+        .in_vtab = 0,
+        .id_vtab = 0,
+        .in_itab = 0,
+    });
+    
+    kF32 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "f32"), Types::Float32);
+    kF32->Put(arena_, "toString", {
+        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("f32ToString")),
+        .access = kPublic,
+        .in_vtab = 0,
+        .id_vtab = 0,
+        .in_itab = 0,
+    });
+    
+    kF64 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "f64"), Types::Float64);
+    kF64->Put(arena_, "toString", {
+        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("f64ToString")),
+        .access = kPublic,
+        .in_vtab = 0,
+        .id_vtab = 0,
+        .in_itab = 0,
+    });
+}
+
+PrimitiveModel *PrimitiveModel::Get(const Type ty, base::Arena *arena) {
+    auto shadow = arena->Lazy<PrimitiveShadow>();
+    switch (ty.kind()) {
+        case Type::kWord8:
+        case Type::kUInt8:
+            return shadow->kU8;
+        case Type::kInt8:
+            return shadow->kI8;
+        case Type::kWord16:
+        case Type::kUInt16:
+            return shadow->kU16;
+        case Type::kInt16:
+            return shadow->kI16;
+        case Type::kUInt32:
+            return shadow->kU32;
+        case Type::kInt32:
+            return shadow->kI32;
+        case Type::kUInt64:
+            return shadow->kU64;
+        case Type::kInt64:
+            return shadow->kI64;
+        case Type::kFloat32:
+            return shadow->kF32;
+        case Type::kFloat64:
+            return shadow->kF64;
+        default:
+            break;
+    }
+    return nullptr;
+}
+
+Model::Member PrimitiveModel::GetMember(const Handle *handle) const {
+    DCHECK(handle->owns() == this);
+    DCHECK(handle->offset() >= 0 && handle->offset() < methods_.size());
+    return &methods_[handle->offset()];
+}
+
+Handle *PrimitiveModel::FindMemberOrNull(std::string_view name) const {
+    if (auto iter = members_.find(name); iter != members_.end()) {
+        return iter->second;
+    }
+    return nullptr;
+}
+
+size_t PrimitiveModel::ReferenceSizeInBytes() const  { return type().bytes(); }
+size_t PrimitiveModel::PlacementSizeInBytes() const { return type().bytes(); }
+
+PrimitiveModel::PrimitiveModel(base::Arena *arena, const String *name, const Type ty)
+: Model(name, name, kVal, kPrimitive)
+, type_(ty)
+, members_(arena)
+, methods_(arena) {
+}
+
+void PrimitiveModel::Put(base::Arena *arena, std::string_view name, Method &&method) {
+    auto handle = Handle::Method(arena, this, method.fun->name(), methods_.size());
+    members_[name] = handle;
+    methods_.emplace_back(method);
 }
 
 PrototypeModel::PrototypeModel(base::Arena *arena, const String *name, bool vargs)
@@ -215,9 +394,9 @@ void InterfaceModel::PrintTo(int indent, base::PrintingWriter *printer) const {
     printer->Indent(indent)->Println("} // %s", full_name()->data());
 }
 
-class ArrayShadow final : public PrimitiveShadow {
+class ArrayShadow final : public OriginalShadow {
 public:
-    ArrayShadow(base::Arena *arena): PrimitiveShadow(arena) {}
+    ArrayShadow(base::Arena *arena): OriginalShadow(arena) {}
     
     static uintptr_t Uniquely() {
         static int dummy;
@@ -245,16 +424,6 @@ void ArrayShadow::Init() {
     });
     
     auto base_pkg = DCHECK_NOTNULL(arena()->Lazy<PackageContext>()->FindOrNull(cpl::kLangPackageFullName));
-//    auto name = String::New(arena(), "getLength");
-//    std::string buf(cpl::kLangPackageFullName);
-//    buf.append(".").append("MultiDimsArray.").append(name->ToString());
-//    auto full_name = String::New(arena(), buf);
-//    auto proto = new (arena()) PrototypeModel(arena(), String::New(arena(), "fun (any,i32)->i32"), false/*vargs*/);
-//    auto self = new (arena()) ArrayModel(arena(), String::kEmpty, String::kEmpty, 1, Types::Void);
-//    proto->mutable_params()->push_back(Type::Ref(self));
-//    proto->mutable_params()->push_back(Types::Int32);
-//    proto->mutable_return_types()->push_back(Types::Int32);
-//    auto fun = base_pkg->NewFunction(Function::kNative, name, full_name, proto);
     auto fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("multiDimsArrayGetLength"));
     
     //base_pkg->FindFunOrNull("");

@@ -391,6 +391,33 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
+        case Arm64Ldrsb:
+            if (DCHECK_NOTNULL(instr->InputAt(0)->AsLocation())->k() < 0) {
+                printer()->Write("ldursb ");
+            } else {
+                printer()->Write("ldrsb ");
+            }
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case Arm64LdrW:
+            if (DCHECK_NOTNULL(instr->InputAt(0)->AsLocation())->k() < 0) {
+                printer()->Write("ldurh ");
+            } else {
+                printer()->Write("ldrh ");
+            }
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
+        case Arm64Ldrsw:
+            if (DCHECK_NOTNULL(instr->InputAt(0)->AsLocation())->k() < 0) {
+                printer()->Write("ldursw ");
+            } else {
+                printer()->Write("ldrsw ");
+            }
+            EmitOperands(instr->OutputAt(0), instr->InputAt(0));
+            break;
+            
         case Arm64Ldp:
             printer()->Write("ldp ");
             EmitOperands(instr->OutputAt(0), instr->OutputAt(1), instr->InputAt(0));

@@ -14,3 +14,14 @@ fun issue02_get_length_of_array(): int {
     val a = @int[2,2,2](0)
     return a.getLength(0)
 }
+
+fun issue03_number_to_string() {
+    val a = @string[] {
+        1u8.toString(),
+        2i8.toString(),
+        3u16.toString(),
+        4i16.toString(),
+        5u32.toString(),
+        6i32.toString()
+    }
+}

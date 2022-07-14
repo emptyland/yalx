@@ -434,7 +434,7 @@ Token Lexer::MatchNumber(int sign, int line, int row) {
             if (ch == '8') {
                 type = sign_ch == 'i' ? Token::kI8Val : Token::kU8Val;
                 ch = MoveNext();
-                continue;
+                break;
             }
             
             if (ch == '1') {
@@ -444,7 +444,7 @@ Token Lexer::MatchNumber(int sign, int line, int row) {
                 }
                 type = sign_ch == 'i' ? Token::kI16Val : Token::kU16Val;
                 ch = MoveNext();
-                continue;
+                break;
             }
             
             if (ch == '3') {
@@ -454,7 +454,7 @@ Token Lexer::MatchNumber(int sign, int line, int row) {
                 }
                 type = sign_ch == 'i' ? Token::kI32Val : Token::kU32Val;
                 ch = MoveNext();
-                continue;
+                break;
             }
 
             if (ch == '6') {
@@ -464,7 +464,7 @@ Token Lexer::MatchNumber(int sign, int line, int row) {
                 }
                 type = sign_ch == 'i' ? Token::kI64Val : Token::kU64Val;
                 ch = MoveNext();
-                continue;
+                break;
             }
         } else if (IsTermChar(ch)) {
             loc.SetEnd(line_, column_);

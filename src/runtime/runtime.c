@@ -661,7 +661,7 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     *((struct pkg_global_slots **)rs.value) = slots;
 done:
     pthread_mutex_unlock(&pkg_init_mutex);
-    printf("pkg init...%s\n", plain_name);
+    //printf("pkg init...%s\n", plain_name);
     free(symbol);
     if (init_fun) {
         call0_returning_vals(buf, sizeof(buf), init_fun);

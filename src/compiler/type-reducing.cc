@@ -72,6 +72,7 @@ public:
     Statement *FindMemberOrNull(const Type *ty, std::string_view name) const;
     
     Type *kI32Ty = nullptr;
+    Type *kStringTy = nullptr;
     Type *kAnyTy = nullptr;
     
 private:
@@ -111,6 +112,7 @@ private:
 
 void PrimitiveTypesProperties::Init() {
     kI32Ty = new (arena_) Type(arena_, Type::kType_i32, SourcePosition::Unknown());
+    kStringTy = new (arena_) Type(arena_, Type::kType_string, SourcePosition::Unknown());
     kAnyTy = new (arena_) Type(arena_, Type::kType_any, SourcePosition::Unknown());
     
     Put("Array", "size", kI32Ty);
@@ -118,6 +120,17 @@ void PrimitiveTypesProperties::Init() {
     Put("MultiDimsArray", "size", kI32Ty);
     Put("MultiDimsArray", "rank", kI32Ty);
     Put("MultiDimsArray", "getLength", {kI32Ty}, {kI32Ty}); // fun getLength(i32): i32
+    
+    Put("u8", "toString", {}, {kStringTy});
+    Put("i8", "toString", {}, {kStringTy});
+    Put("u16", "toString", {}, {kStringTy});
+    Put("i16", "toString", {}, {kStringTy});
+    Put("u32", "toString", {}, {kStringTy});
+    Put("i32", "toString", {}, {kStringTy});
+    Put("u64", "toString", {}, {kStringTy});
+    Put("i64", "toString", {}, {kStringTy});
+    Put("f32", "toString", {}, {kStringTy});
+    Put("f64", "toString", {}, {kStringTy});
     
     Put("String", "size", kI32Ty);
 }
@@ -139,6 +152,12 @@ Statement *PrimitiveTypesProperties::FindMemberOrNull(const Type *ty, std::strin
             }
         } return nullptr;
         case Type::kPrimary:
+            strncpy(buf, ty->ToString().c_str(), arraysize(buf));
+            strncat(buf, "::", arraysize(buf));
+            strncat(buf, name.data(), arraysize(buf));
+            if (auto iter = props_.find(buf); iter != props_.end()) {
+                return iter->second;
+            }
             break;
         default:
             return nullptr;
