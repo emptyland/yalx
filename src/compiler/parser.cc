@@ -10,7 +10,8 @@ namespace cpl {
 
 #define CHECK_OK ok); if (!*ok) { return 0; } ((void)0
 
-//#define MoveNext() lookahead_ = lexer_->Next()
+DECLARE_STATIC_STRING(kDashName, "_");
+DECLARE_STATIC_STRING(kStarName, "*");
 
 struct Operator {
     Node::Kind kind;
@@ -177,6 +178,11 @@ FileUnit *Parser::Parse(bool *ok) {
                 file_unit_->Add(stmt);
             } break;
                 
+            case Token::kEnum: {
+                auto stmt = ParseEnumDefinition(CHECK_OK);
+                file_unit_->Add(stmt);
+            } break;
+                
             case Token::kObject: {
                 auto stmt = ParseObjectDeclaration(CHECK_OK);
                 file_unit_->Add(stmt);
@@ -274,6 +280,9 @@ Statement *Parser::ParseOutsideStatement(bool *ok) {
             
         case Token::kClass:
             return ParseClassDefinition(ok);
+            
+        case Token::kEnum:
+            return ParseEnumDefinition(ok);
             
         case Token::kAnnotation:
             return ParseAnnotationDefinition(ok);
@@ -555,6 +564,72 @@ ClassDefinition *Parser::ParseClassDefinition(bool *ok) {
     auto name = MatchText(Token::kIdentifier, CHECK_OK);
     auto def = new (arena_) ClassDefinition(arena_, name, location);
     ParseIncompletableDefinition(def, def->mutable_concepts(), CHECK_OK);
+    return def;
+}
+
+/*
+ enum Name<T> {
+    Value1,
+    Value2,
+    Value3,
+    Value4(i32),
+    Value5(string)
+ 
+    fun unwarp() {...}
+ }
+ */
+EnumDefinition *Parser::ParseEnumDefinition(bool *ok) {
+    auto location = Peek().source_position();
+    Match(Token::kEnum, CHECK_OK);
+    auto name = MatchText(Token::kIdentifier, CHECK_OK);
+    auto def = new (arena_) EnumDefinition(arena_, name, location);
+    if (Peek().Is(Token::kLess)) {
+        ParseGenericParameters(def->mutable_generic_params(), CHECK_OK);
+    }
+    
+    Match(Token::kLBrace, CHECK_OK); // {
+    
+    do {
+        auto val_location = Peek().source_position();
+        auto val_name = MatchText(Token::kIdentifier, CHECK_OK);
+        auto val = new (arena_) VariableDeclaration(arena_, false, VariableDeclaration::kVal, location);
+        val->set_name(val_name);
+        if (Test(Token::kLParen)) { // (
+            
+            do {
+                auto ty = ParseType(CHECK_OK);
+                auto item = new (arena_) VariableDeclaration::Item(arena_, val, kDashName, ty, ty->source_position());
+                val->mutable_variables()->push_back(item);
+            } while (Test(Token::kComma));
+            val_location = val_location.Concat(Peek().source_position());
+            Match(Token::kRParen, CHECK_OK); // )
+        } else {
+            auto unit = new (arena_) Type(arena_, Type::kType_unit, val_location);
+            auto item = new (arena_) VariableDeclaration::Item(arena_, val, kDashName, unit, unit->source_position());
+            val->mutable_variables()->push_back(item);
+        }
+        
+        *val->mutable_source_position() = val_location;
+        IncompletableDefinition::Field field;
+        field.in_constructor = false;
+        field.declaration = val;
+        def->mutable_fields()->push_back(field);
+    } while (Test(Token::kComma));
+    
+    while (Peek().IsNot(Token::kRBrace)) {
+        AnnotationDeclaration *anno = nullptr;
+        if (Peek().Is(Token::kAtOutlined)) {
+            anno = ParseAnnotationDeclaration(CHECK_OK);
+        }
+        auto access = static_cast<Access>(ParseDeclarationAccess());
+        
+        auto fun = ParseFunctionDeclaration(CHECK_OK);
+        fun->set_access(access);
+        fun->set_annotations(anno);
+        def->mutable_methods()->push_back(fun);
+    }
+    
+    Match(Token::kRBrace, CHECK_OK); // }
     return def;
 }
 
@@ -2298,7 +2373,8 @@ const String *Parser::ParseAliasOrNull(bool *ok) {
             return MatchText(Token::kIdentifier, CHECK_OK);
         case Token::kStar: {
             MoveNext();
-            return String::New(arena_, "*", 1);
+            //return String::New(arena_, "*", 1);
+            return kStarName;
         } break;
         default:
             break;

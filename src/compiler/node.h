@@ -30,6 +30,8 @@ namespace cpl {
 //        +- Definition
 //            +- InterfaceDefinition
 //            +- ClassDefinition
+//            +- StructDefinition
+//            +- EnumDefinition
 //            +- AnnotationDefinition
 //        +- Expression
 //            +- Identifier
@@ -137,6 +139,7 @@ namespace cpl {
     V(ObjectDeclaration) \
     V(ClassDefinition) \
     V(StructDefinition) \
+    V(EnumDefinition) \
     V(InterfaceDefinition) \
     V(AnnotationDefinition) \
     V(AnnotationDeclaration) \
@@ -204,6 +207,7 @@ namespace cpl {
     V(ChannelType) \
     V(ClassType) \
     V(StructType) \
+    V(EnumType) \
     V(OptionType) \
     V(InterfaceType) \
     V(FunctionPrototype)

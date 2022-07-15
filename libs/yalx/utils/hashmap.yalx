@@ -1,0 +1,58 @@
+package utils
+
+
+class Map<K, V> {
+    private val slots = @MapSlot<K, V>[8](MapSlot<K, V>())
+
+    fun get(key: K): Optional<V> {
+        val index = key.hashCode() % slots.size
+        var p = slots[index].entry
+        var rs = Optional<V>::None
+        while (true) {
+            when (p) {
+                None -> break
+                Some(e) -> {
+                    if (e.key.equals(key)) {
+                        rs = Optional<V>::Some(e.value)
+                        break
+                    }
+                    p = p.next
+                }
+            }
+        }
+        return rs
+    }
+
+    fun put(key: K, value: V) {
+        val index = key.hashCode() % slots.size
+        var p = slots[index].entry
+        while (true) {
+            when (p) {
+                None -> {
+                    val e = MapEntry<K, V>(slots[index].entry, key, value)
+                    slots[index].entry = e
+                    break
+                }
+                Some(e) -> {
+                    if (e.key.equals(key)) {
+                        e.value = value
+                        break;
+                    }
+                    p = p.next
+                }
+            }
+        }
+    }
+}
+
+struct MapSlot<K, V> {
+    var entry = Optional<MapEntry<K, V> >::None
+}
+
+class MapEntry<K, V>(
+    var next: Optional<MapEntry<K, V> >,
+    val key: K,
+    var value: V
+) {
+
+}

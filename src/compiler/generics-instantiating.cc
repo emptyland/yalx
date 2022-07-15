@@ -45,12 +45,12 @@ public:
     DEF_VAL_GETTER(base::Status, status);
     
     Statement *result() {
-        assert(!results_.empty());
+        DCHECK(!results_.empty());
         return static_cast<Statement *>(results_.top());
     }
 
     int VisitInterfaceDefinition(InterfaceDefinition *node) override {
-        assert(results_.empty());
+        DCHECK(results_.empty());
         if (PrepareTemplate(node) < 0){
             return -1;
         }
@@ -75,7 +75,7 @@ public:
     
     
     int VisitStructDefinition(StructDefinition *node) override {
-        assert(results_.empty());
+        DCHECK(results_.empty());
         if (PrepareTemplate(node) < 0){
             return -1;
         }
@@ -105,7 +105,7 @@ public:
     }
     
     int VisitClassDefinition(ClassDefinition *node) override {
-        assert(results_.empty());
+        DCHECK(results_.empty());
         if (PrepareTemplate(node) < 0){
             return -1;
         }
@@ -144,6 +144,27 @@ public:
         }
 
         // class Ref<T> (val T body)
+        return Return(copied);
+    }
+    
+    int VisitEnumDefinition(EnumDefinition *node) override {
+        DCHECK(results_.empty());
+        if (PrepareTemplate(node) < 0){
+            return -1;
+        }
+
+        auto copied = new (arena_) EnumDefinition(arena_, MakeFullName(node->name()), node->source_position());
+        copied->set_access(node->access());
+        copied->set_owns(node->owns());
+        copied->set_package(node->package());
+        copied->set_annotations(node->annotations());
+        copied->set_original(node);
+        
+        resolver_->FindOrInsert(copied->PackageName()->ToSlice(), copied->name()->ToSlice(), copied); // Insert first
+        IncompletableDefinition *base_of = nullptr;
+        if (ProcessIncompletableDefinition(node, copied, &base_of) < 0) {
+            return -1;
+        }
         return Return(copied);
     }
 
@@ -186,6 +207,7 @@ private:
         //                     const SourcePosition &source_position)
         auto copied = new (arena_) VariableDeclaration(arena_, node->is_volatile(), node->constraint(),
                                                        node->source_position());
+        copied->set_name(node->name());
         for (auto item : node->variables()) {
             // Item(base::Arena *arena, const String *identifier, class Type *type, const SourcePosition &source_position)
             Type *type = nullptr;
@@ -533,7 +555,7 @@ private:
             auto name = node->primary()->AsIdentifier()->name()->ToSlice();
             ast = Instantiate(node->source_position(), prefix, name, &types[0], node->generic_args_size(), &not_found);
         } else {
-            assert(node->primary()->IsDot());
+            DCHECK(node->primary()->IsDot());
             auto dot = node->primary()->AsDot();
             if (!dot->primary()->IsIdentifier()) {
                 goto clone;
@@ -543,7 +565,7 @@ private:
             ast = Instantiate(node->source_position(), prefix, name, &types[0], node->generic_args_size(), &not_found);
         }
         if (not_found) {
-            assert(ast == nullptr);
+            DCHECK(ast == nullptr);
             goto clone;
         }
         if (!ast) {
@@ -559,9 +581,9 @@ private:
                 copied->mutable_generic_args()->push_back(types[i]);
             }
         } else {
-            assert(node->primary()->IsDot());
+            DCHECK(node->primary()->IsDot());
             auto dot = node->primary()->AsDot();
-            assert(dot->primary()->IsIdentifier());
+            DCHECK(dot->primary()->IsIdentifier());
             auto name = BuildFullName(dot->field(), node->generic_args_size(), &types[0]);
             auto primary = new (arena_) Dot(dot->primary(), String::New(arena_, name), dot->source_position());
             auto copied = new (arena_) Instantiation(arena_, primary, node->source_position());
@@ -672,9 +694,9 @@ private:
                                        &types[0],
                                        inst->generic_args_size());
                 } else {
-                    assert(inst->primary()->IsDot());
+                    DCHECK(inst->primary()->IsDot());
                     auto dot = inst->primary()->AsDot();
-                    assert(dot->primary()->IsIdentifier());
+                    DCHECK(dot->primary()->IsIdentifier());
                     base = Instantiate(inst->source_position(),
                                        dot->primary()->AsIdentifier()->name()->ToSlice(),
                                        dot->field()->ToSlice(),
@@ -717,6 +739,9 @@ private:
                     break;
                 case Type::kInterface:
                     def = argv_[i]->AsInterfaceType()->definition();
+                    break;
+                case Type::kEnum:
+                    def = argv_[i]->AsEnumType()->definition();
                     break;
                 default:
                     break;
@@ -830,7 +855,7 @@ private:
         switch (type->category()) {
             case Type::kPrimary: {
                 if (type->primary_type() == Type::kType_symbol) {
-                    //assert(type->primary_type() == Type::kType_symbol);
+                    //DCHECK(type->primary_type() == Type::kType_symbol);
                     auto copied = new (arena_) Type(arena_, type->identifier(), type->source_position());
                     for (auto arg : type->generic_args()) {
                         if (auto it = Instantiate(arg); !it) {

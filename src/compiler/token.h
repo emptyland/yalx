@@ -98,6 +98,7 @@ using String = base::ArenaString;
     V(Native, "native", none) \
     V(Struct, "struct", none) \
     V(Class, "class", none) \
+    V(Enum, "enum", none) \
     V(Object, "object", none) \
     V(Interface, "interface", none) \
     V(Annotation, "annotation", none) \

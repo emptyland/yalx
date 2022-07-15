@@ -160,6 +160,7 @@ public:
     DEF_ARENA_VECTOR_GETTER(VariableDeclaration *, var);
     DEF_ARENA_VECTOR_GETTER(ClassDefinition *, class_def);
     DEF_ARENA_VECTOR_GETTER(StructDefinition *, struct_def);
+    DEF_ARENA_VECTOR_GETTER(EnumDefinition *, enum_def);
     DEF_ARENA_VECTOR_GETTER(InterfaceDefinition *, interface);
     DEF_ARENA_VECTOR_GETTER(ObjectDeclaration *, object);
     DEF_ARENA_VECTOR_GETTER(AnnotationDefinition *, annotation);
@@ -176,6 +177,7 @@ private:
     base::ArenaVector<VariableDeclaration *> vars_;
     base::ArenaVector<ClassDefinition *> class_defs_;
     base::ArenaVector<StructDefinition *> struct_defs_;
+    base::ArenaVector<EnumDefinition *> enum_defs_;
     base::ArenaVector<ObjectDeclaration *> objects_;
     base::ArenaVector<InterfaceDefinition *> interfaces_;
     base::ArenaVector<AnnotationDefinition *> annotations_;
@@ -457,6 +459,7 @@ public:
 
     DEF_VAL_PROP_RW(Constraint, constraint);
     DEF_VAL_PROP_RW(bool, is_volatile);
+    DEF_PTR_PROP_RW(const String, name);
     DEF_ARENA_VECTOR_GETTER(Item *, variable);
     DEF_ARENA_VECTOR_GETTER(Expression *, initilaizer);
     
@@ -469,6 +472,7 @@ public:
 private:
     Constraint constraint_;
     bool is_volatile_ = false;
+    const String *name_ = nullptr;
     base::ArenaVector<Item *> variables_;
     base::ArenaVector<Expression *> initilaizers_;
 }; // class VariableDeclaration
@@ -735,6 +739,29 @@ private:
     base::ArenaVector<Type *> concepts_;
     //base::ArenaVector<InterfaceDefinition *> implements_;
 }; // class ClassDefinition
+
+class EnumDefinition : public IncompletableDefinition {
+public:
+    EnumDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
+    
+    Statement *FindSymbolOrNull(std::string_view name) const {
+        for (auto field : fields()) {
+            if (name.compare(field.declaration->name()->ToSlice()) == 0) {
+                return field.declaration;
+            }
+        }
+        for (auto method : methods()) {
+            if (name.compare(method->name()->ToSlice()) == 0) {
+                return method;
+            }
+        }
+        return nullptr;
+    }
+    
+    DECLARE_AST_NODE(EnumDefinition);
+private:
+    
+}; // class EnumDefinition
 
 //----------------------------------------------------------------------------------------------------------------------
 // Annotation
@@ -1437,6 +1464,7 @@ private:
     V(Array,     ArrayType) \
     V(Class,     ClassType) \
     V(Struct,    StructType) \
+    V(Enum,      EnumType) \
     V(Option,    OptionType) \
     V(Interface, InterfaceType) \
     V(Function,  FunctionPrototype)
@@ -1461,6 +1489,7 @@ private:
     V(array) \
     V(class) \
     V(struct) \
+    V(enum) \
     V(option) \
     V(interface) \
     V(function) \
@@ -1661,6 +1690,12 @@ struct UDTTraits<StructDefinition> {
 }; // struct UDTTraits<StructDefinition>
 
 template<>
+struct UDTTraits<EnumDefinition> {
+    static constexpr Type::Category category = Type::kEnum;
+    static constexpr Type::Primary type = Type::kType_enum;
+}; // struct UDTTraits<EnumDefinition>
+
+template<>
 struct UDTTraits<InterfaceDefinition> {
     static constexpr Type::Category category = Type::kInterface;
     static constexpr Type::Primary type = Type::kType_interface;
@@ -1700,6 +1735,15 @@ class StructType : public UDTType<StructDefinition> {
 public:
     StructType(base::Arena *arena, StructDefinition *definition, const SourcePosition &source_position)
         : UDTType<StructDefinition>(arena, definition, source_position) {}
+    
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    std::string ToString() const override;
+}; // class StructType
+
+class EnumType : public UDTType<EnumDefinition> {
+public:
+    EnumType(base::Arena *arena, EnumDefinition *definition, const SourcePosition &source_position)
+        : UDTType<EnumDefinition>(arena, definition, source_position) {}
     
     bool Acceptable(const Type *rhs, bool *unlinked) const override;
     std::string ToString() const override;

@@ -305,6 +305,14 @@ private:
                 }
             }
             
+            for (auto stmt : file->enum_defs()) {
+                auto symbol = FindOrInsertGlobal(node, stmt->name()->ToSlice(), stmt);
+                if (symbol.IsFound()) {
+                    Feedback()->Printf(stmt->source_position(), "Duplicated symbol: %s", stmt->name()->data());
+                    return;
+                }
+            }
+            
             for (auto stmt : file->objects()) {
                 auto symbol = FindOrInsertGlobal(node, stmt->name()->ToSlice(), stmt);
                 if (symbol.IsFound()) {
@@ -720,6 +728,48 @@ private:
                     return -1;
                 }
             }
+        }
+        return Returning(Unit());
+    }
+    
+    int VisitEnumDefinition(EnumDefinition *node) override {
+        if (!node->generic_params().empty()) {
+            return Returning(Unit());
+        }
+        SymbolDepsScope deps_scope(&deps_, location_->NearlyPackageScope());
+        deps_scope.AddForward(arena_, node->name()->ToSlice(), node);
+        
+        base::ArenaUnorderedMap<std::string_view, VariableDeclaration *> values(arena_);
+        for (const auto &field : node->fields()) {
+            auto decl = field.declaration;
+            if (auto iter = values.find(decl->name()->ToSlice()); iter != values.end()) {
+                Feedback()->Printf(decl->source_position(), "Duplicated value named: `%s'", decl->name()->data());
+                return -1;
+            }
+            values[decl->name()->ToSlice()] = decl;
+            
+            for (int i = 0; i < decl->variables_size(); i++) {
+                auto item = decl->variable(i);
+                auto ty = LinkType(item->Type());
+                if (!ty) {
+                    return -1;
+                }
+                item->set_type(ty);
+            }
+        }
+
+        DataDefinitionScope scope(&location_, node);
+        for (auto method : node->methods()) {
+            if (LinkType(method->prototype()) == nullptr) {
+                return -1;
+            }
+            if (!method->body()) {
+                method->prototype()->set_signature(MakePrototypeSignature(method->prototype()));
+            } else if (Reduce(method) < 0) {
+                return -1;
+            }
+            
+            // TODO:
         }
         return Returning(Unit());
     }
@@ -2773,6 +2823,7 @@ private:
                 return Returning(ast->AsVariableDeclaration()->Type());
             case Node::kClassDefinition:
             case Node::kStructDefinition:
+            case Node::kEnumDefinition:
                 break;
             default: {
                 if (auto var = down_cast<VariableDeclaration::Item>(ast)) {
@@ -2958,6 +3009,8 @@ private:
                 return new (arena_) ClassType(arena_, symbol->AsClassDefinition(), name->source_position());
             case Node::kStructDefinition:
                 return new (arena_) StructType(arena_, symbol->AsStructDefinition(), name->source_position());
+            case Node::kEnumDefinition:
+                return new (arena_) EnumType(arena_, symbol->AsEnumDefinition(), name->source_position());
             case Node::kInterfaceDefinition:
                 return new (arena_) InterfaceType(arena_, symbol->AsInterfaceDefinition(), name->source_position());
             case Node::kObjectDeclaration:

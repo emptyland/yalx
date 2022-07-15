@@ -229,6 +229,11 @@ public:
         return GenerateStructureModel(node, [](StructureModel *){});
     }
     
+    int VisitEnumDefinition(cpl::EnumDefinition *node) override {
+        UNREACHABLE(); // TODO:
+        return -1;
+    }
+    
     template<class T> int GenerateStructureModel(T *node, std::function<void(StructureModel *)> &&fixup) {
         if (!node->generic_params().empty()) {
             return Returning(Unit());

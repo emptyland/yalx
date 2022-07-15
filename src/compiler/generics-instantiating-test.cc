@@ -245,6 +245,35 @@ TEST_F(GenericsInstantiatingTest, NestedRecursiveType) {
     
 }
 
+TEST_F(GenericsInstantiatingTest, EnumType) {
+    SwitchInput(R"(package lang
+    enum Optional<T> {
+        None,
+        Some(T)
+    }
+    )");
+    bool ok = true;
+    auto file_unit = parser_.Parse(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, file_unit);
+    
+    Resolver resolver;
+    Statement *inst = nullptr;
+    Type *argv[] = {i32_};
+    auto rs = GenericsInstantiating::Instantiate(nullptr, file_unit->enum_def(0), &arena_, &feedback_, &resolver,
+                                                 arraysize(argv), argv, &inst);
+    ASSERT_TRUE(rs.ok());
+    ASSERT_NE(nullptr, inst);
+    ASSERT_TRUE(inst->IsEnumDefinition());
+    
+    auto def = inst->AsEnumDefinition();
+    ASSERT_STREQ("Optional<i32>", def->name()->data());
+    ASSERT_EQ(2, def->fields_size());
+    auto val = def->field(1).declaration;
+    ASSERT_STREQ("Some", val->name()->data());
+    ASSERT_EQ(Type::kType_i32, val->AtItem(0)->Type()->primary_type());
+}
+
 } // namespace cpl
 
 } // namespace yalx

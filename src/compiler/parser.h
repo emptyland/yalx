@@ -48,6 +48,7 @@ public:
     ObjectDeclaration *ParseObjectDeclaration(bool *ok);
     StructDefinition *ParseStructDefinition(bool *ok);
     ClassDefinition *ParseClassDefinition(bool *ok);
+    EnumDefinition *ParseEnumDefinition(bool *ok);
     IncompletableDefinition *ParseIncompletableDefinition(IncompletableDefinition *receiver,
                                                           base::ArenaVector<Type *> *concepts, bool *ok);
     Statement *ParseStatement(bool *ok);

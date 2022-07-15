@@ -669,6 +669,42 @@ TEST_F(ParserTest, MutliDimsArrayInitializer) {
     ASSERT_EQ(3, ar->dimension_count());
 }
 
+TEST_F(ParserTest, EnumDefinition) {
+    SwitchInput("enum Foo<T> { A, B, C }\n");
+    bool ok = true;
+    auto ast = parser_.ParseEnumDefinition(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    EXPECT_STREQ("Foo", ast->name()->data());
+    ASSERT_EQ(1, ast->generic_params_size());
+    
+    ASSERT_EQ(3, ast->fields_size());
+    EXPECT_STREQ("A", ast->field(0).declaration->name()->data());
+    EXPECT_STREQ("B", ast->field(1).declaration->name()->data());
+    EXPECT_STREQ("C", ast->field(2).declaration->name()->data());
+    
+    
+    SwitchInput(R"(enum Bar {
+        A,
+        B(i32),
+        C(string),
+        D(u8, u8, u8, u8)
+    
+        fun foo() -> 0
+    })");
+    ast = parser_.ParseEnumDefinition(&ok);
+    ASSERT_TRUE(ok);
+    ASSERT_NE(nullptr, ast);
+    EXPECT_STREQ("Bar", ast->name()->data());
+    ASSERT_EQ(0, ast->generic_params_size());
+    
+    ASSERT_EQ(4, ast->fields_size());
+    EXPECT_STREQ("A", ast->field(0).declaration->name()->data());
+    auto val = ast->field(1).declaration;
+    EXPECT_STREQ("B", val->name()->data());
+    EXPECT_EQ(Type::kType_i32, val->AtItem(0)->Type()->primary_type());
+}
+
 } // namespace cpl
 
 } // namespace yalx

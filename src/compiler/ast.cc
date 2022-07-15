@@ -56,6 +56,7 @@ FileUnit::FileUnit(base::Arena *arena, String *file_name, String *file_full_path
     , vars_(arena)
     , class_defs_(arena)
     , struct_defs_(arena)
+    , enum_defs_(arena)
     , interfaces_(arena)
     , objects_(arena)
     , annotations_(arena)
@@ -81,6 +82,9 @@ void FileUnit::Add(Statement *stmt) {
             break;
         case Node::kStructDefinition:
             struct_defs_.push_back(stmt->AsStructDefinition());
+            break;
+        case Node::kEnumDefinition:
+            enum_defs_.push_back(stmt->AsEnumDefinition());
             break;
         case Node::kInterfaceDefinition:
             interfaces_.push_back(stmt->AsInterfaceDefinition());
@@ -304,7 +308,7 @@ bool Declaration::Is(AstNode *node) {
 }
 
 VariableDeclaration::VariableDeclaration(base::Arena *arena, bool is_volatile, Constraint constraint,
-                    const SourcePosition &source_position)
+                                         const SourcePosition &source_position)
     : Declaration(arena, Node::kVariableDeclaration, source_position)
     , constraint_(constraint)
     , is_volatile_(is_volatile)
@@ -363,6 +367,7 @@ bool Definition::Is(AstNode *node) {
     switch (node->kind()) {
         case Node::kStructDefinition:
         case Node::kClassDefinition:
+        case Node::kEnumDefinition:
         case Node::kInterfaceDefinition:
         case Node::kAnnotationDefinition:
             return true;
@@ -481,6 +486,10 @@ bool ClassDefinition::IsConceptOf(const InterfaceDefinition *interface) const {
         }
     }
     return false;
+}
+
+EnumDefinition::EnumDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
+    : IncompletableDefinition(Node::kEnumDefinition, arena, name, source_position) {
 }
 
 AnnotationDeclaration::AnnotationDeclaration(base::Arena *arena, const SourcePosition &source_position)
@@ -961,6 +970,20 @@ bool StructType::Acceptable(const Type *rhs, bool *unlinked) const {
 }
 
 std::string StructType::ToString() const { return definition()->FullName(); }
+
+bool EnumType::Acceptable(const Type *rhs, bool *unlinked) const {
+    if (rhs->primary_type() == kType_symbol) {
+        *unlinked = true;
+        return false;
+    }
+    if (!rhs->IsStructType()) {
+        return false;
+    }
+    auto type = rhs->AsEnumType();
+    return definition() == type->definition();
+}
+
+std::string EnumType::ToString() const { return definition()->FullName(); }
 
 bool InterfaceType::Acceptable(const Type *rhs, bool *unlinked) const {
     if (rhs->primary_type() == kType_symbol) {

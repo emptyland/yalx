@@ -32,6 +32,7 @@ public:
     int VisitAssignment(Assignment *node) override { return -1; }
     int VisitStructDefinition(StructDefinition *node) override { return -1; }
     int VisitClassDefinition(ClassDefinition *node) override { return -1; }
+    int VisitEnumDefinition(EnumDefinition *node) override { return -1; }
     int VisitAnnotationDefinition(AnnotationDefinition *node) override { return -1; }
     int VisitInterfaceDefinition(InterfaceDefinition *node) override { return -1; }
     int VisitFunctionDeclaration(FunctionDeclaration *node) override { return -1; }
