@@ -74,6 +74,8 @@ Type Type::Val(Model *model, bool is_pointer) {
                 DCHECK_NOTNULL(model));
 }
 
+Type Type::Tuple(Type *tuple, int size) { return Type(kTuple, 0, tuple, size); }
+
 void Type::PrintTo(base::PrintingWriter *printer) const {
     switch (kind()) {
         case kReference: {

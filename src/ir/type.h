@@ -40,6 +40,7 @@ public:
         DECLARE_HIR_TYPES(DEFINE_KINDS)
         kReference,
         kValue,
+        kTuple,
 #undef DEFINE_KINDS
     };
     
@@ -57,6 +58,14 @@ public:
     DEF_VAL_GETTER(Kind, kind);
     DEF_VAL_GETTER(int, bits);
     DEF_PTR_GETTER(Model, model);
+    DEF_PTR_GETTER(Type, tuple);
+    
+    Type tuple(int i) const {
+        DCHECK(kind() == kTuple);
+        DCHECK(i >= 0);
+        DCHECK(i < bits());
+        return tuple_[i];
+    }
     
     int bytes() const { return bits_ >> 3; /*/8*/ }
     
@@ -81,6 +90,7 @@ public:
 
     static Type Ref(Model *model, bool _nullable = false);
     static Type Val(Model *model, bool pointer = false);
+    static Type Tuple(Type *tuple, int size);
     //static Type String(Model *model, bool _nullable = false);
 private:
     constexpr Type(Kind kind, int bits, uint32_t flags, Model *model)
@@ -89,10 +99,19 @@ private:
         , flags_(flags)
         , model_(model) {}
     
+    constexpr Type(Kind kind, uint32_t flags, Type *tuple, int n)
+        : kind_(kind)
+        , bits_(n)
+        , flags_(flags)
+        , tuple_(tuple) {}
+    
     Kind kind_;
     int bits_;
     uint32_t flags_;
-    Model *model_;
+    union {
+        Model *model_;
+        Type *tuple_;
+    };
 }; // class Type
 
 struct Types {

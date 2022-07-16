@@ -166,7 +166,7 @@ Module::Module(base::Arena *arena, const String *name, const String *full_name, 
 }
 
 InterfaceModel *Module::NewInterfaceModel(const String *name, const String *full_name) {
-    assert(named_models_.find(name->ToSlice()) == named_models_.end());
+    DCHECK(named_models_.find(name->ToSlice()) == named_models_.end());
     auto model = new (arena()) InterfaceModel(arena(), name, full_name);
     named_models_[name->ToSlice()] = model;
     interfaces_.push_back(model);
@@ -174,7 +174,7 @@ InterfaceModel *Module::NewInterfaceModel(const String *name, const String *full
 }
 
 StructureModel *Module::NewClassModel(const String *name, const String *full_name, StructureModel *base_of) {
-    assert(named_models_.find(name->ToSlice()) == named_models_.end());
+    DCHECK(named_models_.find(name->ToSlice()) == named_models_.end());
     auto clazz = new (arena()) StructureModel(arena(), name, full_name, StructureModel::kClass, this, base_of);
     named_models_[name->ToSlice()] = clazz;
     structures_.push_back(clazz);
@@ -182,9 +182,16 @@ StructureModel *Module::NewClassModel(const String *name, const String *full_nam
 }
 
 StructureModel *Module::NewStructModel(const String *name, const String *full_name, StructureModel *base_of) {
-    assert(named_models_.find(name->ToSlice()) == named_models_.end());
-    assert(named_models_.find(name->ToSlice()) == named_models_.end());
+    DCHECK(named_models_.find(name->ToSlice()) == named_models_.end());
     auto clazz = new (arena()) StructureModel(arena(), name, full_name, StructureModel::kStruct, this, base_of);
+    named_models_[name->ToSlice()] = clazz;
+    structures_.push_back(clazz);
+    return clazz;
+}
+
+StructureModel *Module::NewEnumModel(const String *name, const String *full_name) {
+    DCHECK(named_models_.find(name->ToSlice()) == named_models_.end());
+    auto clazz = new (arena()) StructureModel(arena(), name, full_name, StructureModel::kEnum, this, nullptr);
     named_models_[name->ToSlice()] = clazz;
     structures_.push_back(clazz);
     return clazz;
@@ -199,7 +206,7 @@ Function *Module::NewFunction(const Function::Decoration decoration, const Strin
 Function *Module::NewFunction(const Function::Decoration decoration, const String *name, const String *full_name,
                               PrototypeModel *prototype) {
     auto fun = new (arena_) Function(arena_, decoration, name, full_name, this, prototype);
-    assert(global_values_.find(name->ToSlice()) == global_values_.end());
+    DCHECK(global_values_.find(name->ToSlice()) == global_values_.end());
     global_values_[name->ToSlice()] = GlobalSlot{funs_size(), true};
     funs_.push_back(fun);
     return fun;
@@ -447,7 +454,7 @@ void BasicBlock::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) co
 Value *Value::NewWithInputs(base::Arena *arena, const String *name, SourcePosition source_position, Type type,
                             Operator *op, Node **inputs, size_t size) {
     auto value = New0(arena, name, source_position, type, op);
-    assert(size == TotalInOutputs(op));
+    DCHECK(size == TotalInOutputs(op));
     ::memcpy(value->io_, inputs, size * sizeof(Node *));
     for (size_t i = 0; i < size; i++) {
         if (inputs[i]->IsValue()){
@@ -477,7 +484,7 @@ Value::Value(base::Arena *arena, const String *name, SourcePosition source_posit
 
 Value::User *Value::AddUser(base::Arena *arena, Value *user, int position) {
     if (!inline_users_) {
-        assert(!has_users_overflow_);
+        DCHECK(!has_users_overflow_);
         inline_users_capacity_ = 8;
         inline_users_ = arena->NewArray<User>(inline_users_capacity_);
     }
@@ -553,8 +560,8 @@ void Value::RemoveUser(User *user) {
 }
 
 void Value::Replace(base::Arena *arena, int position, Value *from, Value *to) {
-    assert(position >= 0 && position < TotalInOutputs(op()));
-    assert(io_[position] == from);
+    DCHECK(position >= 0 && position < TotalInOutputs(op()));
+    DCHECK(io_[position] == from);
     
     auto edge = DCHECK_NOTNULL(from->FindUser(this, position));
     from->RemoveUser(edge);
@@ -564,8 +571,8 @@ void Value::Replace(base::Arena *arena, int position, Value *from, Value *to) {
 }
 
 void Value::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) const {
-    assert(op()->value() >= 0);
-    assert(op()->value() < Operator::kMaxValues);
+    DCHECK(op()->value() >= 0);
+    DCHECK(op()->value() < Operator::kMaxValues);
     
     if (type().kind() == Type::kVoid) {
         ctx->OfIndent(printer);

@@ -787,7 +787,7 @@ TEST_F(IntermediateRepresentationGeneratorTest, PrimitiveProps) {
     //    modules["yalx/lang:lang"]->PrintTo(&printer);
     //    modules["foo:foo"]->PrintTo(&printer);
     modules["main:main"]->PrintTo(&printer);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
 //    static const char z[] = R"(module main @main:main {
 //source-files:
 //    [0] tests/28-ir-primitive-props/src/main/main.yalx
@@ -825,6 +825,105 @@ TEST_F(IntermediateRepresentationGeneratorTest, PrimitiveProps) {
 //} // @main:main
 //)";
 //    ASSERT_EQ(z, buf);
+}
+
+TEST_F(IntermediateRepresentationGeneratorTest, EnumValues) {
+    bool ok = false;
+    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    IRGen("tests/29-ir-enum-types", &modules, &ok);
+    ASSERT_TRUE(ok);
+    
+    ASSERT_TRUE(modules.find("yalx/lang:lang") != modules.end());
+    ASSERT_TRUE(modules.find("main:main") != modules.end());
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    //    modules["yalx/lang:lang"]->PrintTo(&printer);
+    //    modules["foo:foo"]->PrintTo(&printer);
+    modules["main:main"]->PrintTo(&printer);
+    //printf("%s\n", buf.c_str());
+    
+    static const char z[] = R"(module main @main:main {
+source-files:
+    [0] tests/29-ir-enum-types/src/main/main.yalx
+
+globals:
+    %main:main.e0 = GlobalValue val[foo:foo.Optional<i32>] <"main:main.e0">
+    %main:main.e1 = GlobalValue val[foo:foo.Optional<i32>] <"main:main.e1">
+    %main:main.e2 = GlobalValue val[foo:foo.Foo] <"main:main.e2">
+    %main:main.e3 = GlobalValue val[foo:foo.Foo] <"main:main.e3">
+    %main:main.e4 = GlobalValue val[foo:foo.Foo] <"main:main.e4">
+    %main:main.e5 = GlobalValue val[foo:foo.Foo] <"main:main.e5">
+
+functions:
+    fun $init(): void {
+    boot:
+        %0 = LoadFunAddr val[fun ()->void]* <fun foo:foo.$init>
+        CallRuntime void val[fun ()->void]* %0, string "foo:foo" <PkgInitOnce>
+        %1 = LoadFunAddr val[fun ()->void]* <fun yalx/lang:lang.$init>
+        CallRuntime void val[fun ()->void]* %1, string "yalx/lang:lang" <PkgInitOnce>
+        %2 = StackAlloc val[foo:foo.Optional<i32>] <Optional<i32>>
+        %3 = StoreInlineField val[foo:foo.Optional<i32>] val[foo:foo.Optional<i32>] %2, u16 2 <foo:foo.Optional<i32>::$enum_code$>
+        StoreGlobal void val[foo:foo.Optional<i32>] %main:main.e0, val[foo:foo.Optional<i32>] %3
+        %4 = StackAlloc val[foo:foo.Optional<i32>] <Optional<i32>>
+        %5 = StoreInlineField val[foo:foo.Optional<i32>] val[foo:foo.Optional<i32>] %4, u16 1 <foo:foo.Optional<i32>::$enum_code$>
+        %6 = StoreInlineField val[foo:foo.Optional<i32>] val[foo:foo.Optional<i32>] %5, i32 1 <foo:foo.Optional<i32>::Some>
+        StoreGlobal void val[foo:foo.Optional<i32>] %main:main.e1, val[foo:foo.Optional<i32>] %6
+        %7 = StackAlloc val[foo:foo.Foo] <Foo>
+        %8 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %7, u16 4 <foo:foo.Foo::$enum_code$>
+        StoreGlobal void val[foo:foo.Foo] %main:main.e2, val[foo:foo.Foo] %8
+        %9 = StackAlloc val[foo:foo.Foo] <Foo>
+        %10 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %9, u16 1 <foo:foo.Foo::$enum_code$>
+        %11 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %10, string "ok" <foo:foo.Foo::B>
+        StoreGlobal void val[foo:foo.Foo] %main:main.e3, val[foo:foo.Foo] %11
+        %12 = StackAlloc val[foo:foo.Foo] <Foo>
+        %13 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %12, u16 2 <foo:foo.Foo::$enum_code$>
+        %14 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %13, u8 1 <foo:foo.Foo::C>
+        StoreGlobal void val[foo:foo.Foo] %main:main.e4, val[foo:foo.Foo] %14
+        %15 = StackAlloc val[foo:foo.Optional<i32>] <Optional<i32>>
+        %16 = StoreInlineField val[foo:foo.Optional<i32>] val[foo:foo.Optional<i32>] %15, u16 1 <foo:foo.Optional<i32>::$enum_code$>
+        %17 = StoreInlineField val[foo:foo.Optional<i32>] val[foo:foo.Optional<i32>] %16, i32 1 <foo:foo.Optional<i32>::Some>
+        %18 = StackAlloc val[foo:foo.Foo] <Foo>
+        %19 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %18, u16 3 <foo:foo.Foo::$enum_code$>
+        %20 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %19, val[foo:foo.Optional<i32>] %17 <foo:foo.Foo::D>
+        StoreGlobal void val[foo:foo.Foo] %main:main.e5, val[foo:foo.Foo] %20
+        Ret void
+    } // main:main.$init
+
+    fun issue00_enum_value(): val[foo:foo.Foo] {
+    entry:
+        %0 = StackAlloc val[foo:foo.Foo] <Foo>
+        %1 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %0, u16 4 <foo:foo.Foo::$enum_code$>
+        Ret void val[foo:foo.Foo] %1
+    } // main:main.issue00_enum_value
+
+    fun issue01_enum_string_value(): val[foo:foo.Foo] {
+    entry:
+        %0 = StackAlloc val[foo:foo.Foo] <Foo>
+        %1 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %0, u16 1 <foo:foo.Foo::$enum_code$>
+        %2 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %1, string "hello" <foo:foo.Foo::B>
+        Ret void val[foo:foo.Foo] %2
+    } // main:main.issue01_enum_string_value
+
+    fun issue02_enum_of_enum(): val[foo:foo.Foo] {
+    entry:
+        %0 = StackAlloc val[foo:foo.Optional<i32>] <Optional<i32>>
+        %1 = StoreInlineField val[foo:foo.Optional<i32>] val[foo:foo.Optional<i32>] %0, u16 1 <foo:foo.Optional<i32>::$enum_code$>
+        %2 = StoreInlineField val[foo:foo.Optional<i32>] val[foo:foo.Optional<i32>] %1, i32 997 <foo:foo.Optional<i32>::Some>
+        %3 = StackAlloc val[foo:foo.Foo] <Foo>
+        %4 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %3, u16 3 <foo:foo.Foo::$enum_code$>
+        %5 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %4, val[foo:foo.Optional<i32>] %2 <foo:foo.Foo::D>
+        Ret void val[foo:foo.Foo] %5
+    } // main:main.issue02_enum_of_enum
+
+    fun issue02_enum_compact_value(): val[foo:foo.Optional<string>] {
+    entry:
+        Ret void string "ok"
+    } // main:main.issue02_enum_compact_value
+
+} // @main:main
+)";
+    ASSERT_EQ(z, buf);
 }
 
 } // namespace ir

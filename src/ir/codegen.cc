@@ -230,8 +230,46 @@ public:
     }
     
     int VisitEnumDefinition(cpl::EnumDefinition *node) override {
-        UNREACHABLE(); // TODO:
-        return -1;
+        if (!node->generic_params().empty()) {
+            return Returning(Unit());
+        }
+        
+        auto clazz = AssertedGetUdt<StructureModel>(node->FullName());
+        for (auto ast : node->fields()) {
+            Type ty;
+            if (ast.declaration->ItemSize() == 0) {
+                ty = Types::Void;
+            } else if (ast.declaration->ItemSize() == 1) {
+                ty = BuildType(ast.declaration->Type());
+            } else {
+                std::vector<Type> types;
+                for (auto var : ast.declaration->variables()) {
+                    types.push_back(BuildType(var->type()));
+                }
+                ty = Type::Tuple(&types[0], static_cast<int>(types.size()));
+            }
+            
+            Model::Field field {
+                ast.declaration->name()->Duplicate(arena()),
+                kPublic,
+                0,
+                ty,
+                false,
+            };
+            DCHECK_NOTNULL(clazz->InsertField(field));
+        }
+        
+        StructureScope scope(&location_, node, clazz);
+        scope.InstallAncestorsSymbols();
+        for (auto ast : node->methods()) {
+            auto method = clazz->FindMethod(ast->name()->ToSlice());
+            DCHECK(method.has_value());
+            if (!GenerateFun(ast, clazz, method->fun)) {
+                return -1;
+            }
+        }
+        
+        return Returning(Unit());
     }
     
     template<class T> int GenerateStructureModel(T *node, std::function<void(StructureModel *)> &&fixup) {
@@ -501,12 +539,55 @@ public:
                 full_name = decl->package()->path()->ToString().append(":").append(decl->FullName());
             }
             symbol = owns_->AssertedGetSymbol(full_name);
+        } else if (auto ast = node->callee()->AsResolving()) {
+            // foo::A(...)
+            symbol = GetSymbolByResolving(ast);
+            auto def = down_cast<StructureModel>(symbol.core.model);
+            handle = def->FindMemberOrNull(ast->field()->ToSlice());
         }
         
         for (auto ast : node->args()) {
             if (Reduce(ast, &args) < 0) {
                 return -1;
             }
+        }
+        
+        // It's enum value initializer
+        if (handle && handle->owns()->declaration() == Model::kEnum && handle->IsField()) {
+            auto def = down_cast<StructureModel>(symbol.core.model);
+            auto enum_code = def->EnumCodeFieldIfNotCompactEnum();
+            auto field = std::get<const Model::Field *>(def->GetMember(handle));
+            
+            Value *value = nullptr;
+            if (enum_code) {
+                auto op = ops()->StackAlloc(def);
+                auto ty = Type::Val(def);
+                value = b()->NewNode(root_ss.Position(), ty, op);
+            }
+
+            if (field->type.kind() == Type::kTuple) {
+                DCHECK(args.size() == field->type.bits());
+                DCHECK(enum_code != nullptr);
+                
+                auto op = ops()->U16Constant(handle->offset());
+                auto code = Value::New(arena(), root_ss.Position(), Types::UInt16, op);
+                value = EmitStoreField(value, code, enum_code, root_ss.Position());
+                value = EmitStoreField(value, args[0], handle, root_ss.Position());
+            } else {
+                DCHECK(field->type.kind() != Type::kVoid);
+                DCHECK(args.size() == 1);
+                
+                if (enum_code) {
+                    auto op = ops()->U16Constant(handle->offset());
+                    auto code = Value::New(arena(), root_ss.Position(), Types::UInt16, op);
+                    value = EmitStoreField(value, code, enum_code, root_ss.Position());
+                    value = EmitStoreField(value, args[0], handle, root_ss.Position());
+                } else {
+                    DCHECK(args[0]->type().IsReference());
+                    value = args[0]; // Compact enum
+                }
+            }
+            return Returning(value);
         }
         if (symbol.kind == Symbol::kHandle) {
             handle = symbol.core.handle;
@@ -1235,8 +1316,56 @@ public:
     }
     
     int VisitResolving(cpl::Resolving *node) override {
-        UNREACHABLE(); // TODO:
-        return -1;
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        auto symbol = GetSymbolByResolving(node);
+        auto clazz = symbol.core.model;
+        DCHECK(clazz->declaration() == Model::kEnum);
+        
+        auto def = down_cast<StructureModel>(clazz);
+
+        if (auto handle = def->EnumCodeFieldIfNotCompactEnum()) {
+            auto op = ops()->StackAlloc(def);
+            auto ty = Type::Val(clazz);
+            auto value = b()->NewNode(root_ss.Position(), ty, op);
+            op = ops()->U16Constant(handle->offset());
+            auto code = Value::New(arena(), root_ss.Position(), Types::UInt16, op);
+            op = ops()->StoreInlineField(handle);
+            return Returning(b()->NewNode(root_ss.Position(), ty, op, value, code));
+        }
+        
+        auto op = ops()->NilConstant();
+        auto ty = Type::Val(clazz);
+        return Returning(Value::New(arena(), root_ss.Position(), ty, op));
+    }
+    
+    Symbol GetSymbolByResolving(cpl::Resolving *node) {
+        Symbol symbol = Symbol::NotFound();
+        switch (node->primary()->kind()) {
+            case cpl::Node::kIdentifier: {
+                auto id = node->primary()->AsIdentifier();
+                symbol = location_->FindSymbol(id->name()->ToSlice());
+            } break;
+            case cpl::Node::kDot: {
+                auto dot = node->primary()->AsDot();
+                auto file_scope = location_->NearlyFileUnitScope();
+                if (auto id = dot->primary()->AsIdentifier()) {
+                    symbol = file_scope->FindExportSymbol(id->name()->ToSlice(), dot->field()->ToSlice());
+                }
+            } break;
+            case cpl::Node::kInstantiation: {
+                auto ast = node->primary()->AsInstantiation();
+                auto inst = DCHECK_NOTNULL(ast->instantiated());
+                auto def = DCHECK_NOTNULL(inst->AsEnumDefinition());
+                symbol = owns_->AssertedGetSymbol(def->FullName());
+            } break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+        DCHECK(symbol.IsFound());
+        //DCHECK(symbol.owns->IsFileUnitScope());
+        DCHECK(symbol.kind == Symbol::kModel);
+        return symbol;
     }
     
     Model *GetTypeSpecifiedModel(const Type &type) {
@@ -2636,11 +2765,8 @@ void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
         return; // Ignore duplicated
     }
     
-    auto module = new (arena_) Module(arena_,
-                                      pkg->name()->Duplicate(arena_),
-                                      String::New(arena_, full_name),
-                                      pkg->path()->Duplicate(arena_),
-                                      pkg->full_path()->Duplicate(arena_));
+    auto module = new (arena_) Module(arena_, pkg->name()->Duplicate(arena_), String::New(arena_, full_name),
+                                      pkg->path()->Duplicate(arena_), pkg->full_path()->Duplicate(arena_));
     modules_[module->full_name()->ToSlice()] = module;
     arena_->Lazy<PackageContext>()->Associate(module);
 
@@ -2662,6 +2788,15 @@ void IntermediateRepresentationGenerator::PreparePackage0(cpl::Package *pkg) {
             std::string name(full_name + "." + def->name()->ToString());
             auto model = module->NewStructModel(def->name()->Duplicate(arena_), String::New(arena_, name),
                                                 nullptr/*base_of*/);
+            symbols_[model->full_name()->ToSlice()] = Symbol::Udt(nullptr, model, def);
+        }
+        
+        for (auto def : file_unit->enum_defs()) {
+            if (!def->generic_params().empty()) {
+                continue;
+            }
+            std::string name(full_name + "." + def->name()->ToString());
+            auto model = module->NewEnumModel(def->name()->Duplicate(arena_), String::New(arena_, name));
             symbols_[model->full_name()->ToSlice()] = Symbol::Udt(nullptr, model, def);
         }
         
@@ -2793,6 +2928,10 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
         case cpl::Type::kType_struct: {
             auto clazz = type->AsStructType();
             //printd("%s", clazz->definition()->FullName().c_str());
+            return Type::Val(AssertedGetUdt(clazz->definition()->FullName()));
+        } break;
+        case cpl::Type::kType_enum: {
+            auto clazz = type->AsEnumType();
             return Type::Val(AssertedGetUdt(clazz->definition()->FullName()));
         } break;
         case cpl::Type::kType_string:

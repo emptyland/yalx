@@ -219,6 +219,8 @@ private:
 
 class StructureModel : public Model {
 public:
+    static constexpr char kEnumCodeName[] = "$enum_code$";
+    
     StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration declaration,
                    Module *owns, StructureModel *base_of);
     
@@ -249,7 +251,15 @@ public:
     int64_t UpdatePlacementSizeInBytes();
     bool In_itab(Handle *) const;
     bool In_vtab(Handle *) const;
+    
+    bool IsNotCompactEnum() const { return !IsCompactEnum(); }
+    bool IsCompactEnum() const;
+    Handle *EnumCodeFieldIfNotCompactEnum();
 private:
+    int64_t CalculateContinuousPlacementSize();
+    int64_t CalculateCompactPlacementSize();
+    static std::tuple<size_t, size_t> CalculateTypesPlacementSize(const Type *types, int n);
+    
     Module *const owns_;
     base::Arena * const arena_;
     StructureModel *base_of_;

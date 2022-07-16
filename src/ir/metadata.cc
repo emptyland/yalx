@@ -654,6 +654,123 @@ void StructureModel::InstallVirtualTables(bool force) {
 }
 
 int64_t StructureModel::UpdatePlacementSizeInBytes() {
+    
+    // size must be aligment of kPointerSize
+    switch (declaration()) {
+        case Model::kStruct:
+        case Model::kClass:
+            placement_size_in_bytes_ = CalculateContinuousPlacementSize();
+            break;
+            
+        case Model::kEnum:
+            placement_size_in_bytes_ = CalculateCompactPlacementSize();
+            break;
+            
+        default:
+            UNREACHABLE();
+            break;
+    }
+    return placement_size_in_bytes_;
+}
+
+int64_t StructureModel::CalculateCompactPlacementSize() {
+    //ptrdiff_t offset = 0;
+    size_t max_size = 0;
+    int ref_ty_count = 0;
+    int unit_ty_count = 0;
+    for (auto &field : fields_) {
+        switch (field.type.kind()) {
+            case Type::kValue:
+                DCHECK(!field.type.IsPointer());
+                max_size = std::max(max_size, field.type.model()->PlacementSizeInBytes());
+                break;
+            case Type::kString:
+            case Type::kReference:
+                max_size = std::max(max_size, field.type.model()->ReferenceSizeInBytes());
+                ref_ty_count++;
+                break;
+            case Type::kTuple:
+                UNREACHABLE(); // Not support yet
+                break;
+            case Type::kVoid:
+                unit_ty_count++;
+                break;
+            default:
+                max_size = std::max(max_size, static_cast<size_t>(field.type.bytes()));
+                break;
+        }
+    }
+    ptrdiff_t base_offset = 2;
+    if (ref_ty_count == 1 && unit_ty_count == 1 && fields_size() == 2) {
+        base_offset = 0;
+    }
+    
+    max_size = base_offset;
+    for (auto &field : fields_) {
+        size_t size = 0, alignment = 0;
+        switch (field.type.kind()) {
+            case Type::kValue:
+                DCHECK(!field.type.IsPointer());
+                size = RoundUp(base_offset, kPointerSize) + field.type.model()->PlacementSizeInBytes();
+                break;
+            case Type::kString:
+            case Type::kReference:
+                size = RoundUp(base_offset, kPointerSize) + field.type.model()->PlacementSizeInBytes();
+                break;
+            case Type::kTuple: {
+                auto [s, a] = CalculateTypesPlacementSize(field.type.tuple(), field.type.bits());
+                size = RoundUp(base_offset, a) + s;
+            } break;
+            case Type::kVoid:
+                break;
+            default:
+                alignment = std::min(kPointerSize, field.type.bytes());
+                size = RoundUp(base_offset, alignment) + field.type.bytes();
+                break;
+        }
+        max_size = std::max(size, max_size);
+    }
+
+    return RoundUp(max_size, kPointerSize);
+}
+
+std::tuple<size_t, size_t> StructureModel::CalculateTypesPlacementSize(const Type *types, int n) {
+    size_t size = 0, aligment = 0;
+    for (int i = 0; i < n; i++) {
+        auto ty = types[i];
+        switch (ty.kind()) {
+            case Type::kValue:
+                break;
+                
+            case Type::kReference:
+            case Type::kString:
+                aligment = kPointerSize;
+                size = RoundUp(size, kPointerSize);
+                size += kPointerSize;
+                break;
+                
+            case Type::kTuple: {
+                auto [s, a] = CalculateTypesPlacementSize(ty.tuple(), ty.bits());
+                size = RoundUp(size, a);
+                size += s;
+            } break;
+                
+                
+            case Type::kVoid:
+                break;
+                
+            default:
+                aligment = std::min(kPointerSize, ty.bytes());
+                size = RoundUp(size, ty.bytes());
+                size += ty.bytes();
+                break;
+        }
+    }
+    
+    return std::make_tuple(size, aligment);
+}
+
+int64_t StructureModel::CalculateContinuousPlacementSize() {
     ptrdiff_t offset = 0;
     if (!base_of()) {
         offset = sizeof(struct yalx_value_any);
@@ -662,14 +779,14 @@ int64_t StructureModel::UpdatePlacementSizeInBytes() {
     } else {
         offset = base_of()->UpdatePlacementSizeInBytes();
     }
-    assert(offset > 0);
-    assert(offset % kPointerSize == 0);
+    DCHECK(offset > 0);
+    DCHECK(offset % kPointerSize == 0);
 
     for (auto &field : fields_) {
         size_t incoming_size = 0;
         switch (field.type.kind()) {
             case Type::kValue:
-                assert(!field.type.IsPointer());
+                DCHECK(!field.type.IsPointer());
                 field.offset = RoundUp(offset, kPointerSize);
                 incoming_size = field.type.model()->PlacementSizeInBytes();
                 offset = field.offset + incoming_size;
@@ -680,6 +797,9 @@ int64_t StructureModel::UpdatePlacementSizeInBytes() {
                 field.offset = RoundUp(offset, incoming_size);
                 offset = field.offset + incoming_size;
                 break;
+            case Type::kTuple:
+                UNREACHABLE(); // Not support yet
+                break;
             default:
                 incoming_size = field.type.bytes();
                 field.offset = RoundUp(offset, incoming_size);
@@ -688,8 +808,7 @@ int64_t StructureModel::UpdatePlacementSizeInBytes() {
         }
     }
     // size must be aligment of kPointerSize
-    placement_size_in_bytes_ = RoundUp(offset, kPointerSize);
-    return placement_size_in_bytes_;
+    return RoundUp(offset, kPointerSize);
 }
 
 bool StructureModel::IsBaseOf(const Model *base) const {
@@ -769,6 +888,44 @@ bool StructureModel::In_vtab(Handle *handle) const {
         }
     }
     return false;
+}
+
+bool StructureModel::IsCompactEnum() const {
+    if (declaration() != kEnum) {
+        return false;
+    }
+    int refs_ty_count = 0, unit_ty_count = 0;
+    for (auto field : fields()) {
+        switch (field.type.kind()) {
+            case Type::kReference:
+            case Type::kString:
+                refs_ty_count++;
+                break;
+            case Type::kVoid:
+                unit_ty_count++;
+                break;
+            default:
+                break;
+        }
+    }
+    return refs_ty_count == 1 && unit_ty_count == 1 && fields_size() == 2;
+}
+
+Handle *StructureModel::EnumCodeFieldIfNotCompactEnum() {
+    if (IsCompactEnum()) {
+        return nullptr;
+    }
+    
+    if (auto iter = members_.find(kEnumCodeName); iter != members_.end()) {
+        return iter->second;
+    }
+    return InsertField({
+        .name = String::New(arena_, kEnumCodeName),
+        .access = kPublic,
+        .offset = 0,
+        .type = Types::UInt16,
+        .is_volatile = false,
+    });
 }
 
 } // namespace ir
