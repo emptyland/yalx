@@ -1244,6 +1244,20 @@ private:
     const String *field_;
 }; // class Dot
 
+// Resolving
+class Resolving : public Expression {
+public:
+    Resolving(Expression *primary, const String *field, const SourcePosition &source_position);
+    
+    DEF_PTR_PROP_RW(Expression, primary);
+    DEF_PTR_PROP_RW(const String, field);
+
+    DECLARE_AST_NODE(Resolving);
+private:
+    Expression *primary_;
+    const String *field_;
+}; // class Resolving
+
 class Casting : public Expression {
 public:
     Casting(Expression *source, Type *destination, const SourcePosition &source_position);

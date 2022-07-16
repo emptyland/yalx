@@ -1,0 +1,16 @@
+package main
+
+import "foo"
+
+val e0 = foo.Optional<i32>::None
+val e1 = foo.Optional<i32>::Some(1)
+
+val e2 = foo.Foo::A
+val e3 = foo.Foo::B("ok")
+val e4 = foo.Foo::C(1u8, 2u8, 3u8, 4u8)
+val e5 = foo.Foo::D(foo.Optional<int>::Some(1))
+
+fun issue00_enum_value() {
+    
+
+}

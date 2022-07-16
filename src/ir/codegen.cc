@@ -1234,6 +1234,11 @@ public:
         return Returning(val);
     }
     
+    int VisitResolving(cpl::Resolving *node) override {
+        UNREACHABLE(); // TODO:
+        return -1;
+    }
+    
     Model *GetTypeSpecifiedModel(const Type &type) {
         switch (type.kind()) {
             case Type::kValue:

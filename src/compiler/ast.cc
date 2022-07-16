@@ -144,6 +144,8 @@ bool Statement::IsNotTemplate() const {
             return AsClassDefinition()->generic_params().empty();
         case Node::kStructDefinition:
             return AsStructDefinition()->generic_params().empty();
+        case Node::kEnumDefinition:
+            return AsEnumDefinition()->generic_params().empty();
         case Node::kFunctionDeclaration:
             return AsFunctionDeclaration()->generic_params().empty();
         default:
@@ -589,6 +591,12 @@ Dot::Dot(Expression *primary, const String *field, const SourcePosition &source_
     , field_(field) {
 }
 
+Resolving::Resolving(Expression *primary, const String *field, const SourcePosition &source_position)
+    : Expression(Node::kResolving, false /*is_lval*/, true /*is_rval*/, source_position)
+    , primary_(primary)
+    , field_(field) {
+}
+
 Casting::Casting(Expression *source, Type *destination, const SourcePosition &source_position)
     : Expression(Node::kCasting, false /*is_lval*/, true /*ls_rval*/, source_position)
     , source_(source)
@@ -976,7 +984,7 @@ bool EnumType::Acceptable(const Type *rhs, bool *unlinked) const {
         *unlinked = true;
         return false;
     }
-    if (!rhs->IsStructType()) {
+    if (!rhs->IsEnumType()) {
         return false;
     }
     auto type = rhs->AsEnumType();

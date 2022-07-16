@@ -1,0 +1,13 @@
+package foo
+
+enum Optional<T> {
+    None,
+    Some(T)
+}
+
+enum Foo {
+    A,
+    B(string),
+    C(u8, u8, u8, u8),
+    D(Optional<int>)
+}

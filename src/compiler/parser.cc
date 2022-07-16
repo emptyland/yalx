@@ -613,6 +613,7 @@ EnumDefinition *Parser::ParseEnumDefinition(bool *ok) {
         IncompletableDefinition::Field field;
         field.in_constructor = false;
         field.declaration = val;
+        val->set_owns(def);
         def->mutable_fields()->push_back(field);
     } while (Test(Token::kComma));
     
@@ -626,6 +627,7 @@ EnumDefinition *Parser::ParseEnumDefinition(bool *ok) {
         auto fun = ParseFunctionDeclaration(CHECK_OK);
         fun->set_access(access);
         fun->set_annotations(anno);
+        fun->set_owns(def);
         def->mutable_methods()->push_back(fun);
     }
     
@@ -1286,8 +1288,14 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                 MoveNext();
                 auto dot_location = location.Concat(Peek().source_position());
                 auto field = MatchText(Token::kIdentifier, CHECK_OK);
-                //printd("%s", field->data());
                 expr = new (arena_) Dot(expr, field, dot_location);
+            } break;
+                
+            case Token::k2Colon: { // ::
+                MoveNext();
+                auto dot_location = location.Concat(Peek().source_position());
+                auto field = MatchText(Token::kIdentifier, CHECK_OK);
+                expr = new (arena_) Resolving(expr, field, dot_location);
             } break;
                 
             case Token::kLBrack: { // [
@@ -1758,7 +1766,9 @@ bool Parser::ProbeInstantiation(bool *ok) {
         ProbeType(CHECK_OK);
     } while (Test(Token::kComma));
     Probe(Token::kGreater, CHECK_OK);
-    Probe(Token::kLParen, CHECK_OK);
+    if (!Probe(Token::k2Colon)) {
+        Probe(Token::kLParen, CHECK_OK);
+    }
     return true;
 }
 

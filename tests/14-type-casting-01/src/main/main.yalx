@@ -24,8 +24,8 @@ val v16 = @u8[] {1,2,3,4} as string
 val v17 = @i8[] {1,2,3,4} as string
 val v18 = @char[] {'😀', '😂', '😛'} as string
 
-val v19 = v5.toF32()
-val v20 = v6.toF64()
+//val v19 = v5.toF32()
+//val v20 = v6.toF64()
 
 val v21 = @char[16]('a')
 val v22 = @int[16](0)

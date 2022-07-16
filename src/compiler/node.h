@@ -192,6 +192,7 @@ namespace cpl {
     V(Send) \
     V(AssertedGet) \
     V(IndexedGet) \
+    V(Resolving) \
     V(Dot) \
     V(Casting) \
     V(Testing) \

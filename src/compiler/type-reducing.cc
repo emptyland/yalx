@@ -361,6 +361,7 @@ private:
     }
     
     int VisitPackage(Package *node) override {
+        //printd("%s", node->full_path()->data());
         if (Track(node)) {
             return 0; // Skip if has processed
         }
@@ -513,6 +514,7 @@ private:
     }
     
     int VisitClassDefinition(ClassDefinition *node) override {
+        //printd("%s", node->FullName().c_str());
         if (!node->generic_params().empty()) {
             return Returning(Unit());
         }
@@ -1110,7 +1112,53 @@ private:
             }
         }
     }
-
+    
+    int VisitResolving(Resolving *node) override {
+        Statement *owns = nullptr;
+        if (!ReduceResolving(node, &owns)) {
+            return -1;
+        }
+        return Returning(new (arena_) EnumType(arena_, DCHECK_NOTNULL(owns->AsEnumDefinition()),
+                                               node->source_position()));
+    }
+    
+    Statement *ReduceResolving(Resolving *node, Statement **owns = nullptr) {
+        Statement *ast = nullptr;
+        switch (node->primary()->kind()) {
+            case Node::kInstantiation:
+                ast = Instantiate("resolving", node->primary()->AsInstantiation(), Node::kMaxKinds);
+                break;
+                
+            case Node::kIdentifier: {
+                auto id = node->primary()->AsIdentifier();
+                auto [found, ns] = location_->FindSymbol(id->name()->ToSlice());
+                ast = found;
+            } break;
+                
+            case Node::kDot: {
+                auto dot = node->primary()->AsDot();
+                ast = ResolveDotSymbol("Enum definition", dot, Node::kEnumDefinition);
+                if (!ast) {
+                    return nullptr;
+                }
+            } break;
+                
+            default:
+                goto invalid;
+        }
+        
+        if (auto def = ast->AsEnumDefinition()) {
+            auto val = def->FindSymbolOrNull(node->field()->ToSlice());
+            if (val) {
+                if (owns) { *owns = def; }
+                return val;
+            }
+        }
+        
+    invalid:
+        Feedback()->Printf(node->source_position(), "Invalid `::' token");
+        return nullptr;
+    }
 
     int VisitInterfaceDefinition(InterfaceDefinition *node) override {
         if (!node->generic_params().empty()) {
@@ -1172,6 +1220,9 @@ private:
             case Node::kInstantiation:
                 ast = Instantiate("Calling", node->callee()->AsInstantiation(), Node::kMaxKinds);
                 break;
+            case Node::kResolving:
+                ast = ReduceResolving(node->callee()->AsResolving());
+                break;
             default:
                 is_others_expr = true;
                 break;
@@ -1223,6 +1274,41 @@ private:
                 }
             }
             
+            if (auto val = ast->AsVariableDeclaration(); val && val->owns()->IsEnumDefinition()) {
+                std::vector<Type *> args;
+                for (auto arg : node->args()) {
+                    if (Reduce(arg, &args) < 0) {
+                        return -1;
+                    }
+                }
+                
+                if (args.size() != val->ItemSize()) {
+                    Feedback()->Printf(node->source_position(), "Unexpected enum value number of parameters, %zd vs %zd",
+                                       val->ItemSize(), args.size());
+                    return -1;
+                }
+                
+                for (auto i = 0; i < val->ItemSize(); i++) {
+                    auto item = val->variable(i);
+                    Type *param = LinkType(DCHECK_NOTNULL(item->type()));
+                    if (!param) {
+                        return -1;
+                    }
+                    item->set_type(param);
+
+                    bool unlinked = false;
+                    if (!param->Acceptable(args[i], &unlinked)) {
+                        Feedback()->Printf(node->source_position(), "Unexpected enum value parameter[%d] type: `%s', "
+                                           "actual is `%s'", i, param->ToString().c_str(), args[i]->ToString().c_str());
+                        return -1;
+                    }
+                    DCHECK(!unlinked);
+                }
+                
+                auto def = val->owns()->AsEnumDefinition();
+                return Returning(new (arena_) EnumType(arena_, def, def->source_position()));
+            }
+            
             //DCHECK(ast->IsFunctionDeclaration());
             if (auto fun = ast->AsFunctionDeclaration()) {
                 type = fun->prototype();
@@ -1234,7 +1320,7 @@ private:
                 return -1;
             }
             if (!type->IsFunctionPrototype()) {
-                Feedback()->Printf(node->source_position(), "Bad type: `%s' for calling", type->ToString().c_str());
+                Feedback()->Printf(node->source_position(), "Invalid type: `%s' for calling", type->ToString().c_str());
                 return -1;
             }
         }

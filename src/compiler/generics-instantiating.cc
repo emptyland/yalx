@@ -165,6 +165,12 @@ public:
         if (ProcessIncompletableDefinition(node, copied, &base_of) < 0) {
             return -1;
         }
+        for (auto field : copied->fields()) {
+            field.declaration->set_owns(copied);
+        }
+        for (auto method : copied->methods()) {
+            method->set_owns(copied);
+        }
         return Return(copied);
     }
 
@@ -373,6 +379,11 @@ private:
     int VisitDot(Dot *node) override {
         DECL_AND_INSTANTIATE(Expression, primary, node->primary());
         return Return(new (arena_) Dot(primary, node->field(), node->source_position()));
+    }
+    
+    int VisitResolving(Resolving *node) override {
+        DECL_AND_INSTANTIATE(Expression, primary, node->primary());
+        return Return(new (arena_) Resolving(primary, node->field(), node->source_position()));
     }
     
     int VisitMod(Mod *node) override {

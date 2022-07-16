@@ -390,6 +390,28 @@ TEST_F(TypeReducingTest, ArrayExprReducing) {
     ASSERT_EQ(1, ar->dimension_count());
 }
 
+TEST_F(TypeReducingTest, EnumTypeReducing) {
+    base::ArenaMap<std::string_view, Package *> all(&arena_);
+    base::ArenaVector<Package *> entries(&arena_);
+    Package *main_pkg = nullptr;
+    auto rs = Compiler::FindAndParseProjectSourceFiles("tests/29-ir-enum-types", "libs", &arena_, &feedback_,
+                                                       &main_pkg, &entries, &all);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    std::unordered_map<std::string_view, GlobalSymbol> symbols;
+    rs = Compiler::ReducePackageDependencesType(main_pkg, &arena_, &feedback_, &symbols);
+    ASSERT_TRUE(rs.ok()) << rs.ToString();
+    
+    auto e0 = down_cast<VariableDeclaration::Item>(symbols["main:main.e0"].ast);
+    ASSERT_NE(nullptr, e0->type());
+    ASSERT_TRUE(e0->type()->IsEnumType());
+    //auto ar = a0->type()->AsArrayType();
+    auto em = e0->type()->AsEnumType();
+    ASSERT_STREQ("foo:foo.Optional<i32>", em->definition()->FullName().c_str());
+    
+    auto e1 = down_cast<VariableDeclaration::Item>(symbols["main:main.e1"].ast);
+    ASSERT_STREQ("foo:foo.Optional<i32>", e1->type()->AsEnumType()->definition()->FullName().c_str());
+}
+
 } // namespace yalx
 
 } // namespace yalx

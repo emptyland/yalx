@@ -52,6 +52,7 @@ public:
     int VisitAdd(Add *node) override { return -1; }
     int VisitAnd(And *node) override { return -1; }
     int VisitDiv(Div *node) override { return -1; }
+    int VisitResolving(Resolving *node) override { return -1; }
     int VisitDot(Dot *node) override { return -1; }
     int VisitMod(Mod *node) override { return -1; }
     int VisitMul(Mul *node) override { return -1; }
