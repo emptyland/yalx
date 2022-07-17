@@ -349,11 +349,11 @@ InterfaceModel::InterfaceModel(base::Arena *arena, const String *name, const Str
 }
 
 Handle *InterfaceModel::InsertMethod(Function *fun) {
-    assert(fun->decoration() == Function::kAbstract && !fun->entry() && fun->blocks().empty()
+    DCHECK(fun->decoration() == Function::kAbstract && !fun->entry() && fun->blocks().empty()
            && "Function must be a prototype");
     auto name = fun->name()->ToSlice();
     auto iter = members_.find(name);
-    assert(iter == members_.end() || !iter->second->IsMethod());
+    DCHECK(iter == members_.end() || !iter->second->IsMethod());
     auto handle = Handle::Method(arena_, this, fun->name(), methods_size());
     members_[name] = handle;
     methods_.push_back({
@@ -366,9 +366,9 @@ Handle *InterfaceModel::InsertMethod(Function *fun) {
 }
 
 Model::Member InterfaceModel::GetMember(const Handle *handle) const {
-    assert(handle->owns() == this);
-    assert(handle->offset() >= 0);
-    assert(handle->offset() < methods_size());
+    DCHECK(handle->owns() == this);
+    DCHECK(handle->offset() >= 0);
+    DCHECK(handle->offset() < methods_size());
     return &methods_[handle->offset()];
 }
 
@@ -412,7 +412,7 @@ void ArrayShadow::Init() {
         .access = kPublic,
         .offset = offsetof(yalx_value_array, len),
         .type = Types::Int32,
-        .is_volatile = false,
+        .enum_value = 0,
     });
     
     Put({
@@ -420,7 +420,7 @@ void ArrayShadow::Init() {
         .access = kPublic,
         .offset = offsetof(yalx_value_multi_dims_array, rank),
         .type = Types::Int32,
-        .is_volatile = false,
+        .enum_value = 0,
     });
     
     auto base_pkg = DCHECK_NOTNULL(arena()->Lazy<PackageContext>()->FindOrNull(cpl::kLangPackageFullName));
@@ -507,7 +507,7 @@ StructureModel::StructureModel(base::Arena *arena, const String *name, const Str
 
 Handle *StructureModel::InsertField(const Field &field) {
     auto iter = members_.find(field.name->ToSlice());
-    assert(iter == members_.end() || !iter->second->IsField());
+    DCHECK(iter == members_.end() || !iter->second->IsField());
     //Index index = {.offset = fields_.size(), .field_or_method = true};
     auto handle = Handle::Field(arena_, this, field.name, fields_size());
     members_[field.name->ToSlice()] = handle;
@@ -518,7 +518,7 @@ Handle *StructureModel::InsertField(const Field &field) {
 Handle *StructureModel::InsertMethod(const Method &method) {
     auto name = method.fun->name()->ToSlice();
     auto iter = members_.find(name);
-    assert(iter == members_.end() || !iter->second->IsMethod());
+    DCHECK(iter == members_.end() || !iter->second->IsMethod());
     auto handle = Handle::Method(arena_, this, method.fun->name(), methods_size());
     members_[name] = handle;
     methods_.push_back(method);
@@ -533,13 +533,13 @@ Model::Member StructureModel::GetMember(const Handle *handle) const {
             break;
         }
     }
-    assert(model);
-    assert(handle->offset() >= 0);
+    DCHECK(model);
+    DCHECK(handle->offset() >= 0);
     if (handle->IsMethod()) {
-        assert(handle->offset() < model->methods_size());
+        DCHECK(handle->offset() < model->methods_size());
         return &model->methods_[handle->offset()];
     } else {
-        assert(handle->offset() < model->fields_size());
+        DCHECK(handle->offset() < model->fields_size());
         return &model->fields_[handle->offset()];
     }
 }
@@ -573,7 +573,7 @@ Handle *StructureModel::FindMemberOrNull(std::string_view name) const {
 
 size_t StructureModel::ReferenceSizeInBytes() const { return kPointerSize; }
 size_t StructureModel::PlacementSizeInBytes() const {
-    assert(placement_size_in_bytes_ > 0);
+    DCHECK(placement_size_in_bytes_ > 0);
     return placement_size_in_bytes_;
 }
 
@@ -597,7 +597,7 @@ void StructureModel::InstallVirtualTables(bool force) {
     for (auto iface : interfaces()) {
         for (auto method : iface->methods()) {
             auto had = DCHECK_NOTNULL(FindMemberOrNull(method.fun->name()->ToSlice()));
-            assert(had->IsMethod());
+            DCHECK(had->IsMethod());
             itab_.push_back(had);
         }
         
@@ -627,14 +627,14 @@ void StructureModel::InstallVirtualTables(bool force) {
                     if (vm->in_vtab) {
                         method->in_vtab = true;
                         method->id_vtab = vm->id_vtab;
-                        assert(method->id_vtab < incoming_vtab.size());
+                        DCHECK(method->id_vtab < incoming_vtab.size());
                         incoming_vtab[vm->id_vtab] = handle;
                     } else {
                         vm->in_vtab = true;
                         vm->id_vtab = static_cast<int>(base->vtab_.size());
                         base->vtab_.push_back(vf);
                         
-                        assert(incoming_vtab.size() == vm->id_vtab);
+                        DCHECK(incoming_vtab.size() == vm->id_vtab);
                         method->in_vtab = true;
                         method->id_vtab = vm->id_vtab;
                         incoming_vtab.push_back(handle);
@@ -689,9 +689,10 @@ int64_t StructureModel::CalculateCompactPlacementSize() {
                 max_size = std::max(max_size, field.type.model()->ReferenceSizeInBytes());
                 ref_ty_count++;
                 break;
-            case Type::kTuple:
-                UNREACHABLE(); // Not support yet
-                break;
+            case Type::kTuple: {
+                auto [s, _] = CalculateTypesPlacementSize(field.type.tuple(), field.type.bits());
+                max_size = std::max(max_size, s);
+            } break;
             case Type::kVoid:
                 unit_ty_count++;
                 break;
@@ -711,21 +712,26 @@ int64_t StructureModel::CalculateCompactPlacementSize() {
         switch (field.type.kind()) {
             case Type::kValue:
                 DCHECK(!field.type.IsPointer());
-                size = RoundUp(base_offset, kPointerSize) + field.type.model()->PlacementSizeInBytes();
+                field.offset = RoundUp(base_offset, kPointerSize);
+                size = field.offset + field.type.model()->PlacementSizeInBytes();
                 break;
             case Type::kString:
             case Type::kReference:
-                size = RoundUp(base_offset, kPointerSize) + field.type.model()->PlacementSizeInBytes();
+                field.offset = RoundUp(base_offset, kPointerSize);
+                size = field.offset + field.type.model()->ReferenceSizeInBytes();
                 break;
             case Type::kTuple: {
                 auto [s, a] = CalculateTypesPlacementSize(field.type.tuple(), field.type.bits());
-                size = RoundUp(base_offset, a) + s;
+                field.offset = RoundUp(base_offset, a);
+                size = field.offset + s;
             } break;
             case Type::kVoid:
+                field.offset = base_offset;
                 break;
             default:
                 alignment = std::min(kPointerSize, field.type.bytes());
-                size = RoundUp(base_offset, alignment) + field.type.bytes();
+                field.offset = RoundUp(base_offset, alignment);
+                size = field.offset + field.type.bytes();
                 break;
         }
         max_size = std::max(size, max_size);
@@ -924,7 +930,7 @@ Handle *StructureModel::EnumCodeFieldIfNotCompactEnum() {
         .access = kPublic,
         .offset = 0,
         .type = Types::UInt16,
-        .is_volatile = false,
+        .enum_value = 0,
     });
 }
 

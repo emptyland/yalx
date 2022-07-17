@@ -916,10 +916,64 @@ functions:
         Ret void val[foo:foo.Foo] %5
     } // main:main.issue02_enum_of_enum
 
-    fun issue02_enum_compact_value(): val[foo:foo.Optional<string>] {
+    fun issue03_enum_compact_value(): val[foo:foo.Optional<string>] {
     entry:
         Ret void string "ok"
-    } // main:main.issue02_enum_compact_value
+    } // main:main.issue03_enum_compact_value
+
+    fun issue04_compact_enum_matching(%e: val[foo:foo.Optional<string>]): void {
+    entry:
+        Br void out [L1:]
+    L1:
+        %0 = ICmp u8 val[foo:foo.Optional<string>] %e, val[foo:foo.Optional<string>] nil <eq>
+        Br void u8 %0 out [L2:, L3:]
+    L2:
+        Br void out [L5:]
+    L3:
+        %1 = ICmp u8 val[foo:foo.Optional<string>] %e, val[foo:foo.Optional<string>] nil <eq>
+        Br void u8 %1 out [L5:, L4:]
+    L4:
+        %2 = BitCastTo string val[foo:foo.Optional<string>] %e
+        CallDirectly void string %2 <fun yalx/lang:lang.println>
+        Br void out [L5:]
+    L5:
+        Ret void
+    } // main:main.issue04_compact_enum_matching
+
+    fun issue05_enum_matching(%e: val[foo:foo.Foo]): void {
+    entry:
+        Br void out [L1:]
+    L1:
+        %0 = LoadInlineField u16 val[foo:foo.Foo] %e <foo:foo.Foo::$enum_code$>
+        %1 = ICmp u8 u16 %0, u16 0 <eq>
+        Br void u8 %1 out [L2:, L3:]
+    L2:
+        Br void out [L9:]
+    L3:
+        %2 = LoadInlineField u16 val[foo:foo.Foo] %e <foo:foo.Foo::$enum_code$>
+        %3 = ICmp u8 u16 %2, u16 1 <eq>
+        Br void u8 %3 out [L4:, L5:]
+    L4:
+        %4 = LoadInlineField string val[foo:foo.Foo] %e <foo:foo.Foo::B>
+        CallDirectly void string %4 <fun yalx/lang:lang.println>
+        Br void out [L9:]
+    L5:
+        %5 = LoadInlineField u16 val[foo:foo.Foo] %e <foo:foo.Foo::$enum_code$>
+        %6 = ICmp u8 u16 %5, u16 2 <eq>
+        Br void u8 %6 out [L6:, L7:]
+    L6:
+        %7 = LoadInlineField u8 val[foo:foo.Foo] %e <foo:foo.Foo::C>
+        Br void out [L9:]
+    L7:
+        %8 = LoadInlineField u16 val[foo:foo.Foo] %e <foo:foo.Foo::$enum_code$>
+        %9 = ICmp u8 u16 %8, u16 3 <eq>
+        Br void u8 %9 out [L8:, L9:]
+    L8:
+        %10 = LoadInlineField val[foo:foo.Optional<i32>] val[foo:foo.Foo] %e <foo:foo.Foo::D>
+        Br void out [L9:]
+    L9:
+        Ret void
+    } // main:main.issue05_enum_matching
 
 } // @main:main
 )";

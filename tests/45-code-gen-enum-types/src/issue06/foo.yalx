@@ -1,0 +1,17 @@
+package issue06
+
+enum Foo {
+    A,
+    B(u8),
+    C(int),
+    D(string),
+    E
+}
+
+enum Option<T> {
+    None,
+    Some(T)
+}
+
+@yalx.Compiler(nativeHandle=true)
+fun issue1() -> Foo::A

@@ -28,6 +28,7 @@ static const char *kTypeNames[] = {
     "string",
     "Reference",
     "Value",
+    "Tuple"
 //#undef DEFINE_KINDS
 };
 
@@ -74,7 +75,11 @@ Type Type::Val(Model *model, bool is_pointer) {
                 DCHECK_NOTNULL(model));
 }
 
-Type Type::Tuple(Type *tuple, int size) { return Type(kTuple, 0, tuple, size); }
+Type Type::Tuple(base::Arena *arena, Type *tuple, int size) {
+    auto types = arena->NewArray<Type>(size);
+    ::memcpy(types, tuple, size * sizeof(Type));
+    return Type(kTuple, 0, types, size);
+}
 
 void Type::PrintTo(base::PrintingWriter *printer) const {
     switch (kind()) {

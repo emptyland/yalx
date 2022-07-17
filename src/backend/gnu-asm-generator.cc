@@ -187,6 +187,49 @@ void GnuAsmGenerator::MarkRefsInClass(const ir::StructureModel *clazz, const int
     }
 }
 
+static int DeclarationToKind(ir::Model::Declaration decl) {
+    switch (decl) {
+        case ir::Model::kStruct:
+            return K_STRUCT;
+        case ir::Model::kClass:
+            return K_CLASS;
+        case ir::Model::kEnum:
+            return K_ENUM;
+        default:
+            UNREACHABLE();
+            break;
+    }
+    return -1;
+}
+
+static int CompactFieldCode(const ir::Model::Field &field, ir::Model::Declaration decl) {
+//            uint32_t access: 2; // yalx_access_desc
+//            uint32_t constraint: 2; // val? var?
+//            uint32_t enum_code: 16;
+    int code = 0;
+    switch (field.access) {
+        case ir::kPublic:
+        case ir::kExport:
+            code = ACC_PUBLIC;
+            break;
+        case ir::kPrivate:
+            code = ACC_PRIVATE;
+            break;
+        case ir::kProtected:
+            code = ACC_PROTECTED;
+            break;
+        default:
+            break;
+    }
+    // TODO: constraint
+    
+    if (decl == ir::Model::kEnum) {
+        code |= (field.enum_value << 4);
+    }
+    
+    return code;
+}
+
 void GnuAsmGenerator::EmitMetadata() {
 //    // unique identifer
 //    uint64_t id;
@@ -217,8 +260,7 @@ void GnuAsmGenerator::EmitMetadata() {
         printer_->Println(".global %s", buf.c_str());
         printer_->Println("%s:", buf.c_str());
         printer_->Indent(1)->Println(".quad %d %s id", 0/*TODO:class_id*/, comment_);
-        printer_->Indent(1)->Println(".byte %d %s constraint",
-                                     clazz->declaration() == ir::Model::kClass ? K_CLASS : K_STRUCT, comment_);
+        printer_->Indent(1)->Println(".byte %d %s constraint", DeclarationToKind(clazz->declaration()), comment_);
         printer_->Indent(1)->Println(".space 3 %s padding", comment_);
         printer_->Indent(1)->Println(".long %d %s reference_size", clazz->ReferenceSizeInBytes(), comment_);
         printer_->Indent(1)->Println(".long %d %s instance_size", clazz->PlacementSizeInBytes(), comment_);
@@ -280,13 +322,15 @@ void GnuAsmGenerator::EmitMetadata() {
         for (auto field : clazz->fields()) {
 //            uint32_t access: 2; // yalx_access_desc
 //            uint32_t constraint: 2; // val? var?
+//            uint32_t enum_code: 16;
 //            uint32_t n_annotations;
 //            void *reserved0;
 //            struct yalx_str name;
 //            struct yalx_class *type;
 //            uint32_t offset_of_head;
             printer_->Indent(1)->Println("%s %s::%s", comment_, clazz->name()->data(), field.name->data());
-            printer_->Indent(1)->Println(".long 0 %s access|constraint", comment_);
+            printer_->Indent(1)->Println(".long %d %s access|constraint", CompactFieldCode(field, clazz->declaration()),
+                                         comment_);
             printer_->Indent(1)->Println(".long 0 %s n_annotations", comment_);
             printer_->Indent(1)->Println(".quad 0 %s reserved0", comment_);
             auto kid = const_pool_->FindOrInsertString(field.name);
@@ -376,6 +420,9 @@ void GnuAsmGenerator::EmitMetadata() {
 
 void GnuAsmGenerator::EmitTypeRelocation(const ir::Type &ty, base::PrintingWriter *printer) {
     switch (ty.kind()) {
+        case ir::Type::kVoid:
+            printer->Write("0");
+            break;
         case ir::Type::kWord8:
         case ir::Type::kUInt8:
             printer->Print("_builtin_classes+%d", Type_u8 * sizeof(yalx_class));

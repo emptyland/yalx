@@ -10,6 +10,7 @@ namespace yalx {
 namespace base {
 class ArenaString;
 class PrintingWriter;
+class Arena;
 } // namespace base
 namespace ir {
 
@@ -90,7 +91,7 @@ public:
 
     static Type Ref(Model *model, bool _nullable = false);
     static Type Val(Model *model, bool pointer = false);
-    static Type Tuple(Type *tuple, int size);
+    static Type Tuple(base::Arena *arena, Type *tuple, int size);
     //static Type String(Model *model, bool _nullable = false);
 private:
     constexpr Type(Kind kind, int bits, uint32_t flags, Model *model)

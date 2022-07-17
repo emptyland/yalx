@@ -1907,9 +1907,20 @@ private:
             return -1;
         }
 
+        EnumDefinition *enum_def = nullptr;
+        if (dest_type->category() == Type::kEnum) {
+            enum_def = dest_type->AsEnumType()->definition();
+        }
         for (size_t i = 0; i < node->case_clauses_size(); i++) {
             if (auto clause = WhenExpression::ExpectValuesCase::Cast(node->case_clause(i))) {
                 for (auto value : clause->match_values()) {
+                    if (enum_def) {
+                        if (ProcessEnumValueMatching(value, clause, enum_def) < 0) {
+                            return -1;
+                        }
+                        continue;
+                    }
+                    
                     std::vector<Type *> types;
                     if (Reduce(value, &types) < 0) {
                         return -1;
@@ -2280,6 +2291,69 @@ private:
     int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
     
 private:
+    int ProcessEnumValueMatching(Expression *value, WhenExpression::ExpectValuesCase *clause,
+                                 EnumDefinition *enum_def) {
+        if (auto id = value->AsIdentifier()) {
+            auto ast = enum_def->FindSymbolOrNull(id->name()->ToSlice());
+            if (!ast) {
+                Feedback()->Printf(value->source_position(), "Enum value: `%s' not found in `%s'",
+                                   id->name()->data(), enum_def->FullName().c_str());
+                return -1;
+            }
+            if (!ast->IsVariableDeclaration()) {
+                Feedback()->Printf(value->source_position(), "`%s' is not enum value in `%s'",
+                                   id->name()->data(), enum_def->FullName().c_str());
+                return -1;
+            }
+            return 0;
+        }
+        
+        if (auto calling = value->AsCalling()) {
+            auto id = calling->callee()->AsIdentifier();
+            if (!id) {
+                Feedback()->Printf(value->source_position(), "Invalid enum value matching in `%s'",
+                                   enum_def->FullName().c_str());
+                return -1;
+            }
+            
+            auto ast = enum_def->FindSymbolOrNull(id->name()->ToSlice());
+            if (!ast) {
+                Feedback()->Printf(value->source_position(), "Enum value: `%s' not found in `%s'",
+                                   id->name()->data(), enum_def->FullName().c_str());
+                return -1;
+            }
+            auto value = ast->AsVariableDeclaration();
+            if (!value) {
+                Feedback()->Printf(value->source_position(), "`%s' is not enum value in `%s'",
+                                   id->name()->data(), enum_def->FullName().c_str());
+                return -1;
+            }
+
+            if (calling->args_size() != value->ItemSize()) {
+                Feedback()->Printf(value->source_position(), "Invalid enum value: `%s' matching in `%s'",
+                                   id->name()->data(), enum_def->FullName().c_str());
+                return -1;
+            }
+            
+            for (int i = 0; i < calling->args_size(); i++) {
+                auto name = calling->arg(i)->AsIdentifier();
+                if (!name) {
+                    Feedback()->Printf(value->source_position(), "Invalid enum value: `%s' matching in `%s'",
+                                       id->name()->data(), enum_def->FullName().c_str());
+                }
+                
+                auto item = value->AtItem(i);
+                location_->FindOrInsertSymbol(name->name()->ToSlice(), item);
+            }
+            
+            return 0;
+        }
+        
+        Feedback()->Printf(value->source_position(), "Invalid enum value matching in `%s'",
+                           enum_def->FullName().c_str());
+        return -1;
+    }
+    
     int ReduceBinaryExpression(const char *op, BinaryExpression *expr, OperatingKind kind) {
         Type *lhs = nullptr, *rhs = nullptr;
         if (ReduceReturningOnlyOne(expr->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(expr->rhs(), &rhs) < 0) {

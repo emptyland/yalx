@@ -80,7 +80,7 @@ public:
         Access access;
         ptrdiff_t offset;
         Type type;
-        bool is_volatile;
+        int16_t enum_value;
     };
     
     struct Method {

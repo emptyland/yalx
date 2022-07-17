@@ -16,8 +16,24 @@ fun issue01_enum_string_value() -> foo.Foo::B("hello")
 
 fun issue02_enum_of_enum() -> foo.Foo::D(foo.Optional<int>::Some(997))
 
-fun issue02_enum_compact_value(): foo.Optional<string> {
+fun issue03_enum_compact_value(): foo.Optional<string> {
     val e0 = foo.Optional<string>::None
     val e1 = foo.Optional<string>::Some("ok")
     return e1
+}
+
+fun issue04_compact_enum_matching(e: foo.Optional<string>) {
+    when (e) {
+        None -> {}
+        Some(message) -> println(message)
+    }
+}
+
+fun issue05_enum_matching(e: foo.Foo) {
+    when (e) {
+        A -> {}
+        B(s) -> println(s)
+        C(a,b,c,d) -> {}
+        D(o) -> {}
+    }
 }

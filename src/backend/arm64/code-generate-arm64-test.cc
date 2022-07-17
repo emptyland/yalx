@@ -124,6 +124,18 @@ TEST_F(Arm64CodeGeneratorTest, PrimitiveProps) {
     //CodeGen("tests/44-code-gen-primitive-props", "yalx/lang:lang", &printer, &ok);
     CodeGen("tests/44-code-gen-primitive-props", "issue05:issue05", &printer, &ok);
     ASSERT_TRUE(ok);
+    //printf("%s\n", buf.c_str());
+    
+}
+
+TEST_F(Arm64CodeGeneratorTest, EnumTypes) {
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    //CodeGen("tests/44-code-gen-primitive-props", "yalx/lang:lang", &printer, &ok);
+    CodeGen("tests/45-code-gen-enum-types", "issue06:issue06", &printer, &ok);
+    ASSERT_TRUE(ok);
     printf("%s\n", buf.c_str());
     
 }

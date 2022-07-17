@@ -235,6 +235,7 @@ public:
         }
         
         auto clazz = AssertedGetUdt<StructureModel>(node->FullName());
+        int16_t enum_value = 0;
         for (auto ast : node->fields()) {
             Type ty;
             if (ast.declaration->ItemSize() == 0) {
@@ -246,7 +247,7 @@ public:
                 for (auto var : ast.declaration->variables()) {
                     types.push_back(BuildType(var->type()));
                 }
-                ty = Type::Tuple(&types[0], static_cast<int>(types.size()));
+                ty = Type::Tuple(arena(), &types[0], static_cast<int>(types.size()));
             }
             
             Model::Field field {
@@ -254,7 +255,7 @@ public:
                 kPublic,
                 0,
                 ty,
-                false,
+                enum_value++,
             };
             DCHECK_NOTNULL(clazz->InsertField(field));
         }
@@ -269,6 +270,7 @@ public:
             }
         }
         
+        clazz->UpdatePlacementSizeInBytes();
         return Returning(Unit());
     }
     
@@ -569,7 +571,7 @@ public:
                 DCHECK(args.size() == field->type.bits());
                 DCHECK(enum_code != nullptr);
                 
-                auto op = ops()->U16Constant(handle->offset());
+                auto op = ops()->U16Constant(field->enum_value);
                 auto code = Value::New(arena(), root_ss.Position(), Types::UInt16, op);
                 value = EmitStoreField(value, code, enum_code, root_ss.Position());
                 value = EmitStoreField(value, args[0], handle, root_ss.Position());
@@ -578,7 +580,7 @@ public:
                 DCHECK(args.size() == 1);
                 
                 if (enum_code) {
-                    auto op = ops()->U16Constant(handle->offset());
+                    auto op = ops()->U16Constant(field->enum_value);
                     auto code = Value::New(arena(), root_ss.Position(), Types::UInt16, op);
                     value = EmitStoreField(value, code, enum_code, root_ss.Position());
                     value = EmitStoreField(value, args[0], handle, root_ss.Position());
@@ -877,6 +879,11 @@ public:
         auto case_block = fun->NewBlock(nullptr);
         b()->NewNode(root_ss.Position(), Types::Void, ops()->Br(0, 1), case_block);
         
+        StructureModel *enum_model = nullptr;
+        if (dest->type().model() && dest->type().model()->declaration() == Model::kEnum) {
+            enum_model = down_cast<StructureModel>(dest->type().model());
+        }
+
 #define NewNextBlock() (case_clause == node->case_clauses().back()) ? else_block : fun->NewBlock(nullptr)
         int i = 0;
         for (auto case_clause : node->case_clauses()) {
@@ -911,6 +918,14 @@ public:
                 case cpl::CaseWhenPattern::kExpectValues: {
                     auto ast = cpl::WhenExpression::ExpectValuesCase::Cast(case_clause);
                     DCHECK(dest != nullptr);
+                    
+                    if (enum_model) {
+                        auto [c, n] = GenerateEnumValueMatching(node, ast, dest, enum_model, case_block, next_block,
+                                                                else_block, ss.Position());
+                        case_block = c;
+                        next_block = n;
+                        break;
+                    }
 
                     b(case_block);
                     std::vector<Value *> expected_values;
@@ -1007,6 +1022,69 @@ public:
             return -1;
         }
         return Returning(results);
+    }
+    
+    std::tuple<BasicBlock *, BasicBlock *>
+    GenerateEnumValueMatching(cpl::WhenExpression *node,
+                              cpl::WhenExpression::ExpectValuesCase *clause,
+                              Value *dest,
+                              StructureModel *enum_model,
+                              BasicBlock *case_block,
+                              BasicBlock *next_block,
+                              BasicBlock *else_block,
+                              SourcePosition source_position) {
+        auto fun = emitting_->fun();
+#define NewNextBlock() (clause == node->case_clauses().back()) ? else_block : fun->NewBlock(nullptr)
+        for (auto ast : clause->match_values()) {
+            cpl::Calling *calling = nullptr;
+            cpl::Identifier *id = nullptr;
+            if (ast->IsIdentifier()) {
+                id = ast->AsIdentifier();
+            } else {
+                calling = DCHECK_NOTNULL(ast->AsCalling());
+                id = DCHECK_NOTNULL(calling->callee()->AsIdentifier());
+            }
+            
+            auto handle = enum_model->FindMemberOrNull(id->name()->ToSlice());
+            DCHECK(handle->IsField());
+            auto field = std::get<const Model::Field *>(enum_model->GetMember(handle));
+
+            b(case_block);
+            if (auto enum_code_handle = enum_model->EnumCodeFieldIfNotCompactEnum()) {
+                auto enum_code = EmitLoadField(dest, enum_code_handle, source_position);
+
+                next_block = NewNextBlock();
+                case_block = fun->NewBlock(nullptr);
+                auto op = ops()->U16Constant(field->enum_value);
+                auto match_value = Value::New(arena(), source_position, Types::UInt16, op);
+                EmitEquals(enum_code, match_value, case_block, next_block, node);
+                
+                if (calling) {
+                    b(case_block);
+                    auto name = DCHECK_NOTNULL(calling->arg(0)->AsIdentifier())->name();
+                    auto value = EmitLoadField(dest, handle, source_position);
+                    location_->PutValue(name->ToSlice(), value);
+                }
+            } else {
+                auto match_value = Value::New(arena(), source_position, dest->type(), ops()->NilConstant());
+                next_block = NewNextBlock();
+                case_block = fun->NewBlock(nullptr);
+                if (!calling) {
+                    EmitEquals(dest, match_value, case_block, next_block, node);
+                } else {
+                    auto name = DCHECK_NOTNULL(calling->arg(0)->AsIdentifier())->name();
+                    EmitEquals(dest, match_value, next_block, case_block, node);
+
+                    auto op = ops()->BitCastTo();
+                    auto ty = field->type.kind() == Type::kTuple ? field->type.tuple(0) : field->type;
+                    auto value = case_block->NewNode(source_position, ty, op, dest);
+                    location_->PutValue(name->ToSlice(), value);
+                }
+            }
+            b(case_block);
+        }
+#undef NewNextBlock
+        return std::make_tuple(case_block, next_block);
     }
     
     int VisitWhileLoop(cpl::WhileLoop *node) override {
@@ -1322,12 +1400,13 @@ public:
         DCHECK(clazz->declaration() == Model::kEnum);
         
         auto def = down_cast<StructureModel>(clazz);
+        auto field = def->FindField(node->field()->ToSlice()).value();
 
         if (auto handle = def->EnumCodeFieldIfNotCompactEnum()) {
             auto op = ops()->StackAlloc(def);
             auto ty = Type::Val(clazz);
             auto value = b()->NewNode(root_ss.Position(), ty, op);
-            op = ops()->U16Constant(handle->offset());
+            op = ops()->U16Constant(field.enum_value);
             auto code = Value::New(arena(), root_ss.Position(), Types::UInt16, op);
             op = ops()->StoreInlineField(handle);
             return Returning(b()->NewNode(root_ss.Position(), ty, op, value, code));
@@ -2369,7 +2448,9 @@ private:
             op = ops()->LoadInlineField(handle);
         }
         auto field = std::get<const Model::Field *>(handle->owns()->GetMember(handle));
-        return b()->NewNode(source_position, field->type, op, value);
+        // FIXME: use tuple
+        auto ty = field->type.kind() == Type::kTuple ? field->type.tuple(0) : field->type;
+        return b()->NewNode(source_position, ty, op, value);
     }
     
     Value *EmitStoreField(Value *value, Value *input, Handle *handle, SourcePosition source_position) {
