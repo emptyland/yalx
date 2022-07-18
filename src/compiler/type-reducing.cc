@@ -1084,6 +1084,8 @@ private:
             auto [ast, ns] = clazz->FindSymbolWithOwns(node->field()->ToSlice());
             field = ast;
             level = ns;
+        } else if (auto clazz = def->AsEnumDefinition()) {
+            field = clazz->FindSymbolOrNull(node->field()->ToSlice());
         } else if (auto clazz = def->AsInterfaceDefinition()) {
             field = clazz->FindSymbolOrNull(node->field()->ToSlice());
         } else {
@@ -1138,13 +1140,13 @@ private:
             case Node::kDot: {
                 auto dot = node->primary()->AsDot();
                 ast = ResolveDotSymbol("Enum definition", dot, Node::kEnumDefinition);
-                if (!ast) {
-                    return nullptr;
-                }
             } break;
                 
             default:
                 goto invalid;
+        }
+        if (!ast) {
+            return nullptr;
         }
         
         if (auto def = ast->AsEnumDefinition()) {
@@ -1894,8 +1896,6 @@ private:
     
     int VisitWhenExpression(WhenExpression *node) override {
         BlockScope scope(&location_, kBranchBlock, node);
-        const auto number_of_branchs = node->case_clauses_size() + (node->else_clause() ? 1 : 0);
-        std::unique_ptr<std::vector<Type *>[]> branchs_types(new std::vector<Type *>[number_of_branchs]);
         
         if (node->initializer()) {
             if (Reduce(node->initializer()) < 0) {
@@ -1907,20 +1907,16 @@ private:
             return -1;
         }
 
-        EnumDefinition *enum_def = nullptr;
         if (dest_type->category() == Type::kEnum) {
-            enum_def = dest_type->AsEnumType()->definition();
+            auto enum_def = dest_type->AsEnumType()->definition();
+            return ReduceEnumValueMatching(enum_def, node);
         }
+        
+        const auto number_of_branchs = node->case_clauses_size() + (node->else_clause() ? 1 : 0);
+        std::unique_ptr<std::vector<Type *>[]> branchs_types(new std::vector<Type *>[number_of_branchs]);
         for (size_t i = 0; i < node->case_clauses_size(); i++) {
             if (auto clause = WhenExpression::ExpectValuesCase::Cast(node->case_clause(i))) {
                 for (auto value : clause->match_values()) {
-                    if (enum_def) {
-                        if (ProcessEnumValueMatching(value, clause, enum_def) < 0) {
-                            return -1;
-                        }
-                        continue;
-                    }
-                    
                     std::vector<Type *> types;
                     if (Reduce(value, &types) < 0) {
                         return -1;
@@ -2044,6 +2040,72 @@ private:
             return -1;
         }
         for (auto type : resutls) { node->mutable_reduced_types()->push_back(type); }
+        return Returning(resutls);
+    }
+    
+    int ReduceEnumValueMatching(EnumDefinition *enum_def, WhenExpression *node) {
+        auto number_of_branchs = node->case_clauses_size() + (node->else_clause() ? 1 : 0);
+        //const auto number_of_branchs = node->case_clauses_size() + 1;
+        std::unique_ptr<std::vector<Type *>[]> branchs_types(new std::vector<Type *>[number_of_branchs]);
+        
+        std::set<std::string_view> all_name_of_values;
+        for (auto field : enum_def->fields()) {
+            auto name = field.declaration->name()->ToSlice();
+            DCHECK(all_name_of_values.find(name) == all_name_of_values.end());
+            all_name_of_values.insert(name);
+        }
+
+        for (size_t i = 0; i < node->case_clauses_size(); i++) {
+            auto clause = WhenExpression::ExpectValuesCase::Cast(node->case_clause(i));
+            if (!clause) {
+                Feedback()->Printf(clause->source_position(), "Invalid enum value matching in `%s'",
+                                   enum_def->FullName().c_str());
+                return -1;
+            }
+
+            for (auto value : clause->match_values()) {
+                auto name = ProcessEnumValueMatching(value, clause, enum_def);
+                if (name.empty()) {
+                    return -1;
+                }
+                all_name_of_values.erase(name);
+            }
+            
+            if (Reduce(clause->then_clause(), &branchs_types[i]) < 0) {
+                return -1;
+            }
+        }
+        
+        if (node->else_clause()) {
+            if (Reduce(node->else_clause(), &branchs_types[number_of_branchs - 1]) < 0) {
+                return -1;
+            }
+            all_name_of_values.clear();
+        }
+        
+        if (!all_name_of_values.empty()) {
+            Feedback()->Printf(node->source_position(), "Not every enum value be matched in `%s'",
+                               enum_def->FullName().c_str());
+            return -1;
+        }
+        
+        std::vector<Type *> resutls;
+        if (ReduceBranchsTypes(branchs_types.get(), number_of_branchs,
+                               node->case_clauses_size() - (!node->else_clause() ? 1 : 0),
+                               &resutls, node->source_position()) < 0) {
+            return -1;
+        }
+        
+        if (node->reduced_types().empty()) {
+            for (auto type : resutls) {
+                node->mutable_reduced_types()->push_back(type);
+            }
+        } else {
+            DCHECK(resutls.size() == node->reduced_types_size());
+            for (size_t i = 0; i < resutls.size(); i++) {
+                (*node->mutable_reduced_types())[i] = resutls[i];
+            }
+        }
         return Returning(resutls);
     }
     
@@ -2291,21 +2353,21 @@ private:
     int VisitAnnotation(Annotation *node) override { UNREACHABLE(); }
     
 private:
-    int ProcessEnumValueMatching(Expression *value, WhenExpression::ExpectValuesCase *clause,
-                                 EnumDefinition *enum_def) {
+    std::string_view ProcessEnumValueMatching(Expression *value, WhenExpression::ExpectValuesCase *clause,
+                                              EnumDefinition *enum_def) {
         if (auto id = value->AsIdentifier()) {
             auto ast = enum_def->FindSymbolOrNull(id->name()->ToSlice());
             if (!ast) {
                 Feedback()->Printf(value->source_position(), "Enum value: `%s' not found in `%s'",
                                    id->name()->data(), enum_def->FullName().c_str());
-                return -1;
+                return "";
             }
             if (!ast->IsVariableDeclaration()) {
                 Feedback()->Printf(value->source_position(), "`%s' is not enum value in `%s'",
                                    id->name()->data(), enum_def->FullName().c_str());
-                return -1;
+                return "";
             }
-            return 0;
+            return id->name()->ToSlice();
         }
         
         if (auto calling = value->AsCalling()) {
@@ -2313,26 +2375,26 @@ private:
             if (!id) {
                 Feedback()->Printf(value->source_position(), "Invalid enum value matching in `%s'",
                                    enum_def->FullName().c_str());
-                return -1;
+                return "";
             }
             
             auto ast = enum_def->FindSymbolOrNull(id->name()->ToSlice());
             if (!ast) {
                 Feedback()->Printf(value->source_position(), "Enum value: `%s' not found in `%s'",
                                    id->name()->data(), enum_def->FullName().c_str());
-                return -1;
+                return "";
             }
             auto value = ast->AsVariableDeclaration();
             if (!value) {
                 Feedback()->Printf(value->source_position(), "`%s' is not enum value in `%s'",
                                    id->name()->data(), enum_def->FullName().c_str());
-                return -1;
+                return "";
             }
 
             if (calling->args_size() != value->ItemSize()) {
                 Feedback()->Printf(value->source_position(), "Invalid enum value: `%s' matching in `%s'",
                                    id->name()->data(), enum_def->FullName().c_str());
-                return -1;
+                return "";
             }
             
             for (int i = 0; i < calling->args_size(); i++) {
@@ -2346,12 +2408,12 @@ private:
                 location_->FindOrInsertSymbol(name->name()->ToSlice(), item);
             }
             
-            return 0;
+            return id->name()->ToSlice();
         }
         
         Feedback()->Printf(value->source_position(), "Invalid enum value matching in `%s'",
                            enum_def->FullName().c_str());
-        return -1;
+        return "";
     }
     
     int ReduceBinaryExpression(const char *op, BinaryExpression *expr, OperatingKind kind) {
@@ -2843,6 +2905,8 @@ private:
                 return type->AsClassType()->definition();
             case Type::kType_struct:
                 return type->AsStructType()->definition();
+            case Type::kType_enum:
+                return type->AsEnumType()->definition();
             case Type::kType_interface:
                 return type->AsInterfaceType()->definition();
             case Type::kType_any:

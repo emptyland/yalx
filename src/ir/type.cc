@@ -44,6 +44,10 @@ std::string_view Type::ToString() const {
     return "";
 }
 
+bool Type::IsCompactEnum() const {
+    return kind() == kValue && down_cast<StructureModel>(model())->IsCompactEnum();
+}
+
 size_t Type::ReferenceSizeInBytes() const {
     if (IsPointer() || IsReference()) {
         return kPointerSize;

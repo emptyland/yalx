@@ -1,4 +1,5 @@
 #include "backend/machine-type.h"
+#include "ir/metadata.h"
 #include "ir/type.h"
 
 namespace yalx {
@@ -30,7 +31,7 @@ MachineRepresentation ToMachineRepresentation(const ir::Type ty) {
         case ir::Type::kString:
             return MachineRepresentation::kWord64;
         case ir::Type::kValue:
-            return ty.IsPointer() ? MachineRepresentation::kWord64 : MachineRepresentation::kNone;
+            return (ty.IsPointer() || ty.IsCompactEnum()) ? MachineRepresentation::kWord64 : MachineRepresentation::kNone;
         default:
             return MachineRepresentation::kNone;
     }

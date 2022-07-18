@@ -675,29 +675,29 @@ int64_t StructureModel::UpdatePlacementSizeInBytes() {
 
 int64_t StructureModel::CalculateCompactPlacementSize() {
     //ptrdiff_t offset = 0;
-    size_t max_size = 0;
+    size_t max_alignment = 0;
     int ref_ty_count = 0;
     int unit_ty_count = 0;
     for (auto &field : fields_) {
         switch (field.type.kind()) {
             case Type::kValue:
                 DCHECK(!field.type.IsPointer());
-                max_size = std::max(max_size, field.type.model()->PlacementSizeInBytes());
+                max_alignment = std::max(max_alignment, static_cast<size_t>(kPointerSize));
                 break;
             case Type::kString:
             case Type::kReference:
-                max_size = std::max(max_size, field.type.model()->ReferenceSizeInBytes());
+                max_alignment = std::max(max_alignment, static_cast<size_t>(kPointerSize));
                 ref_ty_count++;
                 break;
             case Type::kTuple: {
-                auto [s, _] = CalculateTypesPlacementSize(field.type.tuple(), field.type.bits());
-                max_size = std::max(max_size, s);
+                auto [_, a] = CalculateTypesPlacementSize(field.type.tuple(), field.type.bits());
+                max_alignment = std::max(max_alignment, a);
             } break;
             case Type::kVoid:
                 unit_ty_count++;
                 break;
             default:
-                max_size = std::max(max_size, static_cast<size_t>(field.type.bytes()));
+                max_alignment = std::max(max_alignment, static_cast<size_t>(field.type.bytes()));
                 break;
         }
     }
@@ -706,31 +706,34 @@ int64_t StructureModel::CalculateCompactPlacementSize() {
         base_offset = 0;
     }
     
-    max_size = base_offset;
+    size_t max_size = base_offset;
     for (auto &field : fields_) {
-        size_t size = 0, alignment = 0;
+        size_t size = 0;
         switch (field.type.kind()) {
             case Type::kValue:
                 DCHECK(!field.type.IsPointer());
-                field.offset = RoundUp(base_offset, kPointerSize);
+                field.offset = RoundUp(base_offset, max_alignment);
                 size = field.offset + field.type.model()->PlacementSizeInBytes();
                 break;
             case Type::kString:
             case Type::kReference:
-                field.offset = RoundUp(base_offset, kPointerSize);
+                field.offset = RoundUp(base_offset, max_alignment);
                 size = field.offset + field.type.model()->ReferenceSizeInBytes();
                 break;
             case Type::kTuple: {
-                auto [s, a] = CalculateTypesPlacementSize(field.type.tuple(), field.type.bits());
-                field.offset = RoundUp(base_offset, a);
+                auto [s, _] = CalculateTypesPlacementSize(field.type.tuple(), field.type.bits());
+                field.offset = RoundUp(base_offset, max_alignment);
                 size = field.offset + s;
             } break;
             case Type::kVoid:
                 field.offset = base_offset;
                 break;
             default:
-                alignment = std::min(kPointerSize, field.type.bytes());
-                field.offset = RoundUp(base_offset, alignment);
+                if (field.name->Equal(kEnumCodeName)) {
+                    field.offset = 0;
+                } else {
+                    field.offset = RoundUp(base_offset, max_alignment);
+                }
                 size = field.offset + field.type.bytes();
                 break;
         }

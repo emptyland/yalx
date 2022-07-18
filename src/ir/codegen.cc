@@ -262,6 +262,20 @@ public:
         
         StructureScope scope(&location_, node, clazz);
         scope.InstallAncestorsSymbols();
+        
+        for (auto ast : node->methods()) {
+            auto proto = owns_->BuildPrototype(ast->prototype(), clazz);
+            auto fun = module_->NewFunction(ToDecoration(ast), ast->name(), clazz, proto);
+            Model::Method method {
+                .fun = fun,
+                .access = kPublic,
+                .in_itab = 0,
+                .in_vtab = 0,
+            };
+            auto handle = clazz->InsertMethod(method);
+            location_->PutSymbol(method.fun->name()->ToSlice(), Symbol::Had(location_, handle, ast));
+        }
+        
         for (auto ast : node->methods()) {
             auto method = clazz->FindMethod(ast->name()->ToSlice());
             DCHECK(method.has_value());
@@ -586,7 +600,10 @@ public:
                     value = EmitStoreField(value, args[0], handle, root_ss.Position());
                 } else {
                     DCHECK(args[0]->type().IsReference());
-                    value = args[0]; // Compact enum
+                    auto op = ops()->BitCastTo();
+                    auto ty = Type::Val(def);
+                    value = b()->NewNode(root_ss.Position(), ty, op, args[0]);
+                    //value = args[0]; // Compact enum
                 }
             }
             return Returning(value);
@@ -607,7 +624,8 @@ public:
             if (self->declaration() == Model::kInterface) {
                 op = ops()->CallAbstract(handle, 1/*value_out*/, value_in, invoke_control_out());
             } else if (self->declaration() == Model::kClass ||
-                       self->declaration() == Model::kStruct) {
+                       self->declaration() == Model::kStruct ||
+                       self->declaration() == Model::kEnum) {
                 if (down_cast<const StructureModel>(self)->In_vtab(handle)) {
                     op = ops()->CallVirtual(handle, 1/*value_out*/, value_in, invoke_control_out());
                 } else {
@@ -1016,9 +1034,11 @@ public:
         std::vector<Type> types;
         for (auto ast : node->reduced_types()) { types.push_back(BuildType(ast)); }
         
+        const int number_of_branchs_without_else = static_cast<int>(node->case_clauses_size()) -
+            ((enum_model && !node->else_clause()) ? 1 : 0);
         std::vector<Value *> results;
         if (ReduceValuesOfBranches(types, origin, &blocks[0], &values[0], number_of_branchs,
-                                   static_cast<int>(node->case_clauses_size()), &results, root_ss.Position()) < 0) {
+                                   number_of_branchs_without_else, &results, root_ss.Position()) < 0) {
             return -1;
         }
         return Returning(results);
@@ -2465,8 +2485,8 @@ private:
             op = ops()->StoreInlineField(handle);
         }
         auto type = handle->owns()->constraint() == Model::kRef
-        ? Type::Ref(const_cast<Model *>(handle->owns()))
-        : Type::Val(const_cast<Model *>(handle->owns()));
+            ? Type::Ref(const_cast<Model *>(handle->owns()))
+            : Type::Val(const_cast<Model *>(handle->owns()));
         return b()->NewNode(source_position, type, op, value, input);
     }
     
@@ -2491,7 +2511,14 @@ private:
         FunContext emitter(&emitting_, fun, entry);
         FunctionScope scope(&location_, ast, fun);
         if (owns) {
-            auto type = owns->constraint() == Model::kVal ? Type::Val(owns, true/*is_pointer*/) : Type::Ref(owns);
+            Type type;
+            if (owns->declaration() == Model::kEnum && down_cast<StructureModel>(owns)->IsCompactEnum()) {
+                type = Type::Val(owns);
+            } else if (owns->constraint() == Model::kVal) {
+                type = Type::Val(owns, true/*is_pointer*/);
+            } else {
+                type = Type::Ref(owns);
+            }
             auto op = ops()->Argument(hint++);
             auto arg = Value::New0(arena(), String::New(arena(), cpl::kThisName), SourcePosition::Unknown(), type, op);
             location_->PutValue(arg->name()->ToSlice(), arg);
@@ -2524,11 +2551,12 @@ private:
             return fun;
         }
         
+        //printd("%s", fun->full_name()->data());
         std::vector<Value *> values;
         if (auto rs = Reduce(ast->body(), &values); rs < 0) {
             return nullptr;
         }
-        
+
         if (ast->is_reduce()) {
             SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(ast->body()));
             auto last_block = fun->blocks().back();
@@ -3081,8 +3109,9 @@ PrototypeModel *IntermediateRepresentationGenerator::BuildPrototype(const cpl::F
         if (owns->declaration() == Model::kClass) {
             params.push_back(Type::Ref(owns));
         } else {
-            DCHECK(owns->declaration() == Model::kStruct);
-            params.push_back(Type::Val(owns, true/*is_pointer*/));
+            DCHECK(owns->declaration() == Model::kStruct ||
+                   owns->declaration() == Model::kEnum);
+            params.push_back(Type::Val(owns, !owns->IsCompactEnum()/*is_pointer*/));
         }
     }
     

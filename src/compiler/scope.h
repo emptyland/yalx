@@ -156,6 +156,7 @@ public:
     bool IsClassOrStruct() const;
     StructDefinition *AsStruct() const;
     ClassDefinition *AsClass() const;
+    EnumDefinition *AsEnum() const;
     
     enum ImplementTarget {
         kNotFound,

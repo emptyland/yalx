@@ -81,6 +81,8 @@ public:
     bool IsNoneNullable() const { return !IsNullable(); }
     bool IsNullable() const { return flags_ & kNullableBit; }
     
+    bool IsCompactEnum() const;
+    
     bool Equals(const Type &other) const { return kind() == other.kind() && model() == other.model(); }
     
     size_t ReferenceSizeInBytes() const;

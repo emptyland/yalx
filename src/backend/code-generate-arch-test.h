@@ -45,6 +45,13 @@ void issue05_Zoissue05_Zdissue1_had();
 void issue05_Zoissue05_Zdissue2_had();
 void issue05_Zoissue05_Zdissue3_had();
 
+void issue06_Zoissue06_Zd_Z4init();
+void issue06_Zoissue06_Zdissue1_had();
+void issue06_Zoissue06_Zdissue2_had();
+void issue06_Zoissue06_Zdissue3_had();
+void issue06_Zoissue06_Zdissue10_had();
+void issue06_Zoissue06_Zdissue11_had();
+
 } // extern "C"
 
 #endif // YALX_BACKEND_CODE_GENERATE_ARCH_H_

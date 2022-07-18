@@ -70,7 +70,7 @@ public:
             copied->mutable_methods()->push_back(it);
         }
 
-        return Return(copied);
+        return Returning(copied);
     }
     
     
@@ -101,7 +101,7 @@ public:
             copied->set_base_of(DCHECK_NOTNULL(base_of->AsStructDefinition()));
         }
         
-        return Return(copied);
+        return Returning(copied);
     }
     
     int VisitClassDefinition(ClassDefinition *node) override {
@@ -144,7 +144,7 @@ public:
         }
 
         // class Ref<T> (val T body)
-        return Return(copied);
+        return Returning(copied);
     }
     
     int VisitEnumDefinition(EnumDefinition *node) override {
@@ -171,7 +171,7 @@ public:
         for (auto method : copied->methods()) {
             method->set_owns(copied);
         }
-        return Return(copied);
+        return Returning(copied);
     }
 
     
@@ -205,7 +205,7 @@ public:
         if (node == original()) {
             resolver_->FindOrInsert(fun->PackageName()->ToSlice(), fun->name()->ToSlice(), fun);
         }
-        return Return(fun);
+        return Returning(fun);
     }
 private:
     int VisitVariableDeclaration(VariableDeclaration *node) override {
@@ -229,7 +229,7 @@ private:
             DECL_AND_INSTANTIATE(Expression, it, expr);
             copied->mutable_initilaizers()->push_back(it);
         }
-        return Return(copied);
+        return Returning(copied);
     }
     
     int VisitBlock(Block *node) override {
@@ -239,7 +239,7 @@ private:
             DECL_AND_INSTANTIATE(Statement, it, stmt);
             copied->mutable_statements()->push_back(it);
         }
-        return Return(copied);
+        return Returning(copied);
     }
     
     int VisitList(List *node) override {
@@ -248,7 +248,7 @@ private:
             DECL_AND_INSTANTIATE(Expression, it, stmt);
             copied->mutable_expressions()->push_back(it);
         }
-        return Return(copied);
+        return Returning(copied);
     }
     
     int VisitAssignment(Assignment *node) override {
@@ -261,7 +261,7 @@ private:
             DECL_AND_INSTANTIATE(Expression, it, expr);
             copied->mutable_rvals()->push_back(it);
         }
-        return Return(copied);
+        return Returning(copied);
     }
     
     int VisitCalling(Calling *node) override {
@@ -272,7 +272,7 @@ private:
             DECL_AND_INSTANTIATE(Expression, it, arg);
             copied->mutable_args()->push_back(it);
         }
-        return Return(copied);
+        return Returning(copied);
     }
     
     int VisitReturn(Return *node) override {
@@ -281,17 +281,17 @@ private:
             DECL_AND_INSTANTIATE(Expression, it, expr);
             node->mutable_returnning_vals()->push_back(it);
         }
-        return Return(copied);
+        return Returning(copied);
     }
 
     int VisitThrow(Throw *node) override {
         DECL_AND_INSTANTIATE(Expression, throwing_val, node->throwing_val());
-        return Return(new (arena_) Throw(throwing_val, node->source_position()));
+        return Returning(new (arena_) Throw(throwing_val, node->source_position()));
     }
 
     int VisitRunCoroutine(RunCoroutine *node) override {
         DECL_AND_INSTANTIATE(Calling, entry, node->entry());
-        return Return(new (arena_) RunCoroutine(entry, node->source_position()));
+        return Returning(new (arena_) RunCoroutine(entry, node->source_position()));
     }
 
     int VisitWhileLoop(WhileLoop *node) override {
@@ -303,7 +303,7 @@ private:
         DECL_AND_INSTANTIATE(Expression, condition, node->condition());
         DECL_AND_INSTANTIATE(Block, body, node->body());
 
-        return Return(new (arena_) WhileLoop(init, node->execute_first(), condition, body, node->source_position()));
+        return Returning(new (arena_) WhileLoop(init, node->execute_first(), condition, body, node->source_position()));
     }
     
     int VisitUnlessLoop(UnlessLoop *node) override {
@@ -315,7 +315,7 @@ private:
         DECL_AND_INSTANTIATE(Expression, condition, node->condition());
         DECL_AND_INSTANTIATE(Block, body, node->body());
         
-        return Return(new (arena_) UnlessLoop(init, node->execute_first(), condition, body, node->source_position()));
+        return Returning(new (arena_) UnlessLoop(init, node->execute_first(), condition, body, node->source_position()));
     }
     
     int VisitForeachLoop(ForeachLoop *node) override {
@@ -323,7 +323,7 @@ private:
         switch (node->iteration()) {
             case ForeachLoop::kIterator: {
                 DECL_AND_INSTANTIATE(Expression, iterable, node->iterable());
-                return Return(new (arena_) ForeachLoop(node->iterative_destination(), iterable, body,
+                return Returning(new (arena_) ForeachLoop(node->iterative_destination(), iterable, body,
                                                        node->source_position()));
             } break;
                 
@@ -332,7 +332,7 @@ private:
                 ForeachLoop::IntRange range {.lower = nullptr, .upper = nullptr, .close = node->range().close};
                 INSTANTIATE(range.lower, node->range().lower);
                 INSTANTIATE(range.upper, node->range().upper);
-                return Return(new (arena_) ForeachLoop(node->iterative_destination(), range, body,
+                return Returning(new (arena_) ForeachLoop(node->iterative_destination(), range, body,
                                                        node->source_position()));
             } break;
                 
@@ -349,165 +349,165 @@ private:
             DECL_AND_INSTANTIATE(Expression, it, part);
             copied->mutable_parts()->push_back(it);
         }
-        return Return(copied);
+        return Returning(copied);
     }
     
     int VisitOr(Or *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) Or(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) Or(lhs, rhs, node->source_position()));
     }
     
     int VisitAdd(Add *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) Add(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) Add(lhs, rhs, node->source_position()));
     }
     
     int VisitAnd(And *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) And(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) And(lhs, rhs, node->source_position()));
     }
 
     int VisitDiv(Div *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) Div(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) Div(lhs, rhs, node->source_position()));
     }
     
     int VisitDot(Dot *node) override {
         DECL_AND_INSTANTIATE(Expression, primary, node->primary());
-        return Return(new (arena_) Dot(primary, node->field(), node->source_position()));
+        return Returning(new (arena_) Dot(primary, node->field(), node->source_position()));
     }
     
     int VisitResolving(Resolving *node) override {
         DECL_AND_INSTANTIATE(Expression, primary, node->primary());
-        return Return(new (arena_) Resolving(primary, node->field(), node->source_position()));
+        return Returning(new (arena_) Resolving(primary, node->field(), node->source_position()));
     }
     
     int VisitMod(Mod *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) Mod(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) Mod(lhs, rhs, node->source_position()));
     }
     
     int VisitMul(Mul *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) Mul(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) Mul(lhs, rhs, node->source_position()));
     }
 
     int VisitNot(Not *node) override {
         DECL_AND_INSTANTIATE(Expression, opd, node->operand());
-        return Return(new (arena_) Not(opd, node->source_position()));
+        return Returning(new (arena_) Not(opd, node->source_position()));
     }
 
     int VisitSub(Sub *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) Sub(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) Sub(lhs, rhs, node->source_position()));
     }
 
     int VisitLess(Less *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) Less(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) Less(lhs, rhs, node->source_position()));
     }
 
     int VisitLessEqual(LessEqual *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) LessEqual(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) LessEqual(lhs, rhs, node->source_position()));
     }
 
     int VisitGreater(Greater *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) Greater(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) Greater(lhs, rhs, node->source_position()));
     }
 
     int VisitGreaterEqual(GreaterEqual *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) GreaterEqual(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) GreaterEqual(lhs, rhs, node->source_position()));
     }
 
     int VisitEqual(Equal *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) Equal(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) Equal(lhs, rhs, node->source_position()));
     }
 
     int VisitNotEqual(NotEqual *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) NotEqual(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) NotEqual(lhs, rhs, node->source_position()));
     }
 
     int VisitRecv(Recv *node) override {
         DECL_AND_INSTANTIATE(Expression, opd, node->operand());
-        return Return(new (arena_) Recv(opd, node->source_position()));
+        return Returning(new (arena_) Recv(opd, node->source_position()));
     }
 
     int VisitSend(Send *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) Send(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) Send(lhs, rhs, node->source_position()));
     }
 
     int VisitNegative(Negative *node) override {
         DECL_AND_INSTANTIATE(Expression, opd, node->operand());
-        return Return(new (arena_) Negative(opd, node->source_position()));
+        return Returning(new (arena_) Negative(opd, node->source_position()));
     }
 
     int VisitBitwiseOr(BitwiseOr *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) BitwiseOr(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) BitwiseOr(lhs, rhs, node->source_position()));
     }
 
     int VisitBitwiseAnd(BitwiseAnd *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) BitwiseAnd(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) BitwiseAnd(lhs, rhs, node->source_position()));
     }
 
     int VisitBitwiseShl(BitwiseShl *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) BitwiseShl(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) BitwiseShl(lhs, rhs, node->source_position()));
     }
 
     int VisitBitwiseShr(BitwiseShr *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) BitwiseShr(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) BitwiseShr(lhs, rhs, node->source_position()));
     }
 
     int VisitBitwiseXor(BitwiseXor *node) override {
         DECL_AND_INSTANTIATE(Expression, lhs, node->lhs());
         DECL_AND_INSTANTIATE(Expression, rhs, node->rhs());
-        return Return(new (arena_) BitwiseXor(lhs, rhs, node->source_position()));
+        return Returning(new (arena_) BitwiseXor(lhs, rhs, node->source_position()));
     }
 
     int VisitBitwiseNegative(BitwiseNegative *node) override {
         DECL_AND_INSTANTIATE(Expression, opd, node->operand());
-        return Return(new (arena_) BitwiseNegative(opd, node->source_position()));
+        return Returning(new (arena_) BitwiseNegative(opd, node->source_position()));
     }
 
-    int VisitIdentifier(Identifier *node) override { return Return(node); }
+    int VisitIdentifier(Identifier *node) override { return Returning(node); }
     
     int VisitCasting(Casting *node) override {
         DECL_AND_INSTANTIATE(Expression, source, node->source());
         DECL_AND_INSTANTIATE(Type, dest, node->destination());
-        return Return(new (arena_) Casting(source, dest, node->source_position()));
+        return Returning(new (arena_) Casting(source, dest, node->source_position()));
     }
     
     int VisitTesting(Testing *node) override {
         DECL_AND_INSTANTIATE(Expression, source, node->source());
         DECL_AND_INSTANTIATE(Type, dest, node->destination());
-        return Return(new (arena_) Testing(source, dest, node->source_position()));
+        return Returning(new (arena_) Testing(source, dest, node->source_position()));
     }
     
     int VisitIndexedGet(IndexedGet *node) override {
@@ -517,12 +517,12 @@ private:
             DECL_AND_INSTANTIATE(Expression, idx, index);
             expr->mutable_indexs()->push_back(idx);
         }
-        return Return(expr);
+        return Returning(expr);
     }
     
     int VisitAssertedGet(AssertedGet *node) override {
         DECL_AND_INSTANTIATE(Expression, opd, node->operand());
-        return Return(new (arena_) AssertedGet(opd, node->source_position()));
+        return Returning(new (arena_) AssertedGet(opd, node->source_position()));
     }
     
     int VisitIfExpression(IfExpression *node) override {
@@ -536,17 +536,71 @@ private:
         if (node->else_clause()) {
             INSTANTIATE(else_clause, node->else_clause());
         }
-        return Return(new (arena_) IfExpression(arena_, init, condition, then_clause, else_clause,
+        return Returning(new (arena_) IfExpression(arena_, init, condition, then_clause, else_clause,
                                                 node->source_position()));
     }
     
     int VisitLambdaLiteral(LambdaLiteral *node) override {
         DECL_AND_INSTANTIATE(Block, body, node->body());
         DECL_AND_INSTANTIATE(FunctionPrototype, prototype, node->prototype());
-        return Return(new (arena_) LambdaLiteral(prototype, body, node->source_position()));
+        return Returning(new (arena_) LambdaLiteral(prototype, body, node->source_position()));
     }
     
-    int VisitWhenExpression(WhenExpression *node) override { UNREACHABLE(); }
+    int VisitWhenExpression(WhenExpression *node) override {
+        Statement *init = nullptr;
+        if (node->initializer()) {
+            INSTANTIATE(init, node->initializer());
+        }
+        DECL_AND_INSTANTIATE(Expression, dest, node->destination());
+        auto copied = new (arena_) WhenExpression(arena_, init, dest, node->source_position());
+        for (auto clause : node->case_clauses()) {
+            DECL_AND_INSTANTIATE(Statement, then, clause->then_clause());
+            switch (clause->pattern()) {
+                case CaseWhenPattern::kExpectValues: {
+                    auto ast = new (arena_) WhenExpression::ExpectValuesCase(arena_, then, clause->source_position());
+                    for (auto val : WhenExpression::ExpectValuesCase::Cast(clause)->match_values()) {
+                        DECL_AND_INSTANTIATE(Expression, match_value, val);
+                        ast->mutable_match_values()->push_back(match_value);
+                    }
+                    copied->mutable_case_clauses()->push_back(ast);
+                } break;
+                case CaseWhenPattern::kTypeTesting: {
+                    auto type_testing = WhenExpression::TypeTestingCase::Cast(clause);
+                    DECL_AND_INSTANTIATE(Type, match_type, type_testing->match_type());
+                    auto ast = new (arena_) WhenExpression::TypeTestingCase(type_testing->name(), match_type, then,
+                                                                            clause->source_position());
+                    copied->mutable_case_clauses()->push_back(ast);
+                } break;
+                case CaseWhenPattern::kBetweenTo: {
+                    auto between_to = WhenExpression::BetweenToCase::Cast(clause);
+                    DECL_AND_INSTANTIATE(Expression, lower, between_to->lower());
+                    DECL_AND_INSTANTIATE(Expression, upper, between_to->upper());
+                    auto ast = new (arena_) WhenExpression::BetweenToCase(lower, upper, then, between_to->is_close(),
+                                                                          clause->source_position());
+                    copied->mutable_case_clauses()->push_back(ast);
+                } break;
+                case CaseWhenPattern::kStructMatching: {
+                    auto struct_matching = WhenExpression::StructMatchingCase::Cast(clause);
+                    DECL_AND_INSTANTIATE(Type, match_type, struct_matching->match_type());
+                    auto ast = new (arena_) WhenExpression::StructMatchingCase(arena_, match_type, then,
+                                                                               clause->source_position());
+                    for (auto id : struct_matching->expecteds()) {
+                        ast->mutable_expecteds()->push_back(id);
+                    }
+                    copied->mutable_case_clauses()->push_back(ast);
+                } break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        }
+        if (node->else_clause()) {
+            DECL_AND_INSTANTIATE(Statement, else_clause, node->else_clause());
+            copied->set_else_clause(else_clause);
+        }
+        return Returning(copied);
+        
+    }
     int VisitArrayInitializer(ArrayInitializer *node) override { UNREACHABLE(); }
     int VisitObjectDeclaration(ObjectDeclaration *node) override { UNREACHABLE(); }
     
@@ -612,38 +666,38 @@ private:
             for (size_t i = 0; i < node->generic_args_size(); i++) {
                 copied->mutable_generic_args()->push_back(types[i]);
             }
-            return Return(copied);
+            return Returning(copied);
         }
     }
     
     int VisitOptionLiteral(OptionLiteral *node) override {
         if (node->is_some()) {
             DECL_AND_INSTANTIATE(Expression, value, node->value());
-            return Return(new (arena_) OptionLiteral(arena_, value, node->source_position()));
+            return Returning(new (arena_) OptionLiteral(arena_, value, node->source_position()));
         } else {
-            return Return(new (arena_) OptionLiteral(arena_, nullptr, node->source_position()));
+            return Returning(new (arena_) OptionLiteral(arena_, nullptr, node->source_position()));
         }
     }
 
-    int VisitBreak(Break *node) override { return Return(node); }
-    int VisitContinue(Continue *node) override { return Return(node); }
-    int VisitF32Literal(F32Literal *node) override { return Return(node); }
-    int VisitF64Literal(F64Literal *node) override { return Return(node); }
-    int VisitI64Literal(I64Literal *node) override { return Return(node); }
-    int VisitIntLiteral(IntLiteral *node) override { return Return(node); }
-    int VisitUIntLiteral(UIntLiteral *node) override { return Return(node); }
-    int VisitI8Literal(I8Literal *node) override { return Return(node); }
-    int VisitU8Literal(U8Literal *node) override { return Return(node); }
-    int VisitI16Literal(I16Literal *node) override { return Return(node); }
-    int VisitU16Literal(U16Literal *node) override { return Return(node); }
-    int VisitI32Literal(I32Literal *node) override { return Return(node); }
-    int VisitU32Literal(U32Literal *node) override { return Return(node); }
-    int VisitU64Literal(U64Literal *node) override { return Return(node); }
-    int VisitBoolLiteral(BoolLiteral *node) override { return Return(node); }
-    int VisitUnitLiteral(UnitLiteral *node) override { return Return(node); }
-    int VisitEmptyLiteral(EmptyLiteral *node) override { return Return(node); }
-    int VisitStringLiteral(StringLiteral *node) override { return Return(node); }
-    int VisitCharLiteral(CharLiteral *node) override { return Return(node); }
+    int VisitBreak(Break *node) override { return Returning(node); }
+    int VisitContinue(Continue *node) override { return Returning(node); }
+    int VisitF32Literal(F32Literal *node) override { return Returning(node); }
+    int VisitF64Literal(F64Literal *node) override { return Returning(node); }
+    int VisitI64Literal(I64Literal *node) override { return Returning(node); }
+    int VisitIntLiteral(IntLiteral *node) override { return Returning(node); }
+    int VisitUIntLiteral(UIntLiteral *node) override { return Returning(node); }
+    int VisitI8Literal(I8Literal *node) override { return Returning(node); }
+    int VisitU8Literal(U8Literal *node) override { return Returning(node); }
+    int VisitI16Literal(I16Literal *node) override { return Returning(node); }
+    int VisitU16Literal(U16Literal *node) override { return Returning(node); }
+    int VisitI32Literal(I32Literal *node) override { return Returning(node); }
+    int VisitU32Literal(U32Literal *node) override { return Returning(node); }
+    int VisitU64Literal(U64Literal *node) override { return Returning(node); }
+    int VisitBoolLiteral(BoolLiteral *node) override { return Returning(node); }
+    int VisitUnitLiteral(UnitLiteral *node) override { return Returning(node); }
+    int VisitEmptyLiteral(EmptyLiteral *node) override { return Returning(node); }
+    int VisitStringLiteral(StringLiteral *node) override { return Returning(node); }
+    int VisitCharLiteral(CharLiteral *node) override { return Returning(node); }
     
     int VisitChannelInitializer(ChannelInitializer *node) override {
         auto ty = DCHECK_NOTNULL(node->type()->AsChannelType());
@@ -653,7 +707,7 @@ private:
             return -1;
         }
         auto copied = new (arena_) ChannelInitializer(copied_ty, node->capacity(), node->source_position());
-        return Return(copied);
+        return Returning(copied);
     }
     
     int VisitPackage(Package *node) override { UNREACHABLE(); }
@@ -844,7 +898,7 @@ private:
         return ast;
     }
     
-    int Return(AstNode *ast) {
+    int Returning(AstNode *ast) {
         if (ast) {
             results_.push(ast);
             return 1;

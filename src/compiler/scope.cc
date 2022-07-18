@@ -300,10 +300,19 @@ VariableDeclaration *DataDefinitionScope::ThisStub(base::Arena *arena) {
     }
     auto id = base::ArenaString::New(arena, "this", 4);
     Type *type = nullptr;
-    if (IsClassOrStruct()) {
-        type = new (arena) ClassType(arena, AsClass(), definition()->source_position());
-    } else {
-        type = new (arena) StructType(arena, AsStruct(), definition()->source_position());
+    switch (definition()->kind()) {
+        case Node::kClassDefinition:
+            type = new (arena) ClassType(arena, AsClass(), definition()->source_position());
+            break;
+        case Node::kStructDefinition:
+            type = new (arena) StructType(arena, AsStruct(), definition()->source_position());
+            break;
+        case Node::kEnumDefinition:
+            type = new (arena) EnumType(arena, AsEnum(), definition()->source_position());
+            break;
+        default:
+            UNREACHABLE();
+            break;
     }
     this_stub_ = new (arena) VariableDeclaration(arena, false, VariableDeclaration::kVal, id, type,
                                                  definition()->source_position());
@@ -315,6 +324,8 @@ bool DataDefinitionScope::IsClassOrStruct() const { return definition()->IsClass
 StructDefinition *DataDefinitionScope::AsStruct() const { return definition()->AsStructDefinition(); }
 
 ClassDefinition *DataDefinitionScope::AsClass() const { return definition()->AsClassDefinition(); }
+
+EnumDefinition *DataDefinitionScope::AsEnum() const { return definition()->AsEnumDefinition(); }
 
 DataDefinitionScope::ImplementTarget
 DataDefinitionScope::ImplementMethodOnce(std::string_view name, String *signature) {

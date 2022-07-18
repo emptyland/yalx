@@ -114,7 +114,7 @@ InstructionOperand *OperandAllocator::Allocate(ir::Value *value) {
 InstructionOperand *OperandAllocator::Allocate(ir::Type ty) {
     switch (ty.kind()) {
         case ir::Type::kValue:
-            if (ty.IsPointer()) {
+            if (ty.IsPointer() || ty.IsCompactEnum()) {
                 return Allocate(kPtr, kPointerSize, ty.model());
             } else {
                 return Allocate(kVal, ty.ReferenceSizeInBytes(), ty.model());
@@ -264,7 +264,12 @@ RegisterOperand *OperandAllocator::AllocateReigster(ir::Type ty, int designate) 
         return AllocateReigster(kRef, kPointerSize, designate);
     } else if (ty.IsFloating()) {
         return AllocateReigster(ty.bits() == 32 ? kF32 : kF64, ty.bytes(), designate);
-    } else if (ty.kind() == ir::Type::kValue || ty.kind() == ir::Type::kVoid) {
+    } else if (ty.kind() == ir::Type::kValue) {
+        return (ty.model()->declaration() == ir::Model::kEnum &&
+                down_cast<ir::StructureModel>(ty.model())->IsCompactEnum())
+            ? AllocateReigster(kPtr, kPointerSize, designate)
+            : nullptr;
+    } else if (ty.kind() == ir::Type::kVoid) {
         return nullptr;
     } else {
         return AllocateReigster(kVal, ty.bytes(), designate);

@@ -11,7 +11,26 @@ enum Foo {
 enum Option<T> {
     None,
     Some(T)
+
+    fun unwarpOr(defaultVal: T) -> when(this) {
+        None -> defaultVal
+        Some(value) -> value
+    }
 }
 
 @yalx.Compiler(nativeHandle=true)
-fun issue1() -> Foo::A
+fun issue1() -> Foo::A, Foo::E
+
+@yalx.Compiler(nativeHandle=true)
+fun issue2() -> Foo::B(122u8)
+
+@yalx.Compiler(nativeHandle=true)
+fun issue3() -> Foo::D("ok")
+
+
+@yalx.Compiler(nativeHandle=true)
+fun issue10() -> Option<int>::None
+
+
+@yalx.Compiler(nativeHandle=true)
+fun issue11() -> Option<string>::Some("option").unwarpOr("")

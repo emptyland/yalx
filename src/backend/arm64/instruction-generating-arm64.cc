@@ -648,7 +648,8 @@ void Arm64FunctionInstructionSelector::AssociateParameters(InstructionBlock *blo
             auto index = kNumberOfGeneralArgumentsRegisters - number_of_general_args;
             auto arg = operands_.AllocateReigster(param, kGeneralArgumentsRegisters[index]);
             DCHECK(arg != nullptr);
-            if (param->type().kind() == ir::Type::kValue && !param->type().IsPointer()) {
+            if (param->type().kind() == ir::Type::kValue &&
+                !param->type().IsPointer() && !param->type().IsCompactEnum()) {
                 auto opd = operands_.AllocateStackSlot(param->type(), 0/*padding_size*/, StackSlotAllocator::kLinear);
                 Move(opd, arg, param->type());
                 operands_.Associate(param, opd);
@@ -1263,6 +1264,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             // padding = 8   returning-vals = 12 offset = 24
             // padding = 12  returning-vals = 4  offset = 28
             //for (int i = 0; i < val->op()->value_in(); i++) {
+            //DCHECK(instr->op()->value_in() == fun_->prototype()->return_types_size());
             for (int i = instr->op()->value_in() - 1; i >= 0; i--) {
                 auto ty = fun_->prototype()->return_type(i);
                 if (ty.kind() == ir::Type::kVoid) {
@@ -1280,6 +1282,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             current()->NewI2O(ArchFrameExit, fp, stack_total_size_, stack_sp_fp_location_);
         } break;
             
+        debugging_info:
         default: {
         #ifndef NDEBUG
             ir::PrintingContext ctx(0);
@@ -2391,7 +2394,7 @@ void Arm64FunctionInstructionSelector::Move(InstructionOperand *dest, Instructio
             break;
             
         case ir::Type::kValue: {
-            if (ty.IsPointer()) {
+            if (ty.IsPointer() || ty.IsCompactEnum()) {
                 MoveMachineWords(Arm64Ldr, Arm64Str, dest, src, MachineRepresentation::kWord64,
                                  MachineRepresentation::kWord64);
                 return;

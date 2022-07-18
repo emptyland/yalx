@@ -136,7 +136,7 @@ TEST_F(Arm64CodeGeneratorTest, EnumTypes) {
     //CodeGen("tests/44-code-gen-primitive-props", "yalx/lang:lang", &printer, &ok);
     CodeGen("tests/45-code-gen-enum-types", "issue06:issue06", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
     
 }
 
@@ -571,6 +571,66 @@ TEST_F(Arm64CodeGeneratorTest, PrimitiveTypeProps) {
         EXPECT_STREQ("99", yalx_str_bytes(&vals[3]));
         EXPECT_STREQ("2", yalx_str_bytes(&vals[2]));
         EXPECT_STREQ("3", yalx_str_bytes(&vals[1]));
+    }
+    yalx_exit_returning_scope(&state);
+}
+
+struct Issue06DummyFoo {
+    i16_t enum_value;
+    union {
+        u8_t as_u8;
+        i32_t as_i32;
+        yalx_value_str *as_str;
+    };
+};
+
+TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
+    pkg_init_once(reinterpret_cast<void *>(&issue06_Zoissue06_Zd_Z4init), "issue06:issue06");
+    
+    yalx_returning_vals state;
+    yalx_enter_returning_scope(&state, 32, nullptr);
+
+    issue06_Zoissue06_Zdissue1_had();
+    
+    {
+        auto vals = reinterpret_cast<Issue06DummyFoo *>(state.buf);
+        ASSERT_EQ(0, vals[1].enum_value);
+        ASSERT_EQ(4, vals[0].enum_value);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue06_Zoissue06_Zdissue2_had();
+    
+    {
+        auto vals = reinterpret_cast<Issue06DummyFoo *>(state.buf);
+        ASSERT_EQ(1, vals[0].enum_value);
+        ASSERT_EQ(122, vals[0].as_u8);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue06_Zoissue06_Zdissue3_had();
+    
+    {
+        auto vals = reinterpret_cast<Issue06DummyFoo *>(state.buf);
+        ASSERT_EQ(3, vals[0].enum_value);
+        ASSERT_EQ(2, vals[0].as_str->len);
+        ASSERT_STREQ("ok", vals[0].as_str->bytes);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue06_Zoissue06_Zdissue11_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_str_handle>(state.buf);
+        ASSERT_EQ(6, vals[1]->len);
+        ASSERT_STREQ("option", vals[1]->bytes);
     }
     yalx_exit_returning_scope(&state);
 }
