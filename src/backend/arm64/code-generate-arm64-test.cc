@@ -66,7 +66,7 @@ TEST_F(Arm64CodeGeneratorTest, YalxLang) {
     bool ok = true;
     CodeGen("tests/40-code-gen-sanity", "yalx/lang:lang", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
 }
 
 TEST_F(Arm64CodeGeneratorTest, TryCatch) {
@@ -136,7 +136,7 @@ TEST_F(Arm64CodeGeneratorTest, EnumTypes) {
     //CodeGen("tests/44-code-gen-primitive-props", "yalx/lang:lang", &printer, &ok);
     CodeGen("tests/45-code-gen-enum-types", "issue06:issue06", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
     
 }
 

@@ -35,7 +35,7 @@ fun issue10() -> Option<int>::None
 fun issue11() -> Option<string>::Some("option").unwarpOr("")
 
 @yalx.Compiler(nativeHandle=true)
-fun issue12() -> Optional<int>::Some(1).unwarpOr(0)
+fun issue12() -> Optional<Bar>::Some(Bar(1, 2)).unwarpOr(Bar(996, 700))
 
 
 struct Bar(val x: int, val y: int)

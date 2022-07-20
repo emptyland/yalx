@@ -15,6 +15,9 @@ class Package;
 class FunctionPrototype;
 class Type;
 class SyntaxFeedback;
+class ClassDefinition;
+class StructDefinition;
+class EnumDefinition;
 } // namespace cpl
 namespace ir {
 
@@ -45,8 +48,14 @@ public:
 private:
     base::Status Prepare0();
     base::Status Prepare1();
+    base::Status Prepare2();
     void PreparePackage0(cpl::Package *pkg);
     void PreparePackage1(cpl::Package *pkg);
+    void PreparePackage2(cpl::Package *pkg);
+    void LayoutStructure(cpl::ClassDefinition *def, Module *module);
+    void LayoutStructure(cpl::StructDefinition *def, Module *module);
+    void LayoutStructure(cpl::EnumDefinition *def, Module *module);
+    void LayoutStructure(cpl::InterfaceDefinition *def, Module *module);
     Function *InstallInitFun(Module *module);
     Type BuildType(const cpl::Type *type);
     Model *Boxing(Type type);

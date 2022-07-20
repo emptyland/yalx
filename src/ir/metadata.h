@@ -238,6 +238,8 @@ public:
     Handle *InsertField(const Field &field);
     Handle *InsertMethod(const Method &method);
     
+    size_t LazyPlacementSizeInBytes();
+    
     std::optional<Method> FindMethod(std::string_view name) const override;
     std::optional<Field> FindField(std::string_view name) const override;
     Member GetMember(const Handle *handle) const override;

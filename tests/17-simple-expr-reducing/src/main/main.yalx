@@ -6,7 +6,7 @@ val v1 = 100
 val c1 = chan<int>(1)
 val v2 = v1 - 1
 val v3 = v2 + 100
-val v4 = v3 * foo.ran()!!
+val v4 = v3 * foo.ran().unwarpOr(0)
 val v5, v6 = <-c1
 val v7 = c1 <- v1
 val v8 = (a:int, ...) -> if (a != 0) { 

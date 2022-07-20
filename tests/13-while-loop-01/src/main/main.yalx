@@ -18,8 +18,8 @@ fun main() {
     while (val t = foo(); t) {}
     unless (val t = bar(); t) {}
 
-    val ex = Exception("inner", none)
-    throw Exception("final", some(ex))
+    val ex = Exception("inner", Optional<Throwable>::None)
+    throw Exception("final", Optional<Throwable>::Some(ex))
 }
 
 fun foo() -> true

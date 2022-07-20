@@ -1884,6 +1884,7 @@ InstructionOperand *X64FunctionInstructionSelector::CopyArgumentValue(Instructio
             }
             
         }
+        tmp->Grab();
         operands_.Free(tmp);
     }
     return to;
@@ -2150,6 +2151,9 @@ void X64FunctionInstructionSelector::Move(InstructionOperand *dest, InstructionO
                     } else {
                         DCHECK(ty.ReferenceSizeInBytes() % kPointerSize == 0);
                     }
+                } else if (src->IsImmediate()) {
+                    DCHECK(ty.bytes() <= kPointerSize);
+                    current()->NewIO(X64Movq, dest, src);
                 } else {
                     DCHECK(src->IsReloaction());
                     auto r1 = src->AsReloaction();

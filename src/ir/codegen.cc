@@ -235,47 +235,14 @@ public:
         }
         
         auto clazz = AssertedGetUdt<StructureModel>(node->FullName());
-        int16_t enum_value = 0;
-        for (auto ast : node->fields()) {
-            Type ty;
-            if (ast.declaration->ItemSize() == 0) {
-                ty = Types::Void;
-            } else if (ast.declaration->ItemSize() == 1) {
-                ty = BuildType(ast.declaration->Type());
-            } else {
-                std::vector<Type> types;
-                for (auto var : ast.declaration->variables()) {
-                    types.push_back(BuildType(var->type()));
-                }
-                ty = Type::Tuple(arena(), &types[0], static_cast<int>(types.size()));
-            }
-            
-            Model::Field field {
-                ast.declaration->name()->Duplicate(arena()),
-                kPublic,
-                0,
-                ty,
-                enum_value++,
-            };
-            DCHECK_NOTNULL(clazz->InsertField(field));
-        }
-        
         StructureScope scope(&location_, node, clazz);
         scope.InstallAncestorsSymbols();
         
         for (auto ast : node->methods()) {
-            auto proto = owns_->BuildPrototype(ast->prototype(), clazz);
-            auto fun = module_->NewFunction(ToDecoration(ast), ast->name(), clazz, proto);
-            Model::Method method {
-                .fun = fun,
-                .access = kPublic,
-                .in_itab = 0,
-                .in_vtab = 0,
-            };
-            auto handle = clazz->InsertMethod(method);
-            location_->PutSymbol(method.fun->name()->ToSlice(), Symbol::Had(location_, handle, ast));
+            auto handle = DCHECK_NOTNULL(clazz->FindMemberOrNull(ast->name()->ToSlice()));
+            location_->PutSymbol(handle->name()->ToSlice(), Symbol::Had(location_, handle, ast));
         }
-        
+
         for (auto ast : node->methods()) {
             auto method = clazz->FindMethod(ast->name()->ToSlice());
             DCHECK(method.has_value());
@@ -295,36 +262,22 @@ public:
         
         auto clazz = AssertedGetUdt<StructureModel>(node->FullName());
         if (node->base_of()) {
-            auto base = AssertedGetUdt<StructureModel>(node->base_of()->FullName());
-            clazz->set_base_of(base);
+            DCHECK(clazz->base_of());
         }
         
         StructureScope scope(&location_, node, clazz);
         scope.InstallAncestorsSymbols();
         
         for (auto ast : node->fields()) {
-            Model::Field field {
-                ast.declaration->Identifier()->Duplicate(arena()),
-                kPublic, // TODO:
-                0,
-                BuildType(ast.declaration->Type()),
-                false,
-            };
-            auto handle = clazz->InsertField(field);
-            location_->PutSymbol(field.name->ToSlice(), Symbol::Had(location_, handle, ast.declaration));
+            auto name = ast.declaration->Identifier()->ToSlice();
+            auto handle = DCHECK_NOTNULL(clazz->FindMemberOrNull(name));
+            location_->PutSymbol(handle->name()->ToSlice(), Symbol::Had(location_, handle, ast.declaration));
         }
         
         for (auto ast : node->methods()) {
-            auto proto = owns_->BuildPrototype(ast->prototype(), clazz);
-            auto fun = module_->NewFunction(ToDecoration(ast), ast->name(), clazz, proto);
-            Model::Method method {
-                .fun = fun,
-                .access = kPublic,
-                .in_itab = 0,
-                .in_vtab = 0,
-            };
-            auto handle = clazz->InsertMethod(method);
-            location_->PutSymbol(method.fun->name()->ToSlice(), Symbol::Had(location_, handle, ast));
+            //auto name = ast->name();
+            auto handle = DCHECK_NOTNULL(clazz->FindMemberOrNull(ast->name()->ToSlice()));
+            location_->PutSymbol(handle->name()->ToSlice(), Symbol::Had(location_, handle, ast));
         }
         
         for (auto ast : node->methods()) {
@@ -336,20 +289,11 @@ public:
         }
         
         if (node->primary_constructor()) {
-            auto ctor = GenerateFun(node->primary_constructor(), clazz);
+            auto ctor = GenerateFun(node->primary_constructor(), clazz, clazz->constructor());
             if (!ctor) {
                 return -1;
             }
-            clazz->set_constructor(ctor);
-            Model::Method method {
-                .fun = ctor,
-                .access = kPublic,
-                .in_vtab = 0,
-                .in_itab = 0,
-            };
-            clazz->InsertMethod(method);
-            
-            //printd("ctor: %s", node->primary_constructor()->name()->data());
+            DCHECK(ctor == clazz->constructor());
         }
         
         fixup(clazz);
@@ -357,15 +301,6 @@ public:
         clazz->UpdatePlacementSizeInBytes();
         return Returning(Unit());
     }
-    
-//    void FixupStructConstructor(PrototypeModel *proto) {
-//        auto this_ty = proto->param(0);
-//        if (this_ty.kind() == Type::kValue && !this_ty.IsPointer()) {
-//            printd("hit");
-//        } else {
-//            printd("noop");
-//        }
-//    }
     
     int VisitObjectDeclaration(cpl::ObjectDeclaration *node) override {
         SourcePositionTable::Scope ss_root(CURRENT_SOUCE_POSITION(node));
@@ -778,23 +713,7 @@ public:
         return Returning(Unit());
     }
     
-    int VisitInterfaceDefinition(cpl::InterfaceDefinition *node) override {
-        if (!node->generic_params().empty()) {
-            return Returning(Unit());
-        }
-        DCHECK(location_->IsFileUnitScope());
-        auto full_name = MakeFullName(node->name());
-        auto model = AssertedGetUdt<InterfaceModel>(full_name);
-        for (auto ast : node->methods()) {
-            auto full_name = String::New(arena(), ast->FullName());
-            auto stub = AssertedGetUdt<StructureModel>(cpl::kAnyClassFullName);
-            auto proto = owns_->BuildPrototype(ast->prototype(), stub);
-            auto fun = module_->NewStandaloneFunction(ToDecoration(ast), ast->name()->Duplicate(arena()), full_name, proto);
-            model->InsertMethod(fun);
-        }
-        
-        return Returning(Unit());
-    }
+    int VisitInterfaceDefinition(cpl::InterfaceDefinition *node) override { return Returning(Unit()); }
     
     int VisitIfExpression(cpl::IfExpression *node) override {
         using std::placeholders::_1;
@@ -2845,6 +2764,7 @@ IntermediateRepresentationGenerator::IntermediateRepresentationGenerator(const s
 base::Status IntermediateRepresentationGenerator::Run() {
     Prepare0();
     Prepare1();
+    Prepare2();
     
     auto accept = [this] (cpl::Package *pkg) {
         IRGeneratorAstVisitor visitor(this);
@@ -2883,6 +2803,18 @@ base::Status IntermediateRepresentationGenerator::Prepare1() {
         return rs;
     }
     PreparePackage1(entry_);
+    return base::Status::OK();
+}
+
+base::Status IntermediateRepresentationGenerator::Prepare2() {
+    using std::placeholders::_1;
+    
+    track_.clear();
+    if (auto rs = RecursivePackage(entry_, std::bind(&IntermediateRepresentationGenerator::PreparePackage2, this, _1));
+        rs.fail()) {
+        return rs;
+    }
+    PreparePackage2(entry_);
     return base::Status::OK();
 }
 
@@ -3001,6 +2933,190 @@ void IntermediateRepresentationGenerator::PreparePackage1(cpl::Package *pkg) {
     }
     
     pkg_scopes_[pkg] = new PackageScope(nullptr/*location*/, pkg, &symbols_);
+}
+
+// Layout
+void IntermediateRepresentationGenerator::PreparePackage2(cpl::Package *pkg) {
+    std::string full_name(pkg->path()->ToString());
+    full_name.append(":").append(pkg->name()->ToString());
+    
+    auto iter = modules_.find(full_name);
+    DCHECK(iter != modules_.end());
+    auto module = iter->second;
+    if (Track(module, 2/*dest*/)) {
+        return;
+    }
+    
+    for (auto file_unit : pkg->source_files()) {
+        for (auto clazz : file_unit->class_defs()) {
+            if (!clazz->generic_params().empty()) {
+                continue;
+            }
+            LayoutStructure(clazz, module);
+        }
+        for (auto clazz : file_unit->struct_defs()) {
+            if (!clazz->generic_params().empty()) {
+                continue;
+            }
+            LayoutStructure(clazz, module);
+        }
+        for (auto clazz : file_unit->enum_defs()) {
+            if (!clazz->generic_params().empty()) {
+                continue;
+            }
+            LayoutStructure(clazz, module);
+        }
+        for (auto clazz : file_unit->interfaces()) {
+            if (!clazz->generic_params().empty()) {
+                continue;
+            }
+            LayoutStructure(clazz, module);
+        }
+    }
+}
+
+void IntermediateRepresentationGenerator::LayoutStructure(cpl::ClassDefinition *node, Module *module) {
+    auto clazz = down_cast<StructureModel>(AssertedGetUdt(node->FullName()));
+    if (node->base_of()) {
+        auto base = down_cast<StructureModel>(AssertedGetUdt(node->base_of()->FullName()));
+        clazz->set_base_of(base);
+    }
+
+    for (auto ast : node->fields()) {
+        Model::Field field {
+            ast.declaration->Identifier()->Duplicate(arena_),
+            kPublic, // TODO:
+            0,
+            BuildType(ast.declaration->Type()),
+            false,
+        };
+        clazz->InsertField(field);
+    }
+    
+    for (auto ast : node->methods()) {
+        auto proto = BuildPrototype(ast->prototype(), clazz);
+        auto fun = module->NewFunction(IRGeneratorAstVisitor::ToDecoration(ast), ast->name(), clazz, proto);
+        Model::Method method {
+            .fun = fun,
+            .access = kPublic,
+            .in_itab = 0,
+            .in_vtab = 0,
+        };
+        clazz->InsertMethod(method);
+    }
+    
+    if (node->primary_constructor()) {
+        auto ast = node->primary_constructor();
+        auto proto = BuildPrototype(ast->prototype(), clazz);
+        auto fun = module->NewFunction(IRGeneratorAstVisitor::ToDecoration(ast), ast->name(), clazz, proto);
+        Model::Method method {
+            .fun = fun,
+            .access = kPublic,
+            .in_itab = 0,
+            .in_vtab = 0,
+        };
+        clazz->InsertMethod(method);
+        clazz->set_constructor(fun);
+    }
+}
+
+void IntermediateRepresentationGenerator::LayoutStructure(cpl::StructDefinition *node, Module *module) {
+    auto clazz = down_cast<StructureModel>(AssertedGetUdt(node->FullName()));
+    if (node->base_of()) {
+        auto base = down_cast<StructureModel>(AssertedGetUdt(node->base_of()->FullName()));
+        clazz->set_base_of(base);
+    }
+
+    for (auto ast : node->fields()) {
+        Model::Field field {
+            ast.declaration->Identifier()->Duplicate(arena_),
+            kPublic, // TODO:
+            0,
+            BuildType(ast.declaration->Type()),
+            false,
+        };
+        clazz->InsertField(field);
+    }
+    
+    for (auto ast : node->methods()) {
+        auto proto = BuildPrototype(ast->prototype(), clazz);
+        auto fun = module->NewFunction(IRGeneratorAstVisitor::ToDecoration(ast), ast->name(), clazz, proto);
+        Model::Method method {
+            .fun = fun,
+            .access = kPublic,
+            .in_itab = 0,
+            .in_vtab = 0,
+        };
+        clazz->InsertMethod(method);
+    }
+    
+    if (node->primary_constructor()) {
+        auto ast = node->primary_constructor();
+        auto proto = BuildPrototype(ast->prototype(), clazz);
+        auto fun = module->NewFunction(IRGeneratorAstVisitor::ToDecoration(ast), ast->name(), clazz, proto);
+        Model::Method method {
+            .fun = fun,
+            .access = kPublic,
+            .in_itab = 0,
+            .in_vtab = 0,
+        };
+        clazz->InsertMethod(method);
+        clazz->set_constructor(fun);
+    }
+}
+
+void IntermediateRepresentationGenerator::LayoutStructure(cpl::EnumDefinition *node, Module *module) {
+    auto clazz = down_cast<StructureModel>(AssertedGetUdt(node->FullName()));
+    
+    int16_t enum_value = 0;
+    for (auto ast : node->fields()) {
+        Type ty;
+        if (ast.declaration->ItemSize() == 0) {
+            ty = Types::Void;
+        } else if (ast.declaration->ItemSize() == 1) {
+            ty = BuildType(ast.declaration->Type());
+        } else {
+            std::vector<Type> types;
+            for (auto var : ast.declaration->variables()) {
+                types.push_back(BuildType(var->type()));
+            }
+            ty = Type::Tuple(arena_, &types[0], static_cast<int>(types.size()));
+        }
+        
+        Model::Field field {
+            ast.declaration->name()->Duplicate(arena_),
+            kPublic,
+            0,
+            ty,
+            enum_value++,
+        };
+        clazz->InsertField(field);
+    }
+    
+    for (auto ast : node->methods()) {
+        auto proto = BuildPrototype(ast->prototype(), clazz);
+        auto fun = module->NewFunction(IRGeneratorAstVisitor::ToDecoration(ast), ast->name(), clazz, proto);
+        Model::Method method {
+            .fun = fun,
+            .access = kPublic,
+            .in_itab = 0,
+            .in_vtab = 0,
+        };
+        clazz->InsertMethod(method);
+        //location_->PutSymbol(method.fun->name()->ToSlice(), Symbol::Had(location_, handle, ast));
+    }
+}
+
+void IntermediateRepresentationGenerator::LayoutStructure(cpl::InterfaceDefinition *node, Module *module) {
+    auto stub = down_cast<StructureModel>(AssertedGetUdt(cpl::kAnyClassFullName));
+    auto clazz = down_cast<InterfaceModel>(AssertedGetUdt(node->FullName()));
+    for (auto ast : node->methods()) {
+        auto full_name = String::New(arena_, ast->FullName());
+        auto proto = BuildPrototype(ast->prototype(), stub);
+        auto fun = module->NewStandaloneFunction(IRGeneratorAstVisitor::ToDecoration(ast),
+                                                 ast->name()->Duplicate(arena_), full_name, proto);
+        clazz->InsertMethod(fun);
+    }
 }
 
 Function *IntermediateRepresentationGenerator::InstallInitFun(Module *module) {

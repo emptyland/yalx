@@ -571,6 +571,14 @@ Handle *StructureModel::FindMemberOrNull(std::string_view name) const {
     return nullptr;
 }
 
+size_t StructureModel::LazyPlacementSizeInBytes() {
+    if (placement_size_in_bytes_ < 0) {
+        return UpdatePlacementSizeInBytes();
+    } else {
+        return PlacementSizeInBytes();
+    }
+}
+
 size_t StructureModel::ReferenceSizeInBytes() const { return kPointerSize; }
 size_t StructureModel::PlacementSizeInBytes() const {
     DCHECK(placement_size_in_bytes_ > 0);
@@ -713,7 +721,7 @@ int64_t StructureModel::CalculateCompactPlacementSize() {
             case Type::kValue:
                 DCHECK(!field.type.IsPointer());
                 field.offset = RoundUp(base_offset, max_alignment);
-                size = field.offset + field.type.model()->PlacementSizeInBytes();
+                size = field.offset + down_cast<StructureModel>(field.type.model())->LazyPlacementSizeInBytes();
                 break;
             case Type::kString:
             case Type::kReference:

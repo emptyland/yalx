@@ -24,14 +24,11 @@ val v16 = @u8[] {1,2,3,4} as string
 val v17 = @i8[] {1,2,3,4} as string
 val v18 = @char[] {'😀', '😂', '😛'} as string
 
-//val v19 = v5.toF32()
-//val v20 = v6.toF64()
-
 val v21 = @char[16]('a')
 val v22 = @int[16](0)
 
-val v24, v25 = if (v23) {1, 2} else {2, 1}
-val v26 = if (v23) 233
+val v24, v25 = if (true) {1, 2} else {2, 1}
+val v26 = if (false) 233
 
 fun main() {
 

@@ -123,6 +123,7 @@ static inline enum yalx_builtin_type yalx_builtin_type(const struct yalx_class *
 }
 
 int yalx_is_ref_type(const struct yalx_class * klass);
+int yalx_is_compact_enum_type(const struct yalx_class * klass);
 
 //int yalx_has_at_least_one_ref_type(const struct yalx_class * klass);
 

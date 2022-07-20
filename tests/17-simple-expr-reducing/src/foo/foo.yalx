@@ -1,5 +1,5 @@
 package foo
 
-fun ran(): int? {
-    return 100
+fun ran(): Optional<int> {
+    return Optional<int>::Some(100)
 }
