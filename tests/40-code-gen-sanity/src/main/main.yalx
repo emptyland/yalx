@@ -5,6 +5,11 @@ fun main() {
     display("Hello, World")
 }
 
+fun sanity() {
+    val e1 = Optional<int>::None
+    val e2 = Optional<string>::None
+}
+
 fun issue1(): int {
     val a,b,c = foo()
     val d = a + b

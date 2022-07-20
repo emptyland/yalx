@@ -1,0 +1,11 @@
+package lang
+
+enum Optional<T> {
+    None,
+    Some(T)
+
+    fun unwarpOr(defaultVal: T) -> when(this) {
+        None -> defaultVal
+        Some(value) -> value
+    }
+}

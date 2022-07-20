@@ -911,28 +911,6 @@ public:
     DECLARE_AST_NODE(EmptyLiteral);
 }; // class EmptyLiteral
 
-
-class OptionLiteral : public Literal {
-public:
-    OptionLiteral(base::Arena *arena, Expression *value, const SourcePosition &source_position);
-    DEF_PTR_PROP_RW(Expression, value);
-    
-    bool is_none() { return value() == nullptr; }
-    bool is_some() { return !is_none(); }
-    
-    static OptionLiteral *None(base::Arena *arena, const SourcePosition &source_position) {
-        return new (arena) OptionLiteral(arena, nullptr, source_position);
-    }
-    
-    static OptionLiteral *Some(base::Arena *arena, Expression *value, const SourcePosition &source_position) {
-        return new (arena) OptionLiteral(arena, value, source_position);
-    }
-    
-    DECLARE_AST_NODE(OptionLiteral);
-private:
-    Expression *value_ = nullptr;
-}; // class OptionLiteral
-
 template<class T>
 struct LiteralTraits {
     static constexpr Node::Kind kKind = Node::kMaxKinds;
@@ -1218,8 +1196,7 @@ public:
     V(BitwiseShl,      Binary) \
     V(BitwiseShr,      Binary) \
     V(Recv,            Unary)  \
-    V(Send,            Binary) \
-    V(AssertedGet,     Unary)  \
+    V(Send,            Binary)
 
 #define DEFINE_CLASS(name, base) \
     class name : public base##Expression { \
@@ -1479,7 +1456,6 @@ private:
     V(Class,     ClassType) \
     V(Struct,    StructType) \
     V(Enum,      EnumType) \
-    V(Option,    OptionType) \
     V(Interface, InterfaceType) \
     V(Function,  FunctionPrototype)
 
@@ -1555,7 +1531,7 @@ public:
     bool IsSignedIntegral() const;
     
     bool IsNotConditionVal() const { return !IsConditionVal(); }
-    bool IsConditionVal() const { return IsOptionType() || primary_type() == kType_bool; }
+    bool IsConditionVal() const { return primary_type() == kType_bool; }
     
     bool IsNotCharAndByte() const { return !IsCharOrByte(); }
     bool IsCharOrByte() const {
@@ -1643,21 +1619,6 @@ public:
 private:
     base::ArenaVector<Expression *> dimension_capacitys_;
 }; // class ArrayType
-
-class OptionType : public Type {
-public:
-    OptionType(base::Arena *arena, Type *element_type, const SourcePosition &source_position);
-    
-    Type *element_type() const { return generic_arg(0); }
-    
-    static bool DoesElementIs(const Type *type, Primary primary) {
-        return !type->IsOptionType() ? false : (type->AsOptionType()->element_type()->primary_type() == primary);
-    }
-    
-    bool Acceptable(const Type *rhs, bool *unlinked) const override;
-    Type *Link(Linker &&linker) override;
-    std::string ToString() const override;
-}; // class OptionType
 
 class ChannelType : public Type {
 public:

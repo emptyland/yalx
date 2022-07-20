@@ -1709,9 +1709,7 @@ public:
     }
     
     int VisitLambdaLiteral(cpl::LambdaLiteral *node) override { UNREACHABLE(); }
-    
-    
-    int VisitAssertedGet(cpl::AssertedGet *node) override { UNREACHABLE(); }
+
     int VisitChannelInitializer(cpl::ChannelInitializer *node) override { UNREACHABLE(); }
     
     int VisitAdd(cpl::Add *node) override {
@@ -1977,20 +1975,6 @@ public:
         return Returning(val);
     }
     
-    int VisitOptionLiteral(cpl::OptionLiteral *node) override {
-        //node->type()
-        auto type = BuildType(node->type());
-        if (node->is_some()) {
-            Value *value = nullptr;
-            if (ReduceReturningOnlyOne(node->value(), &value) < 0) {
-                return -1;
-            }
-            return Returning(value);
-        } else {
-            return Returning(Nil(type));
-        }
-    }
-    
     static Function::Decoration ToDecoration(const cpl::FunctionDeclaration *ast) {
         if (ast->decoration() == cpl::FunctionDeclaration::kNative) {
             return Function::kNative;
@@ -2122,7 +2106,7 @@ private:
                     if (branchs_cols[i][j]->type().kind() != Type::kVoid) {
                         reduced = EmitCastingIfNeeded(types[i], branchs_cols[i][j], source_position);
                     } else {
-                        reduced = Nil(types[i]);
+                        reduced = None(types[i]);
                     }
                     
                     nodes[i].push_back(reduced);
@@ -2132,7 +2116,7 @@ private:
                 if (branchs_cols[i].size() == 1) {
                     auto reduced = branchs_cols[i][0];
                     
-                    nodes[i].push_back(Nil(types[i]));
+                    nodes[i].push_back(None(types[i]));
                     nodes[i].push_back(origin);
                     nodes[i].push_back(reduced);
                     nodes[i].push_back(branchs_rows[0]);
@@ -2336,19 +2320,24 @@ private:
         return 0;
     }
     
+    static bool IsNotOptionalTy(Type ty) { return !IsOptionalTy(ty); }
+    
+    static bool IsOptionalTy(Type ty) {
+        if (ty.kind() == Type::kValue && ty.model()->declaration() == Model::kEnum) {
+            //auto def = down_cast<StructureModel>(ty.model());
+            return ty.model()->full_name()->StartsWith(cpl::kOptionalClassFullName);
+        }
+        return false;
+    }
+    
+    
+    
     Value *EmitCastingIfNeeded(Type dest, Value *src, SourcePosition source_position) {
         if (dest.kind() == src->type().kind() && dest.model() == src->type().model()) {
             return src;
+        } else if (IsOptionalTy(dest) && IsNotOptionalTy(src->type())) {
+            return Some(dest, src);
         }
-//        if (dest.model() && src->type().model()) {
-//            if (src->type().model()->IsBaseOf(dest.model())) {
-//                return src;
-//            }
-//        }
-//        if (dest.model() && dest.model()->full_name()->Equal(cpl::kAnyClassFullName)) {
-//            // TODO:
-//            return src;
-//        }
         if (dest.IsPointer() && src->type().IsNotPointer()) {
             src = b()->NewNode(source_position, dest, ops()->LoadAddress(), src);
         } else if (dest.IsNotPointer() && src->type().IsPointer()) {
@@ -2775,11 +2764,43 @@ private:
         return down_cast<T>(owns_->AssertedGetUdt(name));
     }
     
+    Value *Some(Type ty, Value *src, SourcePosition source_position = SourcePosition::Unknown()) {
+        //return ty.IsCompactEnum()
+        DCHECK(ty.kind() == Type::kValue && ty.model()->declaration() == Model::kEnum);
+        if (ty.IsCompactEnum()) {
+            return b()->NewNode(src->source_position(), ty, ops()->BitCastTo(), src);
+        }
+        auto optioanl = down_cast<StructureModel>(ty.model());
+        auto some_handle = optioanl->FindMemberOrNull("Some");
+        auto some = std::get<const Model::Field *>(optioanl->GetMember(some_handle));
+        auto code_handle = DCHECK_NOTNULL(optioanl->EnumCodeFieldIfNotCompactEnum());
+        
+        auto rs = b()->NewNode(source_position, ty, ops()->StackAlloc(optioanl));
+        auto code = Value::New(arena(), source_position, Types::UInt16, ops()->U16Constant(some->enum_value));
+        rs = EmitStoreField(rs, code, code_handle, source_position);
+        return EmitStoreField(rs, src, some_handle, source_position);
+    }
+    
+    Value *None(const Type &type, SourcePosition source_position = SourcePosition::Unknown()) {
+        if (type.IsCompactEnum()) {
+            return Nil(type);
+        }
+        DCHECK(type.kind() == Type::kValue && type.model()->declaration() == Model::kEnum);
+        auto optioanl = down_cast<StructureModel>(type.model());
+        auto none = optioanl->FindField("None").value();
+        auto code_handle = DCHECK_NOTNULL(optioanl->EnumCodeFieldIfNotCompactEnum());
+        DCHECK(code_handle->IsField());
+
+        auto rs = b()->NewNode(source_position, type, ops()->StackAlloc(optioanl));
+        auto code = Value::New(arena(), source_position, Types::UInt16, ops()->U16Constant(none.enum_value));
+        return EmitStoreField(rs, code, code_handle, source_position);
+    }
+    
     Value *Nil() const { return DCHECK_NOTNULL(owns_->nil_val_); }
     
     Value *Nil(const Type &type) {
         auto op = ops()->NilConstant();
-        DCHECK(type.IsReference());
+        DCHECK(type.IsReference() || type.IsCompactEnum());
         return Value::New(arena(), SourcePosition::Unknown(), type, op);
     }
     
@@ -3057,12 +3078,6 @@ Type IntermediateRepresentationGenerator::BuildType(const cpl::Type *type) {
                                               element_ty);
             symbols_[ar->full_name()->ToSlice()] = Symbol::Udt(nullptr, ar);
             return Type::Ref(ar);
-        } break;
-        case cpl::Type::kType_option: {
-            auto ast_ty = type->AsOptionType();
-            auto element_ty = BuildType(ast_ty->element_type());
-            DCHECK(element_ty.IsReference() || element_ty.kind() == Type::kValue);
-            return Type::Ref(Boxing(element_ty), true/*nullable*/);
         } break;
         case cpl::Type::kType_channel:
             UNREACHABLE(); // TODO:

@@ -1692,35 +1692,6 @@ private:
         return Returning(Bool());
     }
     
-    int VisitOptionLiteral(OptionLiteral *node) override {
-        if (node->type()) {
-            return Returning(node->type());
-        }
-        if (node->is_some()) {
-            Type *type = nullptr;
-            if (ReduceReturningAtLeastOne(node->value(), &type) < 0) {
-                return -1;
-            }
-            type = new (arena_) OptionType(arena_, type, node->source_position());
-            node->set_type(type);
-            return Returning(type);
-        }
-        return Returning(node->type());
-    }
-    
-    int VisitAssertedGet(AssertedGet *node) override {
-        Type *type = nullptr;
-        if (ReduceReturningOnlyOne(node->operand(), &type) < 0) {
-            return -1;
-        }
-        if (!type->IsOptionType()) {
-            Feedback()->Printf(node->source_position(), "Attempt DCHECKed-getting for non-option type: `%s'",
-                               type->ToString().c_str());
-            return -1;
-        }
-        return Returning(type->AsOptionType()->element_type());
-    }
-    
     int VisitOr(Or *node) override {
         Type *lhs = nullptr, *rhs = nullptr;
         if (ReduceReturningOnlyOne(node->lhs(), &lhs) < 0 || ReduceReturningOnlyOne(node->rhs(), &rhs) < 0) {
@@ -2519,7 +2490,9 @@ private:
                         reduced = ty;
                     }
                 }
-                reduced = new (arena_) OptionType(arena_, reduced, reduced->source_position());
+                //UNREACHABLE();
+                // TODO: reduced = new (arena_) OptionType(arena_, reduced, reduced->source_position());
+                reduced = InstantiateOptionalTy(reduced);
                 resutls->push_back(reduced);
                 continue;
             }
@@ -2979,6 +2952,36 @@ private:
             }
         }
         return symbol;
+    }
+    
+    Type *InstantiateOptionalTy(Type *ty) {
+        auto ast = InstantiateOptional(ty);
+        return new (arena_) EnumType(arena_, ast->AsEnumDefinition(), ty->source_position());
+    }
+    
+    Statement *InstantiateOptional(Type *ty) {
+        //auto symbol =
+        auto global_var = FindGlobal(kLangPackageFullName, kOptionalClassName);
+        DCHECK(global_var.IsFound());
+        
+        auto optional = DCHECK_NOTNULL(global_var.ast->AsEnumDefinition());
+        auto name = MakeFullInstantiatingName(optional->FullName(), 1, &ty);
+        if (auto iter = global_symbols_.find(name); iter != global_symbols_.end()) {
+            DCHECK(iter->second.ast->IsEnumDefinition());
+            return iter->second.ast;
+        }
+        
+        InstantiatingResolver resover(this);
+        auto rs = GenericsInstantiating::Instantiate(nullptr, optional, arena_, error_feedback_, &resover,
+                                                     1, &ty, reinterpret_cast<Statement **>(&optional));
+        if (rs.fail()) {
+            return nullptr;
+        }
+        if (ProcessDependencySymbolIfNeeded(optional) < 0) {
+            return nullptr;
+        }
+        //UNREACHABLE();
+        return optional;
     }
     
     Statement *ResolveIdSymbol(const char *info, Identifier *ast, Node::Kind kind,

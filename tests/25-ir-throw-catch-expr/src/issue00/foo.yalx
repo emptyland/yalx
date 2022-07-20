@@ -13,7 +13,7 @@ fun issue1() {
 }
 
 fun foo() {
-    throw Exception("ok", none)
+    throw Exception("ok", Optional<Throwable>::None)
 }
 
 fun bar(): Exception {

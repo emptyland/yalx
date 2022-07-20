@@ -50,3 +50,9 @@ fun issue6() -> when(foo.gen()) {
     in 5 until 6 -> "br2"
     else -> foo.Foo(1)
 }
+
+fun issue7() -> when(foo.gen()) {
+    1,2,3 -> 0
+    4 -> 1
+    else -> {}
+}

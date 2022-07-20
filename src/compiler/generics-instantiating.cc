@@ -520,11 +520,6 @@ private:
         return Returning(expr);
     }
     
-    int VisitAssertedGet(AssertedGet *node) override {
-        DECL_AND_INSTANTIATE(Expression, opd, node->operand());
-        return Returning(new (arena_) AssertedGet(opd, node->source_position()));
-    }
-    
     int VisitIfExpression(IfExpression *node) override {
         Statement *init = nullptr;
         if (node->initializer()) {
@@ -667,15 +662,6 @@ private:
                 copied->mutable_generic_args()->push_back(types[i]);
             }
             return Returning(copied);
-        }
-    }
-    
-    int VisitOptionLiteral(OptionLiteral *node) override {
-        if (node->is_some()) {
-            DECL_AND_INSTANTIATE(Expression, value, node->value());
-            return Returning(new (arena_) OptionLiteral(arena_, value, node->source_position()));
-        } else {
-            return Returning(new (arena_) OptionLiteral(arena_, nullptr, node->source_position()));
         }
     }
 

@@ -22,7 +22,7 @@ fun issue2() {
 
 @yalx.Compiler(nativeHandle=true)
 fun issue3() {
-    val ex = Exception("Error", none)
+    val ex = Exception("Error", Optional<Throwable>::None)
     assertString("Error", ex.message)
 }
 

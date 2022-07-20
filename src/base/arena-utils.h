@@ -34,6 +34,8 @@ public:
     
     bool Equal(const ArenaString *z) const { return z->size() == size() && ::strncmp(z->data(), data(), size()) == 0; }
     
+    bool StartsWith(const char *z) const { return ::strnstr(data(), z, size()) == data(); }
+    
     std::string ToString() const { return std::string(data(), size()); }
     
     std::string_view ToSlice() const { return std::string_view(data(), size()); }

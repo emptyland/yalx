@@ -31,6 +31,11 @@ fun issue3() -> Foo::D("ok")
 @yalx.Compiler(nativeHandle=true)
 fun issue10() -> Option<int>::None
 
-
 @yalx.Compiler(nativeHandle=true)
 fun issue11() -> Option<string>::Some("option").unwarpOr("")
+
+@yalx.Compiler(nativeHandle=true)
+fun issue12() -> Optional<int>::Some(1).unwarpOr(0)
+
+
+struct Bar(val x: int, val y: int)

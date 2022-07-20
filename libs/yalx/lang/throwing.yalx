@@ -3,7 +3,7 @@ package lang
 @Lang
 class Throwable(
     val message: string,
-    val linked: Throwable?
+    val clause: Optional<Throwable>
 ) {
     private val backtrace = unwind()
 
@@ -13,13 +13,13 @@ class Throwable(
 }
 
 @Lang
-class Exception(message: string, linked: Exception?) : Throwable(message, linked)
+class Exception(message: string, clause: Optional<Throwable>) : Throwable(message, clause)
 
 @Lang
-class BadCastingException(message: string): Exception(message, none)
+class BadCastingException(message: string): Exception(message, Optional<Throwable>::None)
 
 @Lang
-class ArrayIndexOutOfBoundsException(message: string): Exception(message, none)
+class ArrayIndexOutOfBoundsException(message: string): Exception(message, Optional<Throwable>::None)
 
 class BacktraceFrame(
     val address: u64,

@@ -38,8 +38,6 @@ struct Operators {
     //    static constexpr auto kDecrement = Operator(Node::kDecrement, 1, kUnaryPrio, kUnaryPrio, true); // expr--
     //    static constexpr auto kDecrementPost = Operator(Node::kDecrementPost, 1, kUnaryPrio, kUnaryPrio, true); // --expr
     
-    static constexpr auto kAssertedGet = Operator(Node::kAssertedGet, 1, kUnaryPrio, kUnaryPrio);
-    
     // Binary:
     static constexpr auto kAdd = Operator(Node::kAdd, 2, 90, 90); // +
     static constexpr auto kSub = Operator(Node::kSub, 2, 90, 90); // -
@@ -1234,18 +1232,18 @@ Expression *Parser::ParseSimple(bool *ok) {
             MoveNext();
             return new (arena_) UnitLiteral(arena_, location);
 
-        case Token::kNone:
-            MoveNext();
-            return new (arena_) OptionLiteral(arena_, nullptr/*value*/, location);
-            
-        case Token::kSome: {
-            MoveNext();
-            Match(Token::kLParen, CHECK_OK);
-            auto expr = ParseExpression(CHECK_OK);
-            location = location.Concat(Peek().source_position());
-            Match(Token::kRParen, CHECK_OK);
-            return new (arena_) OptionLiteral(arena_, expr, location);
-        } break;
+//        case Token::kNone:
+//            MoveNext();
+//            return new (arena_) OptionLiteral(arena_, nullptr/*value*/, location);
+//
+//        case Token::kSome: {
+//            MoveNext();
+//            Match(Token::kLParen, CHECK_OK);
+//            auto expr = ParseExpression(CHECK_OK);
+//            location = location.Concat(Peek().source_position());
+//            Match(Token::kRParen, CHECK_OK);
+//            return new (arena_) OptionLiteral(arena_, expr, location);
+//        } break;
             
         case Token::kIf:
             return ParseIfExpression(ok);
@@ -1327,13 +1325,6 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                     *call->mutable_source_position() = location.Concat(call_location);
                     expr = call;
                 }
-            } break;
-
-            case Token::k2Exclamation: {
-                auto assert_get_location = Peek().source_position();
-                MoveNext();
-                expr = NewUnaryExpression(Operators::kAssertedGet, expr,
-                                          expr->source_position().Concat(assert_get_location));
             } break;
                 
             case Token::kIs: { // is
@@ -1774,16 +1765,10 @@ bool Parser::ProbeInstantiation(bool *ok) {
 
 bool Parser::ProbeType(bool *ok) {
     ProbeAtomType(CHECK_OK);
-    while (Probe(Token::kQuestion)) {
-        Probe(Token::kQuestion);
-    }
     if (Peek().Is(Token::kLBrack)) {
         while (Probe(Token::kLBrack)) {
             Probe(Token::kRBrack, CHECK_OK);
         }
-    }
-    while (Probe(Token::kQuestion)) {
-        Probe(Token::kQuestion);
     }
     return false;
 }
@@ -1984,9 +1969,6 @@ Statement *Parser::ParseInitializerIfExistsWithCondition(Expression **condition,
 Type *Parser::ParseType(bool *ok) {
     auto location = Peek().source_position();
     auto type = ParseAtomType(CHECK_OK);
-    while (Test(Token::kQuestion)) {
-        type = new (arena_) OptionType(arena_, type, location);
-    }
     
     if (Peek().Is(Token::kLBrack)) {
         //auto ar = new (arena_) ArrayType(arena_, type, 0, location);
@@ -2022,10 +2004,6 @@ Type *Parser::ParseType(bool *ok) {
         }
         type = new (arena_) ArrayType(arena_, ar, std::move(stack[0]), location);
     }
-    
-    while (Test(Token::kQuestion)) {
-        type = new (arena_) OptionType(arena_, type, location);
-    }
     return type;
 }
 
@@ -2049,10 +2027,6 @@ ArrayType *Parser::ParseArrayTypeMaybeWithLimits(const Identifier *ns, const Str
         }
     } else {
         type = ParseAtomType(CHECK_OK);
-    }
-    
-    while (Test(Token::kQuestion)) {
-        type = new (arena_) OptionType(arena_, type, location);
     }
     
     //int[,][][,,]?

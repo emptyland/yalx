@@ -446,10 +446,10 @@ source-files:
 functions:
     fun $init(): void {
     boot:
-        %0 = Closure ref[fun ()->void] <fun foo:foo.$init>
-        CallRuntime void ref[fun ()->void] %0, string "foo:foo" <PkgInitOnce>
-        %1 = Closure ref[fun ()->void] <fun yalx/lang:lang.$init>
-        CallRuntime void ref[fun ()->void] %1, string "yalx/lang:lang" <PkgInitOnce>
+        %0 = LoadFunAddr val[fun ()->void]* <fun foo:foo.$init>
+        CallRuntime void val[fun ()->void]* %0, string "foo:foo" <PkgInitOnce>
+        %1 = LoadFunAddr val[fun ()->void]* <fun yalx/lang:lang.$init>
+        CallRuntime void val[fun ()->void]* %1, string "yalx/lang:lang" <PkgInitOnce>
         Ret void
     } // main:main.$init
 
@@ -603,7 +603,7 @@ functions:
         Ret void i32 %8
     } // main:main.issue5
 
-    fun issue6(): ref[yalx/lang:lang.Any]? {
+    fun issue6(): val[yalx/lang:lang.Optional<any>] {
     entry:
         %0 = CallDirectly i32 <fun foo:foo.gen>
         Br void out [L1:]
@@ -636,13 +636,50 @@ functions:
         Br void out [L12:]
     L11:
         %8 = HeapAlloc ref[foo:foo.Foo] <Foo>
-        %9 = CallHandle ref[foo:foo.Foo] ref[foo:foo.Foo] %8, i32 1 <foo:foo.Foo::Foo$constructor>
+        CallHandle void ref[foo:foo.Foo] %8, i32 1 <foo:foo.Foo::Foo$constructor>
         Br void out [L12:]
     L12:
-        %10 = RefAssertedTo ref[yalx/lang:lang.Any]? ref[foo:foo.Foo] %9
-        %11 = Phi ref[yalx/lang:lang.Any]? string "br1", ref[yalx/lang:lang.Any]? nil, string "br2", ref[yalx/lang:lang.Any]? %10 in [L4:, L7:, L10:, L11:]
-        Ret void ref[yalx/lang:lang.Any]? %11
+        %9 = BitCastTo val[yalx/lang:lang.Optional<any>] string "br1"
+        %10 = BitCastTo val[yalx/lang:lang.Optional<any>] string "br2"
+        %11 = BitCastTo val[yalx/lang:lang.Optional<any>] ref[foo:foo.Foo] %8
+        %12 = Phi val[yalx/lang:lang.Optional<any>] val[yalx/lang:lang.Optional<any>] %9, val[yalx/lang:lang.Optional<any>] nil, val[yalx/lang:lang.Optional<any>] %10, val[yalx/lang:lang.Optional<any>] %11 in [L4:, L7:, L10:, L11:]
+        Ret void val[yalx/lang:lang.Optional<any>] %12
     } // main:main.issue6
+
+    fun issue7(): val[yalx/lang:lang.Optional<i32>] {
+    entry:
+        %0 = CallDirectly i32 <fun foo:foo.gen>
+        Br void out [L1:]
+    L1:
+        %1 = ICmp u8 i32 %0, i32 1 <eq>
+        Br void u8 %1 out [L2:, L5:]
+    L2:
+        %2 = ICmp u8 i32 %0, i32 2 <eq>
+        Br void u8 %2 out [L3:, L5:]
+    L3:
+        %3 = ICmp u8 i32 %0, i32 3 <eq>
+        Br void u8 %3 out [L4:, L5:]
+    L4:
+        Br void out [L8:]
+    L5:
+        %4 = ICmp u8 i32 %0, i32 4 <eq>
+        Br void u8 %4 out [L6:, L7:]
+    L6:
+        Br void out [L8:]
+    L7:
+        Br void out [L8:]
+    L8:
+        %5 = StackAlloc val[yalx/lang:lang.Optional<i32>] <Optional<i32>>
+        %6 = StoreInlineField val[yalx/lang:lang.Optional<i32>] val[yalx/lang:lang.Optional<i32>] %5, u16 1 <yalx/lang:lang.Optional<i32>::$enum_code$>
+        %7 = StoreInlineField val[yalx/lang:lang.Optional<i32>] val[yalx/lang:lang.Optional<i32>] %6, i32 0 <yalx/lang:lang.Optional<i32>::Some>
+        %8 = StackAlloc val[yalx/lang:lang.Optional<i32>] <Optional<i32>>
+        %9 = StoreInlineField val[yalx/lang:lang.Optional<i32>] val[yalx/lang:lang.Optional<i32>] %8, u16 1 <yalx/lang:lang.Optional<i32>::$enum_code$>
+        %10 = StoreInlineField val[yalx/lang:lang.Optional<i32>] val[yalx/lang:lang.Optional<i32>] %9, i32 1 <yalx/lang:lang.Optional<i32>::Some>
+        %11 = StackAlloc val[yalx/lang:lang.Optional<i32>] <Optional<i32>>
+        %12 = StoreInlineField val[yalx/lang:lang.Optional<i32>] val[yalx/lang:lang.Optional<i32>] %11, u16 0 <yalx/lang:lang.Optional<i32>::$enum_code$>
+        %13 = Phi val[yalx/lang:lang.Optional<i32>] val[yalx/lang:lang.Optional<i32>] %7, val[yalx/lang:lang.Optional<i32>] %10, val[yalx/lang:lang.Optional<i32>] %12 in [L4:, L6:, L7:]
+        Ret void val[yalx/lang:lang.Optional<i32>] %13
+    } // main:main.issue7
 
 } // @main:main
 )";
