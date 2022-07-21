@@ -1302,10 +1302,11 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
     DCHECK(handle->IsField());
     auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
     
+    const auto is_reference = (field->type.IsReference() || field->type.IsCompactEnum());
+    const auto is_chunk = (field->type.kind() == ir::Type::kValue && field->type.model()->RefsMarkSize() > 0);
     
     std::unique_ptr<RegisterSavingScope>
-    saving_scope(field->type.IsReference()
-                 ? new RegisterSavingScope(&operands_, instruction_position_, &moving_delegate_)
+    saving_scope(is_reference ? new RegisterSavingScope(&operands_, instruction_position_, &moving_delegate_)
                  : nullptr);
 
     auto opd = Allocate(instr->InputValue(0), kReg);
@@ -1337,7 +1338,7 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
         }
     }
 
-    if (field->type.IsReference()) {
+    if (is_reference) {
         auto arg0 = new (arena_) RegisterOperand(arm64::x0.code(), MachineRepresentation::kWord64);
         auto base = new (arena_) RegisterOperand(loc->register0_id(), MachineRepresentation::kWord64);
         current()->NewIO(Arm64Add, arg0, base, ImmediateOperand::Word32(arena_, loc->k()));
@@ -1349,6 +1350,9 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
         saving_scope->AddPersistentIfNeeded(opd);
         saving_scope->AddPersistent(arm64::x0.code());
         saving_scope.reset();
+    } else if (is_chunk) {
+        // TODO:
+        UNREACHABLE();
     } else {
         Move(loc, value, field->type);
     }
@@ -1560,7 +1564,11 @@ void Arm64FunctionInstructionSelector::ArraySet(ir::Value *instr) {
     args.push_back(operands_.AllocateReigster(ir::Types::Word32, arm64::x##n.code())); \
     Move(args[n], Allocate(instr->InputValue(n), kAny), ir::Types::Word32);
     
+    if (ar->element_type().IsCompactEnum()) {
+        goto refs_set_handle;
+    }
     switch (ar->element_type().kind()) {
+        refs_set_handle:
         case ir::Type::kString:
         case ir::Type::kReference: {
             

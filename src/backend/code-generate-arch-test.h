@@ -51,6 +51,8 @@ void issue06_Zoissue06_Zdissue2_had();
 void issue06_Zoissue06_Zdissue3_had();
 void issue06_Zoissue06_Zdissue10_had();
 void issue06_Zoissue06_Zdissue11_had();
+void issue06_Zoissue06_Zdissue13_had();
+void issue06_Zoissue06_Zdissue14_had();
 
 } // extern "C"
 

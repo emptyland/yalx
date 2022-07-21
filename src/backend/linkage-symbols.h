@@ -55,6 +55,7 @@ extern const String *const kRt_raise;
 extern const String *const kRt_is_instance_of;
 extern const String *const kRt_ref_asserted_to;
 extern const String *const kRt_put_field;
+extern const String *const kRt_put_field_chunk;
 extern const String *const kRt_lazy_load_object;
 extern const String *const kRt_array_alloc;
 extern const String *const kRt_array_fill;

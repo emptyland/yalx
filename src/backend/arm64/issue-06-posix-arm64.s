@@ -399,6 +399,139 @@ Lblk25:
     add sp, sp, #128
     ret
 .cfi_endproc
+.global _issue06_Zoissue06_Zdissue13
+_issue06_Zoissue06_Zdissue13:
+.cfi_startproc
+Lblk26:
+    sub sp, sp, #64
+    stp fp, lr, [sp, #48]
+    add fp, sp, #48
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    adrp x19, Kstr.1@PAGE
+    add x19, x19, Kstr.1@PAGEOFF
+    ldr x0, [x19, #0]
+    stur x0, [fp, #-8]
+    mov w0, #2
+    mov x19, #0
+    stur x19, [fp, #-16]
+    ldur x19, [fp, #-8]
+    stur x19, [fp, #-24]
+    ldur x19, [fp, #-16]
+    stur x19, [fp, #-32]
+    stur w0, [fp, #-36]
+    mov w19, #1
+    stur w19, [fp, #-40]
+    stur w0, [fp, #-44]
+    adrp x19, _yalx_Zplang_Zolang_ZdOptional_Dkstring_Dl$class@PAGE
+    add x0, x19, _yalx_Zplang_Zolang_ZdOptional_Dkstring_Dl$class@PAGEOFF
+    sub x1, fp, #40
+    mov w2, #2
+    bl _array_alloc
+    str x0, [fp, #24]
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
+    ret
+.cfi_endproc
+.global _issue06_Zoissue06_Zdissue13_had
+_issue06_Zoissue06_Zdissue13_had:
+.cfi_startproc
+Lblk27:
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stp x19, x20, [sp, #80]
+    stp x21, x22, [sp, #64]
+    stp x23, x24, [sp, #48]
+    stp x25, x26, [sp, #32]
+    stp x27, x28, [sp, #16]
+    add fp, sp, #16
+    bl _current_root
+    mov x26, x0
+    bl _issue06_Zoissue06_Zdissue13
+    mov x0, #16
+    bl _reserve_handle_returning_vals
+    mov x1, sp
+    mov x2, #16
+    bl _memcpy
+    ldp x19, x20, [sp, #80]
+    ldp x21, x22, [sp, #64]
+    ldp x23, x24, [sp, #48]
+    ldp x25, x26, [sp, #32]
+    ldp x27, x28, [sp, #16]
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
+    ret
+.cfi_endproc
+.global _issue06_Zoissue06_Zdissue14
+_issue06_Zoissue06_Zdissue14:
+.cfi_startproc
+Lblk28:
+    sub sp, sp, #64
+    stp fp, lr, [sp, #48]
+    add fp, sp, #48
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    mov w0, #2
+    mov w1, #2
+    mov x19, #0
+    stur x19, [fp, #-8]
+    ldur x19, [fp, #-8]
+    stur x19, [fp, #-16]
+    stur w1, [fp, #-20]
+    stur w0, [fp, #-24]
+    mov w19, #2
+    stur w19, [fp, #-28]
+    stur w0, [fp, #-32]
+    stur w1, [fp, #-36]
+    adrp x19, _yalx_Zplang_Zolang_ZdOptional_Dkstring_Dl$class@PAGE
+    add x0, x19, _yalx_Zplang_Zolang_ZdOptional_Dkstring_Dl$class@PAGEOFF
+    sub x1, fp, #28
+    bl _array_fill
+    mov x2, x0
+    str x2, [fp, #24]
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
+    ret
+.cfi_endproc
+.global _issue06_Zoissue06_Zdissue14_had
+_issue06_Zoissue06_Zdissue14_had:
+.cfi_startproc
+Lblk29:
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stp x19, x20, [sp, #80]
+    stp x21, x22, [sp, #64]
+    stp x23, x24, [sp, #48]
+    stp x25, x26, [sp, #32]
+    stp x27, x28, [sp, #16]
+    add fp, sp, #16
+    bl _current_root
+    mov x26, x0
+    bl _issue06_Zoissue06_Zdissue14
+    mov x0, #16
+    bl _reserve_handle_returning_vals
+    mov x1, sp
+    mov x2, #16
+    bl _memcpy
+    ldp x19, x20, [sp, #80]
+    ldp x21, x22, [sp, #64]
+    ldp x23, x24, [sp, #48]
+    ldp x25, x26, [sp, #32]
+    ldp x27, x28, [sp, #16]
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
+    ret
+.cfi_endproc
 .global _issue06_Zoissue06_ZdBar_ZdBar_Z4constructor
 _issue06_Zoissue06_ZdBar_ZdBar_Z4constructor:
 .cfi_startproc

@@ -141,7 +141,7 @@ TEST_F(Arm64CodeGeneratorTest, EnumTypes) {
     //CodeGen("tests/44-code-gen-primitive-props", "yalx/lang:lang", &printer, &ok);
     CodeGen("tests/45-code-gen-enum-types", "issue06:issue06", &printer, &ok);
     ASSERT_TRUE(ok);
-    //printf("%s\n", buf.c_str());
+    printf("%s\n", buf.c_str());
     
 }
 
@@ -325,7 +325,7 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     yalx_exit_returning_scope(&state);
     
     yalx_enter_returning_scope(&state, 16, nullptr);
-    
+
     issue04_Zoissue04_Zdissue7_had();
     
     {
@@ -636,6 +636,55 @@ TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
         ASSERT_EQ(6, vals[1]->len);
         ASSERT_STREQ("option", vals[1]->bytes);
     }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue06_Zoissue06_Zdissue13_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        ASSERT_NE(nullptr, vals[1]);
+        auto klass = CLASS(vals[1]);
+        ASSERT_EQ(array_class, klass);
+        auto ar = reinterpret_cast<yalx_value_array *>(vals[1]);
+        ASSERT_EQ(2, ar->len);
+        ASSERT_EQ(K_ENUM, ar->item->constraint);
+        ASSERT_EQ(1, ar->item->compact_enum);
+        ASSERT_STREQ("yalx/lang:lang.Optional<string>", ar->item->location.z);
+        
+        auto elems = reinterpret_cast<yalx_str_handle>(ar->data);
+        ASSERT_EQ(nullptr, elems[0]);
+        ASSERT_NE(nullptr, elems[1]);
+        ASSERT_STREQ("ok", elems[1]->bytes);
+    }
+    
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue06_Zoissue06_Zdissue14_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        ASSERT_NE(nullptr, vals[1]);
+        auto klass = CLASS(vals[1]);
+        ASSERT_EQ(multi_dims_array_class, klass);
+        auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(vals[1]);
+        ASSERT_EQ(2, ar->rank);
+        ASSERT_EQ(2, ar->caps[0]);
+        ASSERT_EQ(2, ar->caps[1]);
+        ASSERT_EQ(4, ar->len);
+        ASSERT_EQ(K_ENUM, ar->item->constraint);
+        ASSERT_EQ(1, ar->item->compact_enum);
+        ASSERT_STREQ("yalx/lang:lang.Optional<string>", ar->item->location.z);
+        
+        auto elems = reinterpret_cast<yalx_str_handle>(yalx_multi_dims_array_data(ar));
+        for (int i = 0; i < ar->len; i++) {
+            ASSERT_EQ(nullptr, elems[i]);
+        }
+    }
+    
     yalx_exit_returning_scope(&state);
 }
 

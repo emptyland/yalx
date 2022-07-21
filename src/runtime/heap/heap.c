@@ -454,6 +454,13 @@ static inline void lxr_init_write_barrier(struct lxr_fields_logger *log, struct 
 void init_write_barrier(struct heap *heap, struct yalx_value_any **field) {
     DCHECK(field != NULL);
     if (heap->gc == GC_LXR) {
+#ifndef NDEBUG
+        if (*field) {
+            const struct yalx_class *const klass = CLASS(*field);
+            DCHECK(klass->instance_size >= 0);
+            DCHECK(klass->reference_size >= 0);
+        }
+#endif
         if (!lxr_has_logged(&heap->lxr_log, (void *)field)) {
             lxr_init_write_barrier(&heap->lxr_log, field);
         }
@@ -465,6 +472,14 @@ void init_write_barrier_batch(struct heap *heap, struct yalx_value_any **fields,
     
     if (heap->gc == GC_LXR) {
         for (size_t i = 0; i < nitems; i++) {
+#ifndef NDEBUG
+            struct yalx_value_any *x = fields[i];
+            if (x) {
+                const struct yalx_class *const klass = CLASS(x);
+                DCHECK(klass->instance_size >= 0);
+                DCHECK(klass->reference_size >= 0);
+            }
+#endif
             void *field = (void *)(fields + i);
             if (!lxr_has_logged(&heap->lxr_log, field)) {
                 lxr_init_write_barrier(&heap->lxr_log, field);

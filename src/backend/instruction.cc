@@ -137,7 +137,8 @@ ReloactionOperand *InstructionFunction::AddClassSymbol(const ir::Type &ty, bool 
             auto clazz = ty.model();
             switch (clazz->declaration()) {
                 case ir::Model::kClass:
-                case ir::Model::kStruct: {
+                case ir::Model::kStruct:
+                case ir::Model::kEnum: {
                     std::string buf;
                     LinkageSymbols::Build(&buf, clazz->full_name()->ToSlice());
                     buf.append("$class");

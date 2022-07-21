@@ -20,6 +20,7 @@ DECLARE_STATIC_STRING(kRt_raise, "_throw_it");
 DECLARE_STATIC_STRING(kRt_is_instance_of, "_is_instance_of");
 DECLARE_STATIC_STRING(kRt_ref_asserted_to, "_ref_asserted_to");
 DECLARE_STATIC_STRING(kRt_put_field, "_put_field");
+DECLARE_STATIC_STRING(kRt_put_field_chunk, "_put_field_chunk");
 DECLARE_STATIC_STRING(kRt_lazy_load_object, "_lazy_load_object");
 DECLARE_STATIC_STRING(kRt_array_alloc, "_array_alloc");
 DECLARE_STATIC_STRING(kRt_array_fill, "_array_fill");

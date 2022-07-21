@@ -90,8 +90,13 @@ public:
         int id_vtab: 31;
         int in_itab;
     };
-    
+
     using Member = std::variant<const Field *, const Method *>;
+    
+    struct RefMark {
+        Type ty;
+        ptrdiff_t offset;
+    };
     
     DEF_PTR_GETTER(const String, name);
     DEF_PTR_GETTER(const String, full_name);
@@ -105,6 +110,8 @@ public:
     virtual size_t ReferenceSizeInBytes() const = 0;
     virtual size_t PlacementSizeInBytes() const = 0;
     //virtual bool HasRefTypeAtLeastOne() const = 0;
+    virtual size_t RefsMarkSize() const;
+    virtual RefMark RefsMark(int i) const;
     bool IsNotBaseOf(const Model *base) const { return !IsBaseOf(base); }
     virtual bool IsBaseOf(const Model *base) const;
     virtual void PrintTo(int indent, base::PrintingWriter *printer) const;
@@ -221,11 +228,6 @@ class StructureModel : public Model {
 public:
     static constexpr char kEnumCodeName[] = "$enum_code$";
     
-    struct RefMark {
-        Type ty;
-        ptrdiff_t offset;
-    };
-    
     StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration declaration,
                    Module *owns, StructureModel *base_of);
     
@@ -252,6 +254,8 @@ public:
     Handle *FindMemberOrNull(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
     size_t PlacementSizeInBytes() const override;
+    size_t RefsMarkSize() const override;
+    RefMark RefsMark(int i) const override;
     bool IsBaseOf(const Model *base) const override;
     void PrintTo(int indent, base::PrintingWriter *printer) const override;
     

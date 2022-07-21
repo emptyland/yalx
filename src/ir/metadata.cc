@@ -113,6 +113,10 @@ Handle *Model::FindMemberOrNull(std::string_view name) const {
     return nullptr;
 }
 
+size_t Model::RefsMarkSize() const { return 0; }
+
+Model::RefMark Model::RefsMark(int i) const { UNREACHABLE(); }
+
 bool Model::IsBaseOf(const Model *base) const {
     return base == this || base->full_name()->Equal(cpl::kAnyClassFullName);
 }
@@ -581,10 +585,15 @@ size_t StructureModel::LazyPlacementSizeInBytes() {
 }
 
 size_t StructureModel::ReferenceSizeInBytes() const { return kPointerSize; }
+
 size_t StructureModel::PlacementSizeInBytes() const {
     DCHECK(placement_size_in_bytes_ > 0);
     return placement_size_in_bytes_;
 }
+
+size_t StructureModel::RefsMarkSize() const { return refs_marks_size(); }
+
+Model::RefMark StructureModel::RefsMark(int i) const { return refs_mark(i); }
 
 void StructureModel::InstallVirtualTables(bool force) {
     if (declaration() == kClass && !base_of()) {

@@ -52,7 +52,7 @@ yalx_new_vals_array_with_data(struct heap *heap,
         address_t p = incoming;
         for (size_t i = 0; i < rs->len; i++) {
             init_typing_write_barrier_if_needed(heap, item, p);
-            p += item->reference_size;
+            p += item->instance_size;
         }
     }
     return rs;

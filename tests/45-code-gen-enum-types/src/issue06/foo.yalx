@@ -37,5 +37,19 @@ fun issue11() -> Option<string>::Some("option").unwarpOr("")
 @yalx.Compiler(nativeHandle=true)
 fun issue12() -> Optional<Bar>::Some(Bar(1, 2)).unwarpOr(Bar(996, 700))
 
+@yalx.Compiler(nativeHandle=true)
+fun issue13() -> @Optional<string>[]{Optional<string>::None, Optional<string>::Some("ok")}
+
+@yalx.Compiler(nativeHandle=true)
+fun issue14() -> @Optional<string>[2,2](Optional<string>::None)
+
+@yalx.Compiler(nativeHandle=true)
+fun issue15(): Optional<string>[,] {
+    val a = @Optional<string>[2,2](Optional<string>::None)
+    a[0,0] = Optional<string>::Some("ok")
+    a[1,1] = Optional<string>::Some("hello")
+    return a
+}
+
 
 struct Bar(val x: int, val y: int)

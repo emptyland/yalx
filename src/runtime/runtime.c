@@ -821,7 +821,7 @@ struct yalx_value_array_header *array_alloc(const struct yalx_class *const eleme
             return yalx_new_vals_array_with_data(&heap, element_ty, dims, caps, elements, nitems);
         } break;
     }
-    if (element_ty->constraint == K_CLASS) {
+    if (element_ty->constraint == K_CLASS || element_ty->compact_enum) {
         return yalx_new_refs_array_with_data(&heap, element_ty, dims, caps, (yalx_ref_t *)elements, nitems);
     }
     DCHECK(element_ty->constraint == K_STRUCT);
@@ -853,7 +853,7 @@ struct yalx_value_array_header *array_fill(const struct yalx_class *const elemen
             memcpy(p, filling, element_ty->instance_size);
             init_typing_write_barrier_if_needed(&heap, element_ty, p);
         }
-    } else if (yalx_is_ref_type(element_ty)) {
+    } else if (element_ty->compact_enum || yalx_is_ref_type(element_ty)) {
         for (yalx_ref_t *p = (yalx_ref_t *)data; p < (yalx_ref_t *)data + rs->len; p++) {
             yalx_ref_t obj = *(yalx_ref_t *)filling;
             
@@ -1035,7 +1035,7 @@ void array_set_chunk1(struct yalx_value_array_header *const array, const i32_t i
     DCHECK(array != NULL);
     DCHECK(chunk != NULL);
     DCHECK(CLASS(array) == array_class);
-    DCHECK(array->item->constraint == K_STRUCT);
+    DCHECK(array->item->constraint == K_STRUCT || array->item->constraint == K_ENUM);
     
     struct yalx_value_array *ar = (struct yalx_value_array *)array;
     ptrdiff_t offset = index * ar->item->instance_size;
@@ -1047,7 +1047,7 @@ void array_set_chunk2(struct yalx_value_array_header *const array, const i32_t d
     DCHECK(array != NULL);
     DCHECK(chunk != NULL);
     DCHECK(CLASS(array) == multi_dims_array_class);
-    DCHECK(array->item->constraint == K_STRUCT);
+    DCHECK(array->item->constraint == K_STRUCT || array->item->constraint == K_ENUM);
     
     struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
     DCHECK(ar->rank == 2);
@@ -1068,7 +1068,7 @@ void array_set_chunk3(struct yalx_value_array_header *const array, const i32_t d
     DCHECK(array != NULL);
     DCHECK(chunk != NULL);
     DCHECK(CLASS(array) == multi_dims_array_class);
-    DCHECK(array->item->constraint == K_STRUCT);
+    DCHECK(array->item->constraint == K_STRUCT || array->item->constraint == K_ENUM);
     
     struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
     DCHECK(ar->rank == 3);
@@ -1090,7 +1090,7 @@ void array_set_chunk3(struct yalx_value_array_header *const array, const i32_t d
 void array_set_chunk(struct yalx_value_array_header *const array, const i32_t *const indices, address_t chunk) {
     DCHECK(array != NULL);
     DCHECK(yalx_is_array((yalx_ref_t)array));
-    DCHECK(array->item->constraint == K_STRUCT);
+    DCHECK(array->item->constraint == K_STRUCT || array->item->constraint == K_ENUM);
     
     const struct yalx_class *const klass = CLASS(array);
     if (klass == array_class) {
