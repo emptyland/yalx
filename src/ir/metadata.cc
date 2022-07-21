@@ -502,7 +502,8 @@ StructureModel::StructureModel(base::Arena *arena, const String *name, const Str
 , members_(arena)
 , methods_(arena)
 , vtab_(arena)
-, itab_(arena) {
+, itab_(arena)
+, refs_marks_(arena) {
 }
 
 Handle *StructureModel::InsertField(const Field &field) {
@@ -714,6 +715,7 @@ int64_t StructureModel::CalculateCompactPlacementSize() {
         base_offset = 0;
     }
     
+    refs_marks_.clear();
     size_t max_size = base_offset;
     for (auto &field : fields_) {
         size_t size = 0;
@@ -722,11 +724,13 @@ int64_t StructureModel::CalculateCompactPlacementSize() {
                 DCHECK(!field.type.IsPointer());
                 field.offset = RoundUp(base_offset, max_alignment);
                 size = field.offset + down_cast<StructureModel>(field.type.model())->LazyPlacementSizeInBytes();
+                AnalyzeRefsMark(field.type, field.offset);
                 break;
             case Type::kString:
             case Type::kReference:
                 field.offset = RoundUp(base_offset, max_alignment);
                 size = field.offset + field.type.model()->ReferenceSizeInBytes();
+                refs_marks_.push_back({field.type, field.offset});
                 break;
             case Type::kTuple: {
                 auto [s, _] = CalculateTypesPlacementSize(field.type.tuple(), field.type.bits());
@@ -757,25 +761,29 @@ std::tuple<size_t, size_t> StructureModel::CalculateTypesPlacementSize(const Typ
         auto ty = types[i];
         switch (ty.kind()) {
             case Type::kValue:
+                aligment = kPointerSize;
+                size = RoundUp(size, kPointerSize);
+                AnalyzeRefsMark(ty, size);
+                size += ty.PlacementSizeInBytes();
                 break;
-                
+
             case Type::kReference:
             case Type::kString:
                 aligment = kPointerSize;
                 size = RoundUp(size, kPointerSize);
+                refs_marks_.push_back({ty, static_cast<ptrdiff_t>(size)});
                 size += kPointerSize;
                 break;
-                
+
             case Type::kTuple: {
                 auto [s, a] = CalculateTypesPlacementSize(ty.tuple(), ty.bits());
                 size = RoundUp(size, a);
                 size += s;
             } break;
-                
-                
+
             case Type::kVoid:
                 break;
-                
+
             default:
                 aligment = std::min(kPointerSize, ty.bytes());
                 size = RoundUp(size, ty.bytes());
@@ -783,8 +791,37 @@ std::tuple<size_t, size_t> StructureModel::CalculateTypesPlacementSize(const Typ
                 break;
         }
     }
-    
+
     return std::make_tuple(size, aligment);
+}
+
+void StructureModel::AnalyzeRefsMark(Type ty, ptrdiff_t offset) {
+    DCHECK(ty.kind() == Type::kValue);
+    DCHECK(!ty.IsPointer());
+    
+    switch (ty.model()->declaration()) {
+        case Model::kEnum: {
+            auto def = down_cast<StructureModel>(ty.model());
+            if (ty.IsCompactEnum() || !def->refs_marks_.empty()) {
+                refs_marks_.push_back({ty, offset});
+            }
+        } break;
+            
+        case Model::kStruct: {
+            auto def = down_cast<StructureModel>(ty.model());
+            for (auto mark : def->refs_marks_) {
+                refs_marks_.push_back({mark.ty, offset + mark.offset});
+            }
+        } break;
+            
+        case Model::kInterface:
+            DCHECK(!"TODO"); // TODO:
+            break;
+            
+        default:
+            UNREACHABLE();
+            break;
+    }
 }
 
 int64_t StructureModel::CalculateContinuousPlacementSize() {
@@ -799,6 +836,7 @@ int64_t StructureModel::CalculateContinuousPlacementSize() {
     DCHECK(offset > 0);
     DCHECK(offset % kPointerSize == 0);
 
+    refs_marks_.clear();
     for (auto &field : fields_) {
         size_t incoming_size = 0;
         switch (field.type.kind()) {
@@ -807,12 +845,14 @@ int64_t StructureModel::CalculateContinuousPlacementSize() {
                 field.offset = RoundUp(offset, kPointerSize);
                 incoming_size = field.type.model()->PlacementSizeInBytes();
                 offset = field.offset + incoming_size;
+                AnalyzeRefsMark(field.type, field.offset);
                 break;
             case Type::kString:
             case Type::kReference:
                 incoming_size = field.type.model()->ReferenceSizeInBytes();
                 field.offset = RoundUp(offset, incoming_size);
                 offset = field.offset + incoming_size;
+                refs_marks_.push_back({field.type, field.offset});
                 break;
             case Type::kTuple:
                 UNREACHABLE(); // Not support yet

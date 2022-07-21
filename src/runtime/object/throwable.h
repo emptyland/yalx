@@ -20,14 +20,14 @@ struct backtrace_frame {
 struct yalx_value_throwable {
     YALX_VALUE_HEADER;
     struct yalx_value_str *message;
-    struct yalx_value_throwable *linked;
+    struct yalx_value_throwable *cause;
     struct yalx_value_array *backtrace; // backtrace_frame[]
 }; // struct yalx_value_throwable
 
 struct yalx_value_exception {
     YALX_VALUE_HEADER;
     struct yalx_value_str *message;
-    struct yalx_value_throwable *linked;
+    struct yalx_value_throwable *cause;
     struct yalx_value_array *backtrace; // backtrace_frame[]
 }; // struct yalx_value_throwable
 

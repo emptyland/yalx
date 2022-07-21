@@ -27,6 +27,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // bool
     
@@ -46,6 +47,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL,  // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // i8
     
@@ -65,6 +67,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL,  // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // u8
     
@@ -84,6 +87,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL,  // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // i16
     
@@ -103,6 +107,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL,  // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // u16
     
@@ -122,6 +127,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL,  // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // i32
     
@@ -141,6 +147,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL,  // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // u32
     
@@ -160,6 +167,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL,  // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // i64
     
@@ -179,6 +187,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL,  // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // u64
     
@@ -198,6 +207,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL,  // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // f32
     
@@ -217,6 +227,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL,  // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // f64
     
@@ -239,6 +250,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // Bool
     
@@ -258,6 +270,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // I8
     
@@ -277,6 +290,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // U8
     
@@ -296,6 +310,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // U8
     
@@ -315,6 +330,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // U16
     
@@ -334,6 +350,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // I32
     
@@ -353,6 +370,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // U32
     
@@ -372,6 +390,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // I64
     
@@ -391,6 +410,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // U64
     
@@ -410,6 +430,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // F32
     
@@ -429,6 +450,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // F64
     
@@ -448,6 +470,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // TypedArray
     
@@ -469,6 +492,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .methods = NULL, // TODO:
         .n_itab = 0,
         .n_vtab = 0,
+        .refs_mark_len = 0,
         // TODO:
     }, // RefsArray
 };

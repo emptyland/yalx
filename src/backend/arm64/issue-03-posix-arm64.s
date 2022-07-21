@@ -303,7 +303,8 @@ Lkzs.21:
 _issue03_Zoissue03_ZdFoo$class:
     .quad 0 ; id
     .byte 0 ; constraint
-    .space 3 ; padding
+    .byte 0 ; compact enum
+    .space 2 ; padding
     .long 8 ; reference_size
     .long 32 ; instance_size
     .space 4 ; padding
@@ -328,6 +329,10 @@ _issue03_Zoissue03_ZdFoo$class:
     .long 0 ; n_itab
     .quad 0 ; vtab
     .quad 0 ; itab
+    .long 1 ; refs_mark_len
+    .space 4
+    .quad _yalx_Zplang_Zolang_ZdString$class ; type
+    .long 24
 _issue03_Zoissue03_ZdFoo$fields:
     ; Foo::i
     .long 0 ; access|constraint
@@ -336,7 +341,7 @@ _issue03_Zoissue03_ZdFoo$fields:
     .quad Lkzs.7 ; name
     .long 1 ; name
     .space 4 ; padding
-    .quad _builtin_classes+864 ; type
+    .quad _builtin_classes+912 ; type
     .long 16 ; offset_of_head
     .space 4 ; padding
     ; Foo::j
@@ -346,7 +351,7 @@ _issue03_Zoissue03_ZdFoo$fields:
     .quad Lkzs.8 ; name
     .long 1 ; name
     .space 4 ; padding
-    .quad _builtin_classes+864 ; type
+    .quad _builtin_classes+912 ; type
     .long 20 ; offset_of_head
     .space 4 ; padding
     ; Foo::s
@@ -378,7 +383,8 @@ _issue03_Zoissue03_ZdFoo$ctor:
 _issue03_Zoissue03_ZdBaz_Z4ShadowClass$class:
     .quad 0 ; id
     .byte 0 ; constraint
-    .space 3 ; padding
+    .byte 0 ; compact enum
+    .space 2 ; padding
     .long 8 ; reference_size
     .long 32 ; instance_size
     .space 4 ; padding
@@ -403,6 +409,10 @@ _issue03_Zoissue03_ZdBaz_Z4ShadowClass$class:
     .long 0 ; n_itab
     .quad 0 ; vtab
     .quad 0 ; itab
+    .long 1 ; refs_mark_len
+    .space 4
+    .quad _yalx_Zplang_Zolang_ZdString$class ; type
+    .long 24
 _issue03_Zoissue03_ZdBaz_Z4ShadowClass$fields:
     ; Baz$ShadowClass::i
     .long 0 ; access|constraint
@@ -411,7 +421,7 @@ _issue03_Zoissue03_ZdBaz_Z4ShadowClass$fields:
     .quad Lkzs.7 ; name
     .long 1 ; name
     .space 4 ; padding
-    .quad _builtin_classes+864 ; type
+    .quad _builtin_classes+912 ; type
     .long 16 ; offset_of_head
     .space 4 ; padding
     ; Baz$ShadowClass::j
@@ -421,7 +431,7 @@ _issue03_Zoissue03_ZdBaz_Z4ShadowClass$fields:
     .quad Lkzs.8 ; name
     .long 1 ; name
     .space 4 ; padding
-    .quad _builtin_classes+864 ; type
+    .quad _builtin_classes+912 ; type
     .long 20 ; offset_of_head
     .space 4 ; padding
     ; Baz$ShadowClass::s
@@ -453,7 +463,8 @@ _issue03_Zoissue03_ZdBaz_Z4ShadowClass$ctor:
 _issue03_Zoissue03_ZdBar$class:
     .quad 0 ; id
     .byte 1 ; constraint
-    .space 3 ; padding
+    .byte 0 ; compact enum
+    .space 2 ; padding
     .long 8 ; reference_size
     .long 32 ; instance_size
     .space 4 ; padding
@@ -478,6 +489,12 @@ _issue03_Zoissue03_ZdBar$class:
     .long 0 ; n_itab
     .quad 0 ; vtab
     .quad 0 ; itab
+    .long 2 ; refs_mark_len
+    .space 4
+    .quad _yalx_Zplang_Zolang_ZdString$class ; type
+    .long 16
+    .quad _yalx_Zplang_Zolang_ZdString$class ; type
+    .long 24
 _issue03_Zoissue03_ZdBar$fields:
     ; Bar::firstName
     .long 0 ; access|constraint

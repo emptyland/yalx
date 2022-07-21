@@ -67,6 +67,11 @@ TEST_F(Arm64CodeGeneratorTest, YalxLang) {
     CodeGen("tests/40-code-gen-sanity", "yalx/lang:lang", &printer, &ok);
     ASSERT_TRUE(ok);
     //printf("%s\n", buf.c_str());
+    auto clazz = yalx_find_class("yalx/lang:lang.String");
+    ASSERT_NE(nullptr, clazz);
+    ASSERT_EQ(1, clazz->refs_mark_len);
+    ASSERT_EQ(32, clazz->refs_mark[0].offset);
+    
 }
 
 TEST_F(Arm64CodeGeneratorTest, TryCatch) {
@@ -140,7 +145,6 @@ TEST_F(Arm64CodeGeneratorTest, EnumTypes) {
     
 }
 
-// #ifdef YALX_ARCH_ARM64
 
 TEST_F(Arm64CodeGeneratorTest, ReturningVals) {
     int buf[4] = {0};

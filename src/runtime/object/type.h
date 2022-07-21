@@ -27,6 +27,7 @@ struct yalx_class {
     uint64_t id;
     /* class tags */
     uint8_t constraint; // enum yalx_class_constraint
+    uint8_t compact_enum; // is compact enum ty?
     int32_t reference_size;
     int32_t instance_size;
     struct yalx_class *super;
@@ -44,6 +45,11 @@ struct yalx_class {
     uint32_t n_itab;
     address_t *vtab;
     address_t *itab;
+    uint32_t refs_mark_len;
+    struct {
+        const struct yalx_class *ty;
+        ptrdiff_t offset;
+    } refs_mark[0];
 }; // struct yalx_class
 
 
@@ -123,7 +129,9 @@ static inline enum yalx_builtin_type yalx_builtin_type(const struct yalx_class *
 }
 
 int yalx_is_ref_type(const struct yalx_class * klass);
-int yalx_is_compact_enum_type(const struct yalx_class * klass);
+int yalx_is_compact_enum_type_fallback(const struct yalx_class * klass);
+
+#define yalx_is_compact_enum_type(klass) ((klass)->compact_enum)
 
 //int yalx_has_at_least_one_ref_type(const struct yalx_class * klass);
 

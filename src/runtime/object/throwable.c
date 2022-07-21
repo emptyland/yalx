@@ -24,8 +24,8 @@ static void throw_exception(const struct yalx_class *ty,
                             struct yalx_value_throwable *const cause) {
     struct yalx_value_exception *ex = (struct yalx_value_exception *)heap_alloc(ty);
     assert(ex != NULL);
-    ex->linked = cause;
-    init_write_barrier(&heap, (yalx_ref_t *)&ex->linked);
+    ex->cause = cause;
+    init_write_barrier(&heap, (yalx_ref_t *)&ex->cause);
     ex->message = message;
     init_write_barrier(&heap, (yalx_ref_t *)&ex->message);
     

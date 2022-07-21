@@ -71,10 +71,26 @@ Lblk2:
     add sp, sp, #96
     ret
 .cfi_endproc
+.global _main_Zomain_Zdsanity
+_main_Zomain_Zdsanity:
+.cfi_startproc
+Lblk3:
+    sub sp, sp, #32
+    stp fp, lr, [sp, #16]
+    add fp, sp, #16
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    mov w0, #0
+    stur w0, [fp, #-8]
+    ldp fp, lr, [sp, #16]
+    add sp, sp, #32
+    ret
+.cfi_endproc
 .global _main_Zomain_Zdissue1
 _main_Zomain_Zdissue1:
 .cfi_startproc
-Lblk3:
+Lblk4:
     sub sp, sp, #32
     stp fp, lr, [sp, #16]
     add fp, sp, #16
@@ -95,7 +111,7 @@ Lblk3:
 .global _main_Zomain_Zdissue2
 _main_Zomain_Zdissue2:
 .cfi_startproc
-Lblk4:
+Lblk5:
     sub sp, sp, #48
     stp fp, lr, [sp, #32]
     add fp, sp, #32
@@ -108,9 +124,9 @@ Lblk4:
     stur w0, [fp, #-4]
     stur w1, [fp, #-8]
     stur w2, [fp, #-12]
-    add sp, sp, #16
+    add sp, sp, #0
     bl _main_Zomain_Zddoo
-    sub sp, sp, #16
+    sub sp, sp, #0
     ldur w19, [fp, #-20]
     str w19, [fp, #28]
     ldp fp, lr, [sp, #32]
@@ -120,7 +136,7 @@ Lblk4:
 .global _main_Zomain_Zdissue3
 _main_Zomain_Zdissue3:
 .cfi_startproc
-Lblk5:
+Lblk6:
     sub sp, sp, #48
     stp fp, lr, [sp, #32]
     add fp, sp, #32
@@ -132,9 +148,9 @@ Lblk5:
     stur w1, [fp, #-8]
     ldur w0, [fp, #-8]
     ldur w1, [fp, #-4]
-    add sp, sp, #16
+    add sp, sp, #0
     bl _main_Zomain_Zddoo
-    sub sp, sp, #16
+    sub sp, sp, #0
     ldur w19, [fp, #-20]
     str w19, [fp, #28]
     ldp fp, lr, [sp, #32]
@@ -144,7 +160,7 @@ Lblk5:
 .global _main_Zomain_Zdissue4
 _main_Zomain_Zdissue4:
 .cfi_startproc
-Lblk6:
+Lblk7:
     sub sp, sp, #32
     stp fp, lr, [sp, #16]
     add fp, sp, #16
@@ -164,7 +180,7 @@ Lblk6:
 .global _main_Zomain_Zdissue5
 _main_Zomain_Zdissue5:
 .cfi_startproc
-Lblk7:
+Lblk8:
     sub sp, sp, #16
     stp fp, lr, [sp, #0]
     add fp, sp, #0
@@ -186,7 +202,7 @@ Lblk7:
 .global _main_Zomain_Zdissue6
 _main_Zomain_Zdissue6:
 .cfi_startproc
-Lblk8:
+Lblk9:
     sub sp, sp, #64
     stp fp, lr, [sp, #48]
     add fp, sp, #48
@@ -194,8 +210,8 @@ Lblk8:
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     cmp w0, w1
-    b.le Lblk10
-Lblk9:
+    b.le Lblk11
+Lblk10:
     stur w0, [fp, #-4]
     stur w1, [fp, #-8]
     stur w2, [fp, #-12]
@@ -209,16 +225,16 @@ Lblk9:
     add w4, w3, w0
     add w0, w4, w1
     mov w2, w0
-    b Lblk11
+    b Lblk12
     nop
-Lblk10:
+Lblk11:
     adrp x19, Knnn.0@PAGE
     add x19, x19, Knnn.0@PAGEOFF
     ldr w1, [x19, #0]
     mov w2, w1
-    b Lblk11
+    b Lblk12
     nop
-Lblk11:
+Lblk12:
     str w2, [fp, #28]
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
@@ -227,7 +243,7 @@ Lblk11:
 .global _main_Zomain_Zdissue6_had
 _main_Zomain_Zdissue6_had:
 .cfi_startproc
-Lblk12:
+Lblk13:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -264,7 +280,7 @@ Lblk12:
 .global _main_Zomain_Zdissue7
 _main_Zomain_Zdissue7:
 .cfi_startproc
-Lblk13:
+Lblk14:
     sub sp, sp, #16
     stp fp, lr, [sp, #0]
     add fp, sp, #0
@@ -272,32 +288,32 @@ Lblk13:
     .cfi_offset lr, -8
     .cfi_offset fp, -16
     fcmp s0, s1
-    b.pl Lblk15
-Lblk14:
+    b.pl Lblk16
+Lblk15:
     adrp x19, Knnn.0@PAGE
     add x19, x19, Knnn.0@PAGEOFF
     ldr w1, [x19, #0]
     mov w0, w1
-    b Lblk19
+    b Lblk20
     nop
-Lblk15:
-    fcmp s0, s1
-    b.le Lblk17
 Lblk16:
+    fcmp s0, s1
+    b.le Lblk18
+Lblk17:
     mov w3, #1
     mov w2, w3
-    b Lblk18
-    nop
-Lblk17:
-    mov w4, #0
-    mov w2, w4
-    b Lblk18
+    b Lblk19
     nop
 Lblk18:
-    mov w0, w2
+    mov w4, #0
+    mov w2, w4
     b Lblk19
     nop
 Lblk19:
+    mov w0, w2
+    b Lblk20
+    nop
+Lblk20:
     str w0, [fp, #28]
     ldp fp, lr, [sp, #0]
     add sp, sp, #16
@@ -306,7 +322,7 @@ Lblk19:
 .global _main_Zomain_Zdissue8
 _main_Zomain_Zdissue8:
 .cfi_startproc
-Lblk20:
+Lblk21:
     sub sp, sp, #16
     stp fp, lr, [sp, #0]
     add fp, sp, #0
@@ -324,7 +340,7 @@ Lblk20:
 .global _main_Zomain_Zdissue9
 _main_Zomain_Zdissue9:
 .cfi_startproc
-Lblk21:
+Lblk22:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -352,7 +368,7 @@ Lblk21:
 .global _main_Zomain_Zdissue10
 _main_Zomain_Zdissue10:
 .cfi_startproc
-Lblk22:
+Lblk23:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -376,7 +392,7 @@ Lblk22:
 .global _main_Zomain_Zdissue11
 _main_Zomain_Zdissue11:
 .cfi_startproc
-Lblk23:
+Lblk24:
     sub sp, sp, #48
     stp fp, lr, [sp, #32]
     add fp, sp, #32
@@ -411,7 +427,7 @@ Lblk23:
 .global _main_Zomain_Zdissue11_had
 _main_Zomain_Zdissue11_had:
 .cfi_startproc
-Lblk24:
+Lblk25:
     sub sp, sp, #96
     stp fp, lr, [sp, #80]
     add fp, sp, #80
@@ -439,7 +455,7 @@ Lblk24:
 .global _main_Zomain_Zdfoo
 _main_Zomain_Zdfoo:
 .cfi_startproc
-Lblk25:
+Lblk26:
     sub sp, sp, #16
     stp fp, lr, [sp, #0]
     add fp, sp, #0
@@ -461,7 +477,7 @@ Lblk25:
 .global _main_Zomain_Zddoo
 _main_Zomain_Zddoo:
 .cfi_startproc
-Lblk26:
+Lblk27:
     sub sp, sp, #16
     stp fp, lr, [sp, #0]
     add fp, sp, #0
@@ -478,7 +494,7 @@ Lblk26:
 .global _main_Zomain_Zddisplay
 _main_Zomain_Zddisplay:
 .cfi_startproc
-Lblk27:
+Lblk28:
     sub sp, sp, #32
     stp fp, lr, [sp, #16]
     add fp, sp, #16
@@ -497,7 +513,7 @@ Lblk27:
 .global _main_Zomain_ZdassertString
 _main_Zomain_ZdassertString:
 .cfi_startproc
-Lblk28:
+Lblk29:
     sub sp, sp, #48
     stp fp, lr, [sp, #32]
     add fp, sp, #32
@@ -518,7 +534,7 @@ Lblk28:
 .global _main_Zomain_ZdassertInt
 _main_Zomain_ZdassertInt:
 .cfi_startproc
-Lblk29:
+Lblk30:
     sub sp, sp, #16
     stp fp, lr, [sp, #0]
     add fp, sp, #0

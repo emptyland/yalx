@@ -214,24 +214,16 @@ Lblk10:
     adrp x19, _yalx_Zplang_Zolang_ZdException$class@PAGE
     add x0, x19, _yalx_Zplang_Zolang_ZdException$class@PAGEOFF
     bl _heap_alloc
-    stur x0, [fp, #-8]
-    mov x0, #0
-    adrp x19, _yalx_Zplang_Zolang_ZdException$class@PAGE
-    add x1, x19, _yalx_Zplang_Zolang_ZdException$class@PAGEOFF
-    bl _ref_asserted_to
-    mov x1, x0
-    ldur x2, [fp, #-8]
     adrp x19, Kstr.5@PAGE
     add x19, x19, Kstr.5@PAGEOFF
-    ldr x0, [x19, #0]
-    stur x0, [fp, #-8]
-    stur x1, [fp, #-16]
-    stur x2, [fp, #-24]
-    ldur x0, [fp, #-24]
-    ldur x1, [fp, #-8]
-    ldur x2, [fp, #-16]
+    ldr x1, [x19, #0]
+    mov x19, #0
+    stur x19, [fp, #-8]
+    stur x0, [fp, #-16]
+    stur x1, [fp, #-24]
+    ldur x2, [fp, #-8]
     bl _yalx_Zplang_Zolang_ZdException_ZdException_Z4constructor
-    ldur x0, [fp, #-24]
+    ldur x0, [fp, #-16]
     ldr x1, [x0, #16]
     adrp x19, Kstr.5@PAGE
     add x19, x19, Kstr.5@PAGEOFF
@@ -497,7 +489,8 @@ Lkzs.19:
 _issue02_Zoissue02_ZdBar$class:
     .quad 0 ; id
     .byte 0 ; constraint
-    .space 3 ; padding
+    .byte 0 ; compact enum
+    .space 2 ; padding
     .long 8 ; reference_size
     .long 32 ; instance_size
     .space 4 ; padding
@@ -522,6 +515,10 @@ _issue02_Zoissue02_ZdBar$class:
     .long 0 ; n_itab
     .quad _issue02_Zoissue02_ZdBar$vtab ; vtab
     .quad 0 ; itab
+    .long 1 ; refs_mark_len
+    .space 4
+    .quad _yalx_Zplang_Zolang_ZdString$class ; type
+    .long 24
 _issue02_Zoissue02_ZdBar$fields:
     ; Bar::x
     .long 0 ; access|constraint
@@ -530,7 +527,7 @@ _issue02_Zoissue02_ZdBar$fields:
     .quad Lkzs.10 ; name
     .long 1 ; name
     .space 4 ; padding
-    .quad _builtin_classes+864 ; type
+    .quad _builtin_classes+912 ; type
     .long 16 ; offset_of_head
     .space 4 ; padding
     ; Bar::y
@@ -540,7 +537,7 @@ _issue02_Zoissue02_ZdBar$fields:
     .quad Lkzs.11 ; name
     .long 1 ; name
     .space 4 ; padding
-    .quad _builtin_classes+864 ; type
+    .quad _builtin_classes+912 ; type
     .long 20 ; offset_of_head
     .space 4 ; padding
     ; Bar::name
@@ -591,7 +588,8 @@ _issue02_Zoissue02_ZdBar$vtab:
 _issue02_Zoissue02_ZdFoo$class:
     .quad 0 ; id
     .byte 1 ; constraint
-    .space 3 ; padding
+    .byte 0 ; compact enum
+    .space 2 ; padding
     .long 8 ; reference_size
     .long 32 ; instance_size
     .space 4 ; padding
@@ -616,6 +614,10 @@ _issue02_Zoissue02_ZdFoo$class:
     .long 0 ; n_itab
     .quad 0 ; vtab
     .quad 0 ; itab
+    .long 1 ; refs_mark_len
+    .space 4
+    .quad _yalx_Zplang_Zolang_ZdString$class ; type
+    .long 24
 _issue02_Zoissue02_ZdFoo$fields:
     ; Foo::x
     .long 0 ; access|constraint
@@ -624,7 +626,7 @@ _issue02_Zoissue02_ZdFoo$fields:
     .quad Lkzs.10 ; name
     .long 1 ; name
     .space 4 ; padding
-    .quad _builtin_classes+864 ; type
+    .quad _builtin_classes+912 ; type
     .long 16 ; offset_of_head
     .space 4 ; padding
     ; Foo::y
@@ -634,7 +636,7 @@ _issue02_Zoissue02_ZdFoo$fields:
     .quad Lkzs.11 ; name
     .long 1 ; name
     .space 4 ; padding
-    .quad _builtin_classes+864 ; type
+    .quad _builtin_classes+912 ; type
     .long 20 ; offset_of_head
     .space 4 ; padding
     ; Foo::name

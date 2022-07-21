@@ -48,7 +48,7 @@ yalx_new_vals_array_with_data(struct heap *heap,
         rs = (struct yalx_value_array_header *)bundle;
     }
     memcpy(incoming, data, (rs->len * item->instance_size));
-    if (item->constraint == K_STRUCT) {
+    if ((item->constraint == K_STRUCT || item->constraint == K_ENUM) && item->refs_mark_len > 0) {
         address_t p = incoming;
         for (size_t i = 0; i < rs->len; i++) {
             init_typing_write_barrier_if_needed(heap, item, p);

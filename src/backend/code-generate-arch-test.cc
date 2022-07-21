@@ -28,4 +28,8 @@ void assert_int_stub(i32_t a, i32_t b) {
     ASSERT_EQ(a, b);
 }
 
+void yalx_Zplang_Zolang_ZdOptional_Dkissue06_Zoissue06_ZdBar_Dl_ZdunwarpOr() {
+    FAIL() << "Just dummy";
+}
+
 } // extern "C"

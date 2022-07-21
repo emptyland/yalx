@@ -317,30 +317,84 @@ void yalx_heap_visit_root(struct heap *heap, struct yalx_root_visitor *visitor) 
 }
 
 void init_typing_write_barrier_if_needed(struct heap *heap, const struct yalx_class *item, address_t data) {
-    for (int i = 0; i < item->n_fields; i++) {
-        const struct yalx_class_field *field = &item->fields[i];
+    if (item->constraint == K_ENUM) {
+        const uint16_t enum_code = *(uint16_t *)data;
+        DCHECK(enum_code < item->n_fields);
+        const struct yalx_class_field *field = &item->fields[enum_code];
+        if (field->type->constraint == K_ENUM) {
+            if (field->type->compact_enum) {
+                init_write_barrier(heap, (yalx_ref_t *)(data + field->offset_of_head));
+            } else {
+                init_typing_write_barrier_if_needed(heap, field->type, data + field->offset_of_head);
+            }
+            return;
+        }
         if (yalx_is_ref_type(field->type)) {
             init_write_barrier(heap, (yalx_ref_t *)(data + field->offset_of_head));
-        } else if (field->type->constraint == K_STRUCT) {
-            init_typing_write_barrier_if_needed(heap, field->type, data + field->offset_of_head);
+            return;
+        }
+        if (field->type->constraint != K_STRUCT) {
+            return;
+        }
+        item = field->type;
+    }
+    
+    DCHECK(item->constraint == K_STRUCT);
+    for (int i = 0; i < item->refs_mark_len; i++) {
+        const struct yalx_class *const ty = item->refs_mark[i].ty;
+        const size_t offset = item->refs_mark[i].offset;
+
+        if (ty->constraint == K_ENUM) {
+            if (ty->compact_enum) {
+                init_write_barrier(heap, (yalx_ref_t *)(data + offset));
+            } else if (ty->refs_mark_len > 0) {
+                init_typing_write_barrier_if_needed(heap, ty, data + offset);
+            }
         } else {
-            //DCHECK(!"TODO:");
+            init_write_barrier(heap, (yalx_ref_t *)(data + offset));
         }
     }
 }
 
 void post_typing_write_barrier_if_needed(struct heap *heap, const struct yalx_class *item, address_t location,
                                          address_t data) {
-    for (int i = 0; i < item->n_fields; i++) {
-        const struct yalx_class_field *field = &item->fields[i];
+    if (item->constraint == K_ENUM) {
+        const uint16_t enum_code = *(uint16_t *)data;
+        DCHECK(enum_code < item->n_fields);
+        const struct yalx_class_field *field = &item->fields[enum_code];
+        if (field->type->constraint == K_ENUM) {
+            if (field->type->compact_enum) {
+                post_write_barrier(heap, (yalx_ref_t *)(location + field->offset_of_head),
+                                   *(yalx_ref_t *)(data + field->offset_of_head));
+            } else {
+                post_typing_write_barrier_if_needed(heap, field->type, location + field->offset_of_head,
+                                                    data + field->offset_of_head);
+            }
+            return;
+        }
         if (yalx_is_ref_type(field->type)) {
-            post_write_barrier(heap, (yalx_ref_t *)(location + field->offset_of_head),
-                               *(yalx_ref_t *)(data + field->offset_of_head));
-        } else if (field->type->constraint == K_STRUCT) {
-            post_typing_write_barrier_if_needed(heap, field->type, location + field->offset_of_head,
-                                                data + field->offset_of_head);
+            init_write_barrier(heap, (yalx_ref_t *)(data + field->offset_of_head));
+            return;
+        }
+        if (field->type->constraint != K_STRUCT) {
+            return;
+        }
+        item = field->type;
+    }
+    
+    DCHECK(item->constraint == K_STRUCT);
+    for (int i = 0; i < item->refs_mark_len; i++) {
+        const struct yalx_class *const ty = item->refs_mark[i].ty;
+        const size_t offset = item->refs_mark[i].offset;
+
+        if (ty->constraint == K_ENUM) {
+            if (ty->compact_enum) {
+                post_write_barrier(heap, (yalx_ref_t *)(location + offset), *(yalx_ref_t *)(data + offset));
+            } else if (ty->refs_mark_len > 0) {
+                post_typing_write_barrier_if_needed(heap, ty, location + offset, data + offset);
+            }
         } else {
-            //DCHECK(!"TODO:");
+            post_write_barrier(heap, (yalx_ref_t *)(location + offset), *(yalx_ref_t *)(data + offset));
         }
     }
 }

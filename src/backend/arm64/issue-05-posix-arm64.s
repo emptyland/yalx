@@ -48,8 +48,8 @@ Lblk1:
     stur w1, [fp, #-28]
     stur w2, [fp, #-32]
     stur w3, [fp, #-36]
-    adrp x19, _builtin_classes+864@PAGE
-    add x0, x19, _builtin_classes+864@PAGEOFF
+    adrp x19, _builtin_classes+912@PAGE
+    add x0, x19, _builtin_classes+912@PAGEOFF
     sub x1, fp, #20
     bl _array_fill
     mov x2, x0
@@ -118,8 +118,8 @@ Lblk3:
     stur w1, [fp, #-28]
     stur w2, [fp, #-32]
     stur w3, [fp, #-36]
-    adrp x19, _builtin_classes+864@PAGE
-    add x0, x19, _builtin_classes+864@PAGEOFF
+    adrp x19, _builtin_classes+912@PAGE
+    add x0, x19, _builtin_classes+912@PAGEOFF
     sub x1, fp, #20
     bl _array_fill
     mov x2, x0

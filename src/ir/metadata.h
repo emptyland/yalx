@@ -221,6 +221,11 @@ class StructureModel : public Model {
 public:
     static constexpr char kEnumCodeName[] = "$enum_code$";
     
+    struct RefMark {
+        Type ty;
+        ptrdiff_t offset;
+    };
+    
     StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration declaration,
                    Module *owns, StructureModel *base_of);
     
@@ -230,6 +235,7 @@ public:
     DEF_ARENA_VECTOR_GETTER(InterfaceModel *, interface);
     DEF_ARENA_VECTOR_GETTER(Field, field);
     DEF_ARENA_VECTOR_GETTER(Method, method);
+    DEF_ARENA_VECTOR_GETTER(RefMark, refs_mark);
     const base::ArenaVector<Handle *> &vtab() const { return vtab_; }
     const base::ArenaVector<Handle *> &itab() const { return itab_; }
     
@@ -258,9 +264,10 @@ public:
     bool IsCompactEnum() const;
     Handle *EnumCodeFieldIfNotCompactEnum();
 private:
+    void AnalyzeRefsMark(Type ty, ptrdiff_t offset);
     int64_t CalculateContinuousPlacementSize();
     int64_t CalculateCompactPlacementSize();
-    static std::tuple<size_t, size_t> CalculateTypesPlacementSize(const Type *types, int n);
+    std::tuple<size_t, size_t> CalculateTypesPlacementSize(const Type *types, int n);
     
     Module *const owns_;
     base::Arena * const arena_;
@@ -273,6 +280,7 @@ private:
     base::ArenaVector<Method> methods_;
     base::ArenaVector<Handle *> vtab_;
     base::ArenaVector<Handle *> itab_;
+    base::ArenaVector<RefMark> refs_marks_;
 }; // class StructureModel
 
 } // namespace ir

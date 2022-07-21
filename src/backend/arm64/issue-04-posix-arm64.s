@@ -51,8 +51,8 @@ Lblk2:
     stur w2, [fp, #-36]
     stur w3, [fp, #-40]
     stur w4, [fp, #-44]
-    adrp x19, _builtin_classes+864@PAGE
-    add x0, x19, _builtin_classes+864@PAGEOFF
+    adrp x19, _builtin_classes+912@PAGE
+    add x0, x19, _builtin_classes+912@PAGEOFF
     sub x1, fp, #24
     mov w2, #4
     bl _array_alloc
@@ -188,8 +188,8 @@ Lblk6:
     stur w0, [fp, #-20]
     stur w1, [fp, #-24]
     stur w2, [fp, #-28]
-    adrp x19, _builtin_classes+864@PAGE
-    add x0, x19, _builtin_classes+864@PAGEOFF
+    adrp x19, _builtin_classes+912@PAGE
+    add x0, x19, _builtin_classes+912@PAGEOFF
     sub x1, fp, #16
     mov w2, #2
     bl _array_alloc
@@ -205,8 +205,8 @@ Lblk6:
     stur w1, [fp, #-12]
     stur w2, [fp, #-16]
     stur w3, [fp, #-20]
-    adrp x19, _builtin_classes+864@PAGE
-    add x0, x19, _builtin_classes+864@PAGEOFF
+    adrp x19, _builtin_classes+912@PAGE
+    add x0, x19, _builtin_classes+912@PAGEOFF
     sub x1, fp, #44
     mov w2, #2
     bl _array_alloc
@@ -224,8 +224,8 @@ Lblk6:
     stur w2, [fp, #-20]
     stur w3, [fp, #-24]
     stur w4, [fp, #-28]
-    adrp x19, _builtin_classes+864@PAGE
-    add x0, x19, _builtin_classes+864@PAGEOFF
+    adrp x19, _builtin_classes+912@PAGE
+    add x0, x19, _builtin_classes+912@PAGEOFF
     sub x1, fp, #60
     mov w2, #2
     bl _array_alloc
@@ -242,8 +242,8 @@ Lblk6:
     stur x1, [fp, #-16]
     stur x2, [fp, #-24]
     stur w3, [fp, #-28]
-    adrp x19, _builtin_classes+3456@PAGE
-    add x0, x19, _builtin_classes+3456@PAGEOFF
+    adrp x19, _builtin_classes+3648@PAGE
+    add x0, x19, _builtin_classes+3648@PAGEOFF
     sub x1, fp, #92
     mov w2, #3
     bl _array_alloc
@@ -303,8 +303,8 @@ Lblk8:
     stur w19, [fp, #-12]
     stur w0, [fp, #-16]
     stur w1, [fp, #-20]
-    adrp x19, _builtin_classes+864@PAGE
-    add x0, x19, _builtin_classes+864@PAGEOFF
+    adrp x19, _builtin_classes+912@PAGE
+    add x0, x19, _builtin_classes+912@PAGEOFF
     sub x1, fp, #12
     bl _array_fill
     mov x2, x0
@@ -315,8 +315,8 @@ Lblk8:
     stur w19, [fp, #-36]
     stur w0, [fp, #-4]
     stur x2, [fp, #-12]
-    adrp x19, _builtin_classes+3456@PAGE
-    add x0, x19, _builtin_classes+3456@PAGEOFF
+    adrp x19, _builtin_classes+3648@PAGE
+    add x0, x19, _builtin_classes+3648@PAGEOFF
     sub x1, fp, #36
     bl _array_fill
     mov x2, x0
@@ -394,8 +394,8 @@ Lblk10:
     stur w5, [fp, #-60]
     stur w6, [fp, #-64]
     stur w7, [fp, #-68]
-    adrp x19, _builtin_classes+864@PAGE
-    add x0, x19, _builtin_classes+864@PAGEOFF
+    adrp x19, _builtin_classes+912@PAGE
+    add x0, x19, _builtin_classes+912@PAGEOFF
     sub x1, fp, #36
     mov w2, #7
     bl _array_alloc
@@ -687,8 +687,8 @@ Lblk16:
     stur w5, [fp, #-60]
     stur w6, [fp, #-64]
     stur w7, [fp, #-68]
-    adrp x19, _builtin_classes+864@PAGE
-    add x0, x19, _builtin_classes+864@PAGEOFF
+    adrp x19, _builtin_classes+912@PAGE
+    add x0, x19, _builtin_classes+912@PAGEOFF
     sub x1, fp, #36
     mov w2, #6
     bl _array_alloc
@@ -757,8 +757,8 @@ Lblk18:
     sturb w2, [fp, #-36]
     sturb w3, [fp, #-40]
     sturb w4, [fp, #-44]
-    adrp x19, _builtin_classes+432@PAGE
-    add x0, x19, _builtin_classes+432@PAGEOFF
+    adrp x19, _builtin_classes+456@PAGE
+    add x0, x19, _builtin_classes+456@PAGEOFF
     sub x1, fp, #24
     mov w2, #3
     bl _array_alloc
@@ -838,8 +838,8 @@ Lblk20:
     stur s1, [fp, #-44]
     stur s2, [fp, #-48]
     stur s3, [fp, #-52]
-    adrp x19, _builtin_classes+1440@PAGE
-    add x0, x19, _builtin_classes+1440@PAGEOFF
+    adrp x19, _builtin_classes+1520@PAGE
+    add x0, x19, _builtin_classes+1520@PAGEOFF
     sub x1, fp, #28
     mov w2, #4
     bl _array_alloc
@@ -905,8 +905,8 @@ Lblk22:
     stur w1, [fp, #-28]
     stur w2, [fp, #-32]
     stur w3, [fp, #-36]
-    adrp x19, _builtin_classes+576@PAGE
-    add x0, x19, _builtin_classes+576@PAGEOFF
+    adrp x19, _builtin_classes+608@PAGE
+    add x0, x19, _builtin_classes+608@PAGEOFF
     sub x1, fp, #20
     bl _array_fill
     mov x2, x0
@@ -1090,8 +1090,8 @@ Lblk26:
     stur w0, [fp, #-20]
     stur w1, [fp, #-24]
     stur w2, [fp, #-28]
-    adrp x19, _builtin_classes+864@PAGE
-    add x0, x19, _builtin_classes+864@PAGEOFF
+    adrp x19, _builtin_classes+912@PAGE
+    add x0, x19, _builtin_classes+912@PAGEOFF
     sub x1, fp, #16
     bl _array_fill
     mov x2, x0
@@ -1242,7 +1242,8 @@ Knnn.0:
 _issue04_Zoissue04_ZdFoo$class:
     .quad 0 ; id
     .byte 1 ; constraint
-    .space 3 ; padding
+    .byte 0 ; compact enum
+    .space 2 ; padding
     .long 8 ; reference_size
     .long 32 ; instance_size
     .space 4 ; padding
@@ -1267,6 +1268,10 @@ _issue04_Zoissue04_ZdFoo$class:
     .long 0 ; n_itab
     .quad 0 ; vtab
     .quad 0 ; itab
+    .long 1 ; refs_mark_len
+    .space 4
+    .quad _yalx_Zplang_Zolang_ZdString$class ; type
+    .long 24
 _issue04_Zoissue04_ZdFoo$fields:
     ; Foo::i
     .long 0 ; access|constraint
@@ -1275,7 +1280,7 @@ _issue04_Zoissue04_ZdFoo$fields:
     .quad Lkzs.12 ; name
     .long 1 ; name
     .space 4 ; padding
-    .quad _builtin_classes+864 ; type
+    .quad _builtin_classes+912 ; type
     .long 16 ; offset_of_head
     .space 4 ; padding
     ; Foo::name

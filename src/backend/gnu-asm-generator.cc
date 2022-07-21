@@ -235,6 +235,7 @@ void GnuAsmGenerator::EmitMetadata() {
 //    uint64_t id;
 //    /* class tags */
 //    uint8_t constraint; // enum yalx_class_constraint
+//    uint8_t compact_enum;
 //    int32_t reference_size;
 //    int32_t instance_size;
 //    struct yalx_class *super;
@@ -261,7 +262,8 @@ void GnuAsmGenerator::EmitMetadata() {
         printer_->Println("%s:", buf.c_str());
         printer_->Indent(1)->Println(".quad %d %s id", 0/*TODO:class_id*/, comment_);
         printer_->Indent(1)->Println(".byte %d %s constraint", DeclarationToKind(clazz->declaration()), comment_);
-        printer_->Indent(1)->Println(".space 3 %s padding", comment_);
+        printer_->Indent(1)->Println(".byte %d %s compact enum", static_cast<int>(clazz->IsCompactEnum()), comment_);
+        printer_->Indent(1)->Println(".space 2 %s padding", comment_);
         printer_->Indent(1)->Println(".long %d %s reference_size", clazz->ReferenceSizeInBytes(), comment_);
         printer_->Indent(1)->Println(".long %d %s instance_size", clazz->PlacementSizeInBytes(), comment_);
         printer_->Indent(1)->Println(".space 4 %s padding", comment_);
@@ -313,6 +315,13 @@ void GnuAsmGenerator::EmitMetadata() {
         buf.append("itab");
         printer_->Indent(1)->Println(".quad %s %s itab", clazz->itab().empty() ? "0" : buf.c_str(), comment_);
         
+        printer_->Indent(1)->Println(".long %u %s refs_mark_len", clazz->refs_marks_size(), comment_);
+        printer_->Indent(1)->Writeln(".space 4");
+        for (auto mark : clazz->refs_marks()) {
+            EmitTypeRelocation(mark.ty, printer_->Indent(1)->Write(".quad "));
+            printer_->Indent(1)->Println(".long %zd", mark.offset);
+        }
+
         if (!clazz->fields().empty()) {
             std::string symbol;
             LinkageSymbols::Build(&symbol, clazz->full_name()->ToSlice());
