@@ -974,7 +974,7 @@ void array_set_ref1(struct yalx_value_array_header *const array, const i32_t ind
 void array_set_ref2(struct yalx_value_array_header *const array, const i32_t d0, const i32_t d1, yalx_ref_t value) {
     DCHECK(array != NULL);
     DCHECK(CLASS(array) == multi_dims_array_class);
-    DCHECK(yalx_is_ref_type(array->item));
+    DCHECK(yalx_is_ref_type(array->item) || array->item->compact_enum);
     
     struct yalx_value_multi_dims_array *ar = (struct yalx_value_multi_dims_array *)array;
     DCHECK(ar->rank == 2);

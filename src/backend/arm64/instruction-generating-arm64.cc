@@ -1305,56 +1305,87 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
     const auto is_reference = (field->type.IsReference() || field->type.IsCompactEnum());
     const auto is_chunk = (field->type.kind() == ir::Type::kValue && field->type.model()->RefsMarkSize() > 0);
     
+    Allocate(instr->InputValue(0), (is_reference || is_chunk) ? kAny : kReg);
+    Allocate(instr->InputValue(1), kAny);
+    
     std::unique_ptr<RegisterSavingScope>
-    saving_scope(is_reference ? new RegisterSavingScope(&operands_, instruction_position_, &moving_delegate_)
+    saving_scope((is_reference || is_chunk) ? new RegisterSavingScope(&operands_, instruction_position_, &moving_delegate_)
                  : nullptr);
 
-    auto opd = Allocate(instr->InputValue(0), kReg);
-    auto value = Allocate(instr->InputValue(1), kAny);
-    if (field->type.IsReference()) {
+    if (is_reference || is_chunk) {
         saving_scope->SaveAll();
     }
+    auto opd = Allocate(instr->InputValue(0), (is_reference || is_chunk) ? kAny : kReg);
+    auto value = Allocate(instr->InputValue(1), kAny);
 
-    LocationOperand *loc = nullptr;
+    LocationOperand *addr = nullptr;
     if (auto base = opd->AsRegister()) {
-        loc = new (arena_) LocationOperand(Arm64Mode_MRI, base->register_id(), -1, static_cast<int>(field->offset));
+        addr = new (arena_) LocationOperand(Arm64Mode_MRI, base->register_id(), -1, static_cast<int>(field->offset));
     } else {
         DCHECK(opd->IsLocation());
         auto mem = opd->AsLocation();
-        auto r1 = new (arena_) RegisterOperand(mem->register0_id(), MachineRepresentation::kWord64);
         auto bak = operands_.Allocate(ir::Types::Word64);
         if (auto rb = bak->AsRegister()) {
-            current()->NewIO(Arm64Add, rb, r1, ImmediateOperand::Word32(arena_, mem->k()));
-            loc = new (arena_) LocationOperand(Arm64Mode_MRI, rb->register_id(), -1, static_cast<int>(field->offset));
+            Move(rb, mem, ir::Types::Word64);
+            addr = new (arena_) LocationOperand(Arm64Mode_MRI, rb->register_id(), -1, static_cast<int>(field->offset));
+            bak->Grab();
             operands_.Free(bak);
         } else {
             DCHECK(bak->IsLocation());
             auto brd = operands_.BorrowRegister(ir::Types::Word64, bak);
             Move(bak, brd.target, ir::Types::Word64);
             borrowed_registers_.push_back(brd);
-            current()->NewIO(Arm64Add, brd.target, r1, ImmediateOperand::Word32(arena_, mem->k()));
-            loc = new (arena_) LocationOperand(Arm64Mode_MRI, brd.target->register_id(), -1,
+            Move(brd.target, mem, ir::Types::Word64);
+            addr = new (arena_) LocationOperand(Arm64Mode_MRI, brd.target->register_id(), -1,
                                                static_cast<int>(field->offset));
         }
     }
 
     if (is_reference) {
-        auto arg0 = new (arena_) RegisterOperand(arm64::x0.code(), MachineRepresentation::kWord64);
-        auto base = new (arena_) RegisterOperand(loc->register0_id(), MachineRepresentation::kWord64);
-        current()->NewIO(Arm64Add, arg0, base, ImmediateOperand::Word32(arena_, loc->k()));
-        auto arg1 = new (arena_) RegisterOperand(arm64::x1.code(), MachineRepresentation::kWord64);
+        auto arg0 = operands_.AllocateReigster(ir::Types::Word64, arm64::x0.code());
+        auto base = new (arena_) RegisterOperand(addr->register0_id(), MachineRepresentation::kWord64);
+        current()->NewIO(Arm64Add, arg0, base, ImmediateOperand::Word32(arena_, addr->k()));
+        auto arg1 = operands_.AllocateReigster(ir::Types::Word64, arm64::x1.code());
         Move(arg1, value, field->type);
-        
-        auto rel = bundle()->AddExternalSymbol(kRt_put_field);
-        current()->NewI(ArchCall, rel);
-        saving_scope->AddPersistentIfNeeded(opd);
-        saving_scope->AddPersistent(arm64::x0.code());
+
+        current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_put_field));
         saving_scope.reset();
+        
+        arg1->Grab();
+        arg0->Grab();
+        operands_.Free(arg1);
+        operands_.Free(arg0);
     } else if (is_chunk) {
-        // TODO:
-        UNREACHABLE();
+        auto arg0 = operands_.AllocateReigster(ir::Types::Word64, arm64::x0.code());
+        Move(arg0, opd, instr->InputValue(0)->type());
+        
+        auto arg1 = operands_.AllocateReigster(ir::Types::Word64, arm64::x1.code());
+        auto base = new (arena_) RegisterOperand(addr->register0_id(), MachineRepresentation::kWord64);
+        current()->NewIO(Arm64Add, arg1, base, ImmediateOperand::Word32(arena_, addr->k()));
+        
+        auto arg2 = operands_.AllocateReigster(ir::Types::Word64, arm64::x2.code());
+        if (value->IsRegister()) {
+            Move(arg2, value, ir::Types::Word64);
+        } else {
+            DCHECK(value->IsLocation());
+            auto mem = value->AsLocation();
+            DCHECK(mem->register0_id() == arm64::fp.code());
+            current()->NewIO(Arm64Sub, arg2, operands_.registers()->frame_pointer(),
+                             ImmediateOperand::Word32(arena_, std::abs(mem->k())));
+        }
+        
+        
+        current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_put_field_chunk));
+        saving_scope.reset();
+        
+        arg2->Grab();
+        arg1->Grab();
+        arg0->Grab();
+        operands_.Free(arg2);
+        operands_.Free(arg1);
+        operands_.Free(arg0);
     } else {
-        Move(loc, value, field->type);
+        Move(addr, value, field->type);
     }
 
     operands_.Associate(instr, opd);

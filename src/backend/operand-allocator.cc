@@ -76,11 +76,11 @@ void OperandAllocator::Prepare(ir::Function *fun) {
             position--;
         }
     }
-    assert(position == 0);
+    DCHECK(position == 0);
     std::unique_ptr<std::vector<ir::Value *>[]> deads(new std::vector<ir::Value *>[total + 1]);
     for (auto [val, range] : live_ranges_) {
-        assert(range.stop_position >= 0);
-        assert(range.stop_position < total + 1);
+        DCHECK(range.stop_position >= 0);
+        DCHECK(range.stop_position < total + 1);
         
         deads[range.stop_position].push_back(val);
     }
@@ -377,7 +377,7 @@ InstructionOperand *OperandAllocator::LinkTo(ir::Value *value, InstructionOperan
 void OperandAllocator::Free(InstructionOperand *operand) {
     operand->Drop();
     //printd("[%p] refs=%d", operand, operand->refs());
-    assert(operand->refs() == 0);
+    DCHECK(operand->refs() == 0);
     switch (operand->kind()) {
         case InstructionOperand::kRegister: {
             auto reg = operand->AsRegister();
@@ -389,8 +389,8 @@ void OperandAllocator::Free(InstructionOperand *operand) {
             }
         } break;
         case InstructionOperand::kLocation:
-            assert(operand->IsLocation());
-            assert(registers()->frame_pointer()->register_id() == operand->AsLocation()->register0_id());
+            DCHECK(operand->IsLocation());
+            DCHECK(registers()->frame_pointer()->register_id() == operand->AsLocation()->register0_id());
             slots()->FreeSlot(operand->AsLocation());
             break;
         default:
@@ -400,8 +400,8 @@ void OperandAllocator::Free(InstructionOperand *operand) {
 }
 
 bool OperandAllocator::WillBeDead(ir::Value *value, int position) const {
-    assert(position >= 0);
-    assert(position < dead_records_.size());
+    DCHECK(position >= 0);
+    DCHECK(position < dead_records_.size());
 
     auto iter = live_ranges_.find(value);
 //    if (iter == live_ranges_.end()) {
@@ -417,8 +417,8 @@ bool OperandAllocator::WillBeDead(ir::Value *value, int position) const {
 }
 
 void OperandAllocator::ReleaseDeads(int position) {
-    assert(position >= 0);
-    assert(position < dead_records_.size());
+    DCHECK(position >= 0);
+    DCHECK(position < dead_records_.size());
     std::vector<ir::Value *> useless;
     
     auto rd = dead_records_[position];
@@ -436,7 +436,7 @@ void OperandAllocator::ReleaseDeads(int position) {
                 }
                 useless.push_back(key);
             }
-            assert(operand->refs() >= 0);
+            DCHECK(operand->refs() >= 0);
         }
     }
     for (auto key : useless) {
@@ -499,8 +499,8 @@ RegisterSavingScope::RegisterSavingScope(OperandAllocator *allocator, int positi
 : allocator_(allocator)
 , position_(position)
 , moving_delegate_(callback) {
-    assert(position >= 0);
-    assert(position + 1 < allocator_->dead_records_.size());
+    DCHECK(position >= 0);
+    DCHECK(position + 1 < allocator_->dead_records_.size());
 }
 
 RegisterSavingScope::~RegisterSavingScope() {

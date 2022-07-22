@@ -103,6 +103,10 @@ public:
     DEF_VAL_PROP_RW(Constraint, constraint);
     DEF_VAL_GETTER(Declaration, declaration);
     
+    bool IsStructure() const {
+        return declaration() == kEnum || declaration() == kClass || declaration() == kStruct;
+    }
+    
     virtual std::optional<Method> FindMethod(std::string_view name) const;
     virtual std::optional<Field> FindField(std::string_view name) const;
     virtual Member GetMember(const Handle *handle) const;

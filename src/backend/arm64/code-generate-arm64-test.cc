@@ -141,7 +141,7 @@ TEST_F(Arm64CodeGeneratorTest, EnumTypes) {
     //CodeGen("tests/44-code-gen-primitive-props", "yalx/lang:lang", &printer, &ok);
     CodeGen("tests/45-code-gen-enum-types", "issue06:issue06", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
     
 }
 
@@ -588,6 +588,29 @@ struct Issue06DummyFoo {
     };
 };
 
+//class Baz(val x: int, val y: int) {
+//    var bzz = Bzz(0, "")
+//    var name = ""
+//    var nickName = Optional<string>::None
+//}
+//
+//struct Bzz(val id: int, val name: string)
+
+struct Issue06DummyBzz {
+    YALX_VALUE_HEADER;
+    i32_t id;
+    yalx_value_str *name;
+};
+
+struct Issue06DummyBaz {
+    YALX_VALUE_HEADER;
+    i32_t x;
+    i32_t y;
+    Issue06DummyBzz bzz;
+    yalx_value_str *name;
+    yalx_value_str *nick_name;
+};
+
 TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
     pkg_init_once(reinterpret_cast<void *>(&issue06_Zoissue06_Zd_Z4init), "issue06:issue06");
     
@@ -623,6 +646,46 @@ TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
         ASSERT_EQ(3, vals[0].enum_value);
         ASSERT_EQ(2, vals[0].as_str->len);
         ASSERT_STREQ("ok", vals[0].as_str->bytes);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue06_Zoissue06_Zdissue4_had();
+    
+    {
+        auto vals = reinterpret_cast<Issue06DummyBaz **>(state.buf);
+        auto baz = vals[1];
+        auto klass = CLASS(baz);
+        ASSERT_STREQ("issue06:issue06.Baz", klass->location.z);
+        ASSERT_EQ(996, baz->x);
+        ASSERT_EQ(700, baz->y);
+        ASSERT_EQ(0, baz->bzz.id);
+        ASSERT_EQ(0, baz->bzz.name->len);
+        ASSERT_EQ(0, baz->name->len);
+        ASSERT_EQ(nullptr, baz->nick_name);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue06_Zoissue06_Zdissue5_had();
+    
+    {
+        auto vals = reinterpret_cast<Issue06DummyBaz **>(state.buf);
+        auto baz = vals[1];
+        auto klass = CLASS(baz);
+        ASSERT_STREQ("issue06:issue06.Baz", klass->location.z);
+        ASSERT_EQ(996, baz->x);
+        ASSERT_EQ(700, baz->y);
+        ASSERT_EQ(100, baz->bzz.id);
+        ASSERT_EQ(3, baz->bzz.name->len);
+        ASSERT_STREQ("bzz", baz->bzz.name->bytes);
+        ASSERT_EQ(3, baz->name->len);
+        ASSERT_STREQ("baz", baz->name->bytes);
+        ASSERT_NE(nullptr, baz->nick_name);
+        ASSERT_EQ(4, baz->nick_name->len);
+        ASSERT_STREQ("niko", baz->nick_name->bytes);
     }
     yalx_exit_returning_scope(&state);
     
@@ -683,6 +746,33 @@ TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
         for (int i = 0; i < ar->len; i++) {
             ASSERT_EQ(nullptr, elems[i]);
         }
+    }
+    
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue06_Zoissue06_Zdissue15_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        ASSERT_NE(nullptr, vals[1]);
+        auto klass = CLASS(vals[1]);
+        ASSERT_EQ(multi_dims_array_class, klass);
+        auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(vals[1]);
+        ASSERT_EQ(2, ar->rank);
+        ASSERT_EQ(2, ar->caps[0]);
+        ASSERT_EQ(2, ar->caps[1]);
+        ASSERT_EQ(4, ar->len);
+        ASSERT_EQ(K_ENUM, ar->item->constraint);
+        ASSERT_EQ(1, ar->item->compact_enum);
+        ASSERT_STREQ("yalx/lang:lang.Optional<string>", ar->item->location.z);
+        
+        auto elems = reinterpret_cast<yalx_str_handle>(yalx_multi_dims_array_data(ar));
+        ASSERT_NE(nullptr, elems[0]);
+        ASSERT_STREQ("ok", elems[0]->bytes);
+        ASSERT_NE(nullptr, elems[3]);
+        ASSERT_STREQ("hello", elems[3]->bytes);
     }
     
     yalx_exit_returning_scope(&state);

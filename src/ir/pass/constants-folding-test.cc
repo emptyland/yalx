@@ -47,8 +47,8 @@ globals:
 functions:
     fun $init(): void {
     boot:
-        %0 = Closure ref[fun ()->void] <fun yalx/lang:lang.$init>
-        CallRuntime void ref[fun ()->void] %0, string "yalx/lang:lang" <PkgInitOnce>
+        %0 = LoadFunAddr val[fun ()->void]* <fun yalx/lang:lang.$init>
+        CallRuntime void val[fun ()->void]* %0, string "yalx/lang:lang" <PkgInitOnce>
         Ret void
     } // main:main.$init
 
@@ -80,7 +80,9 @@ functions:
 
     fun issue6(): u8, u8 {
     entry:
-        Ret void u8 0, u8 1
+        %0 = FCmp u8 f32 0.100000, f32 0.200000 <ogt>
+        %1 = FCmp u8 f32 0.100000, f32 0.200000 <olt>
+        Ret void u8 %0, u8 %1
     } // main:main.issue6
 
     fun main(): void {
@@ -91,7 +93,7 @@ functions:
 } // @main:main
 )";
     //printf("%s\n", buf.data());
-    ASSERT_STREQ(z, buf.data());
+    ASSERT_EQ(z, buf);
 }
 
 } // namespace ir

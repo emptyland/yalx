@@ -589,6 +589,7 @@ size_t StructureModel::ReferenceSizeInBytes() const { return kPointerSize; }
 size_t StructureModel::PlacementSizeInBytes() const {
     DCHECK(placement_size_in_bytes_ > 0);
     return placement_size_in_bytes_;
+    //return const_cast<StructureModel *>(this)->LazyPlacementSizeInBytes();
 }
 
 size_t StructureModel::RefsMarkSize() const { return refs_marks_size(); }
@@ -852,7 +853,12 @@ int64_t StructureModel::CalculateContinuousPlacementSize() {
             case Type::kValue:
                 DCHECK(!field.type.IsPointer());
                 field.offset = RoundUp(offset, kPointerSize);
-                incoming_size = field.type.model()->PlacementSizeInBytes();
+                
+                if (field.type.model()->IsStructure()) {
+                    incoming_size = down_cast<StructureModel>(field.type.model())->LazyPlacementSizeInBytes();
+                } else {
+                    incoming_size = field.type.model()->PlacementSizeInBytes();
+                }
                 offset = field.offset + incoming_size;
                 AnalyzeRefsMark(field.type, field.offset);
                 break;

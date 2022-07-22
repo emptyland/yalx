@@ -46,8 +46,114 @@ TEST_F(IntermediateRepresentationGeneratorTest, IfExpr) {
     //    modules["yalx/lang:lang"]->PrintTo(&printer);
     //    modules["foo:foo"]->PrintTo(&printer);
     modules["main:main"]->PrintTo(&printer);
-    
-    printf("%s\n", buf.data());
+    static const char z[] = R"(module main @main:main {
+source-files:
+    [0] tests/19-ir-gen-if-expr/src/main/main.yalx
+
+globals:
+    %main:main.c = GlobalValue i32 <"main:main.c">
+    %main:main.a = GlobalValue i32 <"main:main.a">
+    %main:main.b = GlobalValue i32 <"main:main.b">
+    %main:main.d = GlobalValue i32 <"main:main.d">
+
+functions:
+    fun $init(): void {
+    boot:
+        %0 = LoadFunAddr val[fun ()->void]* <fun foo:foo.$init>
+        CallRuntime void val[fun ()->void]* %0, string "foo:foo" <PkgInitOnce>
+        %1 = LoadFunAddr val[fun ()->void]* <fun yalx/lang:lang.$init>
+        CallRuntime void val[fun ()->void]* %1, string "yalx/lang:lang" <PkgInitOnce>
+        StoreGlobal void i32 %main:main.d, i32 2
+        %2 = LoadGlobal i32 i32 %main:main.d
+        StoreGlobal void i32 %main:main.a, i32 1
+        StoreGlobal void i32 %main:main.b, i32 %2
+        %3 = CallDirectly u8 <fun foo:foo.foo>
+        Br void u8 %3 out [L1:, L2:]
+    L1:
+        %4 = LoadGlobal i32 i32 %main:main.a
+        Br void out [L9:]
+    L2:
+        %5 = CallDirectly u8 <fun foo:foo.bar>
+        Br void u8 %5 out [L3:, L4:]
+    L3:
+        %6 = LoadGlobal i32 i32 %main:main.b
+        Br void out [L8:]
+    L4:
+        %7 = CallDirectly u8 <fun foo:foo.baz>
+        Br void u8 %7 out [L5:, L6:]
+    L5:
+        Br void out [L7:]
+    L6:
+        Br void out [L7:]
+    L7:
+        %8 = Phi i32 i32 3, i32 4 in [L5:, L6:]
+        Br void out [L8:]
+    L8:
+        %9 = Phi i32 i32 %6, i32 %8 in [L3:, L7:]
+        Br void out [L9:]
+    L9:
+        %10 = Phi i32 i32 %4, i32 %9 in [L1:, L8:]
+        StoreGlobal void i32 %main:main.c, i32 %10
+        Ret void
+    } // main:main.$init
+
+    fun issue1(): i32 {
+    entry:
+        %0 = CallDirectly u8 <fun foo:foo.foo>
+        Br void u8 %0 out [L1:, L2:]
+    L1:
+        Br void out [L3:]
+    L2:
+        Br void out [L3:]
+    L3:
+        %1 = Phi i32 i32 1, i32 2 in [L1:, L2:]
+        Ret void i32 %1
+    } // main:main.issue1
+
+    fun issue2(): val[yalx/lang:lang.Optional<foo:foo.Foo>] {
+    entry:
+        %0 = CallDirectly u8 <fun foo:foo.foo>
+        Br void u8 %0 out [L1:, L2:]
+    L1:
+        %1 = HeapAlloc ref[foo:foo.Foo] <Foo>
+        CallHandle void ref[foo:foo.Foo] %1, i32 1 <foo:foo.Foo::Foo$constructor>
+        Br void out [L2:]
+    L2:
+        %2 = BitCastTo val[yalx/lang:lang.Optional<foo:foo.Foo>] ref[foo:foo.Foo] %1
+        %3 = Phi val[yalx/lang:lang.Optional<foo:foo.Foo>] val[yalx/lang:lang.Optional<foo:foo.Foo>] %2, val[yalx/lang:lang.Optional<foo:foo.Foo>] nil in [L1:, entry:]
+        Ret void val[yalx/lang:lang.Optional<foo:foo.Foo>] %3
+    } // main:main.issue2
+
+    fun issue3(): i32, i32 {
+    entry:
+        %0 = CallDirectly u8 <fun foo:foo.foo>
+        Br void u8 %0 out [L1:, L2:]
+    L1:
+        %1 = CallDirectly u8 <fun foo:foo.bar>
+        Br void u8 %1 out [L3:, L4:]
+    L2:
+        Br void out [L6:]
+    L3:
+        Br void out [L5:]
+    L4:
+        Br void out [L5:]
+    L5:
+        %2 = Phi i32 i32 2, i32 3, i32 4 in [L1:, L3:, L4:]
+        Br void out [L6:]
+    L6:
+        %3 = Phi i32 i32 1, i32 2, i32 %2, i32 3 in [entry:, L1:, L5:, L2:]
+        %4 = Phi i32 i32 2, i32 1 in [entry:, L2:]
+        Ret void i32 %3, i32 %4
+    } // main:main.issue3
+
+    fun main(): void {
+    entry:
+        Ret void
+    } // main:main.main
+
+} // @main:main
+)";
+    ASSERT_EQ(z, buf);
 }
 
 // 20-ir-gen-vtab
@@ -106,8 +212,8 @@ structures:
 functions:
     fun $init(): void {
     boot:
-        %0 = Closure ref[fun ()->void] <fun yalx/lang:lang.$init>
-        CallRuntime void ref[fun ()->void] %0, string "yalx/lang:lang" <PkgInitOnce>
+        %0 = LoadFunAddr val[fun ()->void]* <fun yalx/lang:lang.$init>
+        CallRuntime void val[fun ()->void]* %0, string "yalx/lang:lang" <PkgInitOnce>
         Ret void
     } // foo:foo.$init
 
@@ -131,11 +237,12 @@ functions:
         Ret void string "name.foo"
     } // foo:foo.Foo.getName
 
-    fun Foo::Foo$constructor(%this: ref[foo:foo.Foo]): ref[foo:foo.Foo] {
+    fun Foo::Foo$constructor(%this: ref[foo:foo.Foo]): void {
     entry:
         %0 = RefAssertedTo ref[yalx/lang:lang.Any] ref[foo:foo.Foo] %this
-        %1 = CallHandle ref[yalx/lang:lang.Any] ref[yalx/lang:lang.Any] %0 <yalx/lang:lang.Any::Any$constructor>
-        Ret void ref[foo:foo.Foo] %this
+        CallHandle void ref[yalx/lang:lang.Any] %0 <yalx/lang:lang.Any::Any$constructor>
+        Ret void
+        Ret void
     } // foo:foo.Foo.Foo$constructor
 
 } // @foo:foo
@@ -170,21 +277,21 @@ structures:
 functions:
     fun $init(): void {
     boot:
-        %0 = Closure ref[fun ()->void] <fun foo:foo.$init>
-        CallRuntime void ref[fun ()->void] %0, string "foo:foo" <PkgInitOnce>
-        %1 = Closure ref[fun ()->void] <fun yalx/lang:lang.$init>
-        CallRuntime void ref[fun ()->void] %1, string "yalx/lang:lang" <PkgInitOnce>
+        %0 = LoadFunAddr val[fun ()->void]* <fun foo:foo.$init>
+        CallRuntime void val[fun ()->void]* %0, string "foo:foo" <PkgInitOnce>
+        %1 = LoadFunAddr val[fun ()->void]* <fun yalx/lang:lang.$init>
+        CallRuntime void val[fun ()->void]* %1, string "yalx/lang:lang" <PkgInitOnce>
         Ret void
     } // main:main.$init
 
     fun main(): void {
     entry:
         %0 = HeapAlloc ref[main:main.Bar] <Bar>
-        %1 = CallHandle ref[main:main.Bar] ref[main:main.Bar] %0 <main:main.Bar::Bar$constructor>
-        %2 = CallVirtual i32 ref[main:main.Bar] %1 <main:main.Bar::doIt>
-        %3 = CallVirtual string ref[main:main.Bar] %1 <main:main.Bar::getName>
-        %4 = RefAssertedTo ref[yalx/lang:lang.Any] ref[main:main.Bar] %1
-        %5 = CallVirtual u32 ref[yalx/lang:lang.Any] %4 <yalx/lang:lang.Any::hashCode>
+        CallHandle void ref[main:main.Bar] %0 <main:main.Bar::Bar$constructor>
+        %1 = CallVirtual i32 ref[main:main.Bar] %0 <main:main.Bar::doIt>
+        %2 = CallVirtual string ref[main:main.Bar] %0 <main:main.Bar::getName>
+        %3 = RefAssertedTo ref[yalx/lang:lang.Any] ref[main:main.Bar] %0
+        %4 = CallVirtual u32 ref[yalx/lang:lang.Any] %3 <yalx/lang:lang.Any::hashCode>
         Ret void
     } // main:main.main
 
@@ -213,16 +320,18 @@ functions:
         Ret void i32 0
     } // main:main.Bar.doThat
 
-    fun Bar::Bar$constructor(%this: ref[main:main.Bar]): ref[main:main.Bar] {
+    fun Bar::Bar$constructor(%this: ref[main:main.Bar]): void {
     entry:
         %0 = RefAssertedTo ref[foo:foo.Foo] ref[main:main.Bar] %this
-        %1 = CallHandle ref[foo:foo.Foo] ref[foo:foo.Foo] %0 <foo:foo.Foo::Foo$constructor>
-        Ret void ref[main:main.Bar] %this
+        CallHandle void ref[foo:foo.Foo] %0 <foo:foo.Foo::Foo$constructor>
+        Ret void
+        Ret void
     } // main:main.Bar.Bar$constructor
 
 } // @main:main
 )";
     
+    //printf("%s\n", buf.data());
     ASSERT_EQ(z, buf);
 }
 
@@ -248,10 +357,10 @@ source-files:
 functions:
     fun $init(): void {
     boot:
-        %0 = Closure ref[fun ()->void] <fun foo:foo.$init>
-        CallRuntime void ref[fun ()->void] %0, string "foo:foo" <PkgInitOnce>
-        %1 = Closure ref[fun ()->void] <fun yalx/lang:lang.$init>
-        CallRuntime void ref[fun ()->void] %1, string "yalx/lang:lang" <PkgInitOnce>
+        %0 = LoadFunAddr val[fun ()->void]* <fun foo:foo.$init>
+        CallRuntime void val[fun ()->void]* %0, string "foo:foo" <PkgInitOnce>
+        %1 = LoadFunAddr val[fun ()->void]* <fun yalx/lang:lang.$init>
+        CallRuntime void val[fun ()->void]* %1, string "yalx/lang:lang" <PkgInitOnce>
         Ret void
     } // main:main.$init
 
@@ -404,8 +513,9 @@ functions:
 } // @main:main
 )";
     
-    ASSERT_EQ(buf, z);
     //printf("%s\n", buf.c_str());
+    ASSERT_EQ(buf, z);
+    
 }
 
 // 22-ir-gen-foreach-loop
@@ -878,7 +988,7 @@ TEST_F(IntermediateRepresentationGeneratorTest, EnumValues) {
     //    modules["yalx/lang:lang"]->PrintTo(&printer);
     //    modules["foo:foo"]->PrintTo(&printer);
     modules["main:main"]->PrintTo(&printer);
-    //printf("%s\n", buf.c_str());
+    
     
     static const char z[] = R"(module main @main:main {
 source-files:
@@ -900,14 +1010,14 @@ functions:
         %1 = LoadFunAddr val[fun ()->void]* <fun yalx/lang:lang.$init>
         CallRuntime void val[fun ()->void]* %1, string "yalx/lang:lang" <PkgInitOnce>
         %2 = StackAlloc val[foo:foo.Optional<i32>] <Optional<i32>>
-        %3 = StoreInlineField val[foo:foo.Optional<i32>] val[foo:foo.Optional<i32>] %2, u16 2 <foo:foo.Optional<i32>::$enum_code$>
+        %3 = StoreInlineField val[foo:foo.Optional<i32>] val[foo:foo.Optional<i32>] %2, u16 0 <foo:foo.Optional<i32>::$enum_code$>
         StoreGlobal void val[foo:foo.Optional<i32>] %main:main.e0, val[foo:foo.Optional<i32>] %3
         %4 = StackAlloc val[foo:foo.Optional<i32>] <Optional<i32>>
         %5 = StoreInlineField val[foo:foo.Optional<i32>] val[foo:foo.Optional<i32>] %4, u16 1 <foo:foo.Optional<i32>::$enum_code$>
         %6 = StoreInlineField val[foo:foo.Optional<i32>] val[foo:foo.Optional<i32>] %5, i32 1 <foo:foo.Optional<i32>::Some>
         StoreGlobal void val[foo:foo.Optional<i32>] %main:main.e1, val[foo:foo.Optional<i32>] %6
         %7 = StackAlloc val[foo:foo.Foo] <Foo>
-        %8 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %7, u16 4 <foo:foo.Foo::$enum_code$>
+        %8 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %7, u16 0 <foo:foo.Foo::$enum_code$>
         StoreGlobal void val[foo:foo.Foo] %main:main.e2, val[foo:foo.Foo] %8
         %9 = StackAlloc val[foo:foo.Foo] <Foo>
         %10 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %9, u16 1 <foo:foo.Foo::$enum_code$>
@@ -930,7 +1040,7 @@ functions:
     fun issue00_enum_value(): val[foo:foo.Foo] {
     entry:
         %0 = StackAlloc val[foo:foo.Foo] <Foo>
-        %1 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %0, u16 4 <foo:foo.Foo::$enum_code$>
+        %1 = StoreInlineField val[foo:foo.Foo] val[foo:foo.Foo] %0, u16 0 <foo:foo.Foo::$enum_code$>
         Ret void val[foo:foo.Foo] %1
     } // main:main.issue00_enum_value
 
@@ -955,7 +1065,8 @@ functions:
 
     fun issue03_enum_compact_value(): val[foo:foo.Optional<string>] {
     entry:
-        Ret void string "ok"
+        %0 = BitCastTo val[foo:foo.Optional<string>] string "ok"
+        Ret void val[foo:foo.Optional<string>] %0
     } // main:main.issue03_enum_compact_value
 
     fun issue04_compact_enum_matching(%e: val[foo:foo.Optional<string>]): void {
@@ -1014,6 +1125,7 @@ functions:
 
 } // @main:main
 )";
+    //printf("%s\n", buf.c_str());
     ASSERT_EQ(z, buf);
 }
 

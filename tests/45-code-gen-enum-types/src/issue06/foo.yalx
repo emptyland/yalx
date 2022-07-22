@@ -27,6 +27,20 @@ fun issue2() -> Foo::B(122u8)
 @yalx.Compiler(nativeHandle=true)
 fun issue3() -> Foo::D("ok")
 
+@yalx.Compiler(nativeHandle=true)
+fun issue4(): Baz {
+    val baz = Baz(996, 700)
+    return baz
+}
+
+@yalx.Compiler(nativeHandle=true)
+fun issue5(): Baz {
+    val baz = Baz(996, 700)
+    baz.bzz = Bzz(100, "bzz")
+    baz.name = "baz"
+    baz.nickName = Optional<string>::Some("niko")
+    return baz
+}
 
 @yalx.Compiler(nativeHandle=true)
 fun issue10() -> Option<int>::None
@@ -53,3 +67,11 @@ fun issue15(): Optional<string>[,] {
 
 
 struct Bar(val x: int, val y: int)
+
+class Baz(val x: int, val y: int) {
+    var bzz = Bzz(0, "")
+    var name = ""
+    var nickName = Optional<string>::None
+}
+
+struct Bzz(val id: int, val name: string)
