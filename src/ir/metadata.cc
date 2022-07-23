@@ -364,6 +364,7 @@ Handle *InterfaceModel::InsertMethod(Function *fun) {
         .fun = fun,
         .access = kPublic,
         .in_vtab = 0,
+        .id_vtab = static_cast<int>(methods_.size()),
         .in_itab = 0,
     });
     return handle;
@@ -376,6 +377,14 @@ Model::Member InterfaceModel::GetMember(const Handle *handle) const {
     return &methods_[handle->offset()];
 }
 
+Handle *InterfaceModel::FindMemberOrNull(std::string_view name) const {
+    if (auto iter = members_.find(name); iter != members_.end()) {
+        return iter->second;
+    } else {
+        return nullptr;
+    }
+}
+
 std::optional<Model::Method> InterfaceModel::FindMethod(std::string_view name) const {
     if (auto iter = members_.find(name); iter == members_.end()) {
         return std::nullopt;
@@ -385,9 +394,11 @@ std::optional<Model::Method> InterfaceModel::FindMethod(std::string_view name) c
 }
 
 // ownership: yalx_any_t *;
-// vtab     : yalx_fun_t **;
-size_t InterfaceModel::ReferenceSizeInBytes() const { return kPointerSize * 2; } // TODO:
-size_t InterfaceModel::PlacementSizeInBytes() const { return kPointerSize * 2; } // TODO:
+// vtab     : yalx_fun_t **
+static_assert(sizeof(yalx_value_interface) == kPointerSize * 2, "incorrect interface size");
+
+size_t InterfaceModel::ReferenceSizeInBytes() const { return sizeof(yalx_value_interface); }
+size_t InterfaceModel::PlacementSizeInBytes() const { return sizeof(yalx_value_interface); }
 
 void InterfaceModel::PrintTo(int indent, base::PrintingWriter *printer) const {
     printer->Indent(indent)->Println("interface %s @%s {", name()->data(), full_name()->data());
@@ -960,6 +971,17 @@ bool StructureModel::In_vtab(const Handle *handle) const {
         }
     }
     return false;
+}
+
+int StructureModel::ConceptOffsetOf(const InterfaceModel *concept) {
+    int offset = 0;
+    for (auto for_test : interfaces()) {
+        if (for_test == concept) {
+            return offset;
+        }
+        offset += static_cast<int>(for_test->methods_size());
+    }
+    return -1;
 }
 
 bool StructureModel::IsCompactEnum() const {

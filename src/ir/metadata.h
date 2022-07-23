@@ -182,6 +182,7 @@ public:
 
     Member GetMember(const Handle *handle) const override;
     std::optional<Method> FindMethod(std::string_view name) const override;
+    Handle *FindMemberOrNull(std::string_view name) const override;
     size_t ReferenceSizeInBytes() const override;
     size_t PlacementSizeInBytes() const override;
     void PrintTo(int indent, base::PrintingWriter *printer) const override;
@@ -267,6 +268,8 @@ public:
     int64_t UpdatePlacementSizeInBytes();
     bool In_itab(const Handle *) const;
     bool In_vtab(const Handle *) const;
+    
+    int ConceptOffsetOf(const InterfaceModel *concept);
     
     bool IsNotCompactEnum() const { return !IsCompactEnum(); }
     bool IsCompactEnum() const;

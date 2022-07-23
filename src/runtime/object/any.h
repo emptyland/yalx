@@ -30,6 +30,8 @@ struct yalx_value_interface {
     address_t  itab;
 }; // struct yalx_val_interface
 
+#define INTERFACE_OFFSET_OF_OWNS offsetof(struct yalx_value_interface, owns)
+#define INTERFACE_OFFSET_OF_ITAB offsetof(struct yalx_value_interface, itab)
 
 // reference by any-[os]-[arch].s
 struct yalx_value_str *yalx_any_to_string(struct yalx_value_any *any);

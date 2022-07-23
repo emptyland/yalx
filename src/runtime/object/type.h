@@ -54,6 +54,7 @@ struct yalx_class {
 
 
 #define CLASS_OFFSET_OF_VTAB offsetof(struct yalx_class, vtab)
+#define CLASS_OFFSET_OF_ITAB offsetof(struct yalx_class, itab)
 
 struct yalx_class_field {
     // tags

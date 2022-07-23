@@ -468,6 +468,7 @@ public:
                 if (!model) {
                     model = DCHECK_NOTNULL(PrimitiveModel::Get(value->type(), arena()));
                 }
+                //printd("%s", model->full_name()->data());
                 handle = model->FindMemberOrNull(ast->field()->ToSlice());
                 
                 if (handle && handle->IsMethod()) {
@@ -2317,10 +2318,17 @@ private:
             UNREACHABLE();
         }
         DCHECK(args.size() == proto->params_size());
-        for (size_t i = 0; i < proto->params_size(); i++) {
-            args[i] = EmitCastingIfNeeded(proto->param(i), args[i], source_position);
-        }
         
+        if (op->value() == Operator::kCallAbstract) {
+            for (size_t i = 1; i < proto->params_size(); i++) {
+                args[i] = EmitCastingIfNeeded(proto->param(i), args[i], source_position);
+            }
+        } else {
+            for (size_t i = 0; i < proto->params_size(); i++) {
+                args[i] = EmitCastingIfNeeded(proto->param(i), args[i], source_position);
+            }
+        }
+
         auto type = proto->return_type(0);
         Value *call = nullptr;
         if (op->control_out() > 0) {

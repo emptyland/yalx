@@ -118,9 +118,10 @@ bool StackSlotAllocator::FindFirstFitSpace(int *offset, int size) const {
             auto required_size = size;
             auto maybe_fit = i * 32 + fz;
             for (auto j = maybe_fit; j < bitmap_.size() * 32; j++) {
-                if (!TestBit(j)) {
-                    required_size -= conf_->slot_alignment_size();
+                if (TestBit(j)) {
+                    return false;
                 }
+                required_size -= conf_->slot_alignment_size();
                 if (required_size <= 0) {
                     *offset = maybe_fit * conf_->slot_alignment_size();
                     return *offset + size <= stack_size_;

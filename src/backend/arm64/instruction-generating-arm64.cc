@@ -1204,6 +1204,69 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             current()->New(ArchUnreachable); // TODO:
             break;
             
+        case ir::Operator::kRefToIface: {
+            DCHECK(instr->type().kind() == ir::Type::kValue);
+            DCHECK(instr->type().model());
+            DCHECK(instr->type().model()->declaration() == ir::Model::kInterface);
+            auto iface = down_cast<ir::InterfaceModel>(instr->type().model());
+            
+            auto input = instr->InputValue(0);
+            DCHECK(input->type().kind() == ir::Type::kReference);
+            DCHECK(input->type().model());
+            DCHECK(input->type().model()->declaration() == ir::Model::kClass);
+            
+            auto clazz = down_cast<ir::StructureModel>(input->type().model());
+            auto index = clazz->ConceptOffsetOf(iface);
+            DCHECK(index >= 0);
+            
+            auto from = Allocate(instr->InputValue(0), kAny);
+            auto to = operands_.AllocateStackSlot(instr, 0, StackSlotAllocator::kFit);
+            auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, to->register0_id(), -1, to->k());
+            Move(loc, from, instr->InputValue(0)->type());
+            loc = new (arena_) LocationOperand(Arm64Mode_MRI, to->register0_id(), -1, to->k() + kPointerSize);
+            
+            RegisterOperand *orign = nullptr;
+            if (auto rf = from->AsRegister()) {
+                orign = rf;
+            } else {
+                auto scratch = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+                Move(scratch, from, ir::Types::Word64);
+                orign = scratch;
+            }
+            
+            auto klass = new (arena_) LocationOperand(Arm64Mode_MRI, orign->register_id(), -1, ANY_OFFSET_OF_KLASS);
+            auto scratch0 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+            current()->NewIO(Arm64Ldr, scratch0, klass);
+            current()->NewIO(Arm64And, scratch0, scratch0, ImmediateOperand::Word64(arena_, ~1ull));
+            auto itab = new (arena_) LocationOperand(Arm64Mode_MRI, scratch0->register_id(), -1, CLASS_OFFSET_OF_ITAB);
+            current()->NewIO(Arm64Ldr, scratch0, itab);
+            
+            auto offset_of_index = static_cast<int>(index * kPointerSize);
+            if (offset_of_index > 0) {
+                current()->NewIO(Arm64Add, scratch0, scratch0, ImmediateOperand::Word32(arena_, offset_of_index));
+            }
+            current()->NewIO(Arm64Str, loc, scratch0);
+        } break;
+            
+        case ir::Operator::kIfaceToRef: {
+            auto input = instr->InputValue(0);
+            DCHECK(input->type().kind() == ir::Type::kValue);
+            DCHECK(input->type().model());
+            DCHECK(input->type().model()->declaration() == ir::Model::kInterface);
+            
+            //auto iface = down_cast<ir::InterfaceModel>(input->type().model());
+            auto from = Allocate(input, kAny);
+            auto to = Allocate(instr, kAny);
+            if (auto origin = from->AsLocation()) {
+                auto owns = new (arena_) LocationOperand(Arm64Mode_MRI, origin->register0_id(), -1, 0);
+                Move(to, owns, ir::Types::Word64);
+            } else {
+                auto rf = DCHECK_NOTNULL(from->AsRegister());
+                auto owns = new (arena_) LocationOperand(Arm64Mode_MRI, rf->register_id(), -1, 0);
+                Move(to, owns, ir::Types::Word64);
+            }
+        } break;
+            
         case ir::Operator::kCallRuntime:
             CallRuntime(instr);
             break;
@@ -1211,6 +1274,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         case ir::Operator::kCallHandle:
         case ir::Operator::kCallDirectly:
         case ir::Operator::kCallVirtual:
+        case ir::Operator::kCallAbstract:
             Call(instr);
             break;
             
@@ -1730,7 +1794,9 @@ void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
     if (instr->Is(ir::Operator::kCallDirectly)) {
         callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
     } else {
-        DCHECK(instr->Is(ir::Operator::kCallHandle) || instr->Is(ir::Operator::kCallVirtual));
+        DCHECK(instr->Is(ir::Operator::kCallHandle) ||
+               instr->Is(ir::Operator::kCallVirtual) ||
+               instr->Is(ir::Operator::kCallAbstract));
         auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
         method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
         callee = method->fun;
@@ -1805,7 +1871,6 @@ void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
             tmps_.push_back(opd);
             Move(opd, Allocate(arg, kAny), arg->type());
         }
-        
     }
     
     const auto returning_vals_size_in_bytes = ReturningValSizeInBytes(callee->prototype());
@@ -1822,6 +1887,18 @@ void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
     if (instr->Is(ir::Operator::kCallDirectly) || instr->Is(ir::Operator::kCallHandle)) {
         auto rel = new (arena_) ReloactionOperand(symbols_->Mangle(callee->full_name()), nullptr);
         current()->NewI(ArchCall, rel);
+    } else if (instr->Is(ir::Operator::kCallAbstract)) {
+        auto scratch = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+        auto self = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[0], MachineRepresentation::kWord64);
+        current()->NewIO(Arm64Mov, scratch, self);
+        auto owns = new (arena_) LocationOperand(Arm64Mode_MRI, scratch->register_id(), -1, 0);
+        auto itab = new (arena_) LocationOperand(Arm64Mode_MRI, scratch->register_id(), -1, kPointerSize);
+        current()->NewIO(Arm64Ldr, self, owns);
+        current()->NewIO(Arm64Ldr, scratch, itab);
+        auto offset_of_index = static_cast<int>(method->id_vtab * kPointerSize);
+        auto func = new (arena_) LocationOperand(Arm64Mode_MRI, scratch->register_id(), -1, offset_of_index);
+        current()->NewIO(Arm64Ldr, scratch, func);
+        current()->NewI(ArchCall, scratch);
     } else {
         DCHECK(instr->Is(ir::Operator::kCallVirtual));
         DCHECK(method->in_vtab);
@@ -1830,8 +1907,8 @@ void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
         auto scratch0 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
         Move(scratch0, klass, ir::Types::Word64);
         current()->NewIO(Arm64And, scratch0, scratch0, ImmediateOperand::Word64(arena_, ~1ull));
-        auto itab = new (arena_) LocationOperand(Arm64Mode_MRI, scratch0->register_id(), -1, CLASS_OFFSET_OF_VTAB);
-        Move(scratch0, itab, ir::Types::Word64);
+        auto vtab = new (arena_) LocationOperand(Arm64Mode_MRI, scratch0->register_id(), -1, CLASS_OFFSET_OF_VTAB);
+        Move(scratch0, vtab, ir::Types::Word64);
         auto offset_of_index = static_cast<int>(method->id_vtab * sizeof(Address));
         auto fun = new (arena_) LocationOperand(Arm64Mode_MRI, scratch0->register_id(), -1, offset_of_index);
         Move(scratch0, fun, ir::Types::Word64);
@@ -1911,11 +1988,18 @@ void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
 }
 
 void Arm64FunctionInstructionSelector::PassArguments(InstructionOperand *exclude, ir::Value *instr,
-                                                                 RegisterSavingScope *saving_scope) {
+                                                     RegisterSavingScope *saving_scope) {
     int general_index = 0, float_index = 0;
     for (int i = 0; i < instr->op()->value_in(); i++) {
         auto arg = instr->InputValue(i);
         auto opd = (i == 1 && exclude) ? exclude : DCHECK_NOTNULL(operands_.Allocated(arg));
+        if (instr->Is(ir::Operator::kCallAbstract)) {
+            auto x0 = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[0], MachineRepresentation::kWord64);
+            auto loc = DCHECK_NOTNULL(opd->AsLocation());
+            auto fp = operands_.registers()->frame_pointer();
+            current()->NewIO(Arm64Sub, x0, fp, ImmediateOperand::Word32(arena_, std::abs(loc->k())));
+            continue;
+        }
         if (arg->type().IsFloating()) {
             if (float_index < kNumberOfFloatArgumentsRegisters) {
                 const auto rid  = kFloatArgumentsRegisters[float_index];

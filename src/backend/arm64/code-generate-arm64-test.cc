@@ -819,6 +819,22 @@ TEST_F(Arm64CodeGeneratorTest, CallVirtual) {
         //printd("%p", vals);
     }
     yalx_exit_returning_scope(&state);
+    
+//    auto clazz = yalx_find_class("issue07:issue07.Foo");
+//    printd("%p, %p", clazz->itab, reinterpret_cast<Address *>(clazz->itab)[0]);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue07_Zoissue07_Zdissue3_had();
+    
+    {
+        auto vals = reinterpret_cast<Address>(state.buf);
+        auto hash_code = *reinterpret_cast<i32_t *>(vals + 12);
+        ASSERT_EQ(101, hash_code);
+        auto to_string = *reinterpret_cast<yalx_str_handle>(vals + 4);
+        ASSERT_STREQ("call foo1", to_string->bytes);
+    }
+    yalx_exit_returning_scope(&state);
 }
 
 //#endif // YALX_ARCH_ARM64

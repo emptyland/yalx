@@ -8,4 +8,14 @@ enum Optional<T> {
         None -> defaultVal
         Some(value) -> value
     }
+
+//    fun unwarp(): T {
+//        when (thie) {
+//            None -> throw OptionalNoneValueException("None value")
+//            Some(value) -> return value
+//        }
+//    }
 }
+
+//@Lang
+//class OptionalNoneValueException(message: string): Exception(message, Optional<Throwable>::None)
