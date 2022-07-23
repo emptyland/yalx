@@ -265,8 +265,8 @@ public:
     
     void InstallVirtualTables(bool force);
     int64_t UpdatePlacementSizeInBytes();
-    bool In_itab(Handle *) const;
-    bool In_vtab(Handle *) const;
+    bool In_itab(const Handle *) const;
+    bool In_vtab(const Handle *) const;
     
     bool IsNotCompactEnum() const { return !IsCompactEnum(); }
     bool IsCompactEnum() const;

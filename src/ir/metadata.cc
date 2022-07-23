@@ -944,7 +944,7 @@ void StructureModel::PrintTo(int indent, base::PrintingWriter *printer) const {
     printer->Indent(indent)->Println("} // %s", full_name()->data());
 }
 
-bool StructureModel::In_itab(Handle *handle) const {
+bool StructureModel::In_itab(const Handle *handle) const {
     for (auto it : itab_) {
         if (it == handle) {
             return true;
@@ -953,7 +953,7 @@ bool StructureModel::In_itab(Handle *handle) const {
     return false;
 }
 
-bool StructureModel::In_vtab(Handle *handle) const {
+bool StructureModel::In_vtab(const Handle *handle) const {
     for (auto it : vtab_) {
         if (it == handle) {
             return true;

@@ -53,6 +53,8 @@ struct yalx_class {
 }; // struct yalx_class
 
 
+#define CLASS_OFFSET_OF_VTAB offsetof(struct yalx_class, vtab)
+
 struct yalx_class_field {
     // tags
     uint32_t access: 2; // yalx_access_desc

@@ -13,6 +13,8 @@
 #include "ir/type.h"
 #include "ir/utils.h"
 #include "compiler/constants.h"
+#include "runtime/object/type.h"
+#include "runtime/object/any.h"
 #include "runtime/runtime.h"
 #include "runtime/process.h"
 #include "base/lazy-instance.h"
@@ -201,7 +203,8 @@ private:
     void ArrayFill(ir::Value *instr);
     void ArrayAt(ir::Value *instr);
     void ArraySet(ir::Value *instr);
-    void CallDirectly(ir::Value *instr);
+    void CallVirtual(ir::Value *instr);
+    void Call(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
     void PassArguments(InstructionOperand *exclude, ir::Value *instr, RegisterSavingScope *saving_scope);
     void ConditionBr(ir::Value *instr);
@@ -1207,8 +1210,13 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             
         case ir::Operator::kCallHandle:
         case ir::Operator::kCallDirectly:
-            CallDirectly(instr);
+        case ir::Operator::kCallVirtual:
+            Call(instr);
             break;
+            
+//        case ir::Operator::kCallVirtual:
+//            CallVirtual(instr);
+//            break;
             
         case ir::Operator::kCatch: {
             auto loc = new (arena_) LocationOperand(Arm64Mode_MRI, kRootRegister, -1, ROOT_OFFSET_EXCEPTION);
@@ -1700,14 +1708,31 @@ void Arm64FunctionInstructionSelector::ArraySet(ir::Value *instr) {
     }
 }
 
-void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
+void Arm64FunctionInstructionSelector::CallVirtual(ir::Value *instr) {
+    DCHECK(instr->Is(ir::Operator::kCallVirtual));
+    auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr);
+    
+    DCHECK(handle->owns()->IsStructure());
+    auto owns = down_cast<const ir::StructureModel>(handle->owns());
+    
+    DCHECK(owns->In_vtab(handle));
+    
+    UNREACHABLE();
+    
+    if (instr->op()->control_out() > 0) {
+        SetCatchHandler(instr->OutputControl(0));
+    }
+}
+
+void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
     ir::Function *callee = nullptr;
+    const ir::Model::Method *method = nullptr;
     if (instr->Is(ir::Operator::kCallDirectly)) {
         callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
     } else {
-        DCHECK(instr->Is(ir::Operator::kCallHandle));
+        DCHECK(instr->Is(ir::Operator::kCallHandle) || instr->Is(ir::Operator::kCallVirtual));
         auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
-        auto method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
+        method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
         callee = method->fun;
     }
 
@@ -1772,9 +1797,7 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         }
         auto slot = operands_.AllocateStackSlot(rv, padding_size, StackSlotAllocator::kLinear);
         USE(slot);
-        //printd("%d %d", slot->register0_id(), slot->k());
     }
-    //current_stack_size = operands_.slots()->stack_size();
     
     if (overflow_args_size > 0) {
         for (auto arg : overflow_args) {
@@ -1786,9 +1809,6 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
     }
     
     const auto returning_vals_size_in_bytes = ReturningValSizeInBytes(callee->prototype());
-//    current_stack_size += returning_vals_size_in_bytes;
-//    current_stack_size += overflow_args_size;
-//    current_stack_size = RoundUp(current_stack_size, kStackConf->stack_alignment_size());
     current_stack_size = RoundUp(operands_.slots()->stack_size(), kStackConf->stack_alignment_size());
     
     ImmediateOperand *adjust = nullptr;
@@ -1798,9 +1818,26 @@ void Arm64FunctionInstructionSelector::CallDirectly(ir::Value *instr) {
         calling_stack_adjust_.push_back(adjust);
         current()->NewIO(Arm64Add, sp, sp, adjust);
     }
-    //printd("%s", callee->full_name()->data());
-    auto rel = new (arena_) ReloactionOperand(symbols_->Mangle(callee->full_name()), nullptr);
-    current()->NewI(ArchCall, rel);
+    
+    if (instr->Is(ir::Operator::kCallDirectly) || instr->Is(ir::Operator::kCallHandle)) {
+        auto rel = new (arena_) ReloactionOperand(symbols_->Mangle(callee->full_name()), nullptr);
+        current()->NewI(ArchCall, rel);
+    } else {
+        DCHECK(instr->Is(ir::Operator::kCallVirtual));
+        DCHECK(method->in_vtab);
+        
+        auto klass = new (arena_) LocationOperand(Arm64Mode_MRI,arm64::x0.code(), -1, ANY_OFFSET_OF_KLASS);
+        auto scratch0 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+        Move(scratch0, klass, ir::Types::Word64);
+        current()->NewIO(Arm64And, scratch0, scratch0, ImmediateOperand::Word64(arena_, ~1ull));
+        auto itab = new (arena_) LocationOperand(Arm64Mode_MRI, scratch0->register_id(), -1, CLASS_OFFSET_OF_VTAB);
+        Move(scratch0, itab, ir::Types::Word64);
+        auto offset_of_index = static_cast<int>(method->id_vtab * sizeof(Address));
+        auto fun = new (arena_) LocationOperand(Arm64Mode_MRI, scratch0->register_id(), -1, offset_of_index);
+        Move(scratch0, fun, ir::Types::Word64);
+        current()->NewI(ArchCall, scratch0);
+    }
+
     if (returning_vals_size_in_bytes > 0) {
         current()->NewIO(Arm64Sub, sp, sp, adjust);
     }
@@ -1874,7 +1911,7 @@ void Arm64FunctionInstructionSelector::CallRuntime(ir::Value *instr) {
 }
 
 void Arm64FunctionInstructionSelector::PassArguments(InstructionOperand *exclude, ir::Value *instr,
-                                                     RegisterSavingScope *saving_scope) {
+                                                                 RegisterSavingScope *saving_scope) {
     int general_index = 0, float_index = 0;
     for (int i = 0; i < instr->op()->value_in(); i++) {
         auto arg = instr->InputValue(i);

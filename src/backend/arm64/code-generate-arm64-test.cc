@@ -788,6 +788,39 @@ TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
     yalx_exit_returning_scope(&state);
 }
 
+TEST_F(Arm64CodeGeneratorTest, CallVirtual) {
+    pkg_init_once(reinterpret_cast<void *>(&issue07_Zoissue07_Zd_Z4init), "issue07:issue07");
+    
+    yalx_returning_vals state;
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue07_Zoissue07_Zdissue1_had();
+    
+    {
+        auto vals = reinterpret_cast<Address>(state.buf);
+        auto hash_code = *reinterpret_cast<i32_t *>(vals + 12);
+        ASSERT_EQ(222, hash_code);
+        auto to_string = *reinterpret_cast<yalx_str_handle>(vals + 4);
+        ASSERT_STREQ("Foo", to_string->bytes);
+        //printd("%p", vals);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue07_Zoissue07_Zdissue2_had();
+    
+    {
+        auto vals = reinterpret_cast<Address>(state.buf);
+        auto hash_code = *reinterpret_cast<i32_t *>(vals + 12);
+        ASSERT_EQ(222, hash_code);
+        auto to_string = *reinterpret_cast<yalx_str_handle>(vals + 4);
+        ASSERT_STREQ("Foo", to_string->bytes);
+        //printd("%p", vals);
+    }
+    yalx_exit_returning_scope(&state);
+}
+
 //#endif // YALX_ARCH_ARM64
 
 } // namespace backend

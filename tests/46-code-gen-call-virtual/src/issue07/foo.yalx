@@ -7,6 +7,11 @@ fun issue1(): u32, string {
     return foo.hashCode(), foo.toString()
 }
 
+@yalx.Compiler(nativeHandle=true)
+fun issue2(): u32, string {
+    val foo = Foo(222u32) as any
+    return foo.hashCode(), foo.toString()
+}
 
 class Foo(val n: u32) {
 

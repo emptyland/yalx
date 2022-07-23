@@ -54,6 +54,7 @@
 		2332DAF327EFF80600EBB3E4 /* issue-00-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 2332DAF227EFF80600EBB3E4 /* issue-00-posix-arm64.s */; };
 		2332DAF527EFFEC100EBB3E4 /* throwable.c in Sources */ = {isa = PBXBuildFile; fileRef = 2332DAF427EFFEC100EBB3E4 /* throwable.c */; };
 		2332DAF627EFFEC100EBB3E4 /* throwable.c in Sources */ = {isa = PBXBuildFile; fileRef = 2332DAF427EFFEC100EBB3E4 /* throwable.c */; };
+		233335DC288BA0BF00D34BC3 /* issue-07-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 233335DB288BA0BF00D34BC3 /* issue-07-posix-arm64.s */; };
 		2336A2912774168E00346372 /* codegen-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2336A2902774168E00346372 /* codegen-test.cc */; };
 		2336A2922774168E00346372 /* codegen-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2336A2902774168E00346372 /* codegen-test.cc */; };
 		233AB98027EB46DE00E68B90 /* arrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB97F27EB46DE00E68B90 /* arrays.c */; };
@@ -379,6 +380,7 @@
 		233236E1269ECAFA0078406C /* node-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "node-test.cc"; path = "../src/ir/node-test.cc"; sourceTree = "<group>"; };
 		2332DAF227EFF80600EBB3E4 /* issue-00-posix-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-00-posix-arm64.s"; path = "../src/backend/arm64/issue-00-posix-arm64.s"; sourceTree = "<group>"; };
 		2332DAF427EFFEC100EBB3E4 /* throwable.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = throwable.c; path = ../src/runtime/object/throwable.c; sourceTree = "<group>"; };
+		233335DB288BA0BF00D34BC3 /* issue-07-posix-arm64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "issue-07-posix-arm64.s"; path = "../src/backend/arm64/issue-07-posix-arm64.s"; sourceTree = "<group>"; };
 		2336A2902774168E00346372 /* codegen-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "codegen-test.cc"; path = "../src/ir/codegen-test.cc"; sourceTree = "<group>"; };
 		233AB97F27EB46DE00E68B90 /* arrays.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = arrays.c; path = ../src/runtime/object/arrays.c; sourceTree = "<group>"; };
 		233AB98227EB4C6100E68B90 /* unwind-posix.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "unwind-posix.c"; path = "../src/runtime/heap/unwind-posix.c"; sourceTree = "<group>"; };
@@ -638,6 +640,7 @@
 				23EF2CE92862F80F000C70EF /* issue-04-posix-arm64.s */,
 				233F67E8287D6A51001982FF /* issue-05-posix-arm64.s */,
 				233F67EA28858DBE001982FF /* issue-06-posix-arm64.s */,
+				233335DB288BA0BF00D34BC3 /* issue-07-posix-arm64.s */,
 			);
 			name = Arm64;
 			sourceTree = "<group>";
@@ -1094,6 +1097,7 @@
 				230C47DA27B6AE0D00312896 /* code-generate-x64-test.cc in Sources */,
 				23D4A4662680D17D0090C631 /* arena-utils.cc in Sources */,
 				2387EFA52684627B002E6DCF /* lexer.cc in Sources */,
+				233335DC288BA0BF00D34BC3 /* issue-07-posix-arm64.s in Sources */,
 				23667C3227B2532E00612546 /* machine-type.cc in Sources */,
 				231C4B8C268DA7AD00D4AC62 /* boot-posix-arm64.s in Sources */,
 				23D4A4672680D17D0090C631 /* arena-utils.h in Sources */,
