@@ -145,6 +145,16 @@ TEST_F(Arm64CodeGeneratorTest, EnumTypes) {
     
 }
 
+TEST_F(Arm64CodeGeneratorTest, VirtualCalling) {
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    CodeGen("tests/46-code-gen-call-virtual", "issue07:issue07", &printer, &ok);
+    ASSERT_TRUE(ok);
+    printf("%s\n", buf.c_str());
+}
+
 
 TEST_F(Arm64CodeGeneratorTest, ReturningVals) {
     int buf[4] = {0};

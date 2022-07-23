@@ -1,0 +1,15 @@
+package issue07
+
+
+@yalx.Compiler(nativeHandle=true)
+fun issue1(): u32, string {
+    val foo = Foo(222u32)
+    return foo.hashCode(), foo.toString()
+}
+
+
+class Foo(val n: u32) {
+
+    override fun hashCode() -> n
+    override fun toString() -> "Foo"
+}

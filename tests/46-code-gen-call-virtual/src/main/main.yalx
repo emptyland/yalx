@@ -1,0 +1,5 @@
+package main
+
+import "issue07"
+
+fun main() {}

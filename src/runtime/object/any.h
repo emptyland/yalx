@@ -25,6 +25,11 @@ struct yalx_value_str;
 typedef struct yalx_value_any *yalx_ref_t;
 typedef struct yalx_value_any **yalx_ref_handle;
 
+struct yalx_value_interface {
+    yalx_ref_t onws;
+    address_t  itab;
+}; // struct yalx_val_interface
+
 
 // reference by any-[os]-[arch].s
 struct yalx_value_str *yalx_any_to_string(struct yalx_value_any *any);
