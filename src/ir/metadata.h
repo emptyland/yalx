@@ -231,7 +231,10 @@ private:
 
 class StructureModel : public Model {
 public:
-    static constexpr char kEnumCodeName[] = "$enum_code$";
+    static const String *const kEnumCodeName;
+    static const String *const kFunEntryName;
+    static const String *const kThisName;
+    static const String *const kCalleeName;
     
     StructureModel(base::Arena *arena, const String *name, const String *full_name, Declaration declaration,
                    Module *owns, StructureModel *base_of);

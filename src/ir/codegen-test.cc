@@ -1129,6 +1129,22 @@ functions:
     ASSERT_EQ(z, buf);
 }
 
+TEST_F(IntermediateRepresentationGeneratorTest, ClosureCreating) {
+    bool ok = false;
+    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    IRGen("tests/30-ir-gen-closure", &modules, &ok);
+    ASSERT_TRUE(ok);
+    
+    ASSERT_TRUE(modules.find("yalx/lang:lang") != modules.end());
+    ASSERT_TRUE(modules.find("main:main") != modules.end());
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    modules["main:main"]->PrintTo(&printer);
+    
+    printf("%s\n", buf.c_str());
+}
+
 } // namespace ir
 
 } // namespace yalx

@@ -394,6 +394,14 @@ FunctionScope::~FunctionScope() {
 
 FunctionScope *FunctionScope::NearlyFunctionScope() { return this; }
 
+void FunctionScope::CaptureVarIfNeeded(Declaration *var) {
+    if (auto iter = name_of_capture_vars_.find(var->Identifier()->ToSlice()); iter == name_of_capture_vars_.end()) {
+        auto pos = capture_vars_.size();
+        name_of_capture_vars_[var->Identifier()->ToSlice()] = pos;
+        /*name*/capture_vars_.push_back(var);
+    }
+}
+
 BlockScope::BlockScope(NamespaceScope **location, Kind kind, Statement *owns)
 : NamespaceScope(location)
 , kind_(kind)

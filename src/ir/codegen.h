@@ -109,6 +109,11 @@ private:
         return false;
     }
     
+    
+    const String *NextAnonymousFunName();
+    uint64_t NextAnonymousFunId() { return unique_anonymous_fun_id_++; }
+    
+    
     const std::unordered_map<std::string_view, cpl::GlobalSymbol> &ast_nodes_;
     base::Arena *const arena_;
     cpl::Package *entry_;
@@ -123,6 +128,7 @@ private:
     Value *true_val_ = nullptr;
     Value *false_val_ = nullptr;
     Model *string_ty_ = nullptr;
+    uint64_t unique_anonymous_fun_id_ = 0;
 }; // class IntermediateRepresentationGenerator
 
 

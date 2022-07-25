@@ -526,7 +526,7 @@ Instantiation::Instantiation(base::Arena *arena, Expression *primary, const Sour
 Literal::Literal(Kind kind, Type *type, const SourcePosition &source_position)
     : Expression(kind, false/*is_lval*/, true/*is_rval*/, source_position)
     , type_(type) {
-    assert(is_only_rval());
+    DCHECK(is_only_rval());
 }
 
 UnitLiteral::UnitLiteral(base::Arena *arena, const SourcePosition &source_position)
@@ -537,10 +537,12 @@ EmptyLiteral::EmptyLiteral(const SourcePosition &source_position)
     : Literal(Node::kEmptyLiteral, nullptr, source_position) {
 }
 
-LambdaLiteral::LambdaLiteral(FunctionPrototype *prototype, Statement *body, const SourcePosition &source_position)
+LambdaLiteral::LambdaLiteral(base::Arena *arena, FunctionPrototype *prototype, Statement *body,
+                             const SourcePosition &source_position)
     : Literal(Node::kLambdaLiteral, prototype, source_position)
     , prototype_(prototype)
-    , body_(body) {
+    , body_(body)
+    , capture_vars_(arena) {
 }
 
 ArrayInitializer::ArrayInitializer(base::Arena *arena, Type *type, int dimension_count,
@@ -728,7 +730,7 @@ bool Type::IsComparable() const {
         if (!param0->type()->Acceptable(this, &unlinked)) {
             return false;
         }
-        assert(!unlinked);
+        DCHECK(!unlinked);
         return true;
     }
     return false;
@@ -866,7 +868,7 @@ std::string Type::ToString() const {
 ArrayType::ArrayType(base::Arena *arena, Type *element_type, int dimension_count, const SourcePosition &source_position)
     : Type(arena, Type::kArray, kType_array, nullptr, source_position)
     , dimension_capacitys_(dimension_count, nullptr, arena) {
-    assert(dimension_count >= 0);
+    DCHECK(dimension_count >= 0);
     mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
 }
 
@@ -891,7 +893,7 @@ bool ArrayType::Acceptable(const Type *rhs, bool *unlinked) const {
 
 std::string ArrayType::ToString() const {
     std::string dim;
-    assert(dimension_count() > 0);
+    DCHECK(dimension_count() > 0);
     dim.append("[");
     for (int i = 0; i <dimension_count() - 1; i++) {
         dim.append(",");
@@ -1018,8 +1020,8 @@ bool FunctionPrototype::Acceptable(const Type *rhs, bool *unlinked) const {
         return_types_size() != prototype->return_types_size()) {
         return false;
     }
-    UNREACHABLE();
-    return false;
+    //UNREACHABLE();
+    return true;
 }
 
 Type *FunctionPrototype::Link(Linker &&linker) {
@@ -1062,8 +1064,12 @@ std::string FunctionPrototype::ToString() const {
         if (i > 0) {
             buf.append(",");
         }
-        assert(Type::Is(param(i)));
-        buf.append(static_cast<Type *>(param(i))->ToString());
+        //DCHECK(Type::Is(param(i)));
+        if (Type::Is(param(i))) {
+            buf.append(static_cast<Type *>(param(i))->ToString());
+        } else {
+            buf.append(static_cast<VariableDeclaration::Item *>(param(i))->type()->ToString());
+        }
     }
     if (vargs()) {
         if (buf.size() > 1) {

@@ -44,6 +44,8 @@ public:
     
     virtual ~NamespaceScope();
     
+    DEF_PTR_GETTER(NamespaceScope, prev);
+    
     virtual PackageScope *NearlyPackageScope();
     virtual FileUnitScope *NearlyFileUnitScope();
     virtual DataDefinitionScope *NearlyDataDefinitionScope();
@@ -192,11 +194,15 @@ public:
     
     DEF_PTR_GETTER(FunctionPrototype, prototype);
     DEF_VAL_GETTER(bool, fun_is_reducing);
+    DEF_VAL_GETTER(std::vector<Declaration *>, capture_vars);
     
     FunctionScope *NearlyFunctionScope() override;
     
+    void CaptureVarIfNeeded(Declaration *var);
 private:
     FunctionPrototype *prototype_;
+    std::map<std::string_view, size_t> name_of_capture_vars_;
+    std::vector<Declaration *> capture_vars_;
     bool fun_is_reducing_;
 }; // class FunctionScope
 

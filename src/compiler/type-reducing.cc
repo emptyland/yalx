@@ -1012,6 +1012,10 @@ private:
             prototype->mutable_return_types()->push_back(Unit());
         }
         
+        for (auto var : scope.capture_vars()) {
+            node->mutable_capture_vars()->push_back(down_cast<VariableDeclaration::Item>(var));
+        }
+
         // Install signature at last step
         node->prototype()->set_signature(MakePrototypeSignature(node->prototype()));
         return Returning(prototype);
@@ -1026,6 +1030,17 @@ private:
         if (!ast) {
             Feedback()->Printf(node->source_position(), "Symbol: `%s' not found", node->name()->data());
             return -1;
+        }
+        if (auto local_fun_scope = location_->NearlyFunctionScope()) {
+            if (auto outter_fun_scope = ns->NearlyFunctionScope()) {
+                if (outter_fun_scope != local_fun_scope) {
+                    if (local_fun_scope->prev()->NearlyFunctionScope() == outter_fun_scope) {
+                        local_fun_scope->CaptureVarIfNeeded(down_cast<VariableDeclaration::Item>(ast));
+                    } else {
+                        UNREACHABLE(); // TODO: feedback error
+                    }
+                }
+            }
         }
         return ReduceDependencySymbolIfNeeded(node->name()->data(), node, ast);
     }

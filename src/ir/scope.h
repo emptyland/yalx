@@ -35,7 +35,8 @@ struct Symbol {
         kModel,
         kValue,
         kFun,
-        kHandle
+        kHandle,
+        kCaptured,
     };
     Kind kind;
     cpl::Statement *node;
@@ -92,6 +93,18 @@ struct Symbol {
     static Symbol Had(NamespaceScope *owns, Handle *handle, cpl::Statement *node = nullptr) {
         return {
             .kind = kHandle,
+            .node = node,
+            .block = nullptr,
+            .core = {
+                .handle = handle
+            },
+            .owns = owns,
+        };
+    }
+    
+    static Symbol Cap(NamespaceScope *owns, Handle *handle, cpl::Statement *node = nullptr) {
+        return {
+            .kind = kCaptured,
             .node = node,
             .block = nullptr,
             .core = {

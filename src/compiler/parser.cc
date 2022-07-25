@@ -1496,7 +1496,7 @@ Expression *Parser::ParseParenOrLambdaLiteral(bool *ok) {
         Match(Token::kRArrow, CHECK_OK);
         auto stmt = ParseStatement(CHECK_OK);
         auto prototype = new (arena_) FunctionPrototype(arena_, false, location);
-        return new (arena_) LambdaLiteral(prototype, stmt, location.Concat(stmt->source_position()));
+        return new (arena_) LambdaLiteral(arena_, prototype, stmt, location.Concat(stmt->source_position()));
     }
     
     // (...) -> expression
@@ -1506,7 +1506,7 @@ Expression *Parser::ParseParenOrLambdaLiteral(bool *ok) {
         Match(Token::kRArrow, CHECK_OK);
         auto stmt = ParseStatement(CHECK_OK);
         auto prototype = new (arena_) FunctionPrototype(arena_, true, location);
-        return new (arena_) LambdaLiteral(prototype, stmt, location.Concat(stmt->source_position()));
+        return new (arena_) LambdaLiteral(arena_, prototype, stmt, location.Concat(stmt->source_position()));
     }
     
     Expression *expr = nullptr;
@@ -1932,7 +1932,7 @@ Expression *Parser::ParseRemainLambdaLiteral(FunctionPrototype *prototype, const
     
     Match(Token::kRArrow, CHECK_OK);
     auto stmt = ParseStatement(CHECK_OK);
-    return new (arena_) LambdaLiteral(prototype, stmt, location.Concat(stmt->source_position()));
+    return new (arena_) LambdaLiteral(arena_, prototype, stmt, location.Concat(stmt->source_position()));
 }
 
 Statement *Parser::ParseInitializerIfExistsWithCondition(Expression **condition, bool *ok) {

@@ -1067,15 +1067,17 @@ DEFINE_ACTUAL_LITERAL(String, const String *);
 
 class LambdaLiteral : public Literal {
 public:
-    LambdaLiteral(FunctionPrototype *prototype, Statement *body, const SourcePosition &source_position);
+    LambdaLiteral(base::Arena *arena, FunctionPrototype *prototype, Statement *body, const SourcePosition &source_position);
 
     DEF_PTR_PROP_RW(FunctionPrototype, prototype);
     DEF_PTR_PROP_RW(Statement, body);
+    DEF_ARENA_VECTOR_GETTER(VariableDeclaration::Item *, capture_var);
     
     DECLARE_AST_NODE(LambdaLiteral);
 private:
     FunctionPrototype *prototype_;
     Statement *body_;
+    base::ArenaVector<VariableDeclaration::Item *> capture_vars_;
 }; // class LambdaLiteral
 
 class ArrayInitializer : public Literal {

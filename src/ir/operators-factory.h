@@ -38,9 +38,10 @@ public:
                                      control_out/*control_out*/);
     }
     
-    Operator *Closure(Function *fun) {
-        return new (arena_) OperatorWith<Function *>(Operator::kClosure, 0, 0/*value_in*/, 0/*control_in*/,
-                                                     1/*value_out*/, 0/*control_out*/, fun);
+    Operator *Closure(const StructureModel *clazz, int value_in) {
+        return new (arena_) OperatorWith<const StructureModel *>(Operator::kClosure, 0, value_in/*value_in*/,
+                                                                 0/*control_in*/, 1/*value_out*/, 0/*control_out*/,
+                                                                 clazz);
     }
     
     Operator *Ret(int value_in) {

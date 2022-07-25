@@ -133,7 +133,7 @@ namespace ir {
 #define DECL_OPERATORS_WITH_DATA(V) \
     V(Argument,         int) \
     V(ReturningVal,     int) \
-    V(Closure,          Function *) \
+    V(Closure,          Model const *) \
     V(HeapAlloc,        Model const *) \
     V(StackAlloc,       Model const *) \
     V(ArrayAlloc,       Model const *) \

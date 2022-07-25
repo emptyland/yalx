@@ -538,7 +538,11 @@ private:
     int VisitLambdaLiteral(LambdaLiteral *node) override {
         DECL_AND_INSTANTIATE(Block, body, node->body());
         DECL_AND_INSTANTIATE(FunctionPrototype, prototype, node->prototype());
-        return Returning(new (arena_) LambdaLiteral(prototype, body, node->source_position()));
+        for (auto var : node->capture_vars()) {
+            USE(var);
+            UNREACHABLE(); // TODO:
+        }
+        return Returning(new (arena_) LambdaLiteral(arena_, prototype, body, node->source_position()));
     }
     
     int VisitWhenExpression(WhenExpression *node) override {

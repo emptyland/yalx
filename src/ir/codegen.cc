@@ -11,6 +11,7 @@
 #include "compiler/constants.h"
 #include "base/checking.h"
 #include "base/format.h"
+#include <inttypes.h>
 #include <variant>
 #include <stack>
 #include <set>
@@ -28,6 +29,8 @@ return -1; \
 CurrentFileName()->ToSlice(), \
 (ast)->source_position(), \
 module_->mutable_source_position_table()
+
+//DECLARE_STATIC_STRING(k, <#literal#>)
 
 class LoopContext final {
 public:
@@ -433,13 +436,19 @@ public:
                 DCHECK(this_val.IsFound());
                 return Returning(EmitLoadField(this_val.core.value, handle, root_ss.Position()));
             } break;
-            case Symbol::kFun: {
-                auto fun = symbol.core.fun;
-                auto op = ops()->Closure(fun);
-                auto type = Type::Ref(fun->prototype());
-                auto load = b()->NewNode(root_ss.Position(), type, op);
-                return Returning(load);
+            case Symbol::kCaptured: {
+                auto handle = symbol.core.handle;
+                auto callee_val = location_->FindSymbol(cpl::kCalleeName);
+                DCHECK(callee_val.IsFound());
+                return Returning(EmitLoadField(callee_val.core.value, handle, root_ss.Position()));
             } break;
+//            case Symbol::kFun: {
+//                auto fun = symbol.core.fun;
+//                auto op = ops()->Closure(fun, 0);
+//                auto type = Type::Ref(fun->prototype());
+//                auto load = b()->NewNode(root_ss.Position(), type, op);
+//                return Returning(load);
+//            } break;
             default:
                 UNREACHABLE();
                 break;
@@ -658,19 +667,20 @@ public:
                     if (symbol.owns->IsFileUnitScope()) { // Global var
                         b()->NewNode(ss.Position(), Types::Void, ops()->StoreGlobal(),
                                      symbol.core.value, rval);
-                    } else if (ShouldCaptureVal(symbol.owns, symbol.core.value)) {
-                        // TODO: Capture Val
-                        UNREACHABLE();
                     } else {
-                        //printd("update: %s", ast->name()->data());
                         location_->PutSymbol(ast->name()->ToSlice(), Symbol::Val(symbol.owns, rval, b()));
                     }
-                } else {
-                    DCHECK(symbol.kind == Symbol::kHandle);
+                } else if (symbol.kind == Symbol::kHandle) {
                     auto this_symbol = location_->FindSymbol(cpl::kThisName);
                     DCHECK(this_symbol.kind == Symbol::kValue);
                     auto this_replace = EmitStoreField(this_symbol.core.value, rval, symbol.core.handle, ss.Position());
                     location_->PutValue(cpl::kThisName, this_replace);
+                } else {
+                    DCHECK(symbol.kind == Symbol::kCaptured);
+                    auto callee_symbol = location_->FindSymbol(cpl::kCalleeName);
+                    DCHECK(callee_symbol.kind == Symbol::kValue);
+                    auto callee_replace = EmitStoreField(callee_symbol.core.value, rval, symbol.core.handle, ss.Position());
+                    location_->PutValue(cpl::kCalleeName, callee_replace);
                 }
             } else if (auto ast = lval->AsDot()) {
                 if (auto id = ast->primary()->AsIdentifier()) {
@@ -712,6 +722,114 @@ public:
             return -1;
         }
         return Returning(Unit());
+    }
+    
+    int VisitLambdaLiteral(cpl::LambdaLiteral *node) override {
+        auto name = owns_->NextAnonymousFunName();
+        auto any_class = AssertedGetUdt<StructureModel>(cpl::kAnyClassFullName);
+        
+        auto closure_class_name = String::New(arena(), name->ToString().append(".closure"));
+        auto clazz = module_->NewClassModel(closure_class_name, closure_class_name, any_class);
+        
+        auto ty = BuildType(node->prototype());
+        clazz->InsertField({
+            .name = StructureModel::kFunEntryName,
+            .access = kPublic,
+            .offset = 0,
+            .type = ty,
+            .enum_value = 0,
+        });
+
+        auto fun_name = String::New(arena(), "entry");
+        auto fun = module_->NewStandaloneFunction(Function::kDefault, fun_name, fun_name,
+                                                  down_cast<PrototypeModel>(ty.model()));
+        clazz->InsertMethod({
+            .fun = fun,
+            .access = kPrivate,
+            .in_vtab = false,
+            .id_vtab = 0,
+            .in_itab = 0,
+        });
+        
+        auto origin = b();
+        auto entry = fun->NewBlock(String::New(arena(), "entry"));
+        int hint = 0;
+        
+        FunContext emitter(&emitting_, fun, entry);
+        FunctionScope scope(&location_, nullptr/*TODO*/, fun);
+        std::vector<Value *> capture_vars;
+        for (auto var : node->capture_vars()) {
+            auto captured = location_->FindSymbol(var->identifier()->ToSlice());
+            DCHECK(captured.IsFound());
+            DCHECK(captured.kind == Symbol::kValue);
+
+            auto handle = clazz->InsertField({
+                .name = var->identifier()->Duplicate(arena()),
+                .access = kPrivate,
+                .offset = 0,
+                .type = captured.core.value->type(),
+                .enum_value = 0,
+            });
+            scope.PutSymbol(handle->name()->ToSlice(), Symbol::Cap(&scope, handle));
+            capture_vars.push_back(captured.core.value);
+        }
+        {
+            auto type = Type::Ref(clazz);
+            auto op = ops()->Argument(hint++);
+            auto callee = Value::New(arena(), SourcePosition::Unknown(), type, op);
+            callee->set_name(StructureModel::kCalleeName);
+            location_->PutValue(cpl::kCalleeName, callee);
+            fun->mutable_paramaters()->push_back(callee);
+        }
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+
+        
+        for (auto param : node->prototype()->params()) {
+            DCHECK(!cpl::Type::Is(param));
+            auto item = static_cast<cpl::VariableDeclaration::Item *>(param);
+            
+            auto type = BuildType(item->type());
+            auto op = ops()->Argument(hint++);
+            auto arg = Value::New(arena(), SourcePosition::Unknown(), type, op);
+            if (cpl::Identifier::IsPlaceholder(item->identifier())) {
+                //continue;
+            } else {
+                arg->set_name(item->identifier()->Duplicate(arena()));
+            }
+            location_->PutValue(arg->name()->ToSlice(), arg);
+            fun->mutable_paramaters()->push_back(arg);
+        }
+        if (node->prototype()->vargs()) {
+            auto type = Type::Ref(AssertedGetUdt<ArrayModel>(cpl::kAnyArrayFullName));
+            auto op = ops()->Argument(hint++);
+            auto arg = Value::New0(arena(), String::New(arena(), cpl::kArgsName), SourcePosition::Unknown(), type, op);
+            location_->PutValue(arg->name()->ToSlice(), arg);
+            fun->mutable_paramaters()->push_back(arg);
+        }
+
+        //printd("%s", fun->full_name()->data());
+        std::vector<Value *> values;
+        if (auto rs = Reduce(node->body(), &values); rs < 0) {
+            return -1;
+        }
+
+        {
+            SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(node->body()));
+            auto last_block = fun->blocks().back();
+            auto op = ops()->Ret(static_cast<int>(values.size()));
+            last_block->NewNodeWithValues(nullptr/*name*/, ss.Position(), Types::Void, op, values);
+        }
+        
+        if (fun->prototype()->return_types_size() == 1 &&
+            fun->prototype()->return_type(0).kind() == Type::kVoid) {
+            SourcePositionTable::Scope ss(CURRENT_SOUCE_POSITION(node->body()));
+            b()->NewNode(ss.Position(), Types::Void, ops()->Ret(0));
+        }
+        fun->UpdateIdsOfBlocks();
+
+        auto closure = ops()->Closure(clazz, static_cast<int>(capture_vars.size()));
+        auto rs = origin->NewNodeWithValues(nullptr, root_ss.Position(), ty, closure, capture_vars);
+        return Returning(rs);
     }
     
     int VisitInterfaceDefinition(cpl::InterfaceDefinition *node) override { return Returning(Unit()); }
@@ -1627,8 +1745,6 @@ public:
         auto rv = b()->NewNodeWithValues(nullptr, root_ss.Position(), element_ty, op, indices);
         return Returning(rv);
     }
-    
-    int VisitLambdaLiteral(cpl::LambdaLiteral *node) override { UNREACHABLE(); }
 
     int VisitChannelInitializer(cpl::ChannelInitializer *node) override { UNREACHABLE(); }
     
@@ -3296,6 +3412,11 @@ base::Status IntermediateRepresentationGenerator::RecursivePackage(cpl::Package 
         callback(pkg);
     }
     return base::Status::OK();
+}
+
+const String *IntermediateRepresentationGenerator::NextAnonymousFunName() {
+    std::string buf = base::Sprintf("anonymous.fun%" PRId64 "", NextAnonymousFunId());
+    return String::New(arena_, buf);
 }
 
 } // namespace ir
