@@ -788,6 +788,19 @@ TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
     yalx_exit_returning_scope(&state);
 }
 
+struct Issue07DummyClosure0 {
+    YALX_VALUE_HEADER;
+    address_t entry;
+    i32_t a;
+};
+
+struct Issue07DummyClosure1 {
+    YALX_VALUE_HEADER;
+    address_t entry;
+    u8_t a;
+    u16_t b;
+};
+
 TEST_F(Arm64CodeGeneratorTest, CallVirtual) {
     pkg_init_once(reinterpret_cast<void *>(&issue07_Zoissue07_Zd_Z4init), "issue07:issue07");
     
@@ -833,6 +846,35 @@ TEST_F(Arm64CodeGeneratorTest, CallVirtual) {
         ASSERT_EQ(101, hash_code);
         auto to_string = *reinterpret_cast<yalx_str_handle>(vals + 4);
         ASSERT_STREQ("call foo1", to_string->bytes);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue07_Zoissue07_Zdissue4_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto closure = reinterpret_cast<Issue07DummyClosure0 *>(vals[1]);
+        auto klass = CLASS(closure);
+        ASSERT_STREQ("issue07:issue07.anonymous.fun0.closure", klass->location.z);
+        ASSERT_NE(nullptr, closure->entry);
+        ASSERT_EQ(228, closure->a);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue07_Zoissue07_Zdissue5_had();
+    
+    {
+        auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
+        auto closure = reinterpret_cast<Issue07DummyClosure1 *>(vals[1]);
+        auto klass = CLASS(closure);
+        ASSERT_STREQ("issue07:issue07.anonymous.fun1.closure", klass->location.z);
+        ASSERT_NE(nullptr, closure->entry);
+        ASSERT_EQ(119, closure->a);
+        ASSERT_EQ(515, closure->b);
     }
     yalx_exit_returning_scope(&state);
 }

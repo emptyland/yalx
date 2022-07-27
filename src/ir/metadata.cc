@@ -509,7 +509,7 @@ ChannelModel::ChannelModel(base::Arena *arena, const String *name, const String 
 //static constexpr char kEnumCodeName[] = "$enum_code$";
 //static constexpr char kFunEntryName[] = "$fun_entry$";
 DECLARE_STATIC_STRING(kEnumCodeName, "$enum_code$");
-DECLARE_STATIC_STRING(kFunEntryName, "$fun_entry$");
+DECLARE_STATIC_STRING(kFunEntryName, "apply");
 DECLARE_STATIC_STRING(kThisName, "this");
 DECLARE_STATIC_STRING(kCalleeName, "callee");
 

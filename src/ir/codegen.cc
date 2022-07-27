@@ -729,19 +729,23 @@ public:
         auto any_class = AssertedGetUdt<StructureModel>(cpl::kAnyClassFullName);
         
         auto closure_class_name = String::New(arena(), name->ToString().append(".closure"));
-        auto clazz = module_->NewClassModel(closure_class_name, closure_class_name, any_class);
+        auto closure_class_full_name = String::New(arena(), module_->full_name()->ToString()
+                                                   .append(".").append(closure_class_name->ToString()));
+        auto clazz = module_->NewClassModel(closure_class_name, closure_class_full_name, any_class);
         
         auto ty = BuildType(node->prototype());
         clazz->InsertField({
             .name = StructureModel::kFunEntryName,
             .access = kPublic,
             .offset = 0,
-            .type = ty,
+            .type = Types::Word64,
             .enum_value = 0,
         });
 
-        auto fun_name = String::New(arena(), "entry");
-        auto fun = module_->NewStandaloneFunction(Function::kDefault, fun_name, fun_name,
+        auto fun_name = StructureModel::kFunEntryName;
+        auto fun_full_name = String::New(arena(), closure_class_name->ToString().append(".")
+                                         .append(fun_name->ToString()));
+        auto fun = module_->NewStandaloneFunction(Function::kDefault, fun_name, fun_full_name,
                                                   down_cast<PrototypeModel>(ty.model()));
         clazz->InsertMethod({
             .fun = fun,
@@ -827,6 +831,7 @@ public:
         }
         fun->UpdateIdsOfBlocks();
 
+        clazz->UpdatePlacementSizeInBytes();
         auto closure = ops()->Closure(clazz, static_cast<int>(capture_vars.size()));
         auto rs = origin->NewNodeWithValues(nullptr, root_ss.Position(), ty, closure, capture_vars);
         return Returning(rs);

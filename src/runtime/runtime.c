@@ -1137,6 +1137,55 @@ struct yalx_value_any *ref_asserted_to(struct yalx_value_any *const from, const 
     return from;
 }
 
+struct yalx_value_any *closure(const struct yalx_class *const klass, address_t buf, size_t size) {
+    struct yalx_value_any *fun = heap_alloc(klass);
+    DCHECK(klass->n_methods == 1);
+    DCHECK(!strcmp("apply", klass->methods[0].name.z));
+    
+    address_t apply = klass->methods[0].entry;
+    *((address_t *)((address_t)fun + klass->fields[0].offset_of_head)) = apply;
+    
+    address_t p = buf;
+    for (int i = 1; i < klass->n_fields; i++) {
+        struct yalx_class *ty = klass->fields[i].type;
+        address_t dest = (address_t)fun + klass->fields[i].offset_of_head;
+        switch (ty->constraint) {
+            case K_PRIMITIVE:
+                memcpy(dest, p, ty->instance_size);
+                p += ROUND_UP(ty->instance_size, STACK_SLOT_ALIGNMENT);
+                break;
+            case K_ENUM:
+                if (ty->compact_enum) {
+                    memcpy(dest, p, ty->reference_size);
+                    init_write_barrier(&heap, (yalx_ref_t *)dest);
+                    p += ROUND_UP(ty->reference_size, STACK_SLOT_ALIGNMENT);
+                } else {
+                    memcpy(dest, p, ty->instance_size);
+                    init_typing_write_barrier_if_needed(&heap, ty, dest);
+                    p += ROUND_UP(ty->instance_size, STACK_SLOT_ALIGNMENT);
+                }
+                break;
+            case K_CLASS:
+                memcpy(dest, p, ty->reference_size);
+                init_write_barrier(&heap, (yalx_ref_t *)dest);
+                p += ROUND_UP(ty->reference_size, STACK_SLOT_ALIGNMENT);
+                break;
+            case K_STRUCT:
+                memcpy(dest, p, ty->instance_size);
+                if (ty->refs_mark_len > 0) {
+                    init_typing_write_barrier_if_needed(&heap, ty, dest);
+                }
+                p += ROUND_UP(ty->instance_size, STACK_SLOT_ALIGNMENT);
+                break;
+            default:
+                DCHECK(!"Unreachable");
+                break;
+        }
+    }
+    DCHECK(p - buf == size);
+    return fun;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 // native fun's stubs:
 //----------------------------------------------------------------------------------------------------------------------

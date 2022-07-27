@@ -203,7 +203,7 @@ private:
     void ArrayFill(ir::Value *instr);
     void ArrayAt(ir::Value *instr);
     void ArraySet(ir::Value *instr);
-    void CallVirtual(ir::Value *instr);
+    void Closure(ir::Value *instr);
     void Call(ir::Value *instr);
     void CallRuntime(ir::Value *instr);
     void PassArguments(InstructionOperand *exclude, ir::Value *instr, RegisterSavingScope *saving_scope);
@@ -1106,10 +1106,9 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             ArraySet(instr);
             break;
             
-        case ir::Operator::kClosure: {
-            // TODO:
-            UNREACHABLE();
-        } break;
+        case ir::Operator::kClosure:
+            Closure(instr);
+            break;
             
         case ir::Operator::kBitCastTo: {
             auto opd = Allocate(instr, kMoR);
@@ -1772,20 +1771,54 @@ void Arm64FunctionInstructionSelector::ArraySet(ir::Value *instr) {
     }
 }
 
-void Arm64FunctionInstructionSelector::CallVirtual(ir::Value *instr) {
-    DCHECK(instr->Is(ir::Operator::kCallVirtual));
-    auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr);
+void Arm64FunctionInstructionSelector::Closure(ir::Value *instr) {
+    auto clazz = ir::OperatorWith<const ir::StructureModel *>::Data(instr);
     
-    DCHECK(handle->owns()->IsStructure());
-    auto owns = down_cast<const ir::StructureModel>(handle->owns());
-    
-    DCHECK(owns->In_vtab(handle));
-    
-    UNREACHABLE();
-    
-    if (instr->op()->control_out() > 0) {
-        SetCatchHandler(instr->OutputControl(0));
+    std::vector<std::tuple<InstructionOperand *, ir::Type>> captured_vars;
+    for (int i = instr->op()->value_in() - 1; i >= 0; i--) {
+        auto var = instr->InputValue(i);
+        captured_vars.push_back(std::make_tuple(Allocate(var, kAny), var->type()));
     }
+
+    const auto base_line = operands_.slots()->stack_size();
+    std::vector<LocationOperand *> slots;
+    for (auto [var, ty] : captured_vars) {
+        auto slot = operands_.AllocateStackSlot(ty, 0, StackSlotAllocator::kLinear);
+        Move(slot, var, ty);
+        slots.push_back(slot);
+    }
+    const auto top_line = operands_.slots()->stack_size();
+
+    RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+    saving_scope.SaveAll();
+
+    std::string symbol;
+    LinkageSymbols::Build(&symbol, clazz->full_name()->ToSlice());
+    symbol.append("$class");
+    auto rel = bundle()->AddExternalSymbol(symbol, true/*fetch_address*/);
+    auto a0 = operands_.AllocateReigster(ir::Types::Word64, kGeneralArgumentsRegisters[0]);
+    Move(a0, rel, ir::Types::Word64);
+    
+    auto a1 = operands_.AllocateReigster(ir::Types::Word64, kGeneralArgumentsRegisters[1]);
+    auto fp = operands_.registers()->frame_pointer();
+    current()->NewIO(Arm64Sub, a1, fp, ImmediateOperand::Word32(arena_, top_line));
+    
+    auto a2 = operands_.AllocateReigster(ir::Types::Word64, kGeneralArgumentsRegisters[2]);
+    current()->NewIO(Arm64Mov, a2, ImmediateOperand::Word32(arena_, top_line - base_line));
+
+    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_closure));    
+    Move(Allocate(instr, kAny), a0, instr->type());
+
+    for (auto slot : slots) {
+        slot->Grab();
+        operands_.Free(slot);
+    }
+    a2->Grab();
+    a1->Grab();
+    a0->Grab();
+    operands_.Free(a0);
+    operands_.Free(a1);
+    operands_.Free(a2);
 }
 
 void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
