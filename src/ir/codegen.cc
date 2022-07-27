@@ -595,7 +595,8 @@ public:
             }
             auto proto = down_cast<PrototypeModel>(callee->type().model());
             auto value_in = static_cast<int>(proto->params_size());
-            auto op = ops()->CallIndirectly(1/*value_out*/, value_in, invoke_control_out());
+            auto value_out = static_cast<int>(proto->return_types_size());
+            auto op = ops()->CallIndirectly(proto, value_out, value_in, invoke_control_out());
             args.insert(args.begin(), callee);
             std::vector<Value *> results;
             EmitCall(op, proto, std::move(args), &results, root_ss.Position());
@@ -640,7 +641,20 @@ public:
             args.insert(args.begin(), self);
             EmitCall(op, proto, std::move(args), &results, root_ss.Position());
             return Returning(ob);
-            
+        }
+        
+        if (symbol.kind == Symbol::kValue) {
+            auto callee = symbol.core.value;
+            DCHECK(callee->type().kind() == Type::kReference);
+            auto proto = down_cast<PrototypeModel>(callee->type().model());
+            args.insert(args.begin(), callee);
+            auto op = ops()->CallIndirectly(proto,
+                                            static_cast<int>(proto->return_types_size()),
+                                            static_cast<int>(args.size()),
+                                            invoke_control_out());
+            std::vector<Value *> results;
+            EmitCall(op, proto, std::move(args), &results, root_ss.Position());
+            return Returning(results);
         }
         UNREACHABLE();
     }
@@ -733,7 +747,8 @@ public:
                                                    .append(".").append(closure_class_name->ToString()));
         auto clazz = module_->NewClassModel(closure_class_name, closure_class_full_name, any_class);
         
-        auto ty = BuildType(node->prototype());
+        //auto ty = BuildType(node->prototype());
+        auto proto = owns_->BuildPrototype(node->prototype(), clazz);
         clazz->InsertField({
             .name = StructureModel::kFunEntryName,
             .access = kPublic,
@@ -742,11 +757,10 @@ public:
             .enum_value = 0,
         });
 
-        auto fun_name = StructureModel::kFunEntryName;
+        auto fun_name = StructureModel::kFunApplyName;
         auto fun_full_name = String::New(arena(), closure_class_name->ToString().append(".")
                                          .append(fun_name->ToString()));
-        auto fun = module_->NewStandaloneFunction(Function::kDefault, fun_name, fun_full_name,
-                                                  down_cast<PrototypeModel>(ty.model()));
+        auto fun = module_->NewStandaloneFunction(Function::kDefault, fun_name, fun_full_name, proto);
         clazz->InsertMethod({
             .fun = fun,
             .access = kPrivate,
@@ -833,7 +847,7 @@ public:
 
         clazz->UpdatePlacementSizeInBytes();
         auto closure = ops()->Closure(clazz, static_cast<int>(capture_vars.size()));
-        auto rs = origin->NewNodeWithValues(nullptr, root_ss.Position(), ty, closure, capture_vars);
+        auto rs = origin->NewNodeWithValues(nullptr, root_ss.Position(), Type::Ref(proto), closure, capture_vars);
         return Returning(rs);
     }
     

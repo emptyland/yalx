@@ -232,6 +232,7 @@ private:
 class StructureModel : public Model {
 public:
     static const String *const kEnumCodeName;
+    static const String *const kFunApplyName;
     static const String *const kFunEntryName;
     static const String *const kThisName;
     static const String *const kCalleeName;

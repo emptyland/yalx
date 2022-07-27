@@ -8,7 +8,7 @@
 .global _issue07_Zoissue07_Zd_Z4init
 _issue07_Zoissue07_Zd_Z4init:
 .cfi_startproc
-Lblk9:
+Lblk10:
     sub sp, sp, #16
     stp fp, lr, [sp, #0]
     add fp, sp, #0
@@ -27,7 +27,7 @@ Lblk9:
 .global _issue07_Zoissue07_Zdissue1
 _issue07_Zoissue07_Zdissue1:
 .cfi_startproc
-Lblk10:
+Lblk11:
     sub sp, sp, #80
     stp fp, lr, [sp, #64]
     add fp, sp, #64
@@ -69,7 +69,7 @@ Lblk10:
 .global _issue07_Zoissue07_Zdissue1_had
 _issue07_Zoissue07_Zdissue1_had:
 .cfi_startproc
-Lblk11:
+Lblk12:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -102,7 +102,7 @@ Lblk11:
 .global _issue07_Zoissue07_Zdissue2
 _issue07_Zoissue07_Zdissue2:
 .cfi_startproc
-Lblk12:
+Lblk13:
     sub sp, sp, #96
     stp fp, lr, [sp, #80]
     add fp, sp, #80
@@ -147,7 +147,7 @@ Lblk12:
 .global _issue07_Zoissue07_Zdissue2_had
 _issue07_Zoissue07_Zdissue2_had:
 .cfi_startproc
-Lblk13:
+Lblk14:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -180,7 +180,7 @@ Lblk13:
 .global _issue07_Zoissue07_Zdissue3
 _issue07_Zoissue07_Zdissue3:
 .cfi_startproc
-Lblk14:
+Lblk15:
     sub sp, sp, #96
     stp fp, lr, [sp, #80]
     add fp, sp, #80
@@ -229,7 +229,7 @@ Lblk14:
 .global _issue07_Zoissue07_Zdissue3_had
 _issue07_Zoissue07_Zdissue3_had:
 .cfi_startproc
-Lblk15:
+Lblk16:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -262,7 +262,7 @@ Lblk15:
 .global _issue07_Zoissue07_Zdissue4
 _issue07_Zoissue07_Zdissue4:
 .cfi_startproc
-Lblk16:
+Lblk17:
     sub sp, sp, #32
     stp fp, lr, [sp, #16]
     add fp, sp, #16
@@ -286,7 +286,7 @@ Lblk16:
 .global _issue07_Zoissue07_Zdissue4_had
 _issue07_Zoissue07_Zdissue4_had:
 .cfi_startproc
-Lblk17:
+Lblk18:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -319,7 +319,7 @@ Lblk17:
 .global _issue07_Zoissue07_Zdissue5
 _issue07_Zoissue07_Zdissue5:
 .cfi_startproc
-Lblk18:
+Lblk19:
     sub sp, sp, #48
     stp fp, lr, [sp, #32]
     add fp, sp, #32
@@ -346,7 +346,7 @@ Lblk18:
 .global _issue07_Zoissue07_Zdissue5_had
 _issue07_Zoissue07_Zdissue5_had:
 .cfi_startproc
-Lblk19:
+Lblk20:
     sub sp, sp, #112
     stp fp, lr, [sp, #96]
     add fp, sp, #96
@@ -362,6 +362,92 @@ Lblk19:
     bl _current_root
     mov x26, x0
     bl _issue07_Zoissue07_Zdissue5
+    mov x0, #16
+    bl _reserve_handle_returning_vals
+    mov x1, sp
+    mov x2, #16
+    bl _memcpy
+    ldp x19, x20, [sp, #80]
+    ldp x21, x22, [sp, #64]
+    ldp x23, x24, [sp, #48]
+    ldp x25, x26, [sp, #32]
+    ldp x27, x28, [sp, #16]
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
+    ret
+.cfi_endproc
+.global _issue07_Zoissue07_Zdissue6
+_issue07_Zoissue07_Zdissue6:
+.cfi_startproc
+Lblk21:
+    sub sp, sp, #96
+    stp fp, lr, [sp, #80]
+    add fp, sp, #80
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    mov w0, #711
+    stur w0, [fp, #-4]
+    stur w0, [fp, #-8]
+    adrp x19, _issue07_Zoissue07_Zdanonymous_Zdfun2_Zdclosure$class@PAGE
+    add x0, x19, _issue07_Zoissue07_Zdanonymous_Zdfun2_Zdclosure$class@PAGEOFF
+    sub x1, fp, #4
+    mov x2, #4
+    bl _closure
+    mov x3, x0
+    mov w0, #1
+    stur w0, [fp, #-4]
+    stur x3, [fp, #-16]
+    ldur x0, [fp, #-16]
+    ldur w1, [fp, #-4]
+    add sp, sp, #48
+    ldr x19, [x0, #16]
+    blr x19
+    sub sp, sp, #48
+    ldur x0, [fp, #-16]
+    mov w1, #2
+    stur x0, [fp, #-8]
+    stur w1, [fp, #-12]
+    add sp, sp, #32
+    ldr x19, [x0, #16]
+    blr x19
+    sub sp, sp, #32
+    ldur x0, [fp, #-8]
+    mov w1, #3
+    stur w1, [fp, #-4]
+    add sp, sp, #16
+    ldr x19, [x0, #16]
+    blr x19
+    sub sp, sp, #16
+    ldur w19, [fp, #-52]
+    str w19, [fp, #20]
+    ldur w19, [fp, #-36]
+    str w19, [fp, #24]
+    ldur w19, [fp, #-20]
+    str w19, [fp, #28]
+    ldp fp, lr, [sp, #80]
+    add sp, sp, #96
+    ret
+.cfi_endproc
+.global _issue07_Zoissue07_Zdissue6_had
+_issue07_Zoissue07_Zdissue6_had:
+.cfi_startproc
+Lblk22:
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stp x19, x20, [sp, #80]
+    stp x21, x22, [sp, #64]
+    stp x23, x24, [sp, #48]
+    stp x25, x26, [sp, #32]
+    stp x27, x28, [sp, #16]
+    add fp, sp, #16
+    bl _current_root
+    mov x26, x0
+    bl _issue07_Zoissue07_Zdissue6
     mov x0, #16
     bl _reserve_handle_returning_vals
     mov x1, sp
@@ -549,6 +635,26 @@ Lblk8:
     add sp, sp, #16
     ret
 .cfi_endproc
+.global _anonymous_Zdfun2_Zdclosure_Zdapply
+_anonymous_Zdfun2_Zdclosure_Zdapply:
+.cfi_startproc
+Lblk9:
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    ldr w2, [x0, #24]
+    add w3, w2, #1
+    str w3, [x0, #24]
+    ldr w2, [x0, #24]
+    add w0, w2, w1
+    str w0, [fp, #28]
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
+    ret
+.cfi_endproc
 ; CString constants
 .section __TEXT,__cstring,cstring_literals
 Lkzs.0:
@@ -586,23 +692,31 @@ Lkzs.15:
 Lkzs.16:
     .asciz "issue07:issue07.Foo"
 Lkzs.17:
-    .asciz "fun (i32)->(i32)"
+    .asciz "fun (issue07:issue07.anonymous.fun0.closure,i32)->(i32)"
 Lkzs.18:
     .asciz "apply"
 Lkzs.19:
-    .asciz "a"
+    .asciz "$fun_entry$"
 Lkzs.20:
-    .asciz "anonymous.fun0.closure"
+    .asciz "a"
 Lkzs.21:
-    .asciz "issue07:issue07.anonymous.fun0.closure"
+    .asciz "anonymous.fun0.closure"
 Lkzs.22:
-    .asciz "fun (u8)->(u8,u16)"
+    .asciz "issue07:issue07.anonymous.fun0.closure"
 Lkzs.23:
-    .asciz "b"
+    .asciz "fun (issue07:issue07.anonymous.fun1.closure,u8)->(u8,u16)"
 Lkzs.24:
-    .asciz "anonymous.fun1.closure"
+    .asciz "b"
 Lkzs.25:
+    .asciz "anonymous.fun1.closure"
+Lkzs.26:
     .asciz "issue07:issue07.anonymous.fun1.closure"
+Lkzs.27:
+    .asciz "fun (issue07:issue07.anonymous.fun2.closure,i32)->(i32)"
+Lkzs.28:
+    .asciz "anonymous.fun2.closure"
+Lkzs.29:
+    .asciz "issue07:issue07.anonymous.fun2.closure"
 .section __DATA,__data
 .p2align 4
 ; classes:
@@ -763,10 +877,10 @@ _issue07_Zoissue07_Zdanonymous_Zdfun0_Zdclosure$class:
     .long 32 ; instance_size
     .space 4 ; padding
     .quad _yalx_Zplang_Zolang_ZdAny$class ; super
-    .quad Lkzs.20 ; name
+    .quad Lkzs.21 ; name
     .long 22 ; name
     .space 4 ; padding
-    .quad Lkzs.21 ; location
+    .quad Lkzs.22 ; location
     .long 38 ; location
     .space 4 ; padding
     .long 0 ; n_annotations
@@ -786,12 +900,12 @@ _issue07_Zoissue07_Zdanonymous_Zdfun0_Zdclosure$class:
     .long 0 ; refs_mark_len
     .space 4
 _issue07_Zoissue07_Zdanonymous_Zdfun0_Zdclosure$fields:
-    ; anonymous.fun0.closure::apply
+    ; anonymous.fun0.closure::$fun_entry$
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.18 ; name
-    .long 5 ; name
+    .quad Lkzs.19 ; name
+    .long 11 ; name
     .space 4 ; padding
     .quad _builtin_classes+1064 ; type
     .long 16 ; offset_of_head
@@ -800,7 +914,7 @@ _issue07_Zoissue07_Zdanonymous_Zdfun0_Zdclosure$fields:
     .long 1 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.19 ; name
+    .quad Lkzs.20 ; name
     .long 1 ; name
     .space 4 ; padding
     .quad _builtin_classes+912 ; type
@@ -817,7 +931,7 @@ _issue07_Zoissue07_Zdanonymous_Zdfun0_Zdclosure$methods:
     .long 5 ; name
     .space 4 ; padding
     .quad Lkzs.17 ; prototype_desc
-    .long 16 ; prototype_desc
+    .long 55 ; prototype_desc
     .space 4 ; padding
     .quad _anonymous_Zdfun0_Zdclosure_Zdapply ; entry
 .global _issue07_Zoissue07_Zdanonymous_Zdfun1_Zdclosure$class
@@ -830,10 +944,10 @@ _issue07_Zoissue07_Zdanonymous_Zdfun1_Zdclosure$class:
     .long 32 ; instance_size
     .space 4 ; padding
     .quad _yalx_Zplang_Zolang_ZdAny$class ; super
-    .quad Lkzs.24 ; name
+    .quad Lkzs.25 ; name
     .long 22 ; name
     .space 4 ; padding
-    .quad Lkzs.25 ; location
+    .quad Lkzs.26 ; location
     .long 38 ; location
     .space 4 ; padding
     .long 0 ; n_annotations
@@ -853,12 +967,12 @@ _issue07_Zoissue07_Zdanonymous_Zdfun1_Zdclosure$class:
     .long 0 ; refs_mark_len
     .space 4
 _issue07_Zoissue07_Zdanonymous_Zdfun1_Zdclosure$fields:
-    ; anonymous.fun1.closure::apply
+    ; anonymous.fun1.closure::$fun_entry$
     .long 0 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.18 ; name
-    .long 5 ; name
+    .quad Lkzs.19 ; name
+    .long 11 ; name
     .space 4 ; padding
     .quad _builtin_classes+1064 ; type
     .long 16 ; offset_of_head
@@ -867,7 +981,7 @@ _issue07_Zoissue07_Zdanonymous_Zdfun1_Zdclosure$fields:
     .long 1 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.19 ; name
+    .quad Lkzs.20 ; name
     .long 1 ; name
     .space 4 ; padding
     .quad _builtin_classes+456 ; type
@@ -877,7 +991,7 @@ _issue07_Zoissue07_Zdanonymous_Zdfun1_Zdclosure$fields:
     .long 1 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.23 ; name
+    .quad Lkzs.24 ; name
     .long 1 ; name
     .space 4 ; padding
     .quad _builtin_classes+760 ; type
@@ -893,10 +1007,77 @@ _issue07_Zoissue07_Zdanonymous_Zdfun1_Zdclosure$methods:
     .quad Lkzs.18 ; name
     .long 5 ; name
     .space 4 ; padding
-    .quad Lkzs.22 ; prototype_desc
-    .long 18 ; prototype_desc
+    .quad Lkzs.23 ; prototype_desc
+    .long 57 ; prototype_desc
     .space 4 ; padding
     .quad _anonymous_Zdfun1_Zdclosure_Zdapply ; entry
+.global _issue07_Zoissue07_Zdanonymous_Zdfun2_Zdclosure$class
+_issue07_Zoissue07_Zdanonymous_Zdfun2_Zdclosure$class:
+    .quad 0 ; id
+    .byte 0 ; constraint
+    .byte 0 ; compact enum
+    .space 2 ; padding
+    .long 8 ; reference_size
+    .long 32 ; instance_size
+    .space 4 ; padding
+    .quad _yalx_Zplang_Zolang_ZdAny$class ; super
+    .quad Lkzs.28 ; name
+    .long 22 ; name
+    .space 4 ; padding
+    .quad Lkzs.29 ; location
+    .long 38 ; location
+    .space 4 ; padding
+    .long 0 ; n_annotations
+    .space 4 ; padding
+    .quad 0 ; reserved0
+    .long 2 ; n_fields
+    .space 4 ; padding
+    .quad _issue07_Zoissue07_Zdanonymous_Zdfun2_Zdclosure$fields ; fields
+    .quad 0 ; ctor
+    .long 1 ; n_methods
+    .space 4 ; padding
+    .quad _issue07_Zoissue07_Zdanonymous_Zdfun2_Zdclosure$methods ; methods
+    .long 0 ; n_vtab
+    .long 0 ; n_itab
+    .quad 0 ; vtab
+    .quad 0 ; itab
+    .long 0 ; refs_mark_len
+    .space 4
+_issue07_Zoissue07_Zdanonymous_Zdfun2_Zdclosure$fields:
+    ; anonymous.fun2.closure::$fun_entry$
+    .long 0 ; access|constraint
+    .long 0 ; n_annotations
+    .quad 0 ; reserved0
+    .quad Lkzs.19 ; name
+    .long 11 ; name
+    .space 4 ; padding
+    .quad _builtin_classes+1064 ; type
+    .long 16 ; offset_of_head
+    .space 4 ; padding
+    ; anonymous.fun2.closure::a
+    .long 1 ; access|constraint
+    .long 0 ; n_annotations
+    .quad 0 ; reserved0
+    .quad Lkzs.20 ; name
+    .long 1 ; name
+    .space 4 ; padding
+    .quad _builtin_classes+912 ; type
+    .long 24 ; offset_of_head
+    .space 4 ; padding
+_issue07_Zoissue07_Zdanonymous_Zdfun2_Zdclosure$methods:
+    ; anonymous.fun2.closure::apply
+    .long 0 ; index
+    .long 0 ; access|is_native|is_override|...
+    .long 0 ; n_annotations
+    .space 4 ; padding
+    .quad 0 ; reserved0
+    .quad Lkzs.18 ; name
+    .long 5 ; name
+    .space 4 ; padding
+    .quad Lkzs.27 ; prototype_desc
+    .long 55 ; prototype_desc
+    .space 4 ; padding
+    .quad _anonymous_Zdfun2_Zdclosure_Zdapply ; entry
 .section __DATA,__data
 .p2align 4
 .global _issue07_Zoissue07$global_slots
@@ -908,7 +1089,7 @@ _issue07_Zoissue07$global_slots:
 ; Yalx-String constants
 .global _issue07_Zoissue07_Lksz
 _issue07_Zoissue07_Lksz:
-    .long 26
+    .long 30
     .long 0 ; padding for struct lksz_header
     .quad Lkzs.0
     .quad Lkzs.1
@@ -936,9 +1117,13 @@ _issue07_Zoissue07_Lksz:
     .quad Lkzs.23
     .quad Lkzs.24
     .quad Lkzs.25
+    .quad Lkzs.26
+    .quad Lkzs.27
+    .quad Lkzs.28
+    .quad Lkzs.29
 .global _issue07_Zoissue07_Kstr
 _issue07_Zoissue07_Kstr:
-    .long 26
+    .long 30
     .long 0 ; padding for struct kstr_header
 Kstr.0:
     .quad 0
@@ -991,4 +1176,12 @@ Kstr.23:
 Kstr.24:
     .quad 0
 Kstr.25:
+    .quad 0
+Kstr.26:
+    .quad 0
+Kstr.27:
+    .quad 0
+Kstr.28:
+    .quad 0
+Kstr.29:
     .quad 0

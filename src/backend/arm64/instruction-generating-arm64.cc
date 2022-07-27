@@ -1271,9 +1271,10 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             break;
             
         case ir::Operator::kCallHandle:
-        case ir::Operator::kCallDirectly:
         case ir::Operator::kCallVirtual:
         case ir::Operator::kCallAbstract:
+        case ir::Operator::kCallDirectly:
+        case ir::Operator::kCallIndirectly:
             Call(instr);
             break;
             
@@ -1823,9 +1824,13 @@ void Arm64FunctionInstructionSelector::Closure(ir::Value *instr) {
 
 void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
     ir::Function *callee = nullptr;
+    ir::PrototypeModel *proto = nullptr;
     const ir::Model::Method *method = nullptr;
     if (instr->Is(ir::Operator::kCallDirectly)) {
         callee = ir::OperatorWith<ir::Function *>::Data(instr->op());
+        proto = callee->prototype();
+    } else if (instr->Is(ir::Operator::kCallIndirectly)) {
+        proto = ir::OperatorWith<ir::PrototypeModel *>::Data(instr->op());
     } else {
         DCHECK(instr->Is(ir::Operator::kCallHandle) ||
                instr->Is(ir::Operator::kCallVirtual) ||
@@ -1833,6 +1838,7 @@ void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
         auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
         method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
         callee = method->fun;
+        proto = callee->prototype();
     }
 
     std::vector<ir::Value *> returning_vals;
@@ -1905,8 +1911,8 @@ void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
             Move(opd, Allocate(arg, kAny), arg->type());
         }
     }
-    
-    const auto returning_vals_size_in_bytes = ReturningValSizeInBytes(callee->prototype());
+
+    const auto returning_vals_size_in_bytes = ReturningValSizeInBytes(proto);
     current_stack_size = RoundUp(operands_.slots()->stack_size(), kStackConf->stack_alignment_size());
     
     ImmediateOperand *adjust = nullptr;
@@ -1920,6 +1926,12 @@ void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
     if (instr->Is(ir::Operator::kCallDirectly) || instr->Is(ir::Operator::kCallHandle)) {
         auto rel = new (arena_) ReloactionOperand(symbols_->Mangle(callee->full_name()), nullptr);
         current()->NewI(ArchCall, rel);
+    } else if (instr->Is(ir::Operator::kCallIndirectly)) {
+        auto scratch0 = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
+        auto callee = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[0], MachineRepresentation::kWord64);
+        auto entry = new (arena_) LocationOperand(Arm64Mode_MRI, callee->register_id(), -1, CLOSURE_OFFSET_OF_ENTRY);
+        current()->NewIO(Arm64Ldr, scratch0, entry);
+        current()->NewI(ArchCall, scratch0);
     } else if (instr->Is(ir::Operator::kCallAbstract)) {
         auto scratch = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
         auto self = new (arena_) RegisterOperand(kGeneralArgumentsRegisters[0], MachineRepresentation::kWord64);

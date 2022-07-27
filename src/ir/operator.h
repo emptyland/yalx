@@ -155,6 +155,7 @@ namespace ir {
     V(CallVirtual,      Handle const *) \
     V(CallAbstract,     Handle const *) \
     V(CallDirectly,     Function *) \
+    V(CallIndirectly,   Model const *) \
     V(CallRuntime,      RuntimeId) \
     V(ICmp,             IConditionId) \
     V(FCmp,             FConditionId) \

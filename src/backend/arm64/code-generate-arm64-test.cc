@@ -877,6 +877,18 @@ TEST_F(Arm64CodeGeneratorTest, CallVirtual) {
         ASSERT_EQ(515, closure->b);
     }
     yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue07_Zoissue07_Zdissue6_had();
+    
+    {
+        auto vals = reinterpret_cast<i32_t *>(state.buf);
+        ASSERT_EQ(713, vals[3]);
+        ASSERT_EQ(715, vals[2]);
+        ASSERT_EQ(717, vals[1]);
+    }
+    yalx_exit_returning_scope(&state);
 }
 
 //#endif // YALX_ARCH_ARM64

@@ -39,6 +39,16 @@ fun issue5(): (u8)->u8,u16 {
     }
 }
 
+@yalx.Compiler(nativeHandle=true)
+fun issue6(): int, int, int {
+    var a = 711
+    val f = (b: int) -> {
+        a = a + 1
+        a + b
+    }
+    return f(1), f(2), f(3)
+}
+
 class Foo(val n: u32): If0, If1 {
 
     override fun hashCode() -> n

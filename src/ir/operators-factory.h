@@ -16,6 +16,7 @@ class Handle;
 class Function;
 class StructureModel;
 class InterfaceModel;
+class PrototypeModel;
 class ArrayModel;
 class Model;
 
@@ -188,9 +189,9 @@ public:
                                                      value_out, control_out, fun);
     }
     
-    Operator *CallIndirectly(int value_out, int value_in, int control_out) {
-        return new (arena_) Operator(Operator::kCallIndirectly, 0, value_in, 0/*control_in*/, value_out,
-                                     control_out);
+    Operator *CallIndirectly(PrototypeModel *proto, int value_out, int value_in, int control_out) {
+        return new (arena_) OperatorWith<PrototypeModel *>(Operator::kCallIndirectly, 0, value_in, 0/*control_in*/,
+                                                           value_out, control_out, proto);
     }
     
     Operator *CallRuntime(int value_out, int value_in, int control_out, RuntimeId id) {
