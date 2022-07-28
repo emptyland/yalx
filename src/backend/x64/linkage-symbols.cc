@@ -37,6 +37,7 @@ DECLARE_STATIC_STRING(kRt_array_set_chunk1, "_array_set_chunk1");
 DECLARE_STATIC_STRING(kRt_array_set_chunk2, "_array_set_chunk2");
 DECLARE_STATIC_STRING(kRt_array_set_chunk3, "_array_set_chunk3");
 DECLARE_STATIC_STRING(kRt_closure, "_closure");
+DECLARE_STATIC_STRING(kRt_concat, "_concat");
 
 LinkageSymbols::LinkageSymbols(base::Arena *arena)
 : arena_(arena)

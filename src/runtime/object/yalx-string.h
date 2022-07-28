@@ -32,6 +32,8 @@ struct yalx_value_str *yalx_new_string(struct heap *heap, const char *z, size_t 
 struct yalx_value_str *yalx_uint_to_string(struct heap *heap, uint64_t value, int base);
 struct yalx_value_str *yalx_int_to_string(struct heap *heap, int64_t value, int base);
 
+struct yalx_value_str *yalx_build_string(struct heap *heap, struct yalx_value_str **parts, size_t n);
+
 // Directly new string object
 struct yalx_value_str *yalx_new_string_direct(struct heap *heap, const char *z, size_t n);
 

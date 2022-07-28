@@ -72,6 +72,7 @@ extern const String *const kRt_array_set_chunk1;
 extern const String *const kRt_array_set_chunk2;
 extern const String *const kRt_array_set_chunk3;
 extern const String *const kRt_closure;
+extern const String *const kRt_concat;
 
 } // namespace backend
 } // namespace yalx

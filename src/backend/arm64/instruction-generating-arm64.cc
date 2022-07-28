@@ -200,6 +200,7 @@ private:
     void Select(ir::Value *instr);
     
     void PutField(ir::Value *instr);
+    void Concat(ir::Value *instr);
     void ArrayFill(ir::Value *instr);
     void ArrayAt(ir::Value *instr);
     void ArraySet(ir::Value *instr);
@@ -1094,6 +1095,10 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
             Move(opd, x0, instr->type());
         } break;
             
+        case ir::Operator::kConcat:
+            Concat(instr);
+            break;
+            
         case ir::Operator::kArrayFill:
             ArrayFill(instr);
             break;
@@ -1461,6 +1466,41 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
     }
 
     operands_.Associate(instr, opd);
+}
+
+void Arm64FunctionInstructionSelector::Concat(ir::Value *instr) {
+    std::vector<InstructionOperand *> parts;
+    for (int i = 0; i < instr->op()->value_in(); i++) {
+        parts.push_back(Allocate(instr->InputValue(i), kAny));
+    }
+    
+    std::vector<InstructionOperand *> slots;
+    for (ssize_t i = parts.size() - 1; i >= 0; i--) {
+        auto slot = operands_.AllocateStackSlot(ir::Types::String, 0, StackSlotAllocator::kLinear);
+        Move(slot, parts[i], ir::Types::String);
+        slots.push_back(slot);
+    }
+    const auto top_line = operands_.slots()->stack_size();
+    
+    RegisterSavingScope saving_scope(&operands_, instruction_position_, &moving_delegate_);
+    saving_scope.SaveAll();
+    
+    auto a0 = operands_.AllocateReigster(ir::Types::Word64, kGeneralArgumentsRegisters[0]);
+    auto fp = operands_.registers()->frame_pointer();
+    current()->NewIO(Arm64Sub, a0, fp, ImmediateOperand::Word32(arena_, top_line));
+    auto a1 = operands_.AllocateReigster(ir::Types::Word64, kGeneralArgumentsRegisters[1]);
+    current()->NewIO(Arm64Mov, a1, ImmediateOperand::Word32(arena_, instr->op()->value_in()));
+    current()->NewI(ArchCall, bundle()->AddExternalSymbol(kRt_concat));
+    Move(Allocate(instr, kAny), a0, instr->type());
+
+    for (auto slot : slots) {
+        slot->Grab();
+        operands_.Free(slot);
+    }
+    a1->Grab();
+    a0->Grab();
+    operands_.Free(a1);
+    operands_.Free(a0);
 }
 
 void Arm64FunctionInstructionSelector::ArrayFill(ir::Value *instr) {
@@ -1836,6 +1876,7 @@ void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
                instr->Is(ir::Operator::kCallVirtual) ||
                instr->Is(ir::Operator::kCallAbstract));
         auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
+        printd("%s", handle->name()->data());
         method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
         callee = method->fun;
         proto = callee->prototype();

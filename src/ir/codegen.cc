@@ -568,16 +568,14 @@ public:
             auto self = handle->owns();
             if (self->declaration() == Model::kInterface) {
                 op = ops()->CallAbstract(handle, 1/*value_out*/, value_in, invoke_control_out());
-            } else if (self->declaration() == Model::kClass ||
-                       self->declaration() == Model::kStruct ||
+            } else if (self->declaration() == Model::kClass || self->declaration() == Model::kStruct ||
                        self->declaration() == Model::kEnum) {
                 if (down_cast<const StructureModel>(self)->In_vtab(handle)) {
                     op = ops()->CallVirtual(handle, 1/*value_out*/, value_in, invoke_control_out());
                 } else {
                     op = ops()->CallHandle(handle, 1/*value_out*/, value_in, invoke_control_out());
                 }
-            } else if (self->declaration() == Model::kArray ||
-                       self->declaration() == Model::kPrimitive) {
+            } else if (self->declaration() == Model::kArray || self->declaration() == Model::kPrimitive) {
                 op = ops()->CallHandle(handle, 1/*value_out*/, value_in, invoke_control_out());
             } else {
                 UNREACHABLE();
@@ -1411,7 +1409,60 @@ public:
     int VisitAnnotation(cpl::Annotation *node) override { UNREACHABLE(); }
     
     int VisitRunCoroutine(cpl::RunCoroutine *node) override { UNREACHABLE(); }
-    int VisitStringTemplate(cpl::StringTemplate *node) override { UNREACHABLE(); }
+
+    int VisitStringTemplate(cpl::StringTemplate *node) override {
+        SourcePositionTable::Scope root_ss(CURRENT_SOUCE_POSITION(node));
+        
+        std::vector<Value *> parts;
+        for (auto part : node->parts()) {
+            Value *value = nullptr;
+            if (ReduceReturningOnlyOne(part, &value) < 0) {
+                return -1;
+            }
+            int rs = EmitToStringIfNeeded(value, &value, root_ss.Position());
+            if (rs < 0) {
+                return -1;
+            }
+            if (rs > 0) {
+                parts.push_back(value);
+            }
+        }
+        auto op = ops()->Concat(static_cast<int>(parts.size()));
+        return Returning(b()->NewNodeWithValues(nullptr, root_ss.Position(), Types::String, op, parts));
+    }
+    
+    int EmitToStringIfNeeded(Value *value, Value **receiver, SourcePosition source_position) {
+        Model *model = nullptr;
+        switch (value->type().kind()) {
+            case Type::kString:
+                *receiver = value;
+                return 1;
+            case Type::kValue:
+            case Type::kReference:
+                model = value->type().model();
+                break;
+            case Type::kVoid:
+                return 0;
+            default:
+                model = DCHECK_NOTNULL(PrimitiveModel::Get(value->type(), arena()));
+                break;
+        }
+
+        auto handle = model->FindMemberOrNull("toString");
+        auto method = std::get<const Model::Method *>(model->GetMember(handle));
+        DCHECK(method->access == kPublic);
+        DCHECK(method->fun->prototype()->params_size() == 1);
+        auto rt = method->fun->prototype()->return_type(0);
+        DCHECK(rt.kind() == Type::kString);
+        USE(rt);
+        
+        auto op = ops()->CallHandle(handle, 1/*value_out*/, 1/*value_in*/, invoke_control_out());
+        std::vector<Value *> results;
+        EmitCall(op, method->fun->prototype(), {value}, &results, source_position);
+        *receiver = results[0];
+        return 1;
+    }
+    
     int VisitInstantiation(cpl::Instantiation *node) override { UNREACHABLE(); }
     int VisitOr(cpl::Or *node) override { UNREACHABLE(); }
     int VisitAnd(cpl::And *node) override { UNREACHABLE(); }

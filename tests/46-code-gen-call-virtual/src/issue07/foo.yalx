@@ -49,6 +49,13 @@ fun issue6(): int, int, int {
     return f(1), f(2), f(3)
 }
 
+@yalx.Compiler(nativeHandle=true)
+fun issue7(): ()->i32,string,i32 {
+    val foo = Foo(1u32)
+    val a = 911
+    return () -> foo.foo0(), foo.foo1(), a
+}
+
 class Foo(val n: u32): If0, If1 {
 
     override fun hashCode() -> n

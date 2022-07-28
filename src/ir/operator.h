@@ -33,6 +33,7 @@ namespace ir {
     V(ArrayAlloc) \
     V(ArrayFill) \
     V(Closure) \
+    V(Concat) \
     V(Unreachable) \
     V(Unwind) \
     V(Ret)

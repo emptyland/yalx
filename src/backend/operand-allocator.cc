@@ -129,6 +129,12 @@ InstructionOperand *OperandAllocator::Allocate(ir::Type ty) {
             UNREACHABLE();
             break;
             
+        case ir::Type::kFloat32:
+            return Allocate(kF32, ty.ReferenceSizeInBytes(), ty.model());
+            
+        case ir::Type::kFloat64:
+            return Allocate(kF64, ty.ReferenceSizeInBytes(), ty.model());
+            
         default:
             return Allocate(kVal, ty.ReferenceSizeInBytes(), ty.model());
     }
@@ -536,24 +542,20 @@ void RegisterSavingScope::SaveAll() {
             continue;
         }
         
-        //if (allocator_->WillBeLive(rd.val, position_ + 1)) {
-            auto ty = rd.val->type();
-            auto bak = allocator_->AllocateStackSlot(ty, 0/*padding_size*/, StackSlotAllocator::kFit);
-            moving_delegate_->MoveTo(bak, rd.opd, ty);
-            backup_.push_back({rd.val, bak, rd.opd});
-        //}
+        auto ty = rd.val->type();
+        auto bak = allocator_->AllocateStackSlot(ty, 0/*padding_size*/, StackSlotAllocator::kFit);
+        moving_delegate_->MoveTo(bak, rd.opd, ty);
+        backup_.push_back({rd.val, bak, rd.opd});
     }
     for (auto [rid, rd] : allocator_->active_float_registers_) {
         if (!rd.val || float_exclude_.find(rid) != float_exclude_.end()) {
             continue;
         }
         
-        //if (allocator_->WillBeLive(rd.val, position_ + 1)) {
-            auto ty = rd.val->type();
-            auto bak = allocator_->AllocateStackSlot(ty, 0/*padding_size*/, StackSlotAllocator::kFit);
-            moving_delegate_->MoveTo(bak, rd.opd, ty);
-            backup_.push_back({rd.val, bak, rd.opd});
-        //}
+        auto ty = rd.val->type();
+        auto bak = allocator_->AllocateStackSlot(ty, 0/*padding_size*/, StackSlotAllocator::kFit);
+        moving_delegate_->MoveTo(bak, rd.opd, ty);
+        backup_.push_back({rd.val, bak, rd.opd});
     }
     for (auto bak : backup_) {
         allocator_->Associate(bak.val, bak.current);
@@ -573,10 +575,6 @@ void RegisterSavingScope::Exit() {
             moving_delegate_->MoveTo(opd, bak.current, bak.val->type());
             allocator_->Associate(bak.val, opd);
         }
-        
-//        auto opd = allocator_->Allocate(DCHECK_NOTNULL(bak.val)->type());
-//        moving_delegate_->MoveTo(opd, bak.current, bak.val->type());
-//        allocator_->Associate(bak.val, opd);
     }
     moving_delegate_->Finalize();
 }

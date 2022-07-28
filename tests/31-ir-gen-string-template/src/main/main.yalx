@@ -1,0 +1,22 @@
+package main
+
+import "foo"
+
+val x = 0.1
+val y = 0.2
+
+val s0 = "$x.$y"
+
+fun issue01_string_concat_sanity(x: f32, y: f32) -> "$x.$y"
+
+fun issue02_enum_concat(foo: foo.Foo) -> "foo=$foo"
+
+fun issue03_class_concat(bar: foo.Bar) -> "bar=$bar"
+
+fun issue04_struct_concat(baz: foo.Baz) -> "baz=$baz"
+
+fun issue05_types_concat(s: string, a: i8, b: u8, c: i16, d: u16)
+    -> "s=$s,a=$a,b=$b,c=$c,d=$d"
+
+fun issue06_types_concat(a: i32, b: u32, c: i64, d: u64, e: bool)
+    -> "a=$a,b=$b,c=$c,d=$d,e=$e"

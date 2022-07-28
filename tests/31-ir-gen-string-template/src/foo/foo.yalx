@@ -1,0 +1,19 @@
+package foo
+
+enum Foo {
+    A,
+    B(string)
+
+    fun toString() -> when (this) {
+        A -> "A"
+        B(str) -> "B(${str})"
+    }
+}
+
+class Bar(val x: f32, val y: f32) {
+    override fun toString() -> "[$x,$y]"
+}
+
+struct Baz(val x: f32, val y: f32) {
+    fun toString() -> "[$x,$y]"
+}

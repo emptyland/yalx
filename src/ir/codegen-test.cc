@@ -1142,7 +1142,177 @@ TEST_F(IntermediateRepresentationGeneratorTest, ClosureCreating) {
     base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
     modules["main:main"]->PrintTo(&printer);
     
-    printf("%s\n", buf.c_str());
+    static const char z[] = R"(module main @main:main {
+source-files:
+    [0] tests/30-ir-gen-closure/src/main/main.yalx
+
+structures:
+    class anonymous.fun0.closure @main:main.anonymous.fun0.closure {
+        [base_of: @yalx/lang:lang.Any]
+        $fun_entry$: qword
+    } // main:main.anonymous.fun0.closure
+
+    class anonymous.fun1.closure @main:main.anonymous.fun1.closure {
+        [base_of: @yalx/lang:lang.Any]
+        $fun_entry$: qword
+        a: i32
+    } // main:main.anonymous.fun1.closure
+
+    class anonymous.fun2.closure @main:main.anonymous.fun2.closure {
+        [base_of: @yalx/lang:lang.Any]
+        $fun_entry$: qword
+        a: i32
+    } // main:main.anonymous.fun2.closure
+
+functions:
+    fun $init(): void {
+    boot:
+        %0 = LoadFunAddr val[fun ()->void]* <fun yalx/lang:lang.$init>
+        CallRuntime void val[fun ()->void]* %0, string "yalx/lang:lang" <PkgInitOnce>
+        Ret void
+    } // main:main.$init
+
+    fun issue00_return_closure(): ref[fun (i32,i32)->(i32)] {
+    entry:
+        %0 = Closure ref[fun (main:main.anonymous.fun0.closure,i32,i32)->(i32)] <anonymous.fun0.closure>
+        Ret void ref[fun (main:main.anonymous.fun0.closure,i32,i32)->(i32)] %0
+    } // main:main.issue00_return_closure
+
+    fun issue01_closure_capture(%a: i32): ref[fun (i32)->(i32)] {
+    entry:
+        %0 = Closure ref[fun (main:main.anonymous.fun1.closure,i32)->(i32)] i32 %a <anonymous.fun1.closure>
+        Ret void ref[fun (main:main.anonymous.fun1.closure,i32)->(i32)] %0
+    } // main:main.issue01_closure_capture
+
+    fun issue02_closure_capture(): ref[fun (i32)->(i32)] {
+    entry:
+        %0 = Closure ref[fun (main:main.anonymous.fun2.closure,i32)->(i32)] i32 1 <anonymous.fun2.closure>
+        Ret void ref[fun (main:main.anonymous.fun2.closure,i32)->(i32)] %0
+    } // main:main.issue02_closure_capture
+
+    fun anonymous.fun0.closure::apply(%callee: ref[main:main.anonymous.fun0.closure], %a: i32, %b: i32): i32 {
+    entry:
+        %0 = Add i32 i32 %a, i32 %b
+        Ret void i32 %0
+    } // anonymous.fun0.closure.apply
+
+    fun anonymous.fun1.closure::apply(%callee: ref[main:main.anonymous.fun1.closure], %b: i32): i32 {
+    entry:
+        %0 = LoadEffectField i32 ref[main:main.anonymous.fun1.closure] %callee <main:main.anonymous.fun1.closure::a>
+        %1 = Add i32 i32 %0, i32 %b
+        Ret void i32 %1
+    } // anonymous.fun1.closure.apply
+
+    fun anonymous.fun2.closure::apply(%callee: ref[main:main.anonymous.fun2.closure], %b: i32): i32 {
+    entry:
+        %0 = LoadEffectField i32 ref[main:main.anonymous.fun2.closure] %callee <main:main.anonymous.fun2.closure::a>
+        %1 = Add i32 i32 %0, i32 1
+        %2 = StoreEffectField ref[main:main.anonymous.fun2.closure] ref[main:main.anonymous.fun2.closure] %callee, i32 %1 <main:main.anonymous.fun2.closure::a>
+        %3 = LoadEffectField i32 ref[main:main.anonymous.fun2.closure] %2 <main:main.anonymous.fun2.closure::a>
+        %4 = Add i32 i32 %b, i32 %3
+        Ret void i32 %4
+    } // anonymous.fun2.closure.apply
+
+} // @main:main
+)";
+    //printf("%s\n", buf.c_str());
+    ASSERT_EQ(z, buf);
+}
+
+TEST_F(IntermediateRepresentationGeneratorTest, StringTemplate) {
+    bool ok = false;
+    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    IRGen("tests/31-ir-gen-string-template", &modules, &ok);
+    ASSERT_TRUE(ok);
+    
+    ASSERT_TRUE(modules.find("yalx/lang:lang") != modules.end());
+    ASSERT_TRUE(modules.find("main:main") != modules.end());
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    modules["main:main"]->PrintTo(&printer);
+    
+    static const char z[] = R"(module main @main:main {
+source-files:
+    [0] tests/31-ir-gen-string-template/src/main/main.yalx
+
+globals:
+    %main:main.x = GlobalValue f32 <"main:main.x">
+    %main:main.y = GlobalValue f32 <"main:main.y">
+    %main:main.s0 = GlobalValue string <"main:main.s0">
+
+functions:
+    fun $init(): void {
+    boot:
+        %0 = LoadFunAddr val[fun ()->void]* <fun foo:foo.$init>
+        CallRuntime void val[fun ()->void]* %0, string "foo:foo" <PkgInitOnce>
+        %1 = LoadFunAddr val[fun ()->void]* <fun yalx/lang:lang.$init>
+        CallRuntime void val[fun ()->void]* %1, string "yalx/lang:lang" <PkgInitOnce>
+        StoreGlobal void f32 %main:main.x, f32 0.100000
+        StoreGlobal void f32 %main:main.y, f32 0.200000
+        %2 = LoadGlobal f32 f32 %main:main.x
+        %3 = CallHandle string f32 %2 <f32::f32ToString>
+        %4 = LoadGlobal f32 f32 %main:main.y
+        %5 = CallHandle string f32 %4 <f32::f32ToString>
+        %6 = Concat string string "", string %3, string ".", string %5
+        StoreGlobal void string %main:main.s0, string %6
+        Ret void
+    } // main:main.$init
+
+    fun issue01_string_concat_sanity(%x: f32, %y: f32): string {
+    entry:
+        %0 = CallHandle string f32 %x <f32::f32ToString>
+        %1 = CallHandle string f32 %y <f32::f32ToString>
+        %2 = Concat string string "", string %0, string ".", string %1
+        Ret void string %2
+    } // main:main.issue01_string_concat_sanity
+
+    fun issue02_enum_concat(%foo: val[foo:foo.Foo]): string {
+    entry:
+        %0 = CallHandle string val[foo:foo.Foo] %foo <foo:foo.Foo::toString>
+        %1 = Concat string string "foo=", string %0
+        Ret void string %1
+    } // main:main.issue02_enum_concat
+
+    fun issue03_class_concat(%bar: ref[foo:foo.Bar]): string {
+    entry:
+        %0 = CallHandle string ref[foo:foo.Bar] %bar <foo:foo.Bar::toString>
+        %1 = Concat string string "bar=", string %0
+        Ret void string %1
+    } // main:main.issue03_class_concat
+
+    fun issue04_struct_concat(%baz: val[foo:foo.Baz]): string {
+    entry:
+        %0 = CallHandle string val[foo:foo.Baz] %baz <foo:foo.Baz::toString>
+        %1 = Concat string string "baz=", string %0
+        Ret void string %1
+    } // main:main.issue04_struct_concat
+
+    fun issue05_types_concat(%s: string, %a: i8, %b: u8, %c: i16, %d: u16): string {
+    entry:
+        %0 = CallHandle string i8 %a <i8::i8ToString>
+        %1 = CallHandle string u8 %b <u8::u8ToString>
+        %2 = CallHandle string i16 %c <i16::i16ToString>
+        %3 = CallHandle string u16 %d <u16::u16ToString>
+        %4 = Concat string string "s=", string %s, string ",a=", string %0, string ",b=", string %1, string ",c=", string %2, string ",d=", string %3
+        Ret void string %4
+    } // main:main.issue05_types_concat
+
+    fun issue06_types_concat(%a: i32, %b: u32, %c: i64, %d: u64, %e: u8): string {
+    entry:
+        %0 = CallHandle string i32 %a <i32::i32ToString>
+        %1 = CallHandle string u32 %b <u32::u32ToString>
+        %2 = CallHandle string i64 %c <i64::i64ToString>
+        %3 = CallHandle string u64 %d <u64::u64ToString>
+        %4 = CallHandle string u8 %e <u8::u8ToString>
+        %5 = Concat string string "a=", string %0, string ",b=", string %1, string ",c=", string %2, string ",d=", string %3, string ",e=", string %4
+        Ret void string %5
+    } // main:main.issue06_types_concat
+
+} // @main:main
+)";
+    //printf("%s\n", buf.c_str());
+    ASSERT_EQ(z, buf);
 }
 
 } // namespace ir

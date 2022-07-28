@@ -3,6 +3,7 @@
 #include "runtime/object/type.h"
 #include "runtime/heap/heap.h"
 #include "runtime/checking.h"
+#include <stdio.h>
 
 struct yalx_value_number_l *yalx_new_i16(struct heap *heap, i16_t value) {
     if (value >= -100 && value <= 100) {
@@ -157,9 +158,13 @@ void yalx_Zplang_Zolang_Zdi64ToString_stub(i64_t value) {
 }
 
 void yalx_Zplang_Zolang_Zdf32ToString_stub(f32_t value) {
-    yalx_return_cstring("3", 1);
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%f", value);
+    yalx_return_cstring(buf, strlen(buf));
 }
 
 void yalx_Zplang_Zolang_Zdf64ToString_stub(f64_t value) {
-    yalx_return_cstring("3", 1);
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%f", value);
+    yalx_return_cstring(buf, strlen(buf));
 }

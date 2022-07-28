@@ -152,6 +152,17 @@ TEST_F(Arm64CodeGeneratorTest, VirtualCalling) {
     bool ok = true;
     CodeGen("tests/46-code-gen-call-virtual", "issue07:issue07", &printer, &ok);
     ASSERT_TRUE(ok);
+    //printf("%s\n", buf.c_str());
+}
+
+// 47-code-gen-string-template
+TEST_F(Arm64CodeGeneratorTest, StringTemplate) {
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    CodeGen("tests/47-code-gen-string-template", "issue08:issue08", &printer, &ok);
+    ASSERT_TRUE(ok);
     printf("%s\n", buf.c_str());
 }
 
@@ -801,6 +812,13 @@ struct Issue07DummyClosure1 {
     u16_t b;
 };
 
+struct Issue07DummyClosure3 {
+    YALX_VALUE_HEADER;
+    address_t entry;
+    yalx_value_any *foo;
+    i32_t a;
+};
+
 TEST_F(Arm64CodeGeneratorTest, CallVirtual) {
     pkg_init_once(reinterpret_cast<void *>(&issue07_Zoissue07_Zd_Z4init), "issue07:issue07");
     
@@ -887,6 +905,41 @@ TEST_F(Arm64CodeGeneratorTest, CallVirtual) {
         ASSERT_EQ(713, vals[3]);
         ASSERT_EQ(715, vals[2]);
         ASSERT_EQ(717, vals[1]);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue07_Zoissue07_Zdissue7_had();
+    
+    {
+        auto vals = reinterpret_cast<Issue07DummyClosure3 **>(state.buf);
+        auto closure = vals[1];
+        ASSERT_NE(nullptr, closure);
+        auto klass = CLASS(closure);
+        ASSERT_EQ(3, klass->n_fields);
+        ASSERT_STREQ("issue07:issue07.anonymous.fun3.closure", klass->location.z);
+        klass = CLASS(closure->foo);
+        ASSERT_STREQ("issue07:issue07.Foo", klass->location.z);
+        ASSERT_EQ(911, closure->a);
+    }
+    yalx_exit_returning_scope(&state);
+}
+
+TEST_F(Arm64CodeGeneratorTest, StringTemplateCreating) {
+    pkg_init_once(reinterpret_cast<void *>(&issue08_Zoissue08_Zd_Z4init), "issue08:issue08");
+    
+    yalx_returning_vals state;
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue08_Zoissue08_Zdissue1_had(911.1, 711.2);
+    
+    {
+        auto vals = reinterpret_cast<yalx_str_handle>(state.buf);
+        //auto s = vals[1];
+        ASSERT_STREQ("a=911.099976,b=711.200012", vals[1]->bytes);
+        ASSERT_STREQ("711.200012,911.099976", vals[0]->bytes);
+        //printd("[%s],[%s]", vals[1]->bytes, vals[0]->bytes);
     }
     yalx_exit_returning_scope(&state);
 }

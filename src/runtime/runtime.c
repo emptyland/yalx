@@ -1186,6 +1186,42 @@ struct yalx_value_any *closure(const struct yalx_class *const klass, address_t b
     return fun;
 }
 
+struct yalx_value_str *concat(struct yalx_value_str **parts, size_t n) {
+    struct yalx_value_str *rs = yalx_build_string(&heap, parts, n);
+    if (!rs) {
+        DCHECK(!"TODO");
+    }
+    return rs;
+}
+
+struct yalx_value_str *concat2(struct yalx_value_str *part0, struct yalx_value_str *part1) {
+    struct yalx_value_str *parts[] = {part0, part1};
+    struct yalx_value_str *rs = yalx_build_string(&heap, parts, arraysize(parts));
+    if (!rs) {
+        DCHECK(!"TODO");
+    }
+    return rs;
+}
+
+struct yalx_value_str *concat3(struct yalx_value_str *part0, struct yalx_value_str *part1, struct yalx_value_str *part2) {
+    struct yalx_value_str *parts[] = {part0, part1, part2};
+    struct yalx_value_str *rs = yalx_build_string(&heap, parts, arraysize(parts));
+    if (!rs) {
+        DCHECK(!"TODO");
+    }
+    return rs;
+}
+
+struct yalx_value_str *concat4(struct yalx_value_str *part0, struct yalx_value_str *part1, struct yalx_value_str *part2,
+                               struct yalx_value_str *part3) {
+    struct yalx_value_str *parts[] = {part0, part1, part2, part3};
+    struct yalx_value_str *rs = yalx_build_string(&heap, parts, arraysize(parts));
+    if (!rs) {
+        DCHECK(!"TODO");
+    }
+    return rs;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 // native fun's stubs:
 //----------------------------------------------------------------------------------------------------------------------
