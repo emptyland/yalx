@@ -669,7 +669,13 @@ void Arm64FunctionInstructionSelector::AssociateParameters(InstructionBlock *blo
 void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
     current_block_ = blocks_[bb];
     for (auto user : bb->phi_node_users()) {
-        Allocate(user.phi, kMoR);
+        // Allocate phi value in stack slots for keeping its' position.
+        auto slot = operands_.Allocated(user.phi);
+        if (!slot) {
+            slot = operands_.AllocateStackSlot(user.phi, 0, StackSlotAllocator::kFit);
+        }
+        USE(slot);
+        //printd("befor: %p <- %p", slot, user.phi);
     }
     
     for (auto instr : bb->instructions()) {
@@ -678,6 +684,7 @@ void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
         if (instr->op()->IsTerminator()) {
             for (auto user : bb->phi_node_users()) {
                 auto phi_slot = DCHECK_NOTNULL(operands_.Allocated(user.phi));
+                //printd("after: %p <- %p", phi_slot, user.phi);
                 auto dest = Allocate(user.dest, kAny);
                 Move(phi_slot, dest, user.phi->type());
             }
@@ -1876,7 +1883,7 @@ void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
                instr->Is(ir::Operator::kCallVirtual) ||
                instr->Is(ir::Operator::kCallAbstract));
         auto handle = ir::OperatorWith<const ir::Handle *>::Data(instr->op());
-        printd("%s", handle->name()->data());
+        //printd("%s", handle->name()->data());
         method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
         callee = method->fun;
         proto = callee->prototype();

@@ -565,6 +565,12 @@ void RegisterSavingScope::SaveAll() {
 
 void RegisterSavingScope::Exit() {
     moving_delegate_->Initialize();
+    
+    // phi node must be in head
+    std::sort(backup_.begin(), backup_.end(), [](const Backup &a, const Backup &b) {
+        return a.val->Is(ir::Operator::kPhi);
+    });
+    
     for (auto bak : backup_) {
         bool should_persistent = false;
         if (auto reg = bak.old->AsRegister()) {

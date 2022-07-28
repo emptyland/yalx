@@ -2,6 +2,7 @@
 #include "runtime/object/type.h"
 #include "runtime/heap/heap.h"
 #include "runtime/checking.h"
+#include <stdio.h>
 
 static const char digit_table[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -47,6 +48,7 @@ struct yalx_value_str *yalx_int_to_string(struct heap *heap, int64_t value, int 
 struct yalx_value_str *yalx_build_string(struct heap *heap, struct yalx_value_str **parts, size_t n) {
     size_t len = 0;
     for (size_t i = 0; i < n; i++) {
+        //printf("-- %s\n", parts[i]->bytes);
         len += parts[i]->len;
     }
     if (len > IN_POOL_STR_LEN) {

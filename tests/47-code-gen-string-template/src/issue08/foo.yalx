@@ -1,0 +1,18 @@
+package issue08
+
+
+@yalx.Compiler(nativeHandle=true)
+fun issue1(a: f32, b: f32) -> "a=$a,b=$b", "$b,$a"
+
+@yalx.Compiler(nativeHandle=true)
+fun issue2(a: Foo) -> "enum Foo: $a"
+
+enum Foo {
+    A,
+    B(string)
+
+    fun toString() -> when (this) {
+        A -> "A"
+        B(str) -> "B(${str})"
+    }
+}

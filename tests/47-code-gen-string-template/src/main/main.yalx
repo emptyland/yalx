@@ -1,0 +1,5 @@
+package main
+
+import "issue08"
+
+fun main() {}

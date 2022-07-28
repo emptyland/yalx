@@ -68,6 +68,7 @@ void issue07_Zoissue07_Zdissue7_had();
 
 void issue08_Zoissue08_Zd_Z4init();
 void issue08_Zoissue08_Zdissue1_had(float a, float b);
+void issue08_Zoissue08_Zdissue2_had(yalx_value_any *);
 } // extern "C"
 
 #endif // YALX_BACKEND_CODE_GENERATE_ARCH_H_

@@ -149,6 +149,70 @@ Lblk8:
     add sp, sp, #128
     ret
 .cfi_endproc
+.global _issue08_Zoissue08_Zdissue2
+_issue08_Zoissue08_Zdissue2:
+.cfi_startproc
+Lblk9:
+    sub sp, sp, #64
+    stp fp, lr, [sp, #48]
+    add fp, sp, #48
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    add sp, sp, #32
+    bl _issue08_Zoissue08_ZdFoo_ZdtoString
+    sub sp, sp, #32
+    adrp x19, Kstr.8@PAGE
+    add x19, x19, Kstr.8@PAGEOFF
+    ldr x0, [x19, #0]
+    ldur x19, [fp, #-8]
+    stur x19, [fp, #-16]
+    stur x0, [fp, #-24]
+    stur x0, [fp, #-32]
+    sub x0, fp, #24
+    mov x1, #2
+    bl _concat
+    mov x2, x0
+    str x2, [fp, #24]
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
+    ret
+.cfi_endproc
+.global _issue08_Zoissue08_Zdissue2_had
+_issue08_Zoissue08_Zdissue2_had:
+.cfi_startproc
+Lblk10:
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stp x19, x20, [sp, #80]
+    stp x21, x22, [sp, #64]
+    stp x23, x24, [sp, #48]
+    stp x25, x26, [sp, #32]
+    stp x27, x28, [sp, #16]
+    add fp, sp, #16
+    stur x0, [fp, #-8]
+    bl _current_root
+    mov x26, x0
+    ldur x0, [fp, #-8]
+    bl _issue08_Zoissue08_Zdissue2
+    mov x0, #16
+    bl _reserve_handle_returning_vals
+    mov x1, sp
+    mov x2, #16
+    bl _memcpy
+    ldp x19, x20, [sp, #80]
+    ldp x21, x22, [sp, #64]
+    ldp x23, x24, [sp, #48]
+    ldp x25, x26, [sp, #32]
+    ldp x27, x28, [sp, #16]
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
+    ret
+.cfi_endproc
 .global _issue08_Zoissue08_ZdFoo_ZdtoString
 _issue08_Zoissue08_ZdFoo_ZdtoString:
 .cfi_startproc
@@ -167,40 +231,39 @@ Lblk1:
 Lblk2:
     adrp x19, Kstr.0@PAGE
     add x19, x19, Kstr.0@PAGEOFF
-    ldr x2, [x19, #0]
-    mov x1, x2
+    ldr x1, [x19, #0]
+    stur x1, [fp, #-8]
     b Lblk5
     nop
 Lblk3:
     cmp x0, #0
     b.ne Lblk4
 Lblk4:
-    mov x3, x0
+    mov x2, x0
     adrp x19, Kstr.1@PAGE
     add x19, x19, Kstr.1@PAGEOFF
     ldr x0, [x19, #0]
     adrp x19, Kstr.2@PAGE
     add x19, x19, Kstr.2@PAGEOFF
-    ldr x4, [x19, #0]
-    stur x4, [fp, #-8]
+    ldr x3, [x19, #0]
     stur x3, [fp, #-16]
-    stur x0, [fp, #-24]
+    stur x2, [fp, #-24]
     stur x0, [fp, #-32]
-    stur x1, [fp, #-40]
-    stur x2, [fp, #-48]
-    stur x3, [fp, #-56]
-    stur x4, [fp, #-64]
-    sub x0, fp, #24
+    stur x0, [fp, #-40]
+    stur x1, [fp, #-48]
+    stur x2, [fp, #-56]
+    stur x3, [fp, #-64]
+    sub x0, fp, #32
     mov x1, #3
     bl _concat
     mov x2, x0
-    ldur x0, [fp, #-40]
-    ldur x1, [fp, #-48]
-    mov x0, x2
+    ldur x0, [fp, #-48]
+    stur x2, [fp, #-8]
     b Lblk5
     nop
 Lblk5:
-    str x0, [fp, #24]
+    ldur x19, [fp, #-8]
+    str x19, [fp, #24]
     ldp fp, lr, [sp, #80]
     add sp, sp, #96
     ret
@@ -224,14 +287,16 @@ Lkzs.6:
 Lkzs.7:
     .asciz ","
 Lkzs.8:
-    .asciz "fun (issue08:issue08.Foo)->(string)"
+    .asciz "enum Foo: "
 Lkzs.9:
-    .asciz "toString"
+    .asciz "fun (issue08:issue08.Foo)->(string)"
 Lkzs.10:
-    .asciz "B"
+    .asciz "toString"
 Lkzs.11:
-    .asciz "Foo"
+    .asciz "B"
 Lkzs.12:
+    .asciz "Foo"
+Lkzs.13:
     .asciz "issue08:issue08.Foo"
 .section __DATA,__data
 .p2align 4
@@ -246,10 +311,10 @@ _issue08_Zoissue08_ZdFoo$class:
     .long 8 ; instance_size
     .space 4 ; padding
     .quad 0 ; super
-    .quad Lkzs.11 ; name
+    .quad Lkzs.12 ; name
     .long 3 ; name
     .space 4 ; padding
-    .quad Lkzs.12 ; location
+    .quad Lkzs.13 ; location
     .long 19 ; location
     .space 4 ; padding
     .long 0 ; n_annotations
@@ -285,7 +350,7 @@ _issue08_Zoissue08_ZdFoo$fields:
     .long 16 ; access|constraint
     .long 0 ; n_annotations
     .quad 0 ; reserved0
-    .quad Lkzs.10 ; name
+    .quad Lkzs.11 ; name
     .long 1 ; name
     .space 4 ; padding
     .quad _yalx_Zplang_Zolang_ZdString$class ; type
@@ -298,10 +363,10 @@ _issue08_Zoissue08_ZdFoo$methods:
     .long 0 ; n_annotations
     .space 4 ; padding
     .quad 0 ; reserved0
-    .quad Lkzs.9 ; name
+    .quad Lkzs.10 ; name
     .long 8 ; name
     .space 4 ; padding
-    .quad Lkzs.8 ; prototype_desc
+    .quad Lkzs.9 ; prototype_desc
     .long 35 ; prototype_desc
     .space 4 ; padding
     .quad _issue08_Zoissue08_ZdFoo_ZdtoString ; entry
@@ -316,7 +381,7 @@ _issue08_Zoissue08$global_slots:
 ; Yalx-String constants
 .global _issue08_Zoissue08_Lksz
 _issue08_Zoissue08_Lksz:
-    .long 13
+    .long 14
     .long 0 ; padding for struct lksz_header
     .quad Lkzs.0
     .quad Lkzs.1
@@ -331,9 +396,10 @@ _issue08_Zoissue08_Lksz:
     .quad Lkzs.10
     .quad Lkzs.11
     .quad Lkzs.12
+    .quad Lkzs.13
 .global _issue08_Zoissue08_Kstr
 _issue08_Zoissue08_Kstr:
-    .long 13
+    .long 14
     .long 0 ; padding for struct kstr_header
 Kstr.0:
     .quad 0
@@ -360,4 +426,6 @@ Kstr.10:
 Kstr.11:
     .quad 0
 Kstr.12:
+    .quad 0
+Kstr.13:
     .quad 0

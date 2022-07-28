@@ -107,6 +107,7 @@ RegisterOperand *RegisterAllocator::AllocateRegister(MachineRepresentation rep, 
 }
 
 void RegisterAllocator::FreeRegister(RegisterOperand *reg) {
+    //printd("free: %p", reg);
     switch (reg->rep()) {
         case MachineRepresentation::kWord8:
         case MachineRepresentation::kWord16:

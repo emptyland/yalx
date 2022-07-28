@@ -31,7 +31,8 @@ public:
             return;
         }
         ASSERT_TRUE(modules.find(name) != modules.end());
-        //modules[name]->PrintTo(printer);
+//        modules[name]->PrintTo(printer);
+//        return;
         
         base::ArenaMap<std::string_view, backend::InstructionFunction *> funs(arena());
         cpl::Compiler::SelectArm64InstructionCode(arena(), modules[name], &const_pool_, &symbols_, 1, &funs);
@@ -163,7 +164,7 @@ TEST_F(Arm64CodeGeneratorTest, StringTemplate) {
     bool ok = true;
     CodeGen("tests/47-code-gen-string-template", "issue08:issue08", &printer, &ok);
     ASSERT_TRUE(ok);
-    printf("%s\n", buf.c_str());
+    //printf("%s\n", buf.c_str());
 }
 
 
@@ -941,6 +942,28 @@ TEST_F(Arm64CodeGeneratorTest, StringTemplateCreating) {
         ASSERT_STREQ("711.200012,911.099976", vals[0]->bytes);
         //printd("[%s],[%s]", vals[1]->bytes, vals[0]->bytes);
     }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue08_Zoissue08_Zdissue2_had(nullptr);
+    
+    {
+        auto vals = reinterpret_cast<yalx_str_handle>(state.buf);
+        ASSERT_STREQ("enum Foo: A", vals[1]->bytes);
+    }
+    
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+    
+    issue08_Zoissue08_Zdissue2_had(reinterpret_cast<yalx_value_any *>(yalx_new_string(&heap, "Doom", 4)));
+    
+    {
+        auto vals = reinterpret_cast<yalx_str_handle>(state.buf);
+        ASSERT_STREQ("enum Foo: B(Doom)", vals[1]->bytes);
+    }
+    
     yalx_exit_returning_scope(&state);
 }
 
