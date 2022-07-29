@@ -123,6 +123,20 @@ public:
         return nullptr;
     }
     
+    template <class T>
+    inline T *Industry() {
+        if (industry_instance_ && T::Uniquely() == industry_id_) {
+            return static_cast<T *>(industry_instance_);
+        }
+        if (auto inst = New<T>(this)) {
+            inst->Init();
+            industry_id_ = T::Uniquely();
+            industry_instance_ = inst;
+            return inst;
+        }
+        return nullptr;
+    }
+    
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arena);
 private:
     template<class T> struct Less : public std::binary_function<T, T, bool> {
@@ -177,6 +191,8 @@ private:
     
     BlockHeader *block_ = nullptr;
     BlockHeader *large_blocks_ = nullptr;
+    uintptr_t industry_id_ = 0;
+    void *industry_instance_ = nullptr;
     LazyObjectMap lazy_objects_;
 }; // class Arena
 

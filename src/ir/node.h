@@ -235,6 +235,7 @@ public:
     DEF_VAL_GETTER(int, id);
     DEF_ARENA_VECTOR_GETTER(Value *, instruction);
     DEF_ARENA_VECTOR_GETTER(PhiUser, phi_node_user);
+    DEF_ARENA_VECTOR_GETTER(Value *, persistent);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, input);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, output);
     
@@ -288,6 +289,7 @@ private:
     base::ArenaVector<BasicBlock *> inputs_;
     base::ArenaVector<BasicBlock *> outputs_;
     base::ArenaVector<PhiUser> phi_node_users_;
+    base::ArenaVector<Value *> persistents_;
 }; // class BasicBlock
 
 

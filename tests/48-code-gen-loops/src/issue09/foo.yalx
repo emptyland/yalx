@@ -1,0 +1,10 @@
+package issue09
+
+@yalx.Compiler(nativeHandle=true)
+fun issue1(n: int): i16 {
+    var c = 1i16
+    for (i in 0 until n) {
+        c = c + 3i16
+    }
+    return c
+}

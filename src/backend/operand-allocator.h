@@ -60,12 +60,13 @@ public:
     RegisterOperand *AllocateReigster(ir::Type ty, int designate = kAnyRegister);
     RegisterOperand *AllocateReigster(OperandMark mark, size_t size, int designate = kAnyRegister);
 
-    void Free(ir::Value *value) {
+    void Release(ir::Value *value) {
         if (auto iter = allocated_.find(value); iter != allocated_.end()) {
-            Free(iter->second);
+            Release(iter->second);
             allocated_.erase(iter);
         }
     }
+    void Release(InstructionOperand *operand);
     void Free(InstructionOperand *operand);
     
     bool WillBeLive(ir::Value *value, int position) const { return !WillBeDead(value, position); }

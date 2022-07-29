@@ -51,6 +51,14 @@ void OperandAllocator::Prepare(ir::Function *fun) {
     const auto total = position;
     for (int64_t i = fun->blocks_size() - 1; i >= 0; i--) {
         auto blk = fun->block(i);
+        for (auto user : blk->phi_node_users()) {
+            Dead(user.dest, position);
+        }
+        for (auto instr : blk->persistents()) {
+            for (int k = 0; k < instr->op()->value_in(); k++) {
+                Dead(instr->InputValue(k), position);
+            }
+        }
         for (int64_t j = blk->instructions_size() - 1; j >= 0; j--) {
             auto instr = blk->instruction(j);
             if (instr->type().kind() != ir::Type::kVoid) {
@@ -340,7 +348,7 @@ RegisterOperand *OperandAllocator::AllocateReigster(OperandMark mark, size_t siz
 void OperandAllocator::Associate(ir::Value *value, InstructionOperand *operand) {
     if (auto iter = allocated_.find(value); iter != allocated_.end()) {
         if (operand != iter->second) {
-            Free(iter->second);
+            Release(iter->second);
         } else {
             iter->second->Drop();
         }
@@ -380,9 +388,14 @@ InstructionOperand *OperandAllocator::LinkTo(ir::Value *value, InstructionOperan
     return old;
 }
 
+void OperandAllocator::Release(InstructionOperand *operand) {
+    if (operand->Drop() == 0) {
+        Free(operand);
+    }
+    DCHECK(operand->refs() >= 0);
+}
+
 void OperandAllocator::Free(InstructionOperand *operand) {
-    operand->Drop();
-    //printd("[%p] refs=%d", operand, operand->refs());
     DCHECK(operand->refs() == 0);
     switch (operand->kind()) {
         case InstructionOperand::kRegister: {

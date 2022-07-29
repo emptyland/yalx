@@ -132,8 +132,10 @@ class Arm64FunctionInstructionSelector final {
 public:
     enum Policy {
         kReg, // only register
+        kRtm, // register
         kMoR, // in memory or register
         kRoI, // can be register or immediate
+        kRtI,
         kAny,
     };
     
@@ -442,7 +444,7 @@ void Arm64FunctionInstructionSelector::CallOriginalFun() {
     for (auto [bak, origin, param] : args) {
         Move(origin, bak, param->type());
         bak->Grab();
-        operands_.Free(bak);
+        operands_.Release(bak);
     }
 
     auto sym = symbols_->Mangle(fun_->full_name());
@@ -679,8 +681,7 @@ void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
     }
     
     for (auto instr : bb->instructions()) {
-        operands_.ReleaseDeads(instruction_position_);
-        tmps_.clear();
+        
         if (instr->op()->IsTerminator()) {
             for (auto user : bb->phi_node_users()) {
                 auto phi_slot = DCHECK_NOTNULL(operands_.Allocated(user.phi));
@@ -689,10 +690,16 @@ void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
                 Move(phi_slot, dest, user.phi->type());
             }
         }
+        operands_.ReleaseDeads(instruction_position_);
+        tmps_.clear();
+        
         Select(instr);
         for (auto tmp : tmps_) {
-            tmp->Grab();
-            operands_.Free(tmp);
+            if (tmp->refs() == 0) {
+                operands_.Free(tmp);
+            } else {
+                operands_.Release(tmp);
+            }
         }
         for (const auto &borrow : borrowed_registers_) {
             
@@ -700,8 +707,8 @@ void Arm64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
                 Move(borrow.old, borrow.bak, borrow.original->type());
                 operands_.Associate(borrow.original, borrow.old);
             } else {
-                operands_.Free(borrow.bak);
-                operands_.Free(borrow.target);
+                operands_.Release(borrow.bak);
+                operands_.Release(borrow.target);
             }
         }
         borrowed_registers_.clear();
@@ -894,8 +901,8 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         } break;
             
         case ir::Operator::kICmp: {
-            auto lhs = Allocate(instr->InputValue(0), kReg);
-            auto rhs = Allocate(instr->InputValue(1), kRoI, 12/*imm_bits*/);
+            auto lhs = Allocate(instr->InputValue(0), kRtm);
+            auto rhs = Allocate(instr->InputValue(1), kRtI, 12/*imm_bits*/);
             switch (ToMachineRepresentation(instr->InputValue(0)->type())) {
                 case MachineRepresentation::kWord8:
                 case MachineRepresentation::kWord16:
@@ -915,8 +922,8 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         } break;
             
         case ir::Operator::kFCmp: {
-            auto lhs = Allocate(instr->InputValue(0), kReg);
-            auto rhs = Allocate(instr->InputValue(1), kReg);
+            auto lhs = Allocate(instr->InputValue(0), kRtm);
+            auto rhs = Allocate(instr->InputValue(1), kRtm);
             switch (ToMachineRepresentation(instr->InputValue(0)->type())) {
                 case MachineRepresentation::kFloat32:
                     current()->NewII(Arm64Float32Cmp, lhs, rhs);
@@ -934,8 +941,8 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         } break;
             
         case ir::Operator::kAdd: {
-            auto lhs = Allocate(instr->InputValue(0), kReg);
-            auto rhs = Allocate(instr->InputValue(1), kRoI, 12/*imm_bits*/);
+            auto lhs = Allocate(instr->InputValue(0), kRtm);
+            auto rhs = Allocate(instr->InputValue(1), kRtI, 12/*imm_bits*/);
             auto opd = Allocate(instr, kReg);
             switch (ToMachineRepresentation(instr->type())) {
                 case MachineRepresentation::kWord8:
@@ -953,8 +960,8 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
         } break;
             
         case ir::Operator::kFAdd: {
-            auto lhs = Allocate(instr->InputValue(0), kReg);
-            auto rhs = Allocate(instr->InputValue(1), kReg);
+            auto lhs = Allocate(instr->InputValue(0), kRtm);
+            auto rhs = Allocate(instr->InputValue(1), kRtm);
             auto opd = Allocate(instr, kReg);
             switch (ToMachineRepresentation(instr->type())) {
                 case MachineRepresentation::kFloat32:
@@ -1096,7 +1103,7 @@ void Arm64FunctionInstructionSelector::Select(ir::Value *instr) {
 
             for (auto slot : slots) {
                 slot->Grab();
-                operands_.Free(slot);
+                operands_.Release(slot);
             }
             auto opd = Allocate(instr, kMoR);
             Move(opd, x0, instr->type());
@@ -1413,7 +1420,7 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
             Move(rb, mem, ir::Types::Word64);
             addr = new (arena_) LocationOperand(Arm64Mode_MRI, rb->register_id(), -1, static_cast<int>(field->offset));
             bak->Grab();
-            operands_.Free(bak);
+            operands_.Release(bak);
         } else {
             DCHECK(bak->IsLocation());
             auto brd = operands_.BorrowRegister(ir::Types::Word64, bak);
@@ -1437,8 +1444,8 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
         
         arg1->Grab();
         arg0->Grab();
-        operands_.Free(arg1);
-        operands_.Free(arg0);
+        operands_.Release(arg1);
+        operands_.Release(arg0);
     } else if (is_chunk) {
         auto arg0 = operands_.AllocateReigster(ir::Types::Word64, arm64::x0.code());
         Move(arg0, opd, instr->InputValue(0)->type());
@@ -1465,9 +1472,9 @@ void Arm64FunctionInstructionSelector::PutField(ir::Value *instr) {
         arg2->Grab();
         arg1->Grab();
         arg0->Grab();
-        operands_.Free(arg2);
-        operands_.Free(arg1);
-        operands_.Free(arg0);
+        operands_.Release(arg2);
+        operands_.Release(arg1);
+        operands_.Release(arg0);
     } else {
         Move(addr, value, field->type);
     }
@@ -1502,12 +1509,12 @@ void Arm64FunctionInstructionSelector::Concat(ir::Value *instr) {
 
     for (auto slot : slots) {
         slot->Grab();
-        operands_.Free(slot);
+        operands_.Release(slot);
     }
     a1->Grab();
     a0->Grab();
-    operands_.Free(a1);
-    operands_.Free(a0);
+    operands_.Release(a1);
+    operands_.Release(a0);
 }
 
 void Arm64FunctionInstructionSelector::ArrayFill(ir::Value *instr) {
@@ -1550,12 +1557,12 @@ void Arm64FunctionInstructionSelector::ArrayFill(ir::Value *instr) {
     Move(opd, a0, instr->type());
     a0->Grab();
     a1->Grab();
-    operands_.Free(a0);
-    operands_.Free(a1);
+    operands_.Release(a0);
+    operands_.Release(a1);
     
     for (auto slot : slots) {
         slot->Grab();
-        operands_.Free(slot);
+        operands_.Release(slot);
     }
 }
 
@@ -1645,11 +1652,11 @@ void Arm64FunctionInstructionSelector::ArrayAt(ir::Value *instr) {
     
     for (auto arg : args) {
         arg->Grab();
-        operands_.Free(arg);
+        operands_.Release(arg);
     }
     for (auto slot : slots) {
         slot->Grab();
-        operands_.Free(slot);
+        operands_.Release(slot);
     }
 }
 
@@ -1811,11 +1818,11 @@ void Arm64FunctionInstructionSelector::ArraySet(ir::Value *instr) {
     operands_.Associate(instr, Allocate(instr->InputValue(0), kAny));
     for (auto arg : args) {
         arg->Grab();
-        operands_.Free(arg);
+        operands_.Release(arg);
     }
     for (auto slot : slots) {
         slot->Grab();
-        operands_.Free(slot);
+        operands_.Release(slot);
     }
 }
 
@@ -1859,14 +1866,14 @@ void Arm64FunctionInstructionSelector::Closure(ir::Value *instr) {
 
     for (auto slot : slots) {
         slot->Grab();
-        operands_.Free(slot);
+        operands_.Release(slot);
     }
     a2->Grab();
     a1->Grab();
     a0->Grab();
-    operands_.Free(a0);
-    operands_.Free(a1);
-    operands_.Free(a2);
+    operands_.Release(a0);
+    operands_.Release(a1);
+    operands_.Release(a2);
 }
 
 void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
@@ -1955,6 +1962,7 @@ void Arm64FunctionInstructionSelector::Call(ir::Value *instr) {
     if (overflow_args_size > 0) {
         for (auto arg : overflow_args) {
             auto opd = operands_.AllocateStackSlot(arg->type(), 0/*padding_size*/, StackSlotAllocator::kLinear);
+            opd->Grab();
             tmps_.push_back(opd);
             Move(opd, Allocate(arg, kAny), arg->type());
         }
@@ -2371,6 +2379,7 @@ void Arm64FunctionInstructionSelector::ConditionSelect(ir::Value *instr, Instruc
 InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value, Policy policy, uint32_t imm_bits) {
     auto opd = operands_.Allocated(value);
     switch (policy) {
+        case kRtm:
         case kReg: {
             if (opd && opd->IsRegister()) {
                 return opd;
@@ -2380,6 +2389,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
                 DCHECK(kop->IsImmediate() || kop->IsConstant());
                 auto bak = operands_.Allocate(value->type());
                 if (bak->IsRegister()) {
+                    bak->Grab();
                     tmps_.push_back(bak);
                     Move(bak, kop, value->type());
                     return bak;
@@ -2399,9 +2409,14 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
                 auto bak = operands_.Allocate(value->type());
                 if (bak->IsRegister()) {
                     Move(bak, opd, value->type());
-                    auto old = operands_.LinkTo(value, bak);
-                    DCHECK(old == opd);
-                    tmps_.push_back(opd);
+                    if (policy == kReg) {
+                        auto old = operands_.LinkTo(value, bak);
+                        DCHECK(old == opd);
+                        tmps_.push_back(opd);
+                    }
+                    if (policy == kRtm) {
+                        tmps_.push_back(bak);
+                    }
                     return bak;
                 }
                 auto brd = operands_.BorrowRegister(value, bak);
@@ -2414,6 +2429,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
             return opd;
         } break;
 
+        case kRtI:
         case kRoI: {
             if (opd && opd->IsRegister()) {
                 return opd;
@@ -2443,9 +2459,14 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
             auto bak = operands_.Allocate(value->type());
             if (bak->IsRegister()) {
                 Move(bak, opd, value->type());
-                auto old = operands_.LinkTo(value, bak);
-                DCHECK(old == opd);
-                tmps_.push_back(opd);
+                if (policy == kRoI) {
+                    auto old = operands_.LinkTo(value, bak);
+                    DCHECK(old == opd);
+                    tmps_.push_back(opd);
+                }
+                if (policy == kRtI) {
+                    tmps_.push_back(bak);
+                }
                 return bak;
             }
             auto brd = operands_.BorrowRegister(value, bak);
@@ -2464,7 +2485,6 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
                 auto kop = Constant(value, 0/*imm_bits*/);
                 DCHECK(kop->IsImmediate() || kop->IsConstant());
                 auto opd = operands_.Allocate(value);
-                //tmps_.push_back(opd);
                 Move(opd, kop, value->type());
                 return opd;
             }
@@ -2477,11 +2497,7 @@ InstructionOperand *Arm64FunctionInstructionSelector::Allocate(ir::Value *value,
             }
             
             if (value->op()->IsConstant()) {
-//                if (value->Is(ir::Operator::kStringConstant)) {
-//                    return Constant(value, imm_bits);
-//                }
                 opd = operands_.Allocate(value);
-                //tmps_.push_back(opd);
                 if (opd->IsRegister()) {
                     auto imm = Constant(value, 16);
                     if (imm->IsImmediate()) {
@@ -2670,6 +2686,9 @@ void Arm64FunctionInstructionSelector::MoveMachineWords(Instruction::Code load_o
         if (src->IsRegister()) {
             current()->NewIO(Arm64Mov, dest, src);
         } else if (src->IsLocation()) {
+            if (load_op == Arm64Ldrsw) {
+                TypingNormalize(&dest, ir::Types::Word64);
+            }
             current()->NewIO(load_op, dest, src);
         } else if (src->IsConstant() || src->IsReloaction()) {
             auto tmp = operands_.registers()->GeneralScratch0(MachineRepresentation::kWord64);
@@ -2692,8 +2711,10 @@ void Arm64FunctionInstructionSelector::MoveMachineWords(Instruction::Code load_o
         } else if (src->IsLocation()) {
             // ldr x19, [src]
             // str x19, [dest]
-            auto tmp0 = operands_.registers()->GeneralScratch0(scratch_rep);
+            auto tmp0 = operands_.registers()->GeneralScratch0(load_op == Arm64Ldrsw
+                                                               ? MachineRepresentation::kWord64 : scratch_rep);
             current()->NewIO(load_op, tmp0, src);
+            tmp0 = operands_.registers()->GeneralScratch0(scratch_rep);
             current()->NewIO(store_op, dest, tmp0);
         } else if (src->IsReloaction() || src->IsConstant()) {
             // adrp x19, dest@PAGE

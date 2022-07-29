@@ -167,6 +167,16 @@ TEST_F(Arm64CodeGeneratorTest, StringTemplate) {
     //printf("%s\n", buf.c_str());
 }
 
+// 48-code-gen-loops
+TEST_F(Arm64CodeGeneratorTest, Loops) {
+    
+    std::string buf;
+    base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+    bool ok = true;
+    CodeGen("tests/48-code-gen-loops", "issue09:issue09", &printer, &ok);
+    ASSERT_TRUE(ok);
+    //printf("%s\n", buf.c_str());
+}
 
 TEST_F(Arm64CodeGeneratorTest, ReturningVals) {
     int buf[4] = {0};
@@ -964,6 +974,21 @@ TEST_F(Arm64CodeGeneratorTest, StringTemplateCreating) {
         ASSERT_STREQ("enum Foo: B(Doom)", vals[1]->bytes);
     }
     
+    yalx_exit_returning_scope(&state);
+}
+
+TEST_F(Arm64CodeGeneratorTest, RunLoops) {
+    pkg_init_once(reinterpret_cast<void *>(&issue09_Zoissue09_Zd_Z4init), "issue09:issue09");
+    
+    yalx_returning_vals state;
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue09_Zoissue09_Zdissue1_had(100);
+    
+    {
+        auto vals = reinterpret_cast<i32_t *>(state.buf);
+        ASSERT_EQ(304, vals[3]);
+    }
     yalx_exit_returning_scope(&state);
 }
 

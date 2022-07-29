@@ -405,7 +405,7 @@ void X64FunctionInstructionSelector::TearDownHandleFrame(
     for (auto [bak, origin] : saved_registers) {
         current()->NewIO(X64Movq, origin, bak);
         bak->Grab();
-        operands_.Free(bak);
+        operands_.Release(bak);
     }
     current()->NewIO(ArchFrameExit, fp, stack_size_);
 }
@@ -434,7 +434,7 @@ void X64FunctionInstructionSelector::CallOriginalFun() {
     for (auto [bak, origin, param] : args) {
         Move(origin, bak, param->type());
         bak->Grab();
-        operands_.Free(bak);
+        operands_.Release(bak);
     }
     current()->NewI(ArchCall, bundle()->AddExternalSymbol(symbols_->Mangle(fun_->full_name())));
 }
@@ -624,15 +624,15 @@ void X64FunctionInstructionSelector::SelectBasicBlock(ir::BasicBlock *bb) {
             }
         }
         Select(instr);
-        for (auto tmp : tmps_) { operands_.Free(tmp); }
+        for (auto tmp : tmps_) { operands_.Release(tmp); }
         for (const auto &borrow : borrowed_registers_) {
             
             if (borrow.original) {
                 Move(borrow.old, borrow.bak, borrow.original->type());
                 operands_.Associate(borrow.original, borrow.old);
             } else {
-                operands_.Free(borrow.bak);
-                operands_.Free(borrow.target);
+                operands_.Release(borrow.bak);
+                operands_.Release(borrow.target);
             }
         }
         
@@ -731,7 +731,7 @@ void X64FunctionInstructionSelector::Select(ir::Value *instr) {
                     auto loc = new (arena_) LocationOperand(X64Mode_MRI, base->register_id(), -1,
                                                             static_cast<int>(field->offset));
                     Move(value, loc, field->type);
-                    operands_.Free(bak);
+                    operands_.Release(bak);
                 } else {
                     DCHECK(bak->IsLocation());
                     auto brd = operands_.BorrowRegister(ir::Types::Word64, bak);
@@ -1296,7 +1296,7 @@ void X64FunctionInstructionSelector::PutField(ir::Value *instr) {
             current()->NewIO(X64Lea, base, mem);
             loc = new (arena_) LocationOperand(X64Mode_MRI, base->register_id(), -1, static_cast<int>(field->offset));
             bak->Grab();
-            operands_.Free(bak);
+            operands_.Release(bak);
         } else {
             DCHECK(bak->IsLocation());
             auto brd = operands_.BorrowRegister(ir::Types::Word64, bak);
@@ -1885,7 +1885,7 @@ InstructionOperand *X64FunctionInstructionSelector::CopyArgumentValue(Instructio
             
         }
         tmp->Grab();
-        operands_.Free(tmp);
+        operands_.Release(tmp);
     }
     return to;
 }

@@ -20,6 +20,7 @@ namespace base {
 class ArenaString {
 public:
     static const ArenaString *const kEmpty;
+    static constexpr size_t kMaxPoolStringLen = 64;
     
     DEF_VAL_GETTER(uint32_t, hash_val);
     size_t size() const { return len_;}

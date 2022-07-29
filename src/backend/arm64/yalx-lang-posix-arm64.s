@@ -376,9 +376,9 @@ Lblk72:
 _yalx_Zplang_Zolang_ZdOptional_Dkyalx_Zplang_Zolang_ZdThrowable_Dl_ZdunwarpOr:
 .cfi_startproc
 Lblk0:
-    sub sp, sp, #16
-    stp fp, lr, [sp, #0]
-    add fp, sp, #0
+    sub sp, sp, #32
+    stp fp, lr, [sp, #16]
+    add fp, sp, #16
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -388,30 +388,31 @@ Lblk1:
     cmp x0, #0
     b.ne Lblk3
 Lblk2:
-    mov x2, x1
+    stur x1, [fp, #-8]
     b Lblk5
     nop
 Lblk3:
     cmp x0, #0
     b.ne Lblk4
 Lblk4:
-    mov x3, x0
-    mov x2, x3
+    mov x2, x0
+    stur x2, [fp, #-8]
     b Lblk5
     nop
 Lblk5:
-    str x2, [fp, #24]
-    ldp fp, lr, [sp, #0]
-    add sp, sp, #16
+    ldur x19, [fp, #-8]
+    str x19, [fp, #24]
+    ldp fp, lr, [sp, #16]
+    add sp, sp, #32
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdOptional_Dki32_Dl_ZdunwarpOr
 _yalx_Zplang_Zolang_ZdOptional_Dki32_Dl_ZdunwarpOr:
 .cfi_startproc
 Lblk6:
-    sub sp, sp, #16
-    stp fp, lr, [sp, #0]
-    add fp, sp, #0
+    sub sp, sp, #32
+    stp fp, lr, [sp, #16]
+    add fp, sp, #16
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -422,31 +423,32 @@ Lblk7:
     cmp w2, #0
     b.ne Lblk9
 Lblk8:
-    mov w2, w1
+    stur w1, [fp, #-4]
     b Lblk11
     nop
 Lblk9:
-    ldrh w3, [x0, #0]
-    cmp w3, #1
+    ldrh w2, [x0, #0]
+    cmp w2, #1
     b.ne Lblk11
 Lblk10:
-    ldr w3, [x0, #4]
-    mov w2, w3
+    ldr w2, [x0, #4]
+    stur w2, [fp, #-4]
     b Lblk11
     nop
 Lblk11:
-    str w2, [fp, #28]
-    ldp fp, lr, [sp, #0]
-    add sp, sp, #16
+    ldur w19, [fp, #-4]
+    str w19, [fp, #28]
+    ldp fp, lr, [sp, #16]
+    add sp, sp, #32
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdOptional_Dkstring_Dl_ZdunwarpOr
 _yalx_Zplang_Zolang_ZdOptional_Dkstring_Dl_ZdunwarpOr:
 .cfi_startproc
 Lblk12:
-    sub sp, sp, #16
-    stp fp, lr, [sp, #0]
-    add fp, sp, #0
+    sub sp, sp, #32
+    stp fp, lr, [sp, #16]
+    add fp, sp, #16
     .cfi_def_cfa fp, 16
     .cfi_offset lr, -8
     .cfi_offset fp, -16
@@ -456,21 +458,22 @@ Lblk13:
     cmp x0, #0
     b.ne Lblk15
 Lblk14:
-    mov x2, x1
+    stur x1, [fp, #-8]
     b Lblk17
     nop
 Lblk15:
     cmp x0, #0
     b.ne Lblk16
 Lblk16:
-    mov x3, x0
-    mov x2, x3
+    mov x2, x0
+    stur x2, [fp, #-8]
     b Lblk17
     nop
 Lblk17:
-    str x2, [fp, #24]
-    ldp fp, lr, [sp, #0]
-    add sp, sp, #16
+    ldur x19, [fp, #-8]
+    str x19, [fp, #24]
+    ldp fp, lr, [sp, #16]
+    add sp, sp, #32
     ret
 .cfi_endproc
 .global _yalx_Zplang_Zolang_ZdAny_Zdid
@@ -640,10 +643,10 @@ Lblk24:
     stur w2, [fp, #-16]
     stur w3, [fp, #-20]
     stur x4, [fp, #-28]
-    add x0, x0, #32
-    mov x1, x4
-    bl _put_field
     ldur x0, [fp, #-8]
+    add x0, x0, #32
+    ldur x1, [fp, #-28]
+    bl _put_field
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
     ret
@@ -1187,23 +1190,23 @@ Lblk53:
     stur x0, [fp, #-8]
     stur x1, [fp, #-16]
     stur x2, [fp, #-24]
-    add x0, x0, #16
-    bl _put_field
     ldur x0, [fp, #-8]
-    ldur x1, [fp, #-24]
-    str x1, [x0, #24]
-    stur x0, [fp, #-8]
-    stur x1, [fp, #-16]
+    add x0, x0, #16
+    ldur x1, [fp, #-16]
+    bl _put_field
+    ldur x2, [fp, #-24]
+    stur x2, [fp, #-16]
+    ldur x0, [fp, #-8]
+    add x0, x0, #24
+    ldur x1, [fp, #-16]
+    bl _put_field
     add sp, sp, #0
     bl _yalx_Zplang_Zolang_Zdunwind
     sub sp, sp, #0
     ldur x0, [fp, #-8]
-    stur x0, [fp, #-8]
-    stur x1, [fp, #-24]
     add x0, x0, #32
     ldur x1, [fp, #-40]
     bl _put_field
-    ldur x0, [fp, #-8]
     ldp fp, lr, [sp, #48]
     add sp, sp, #64
     ret
@@ -1313,20 +1316,21 @@ Lblk57:
     stur x2, [fp, #-24]
     stur x3, [fp, #-32]
     stur w4, [fp, #-36]
+    ldur x0, [fp, #-8]
     add x0, x0, #24
-    mov x1, x2
+    ldur x1, [fp, #-24]
     bl _put_field
+    ldur x2, [fp, #-32]
+    ldur w3, [fp, #-36]
+    stur x2, [fp, #-24]
+    stur w3, [fp, #-28]
     ldur x0, [fp, #-8]
-    ldur x1, [fp, #-32]
-    ldur w2, [fp, #-36]
-    stur x0, [fp, #-8]
-    stur x1, [fp, #-24]
-    stur w2, [fp, #-28]
     add x0, x0, #32
+    ldur x1, [fp, #-24]
     bl _put_field
+    ldur w2, [fp, #-28]
     ldur x0, [fp, #-8]
-    ldur w1, [fp, #-28]
-    str w1, [x0, #40]
+    str w2, [x0, #40]
     ldp fp, lr, [sp, #64]
     add sp, sp, #80
     ret
