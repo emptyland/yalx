@@ -38,19 +38,21 @@ Lblk1:
     stur w1, [fp, #-4]
     mov w2, #0
     stur w2, [fp, #-8]
-    b Lblk2
+    b Lblk3
     nop
 Lblk2:
+    ldursw x3, [fp, #-4]
+    add w4, w3, #3
+    ldur w3, [fp, #-8]
+    add w5, w3, #1
+    stur w4, [fp, #-4]
+    stur w5, [fp, #-8]
+    b Lblk3
+    nop
+Lblk3:
     ldur w1, [fp, #-8]
     cmp w1, w0
     b.gt Lblk4
-Lblk3:
-    ldursw x1, [fp, #-4]
-    add w2, w1, #3
-    ldur w1, [fp, #-8]
-    add w3, w1, #1
-    stur w2, [fp, #-4]
-    stur w3, [fp, #-8]
     b Lblk2
     nop
 Lblk4:
@@ -81,6 +83,79 @@ Lblk5:
     mov x26, x0
     ldur w0, [fp, #-4]
     bl _issue09_Zoissue09_Zdissue1
+    mov x0, #16
+    bl _reserve_handle_returning_vals
+    mov x1, sp
+    mov x2, #16
+    bl _memcpy
+    ldp x19, x20, [sp, #80]
+    ldp x21, x22, [sp, #64]
+    ldp x23, x24, [sp, #48]
+    ldp x25, x26, [sp, #32]
+    ldp x27, x28, [sp, #16]
+    ldp fp, lr, [sp, #96]
+    add sp, sp, #112
+    ret
+.cfi_endproc
+.global _issue09_Zoissue09_Zdissue2
+_issue09_Zoissue09_Zdissue2:
+.cfi_startproc
+Lblk6:
+    sub sp, sp, #32
+    stp fp, lr, [sp, #16]
+    add fp, sp, #16
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    mov w1, #1
+    stur w1, [fp, #-4]
+    mov w2, #0
+    stur w2, [fp, #-8]
+    b Lblk8
+    nop
+Lblk7:
+    ldursw x3, [fp, #-4]
+    add w4, w3, #3
+    ldur w3, [fp, #-8]
+    add w5, w3, #1
+    stur w4, [fp, #-4]
+    stur w5, [fp, #-8]
+    b Lblk8
+    nop
+Lblk8:
+    ldur w1, [fp, #-8]
+    cmp w1, w0
+    b.ge Lblk9
+    b Lblk7
+    nop
+Lblk9:
+    ldursw x19, [fp, #-4]
+    str w19, [fp, #28]
+    ldp fp, lr, [sp, #16]
+    add sp, sp, #32
+    ret
+.cfi_endproc
+.global _issue09_Zoissue09_Zdissue2_had
+_issue09_Zoissue09_Zdissue2_had:
+.cfi_startproc
+Lblk10:
+    sub sp, sp, #112
+    stp fp, lr, [sp, #96]
+    add fp, sp, #96
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stp x19, x20, [sp, #80]
+    stp x21, x22, [sp, #64]
+    stp x23, x24, [sp, #48]
+    stp x25, x26, [sp, #32]
+    stp x27, x28, [sp, #16]
+    add fp, sp, #16
+    stur w0, [fp, #-4]
+    bl _current_root
+    mov x26, x0
+    ldur w0, [fp, #-4]
+    bl _issue09_Zoissue09_Zdissue2
     mov x0, #16
     bl _reserve_handle_returning_vals
     mov x1, sp

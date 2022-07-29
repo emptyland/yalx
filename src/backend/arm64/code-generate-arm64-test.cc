@@ -175,7 +175,7 @@ TEST_F(Arm64CodeGeneratorTest, Loops) {
     bool ok = true;
     CodeGen("tests/48-code-gen-loops", "issue09:issue09", &printer, &ok);
     ASSERT_TRUE(ok);
-    //printf("%s\n", buf.c_str());
+    printf("%s\n", buf.c_str());
 }
 
 TEST_F(Arm64CodeGeneratorTest, ReturningVals) {
@@ -988,6 +988,16 @@ TEST_F(Arm64CodeGeneratorTest, RunLoops) {
     {
         auto vals = reinterpret_cast<i32_t *>(state.buf);
         ASSERT_EQ(304, vals[3]);
+    }
+    yalx_exit_returning_scope(&state);
+    
+    yalx_enter_returning_scope(&state, 16, nullptr);
+
+    issue09_Zoissue09_Zdissue2_had(100);
+    
+    {
+        auto vals = reinterpret_cast<i32_t *>(state.buf);
+        ASSERT_EQ(301, vals[3]);
     }
     yalx_exit_returning_scope(&state);
 }
