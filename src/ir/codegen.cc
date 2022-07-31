@@ -1302,7 +1302,6 @@ public:
         auto cond = b()->NewNode(root_ss.Position(), Types::UInt8, op, iter, upper);
         op = ops()->Br(1/*value_in*/, 2/*control_out*/);
         b()->NewNode(root_ss.Position(), Types::Void, op, cond, loop_block, exit_block);
-        b()->NewNode(root_ss.Position(), Types::Void, ops()->Br(0, 1), loop_block);
         
         if (ast->body()) {
             SourcePositionTable::Scope ss(ast->body()->source_position(), &root_ss);
