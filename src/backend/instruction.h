@@ -2,10 +2,10 @@
 #ifndef YALX_BACKEND_INSTRUCTION_H_
 #define YALX_BACKEND_INSTRUCTION_H_
 
-#include "backend/x64/instruction-codes-x64.h"
-#include "backend/arm64/instruction-codes-arm64.h"
+#include "backend/instruction-code.h"
 #include "backend/machine-type.h"
 #include "base/arena-utils.h"
+#include "base/checking.h"
 #include "base/base.h"
 
 namespace yalx {
@@ -19,32 +19,6 @@ namespace backend {
 
 using String = base::ArenaString;
 
-enum InstructionCode {
-    ArchNop,
-    ArchDebugBreak,
-    ArchRet,
-    ArchJmp,
-    ArchCall,
-    ArchFrameEnter,
-    ArchFrameExit,
-    ArchUnreachable,
-    ArchSafepoint,
-#define DEFINE_ENUM(name) name,
-    X64_ARCH_OPCODE_LIST(DEFINE_ENUM)
-    ARM64_ARCH_OPCODE_LIST(DEFINE_ENUM)
-#undef DEFINE_ENUM
-};
-
-enum AddressingMode {
-#define DEFINE_ENUM(name) X64Mode_##name,
-    X64_ADDRESSING_MODE_LIST(DEFINE_ENUM)
-#undef DEFINE_ENUM
-    
-#define DEFINE_ENUM(name) Arm64Mode_##name,
-    ARM64_ADDRESSING_MODE_LIST(DEFINE_ENUM)
-#undef DEFINE_ENUM
-};
-
 class UnallocatedOperand;
 class ConstantOperand;
 class ImmediateOperand;
@@ -52,9 +26,11 @@ class ReloactionOperand;
 class LocationOperand;
 class RegisterOperand;
 
+class InstructionSelector;
 class InstructionBlock;
 
 #define DECLARE_INSTRUCTION_OPERANDS_KINDS(V) \
+    V(Unallocated) \
     V(Constant) \
     V(Immediate) \
     V(Reloaction) \
@@ -70,11 +46,10 @@ public:
 #undef  DEFINE_ENUM
     };
     
-    DEF_VAL_GETTER(Kind, kind);
-    DEF_VAL_GETTER(int, refs);
+    InstructionOperand(): InstructionOperand(kInvalid) {}
     
-    int Grab() { return refs_++; }
-    int Drop() { return --refs_; }
+    DEF_VAL_GETTER(Kind, kind);
+
     void Kill() { kind_ = kInvalid; }
 
 #define DEFINE_TESTING(name) bool Is##name() const { return kind() == k##name; }
@@ -89,78 +64,218 @@ public:
     inline const name##Operand *As##name() const;
     DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_CASTING)
 #undef  DEFINE_CASTING
+    
+    //DISALLOW_IMPLICIT_CONSTRUCTORS(InstructionOperand);
 protected:
+    struct UnallocatedBundle {
+        int16_t policy;
+        int16_t life_time;
+        int value;
+        int vid; // virtual register id
+    };
+    struct ReloactionBundle {
+        union {
+            const InstructionBlock *label;
+            const String *symbol_name;
+        };
+        int32_t fetch_address: 1;
+        int32_t label_or_symbol: 1;
+        int32_t offset: 30;
+    };
+    struct ImmediateBundle {
+        MachineRepresentation rep;
+        union {
+            int8_t  word8_value;
+            int16_t word16_value;
+            int32_t word32_value;
+            int64_t word64_value;
+            float   float32_value;
+            double  float64_value;
+        };
+    };
+    struct ConstantBundle {
+        int type;
+        int symbol_id;
+    };
+    struct LocationBundle {
+        int16_t mode;
+        int16_t offset;
+        int16_t register0_id;
+        int16_t register1_id;
+    };
+    struct RegisterBundle {
+        int register_id;
+        MachineRepresentation rep;
+    };
+    
     explicit InstructionOperand(Kind kind): kind_(kind) {}
 
     Kind kind_;
-    int refs_ = 0;
+    union {
+        UnallocatedBundle unallocated_values_;
+        ReloactionBundle  reloaction_values_;
+        ImmediateBundle   immediate_values_;
+        ConstantBundle    constant_values_;
+        LocationBundle    location_values_;
+        RegisterBundle    register_values_;
+    };
+
 }; // class InstructionOperand
+
+class UnallocatedOperand final : public InstructionOperand {
+public:
+    enum Policy {
+        kNone,
+        kRegisterOrSlot,
+        kRegisterOrSlotOrConstant,
+        kFixedRegister,
+        kFixedFPRegister,
+        kFixedSlot,
+        kMustHaveRegister,
+        kMustHaveSlot,
+        kSameAsInput,
+    };
+    enum LifeTime {
+        kUsedAtStart,
+        kUsedAtEnd,
+    };
+    
+    static constexpr struct FixedSlotTag{} FIXED_SLOT;
+    
+    UnallocatedOperand(Policy policy, int virtual_register)
+    : UnallocatedOperand(virtual_register) {
+        mutable_bundle()->policy = policy;
+        mutable_bundle()->life_time = kUsedAtEnd;
+        mutable_bundle()->value = 0;
+    }
+    
+    // Same as input
+    UnallocatedOperand(int input_index, int virtual_register)
+    : UnallocatedOperand(virtual_register) {
+        mutable_bundle()->policy = kSameAsInput;
+        mutable_bundle()->life_time = kUsedAtEnd;
+        mutable_bundle()->value = input_index;
+    }
+    
+    UnallocatedOperand(FixedSlotTag, int stack_slot_offset, int virtual_register)
+    : UnallocatedOperand(virtual_register) {
+        mutable_bundle()->policy = kFixedSlot;
+        mutable_bundle()->life_time = kUsedAtEnd;
+        mutable_bundle()->value = stack_slot_offset;
+    }
+    
+    UnallocatedOperand(Policy policy, int index, int virtual_register)
+    : UnallocatedOperand(virtual_register) {
+        DCHECK(policy == kFixedRegister || policy == kFixedFPRegister);
+        mutable_bundle()->policy = policy;
+        mutable_bundle()->life_time = kUsedAtEnd;
+        mutable_bundle()->value = index;
+    }
+    
+    UnallocatedOperand(Policy policy, LifeTime life_time, int virtual_register)
+    : UnallocatedOperand(virtual_register) {
+        mutable_bundle()->policy = policy;
+        mutable_bundle()->life_time = life_time;
+        mutable_bundle()->value = 0;
+    }
+    
+    UnallocatedOperand(const UnallocatedOperand &other, int virtual_register)
+    : UnallocatedOperand(virtual_register) {
+        mutable_bundle()->policy = other.bundle()->policy;
+        mutable_bundle()->life_time = other.bundle()->life_time;
+        mutable_bundle()->value = other.bundle()->value;
+    }
+    
+    Policy policy() const { return static_cast<Policy>(bundle()->policy); }
+    LifeTime life_time() const { return static_cast<LifeTime>(bundle()->life_time); }
+    int virtual_register() const { return bundle()->vid; }
+
+    bool has_reigster_or_slot_policy() const { return policy() == kRegisterOrSlot; }
+    bool has_reigster_or_slot_or_constant_policy() const { return policy() == kRegisterOrSlotOrConstant; }
+    bool has_fixed_reigster_policy() const { return policy() == kFixedRegister; }
+    bool has_fixed_fp_reigster_policy() const { return policy() == kFixedFPRegister; }
+    bool has_fixed_slot_policy() const { return policy() == kFixedSlot; }
+    bool has_must_have_reigster_policy() const { return policy() == kMustHaveRegister; }
+    bool has_must_have_slot_policy() const { return policy() == kMustHaveSlot; }
+    bool has_same_as_input_policy() const { return policy() == kSameAsInput; }
+    
+    int fixed_slot_offset() const {
+        DCHECK(has_fixed_slot_policy());
+        return bundle()->value;
+    }
+    
+    int fixed_register_id() const {
+        DCHECK(has_fixed_reigster_policy());
+        return bundle()->value;
+    }
+    
+    int fixed_fp_register_id() const {
+        DCHECK(has_fixed_fp_reigster_policy());
+        return bundle()->value;
+    }
+    
+    int input_index() const {
+        DCHECK(has_same_as_input_policy());
+        return bundle()->value;
+    }
+    
+    bool is_used_at_start() const { return life_time() == kUsedAtStart; }
+    
+    bool is_used_at_end() const {
+        DCHECK(!has_fixed_slot_policy());
+        return life_time() == kUsedAtEnd;
+    }
+    
+    //DISALLOW_IMPLICIT_CONSTRUCTORS(UnallocatedOperand);
+private:
+    UnallocatedOperand(int virtual_register)
+    : InstructionOperand(kUnallocated) {
+        mutable_bundle()->vid = virtual_register;
+    }
+    
+    UnallocatedBundle *mutable_bundle() { return &unallocated_values_; }
+    const UnallocatedBundle *bundle() const { return &unallocated_values_; }
+}; // class UnallocatedOperand
+
+static_assert(sizeof(UnallocatedOperand) == sizeof(InstructionOperand), "");
 
 class ImmediateOperand final : public InstructionOperand {
 public:
-    DEF_VAL_GETTER(MachineRepresentation, rep);
-    DEF_VAL_GETTER(int8_t, word8);
-    DEF_VAL_GETTER(int16_t, word16);
-    DEF_VAL_GETTER(int32_t, word32);
-    DEF_VAL_GETTER(int64_t, word64);
-    
-    static ImmediateOperand *Word8(base::Arena *arena, int8_t val) {
-        auto imm = new (arena) ImmediateOperand(MachineRepresentation::kWord8);
-        imm->word8_ = val;
-        return imm;
+    ImmediateOperand(int8_t value): ImmediateOperand(MachineRepresentation::kWord8) {
+        mutable_bundle()->word8_value = value;
     }
     
-    static ImmediateOperand *Word16(base::Arena *arena, int16_t val) {
-        auto imm = new (arena) ImmediateOperand(MachineRepresentation::kWord16);
-        imm->word16_ = val;
-        return imm;
+    ImmediateOperand(int16_t value): ImmediateOperand(MachineRepresentation::kWord16) {
+        mutable_bundle()->word16_value = value;
     }
     
-    static ImmediateOperand *Word32(base::Arena *arena, int32_t val) {
-        auto imm = new (arena) ImmediateOperand(MachineRepresentation::kWord32);
-        imm->word32_ = val;
-        return imm;
+    ImmediateOperand(int32_t value): ImmediateOperand(MachineRepresentation::kWord32) {
+        mutable_bundle()->word32_value = value;
     }
     
-    static ImmediateOperand *Word64(base::Arena *arena, int64_t val) {
-        auto imm = new (arena) ImmediateOperand(MachineRepresentation::kWord64);
-        imm->word64_ = val;
-        return imm;
+    ImmediateOperand(int64_t value): ImmediateOperand(MachineRepresentation::kWord32) {
+        mutable_bundle()->word64_value = value;
     }
     
-    void Set8(int8_t val) {
-        assert(rep_ == MachineRepresentation::kWord8);
-        word8_ = val;
-    }
-    
-    void Set16(int16_t val) {
-        assert(rep_ == MachineRepresentation::kWord16);
-        word16_ = val;
-    }
-    
-    void Set32(int32_t val) {
-        assert(rep_ == MachineRepresentation::kWord32);
-        word32_ = val;
-    }
-    
-    void Set64(int64_t val) {
-        assert(rep_ == MachineRepresentation::kWord64);
-        word64_ = val;
-    }
+    MachineRepresentation machine_representation() const { return bundle()->rep; }
+    int8_t word8_value() const { return bundle()->word8_value; }
+    int16_t word16_value() const { return bundle()->word16_value; }
+    int32_t word32_value() const { return bundle()->word32_value; }
+    int64_t word64_value() const { return bundle()->word64_value; }
+    float float32_value() const { return bundle()->float32_value; }
+    double float64_value() const { return bundle()->float64_value; }
 
 private:
     ImmediateOperand(MachineRepresentation rep)
-    : InstructionOperand(kImmediate)
-    , rep_(rep) {}
+    : InstructionOperand(kImmediate) {
+        mutable_bundle()->rep = rep;
+    }
 
-    const MachineRepresentation rep_;
-    union {
-        int8_t word8_;
-        int16_t word16_;
-        int32_t word32_;
-        int64_t word64_;
-    };
+    ImmediateBundle *mutable_bundle() { return &immediate_values_; }
+    const ImmediateBundle *bundle() const { return &immediate_values_; }
 }; // class ImmediateOperand
+
+static_assert(sizeof(ImmediateOperand) == sizeof(InstructionOperand), "");
 
 class ConstantOperand final : public InstructionOperand {
 public:
@@ -169,88 +284,145 @@ public:
         kNumber,
     };
     
-    ConstantOperand(Type type, int symbol_id): InstructionOperand(kConstant), type_(type), symbol_id_(symbol_id) {}
+    ConstantOperand(Type type, int symbol_id)
+    : InstructionOperand(kConstant) {
+        mutable_bundle()->type = static_cast<int>(type);
+        mutable_bundle()->symbol_id = symbol_id;
+    }
     
-    DEF_VAL_GETTER(Type, type);
-    DEF_VAL_GETTER(int, symbol_id);
-
+    Type type() const { return static_cast<Type>(bundle()->type); }
+    int symbol_id() const { return bundle()->symbol_id; }
+    
 private:
-    Type type_;
-    int symbol_id_;
+    ConstantBundle *mutable_bundle() { return &constant_values_; }
+    const ConstantBundle *bundle() const { return &constant_values_; }
 }; // class ConstantOperand
+
+static_assert(sizeof(ConstantOperand) == sizeof(InstructionOperand), "");
 
 class ReloactionOperand final : public InstructionOperand {
 public:
-    ReloactionOperand(const String *symbol_name, const InstructionBlock *label, bool fetch_address = false)
-    : InstructionOperand(kReloaction)
-    , label_(label)
-    , symbol_name_(symbol_name)
-    , offset_(0)
-    , fetch_address_(fetch_address)
-    {}
-    
     ReloactionOperand(const String *symbol_name, int offset = 0, bool fetch_address = false)
-    : InstructionOperand(kReloaction)
-    , label_(nullptr)
-    , symbol_name_(symbol_name)
-    , offset_(offset)
-    , fetch_address_(fetch_address)
-    {}
+    : ReloactionOperand(offset, fetch_address) {
+        mutable_bundle()->label_or_symbol = false;
+        mutable_bundle()->symbol_name = symbol_name;
+    }
     
-    ReloactionOperand *OffsetOf(base::Arena *arena, int offset) const;
+    ReloactionOperand(const InstructionBlock *label)
+    : ReloactionOperand(0, false) {
+        mutable_bundle()->label_or_symbol = true;
+        mutable_bundle()->label = label;
+    }
     
-    DEF_PTR_GETTER(const String, symbol_name);
-    DEF_PTR_GETTER(const InstructionBlock, label);
-    DEF_VAL_GETTER(bool, fetch_address);
-    DEF_VAL_GETTER(int, offset);
+    ReloactionOperand(const ReloactionOperand &other, int offset, bool fetch_address = false)
+    : ReloactionOperand(offset, fetch_address) {
+        if (other.is_label()) {
+            mutable_bundle()->label_or_symbol = true;
+            mutable_bundle()->label = other.label();
+        } else {
+            mutable_bundle()->label_or_symbol = false;
+            mutable_bundle()->symbol_name = other.symbol_name();
+        }
+    }
+
+    bool is_symbol() const { return !is_label(); }
+    bool is_label() const { return bundle()->label_or_symbol; }
+    
+    const InstructionBlock *label() const {
+        DCHECK(is_label());
+        return bundle()->label;
+    }
+
+    const String *symbol_name() const {
+        DCHECK(is_symbol());
+        return bundle()->symbol_name;
+    }
+    
+    int offset() const {
+        DCHECK(is_symbol());
+        return bundle()->offset;
+    }
+    
+    bool should_fetch_address() const { return bundle()->fetch_address; }
 private:
-    const InstructionBlock *label_;
-    const String *symbol_name_;
-    int offset_;
-    bool fetch_address_;
+    ReloactionOperand(int offset, bool fetch_address)
+    : InstructionOperand(kReloaction) {
+        mutable_bundle()->fetch_address = fetch_address;
+        mutable_bundle()->offset = offset;
+    }
+    
+    ReloactionBundle *mutable_bundle() { return &reloaction_values_; }
+    const ReloactionBundle *bundle() const { return &reloaction_values_; }
 }; // class ReloactionOperand
+
+static_assert(sizeof(ReloactionOperand) == sizeof(InstructionOperand), "");
 
 class LocationOperand final : public InstructionOperand {
 public:
-    LocationOperand(AddressingMode mode, int register0_id, int register1_id, int k)
-    : InstructionOperand(kLocation)
-    , mode_(mode)
-    , register0_id_(register0_id)
-    , register1_id_(register1_id)
-    , k_(k) {
+    LocationOperand(AddressingMode mode, int register0_id, int register1_id, int offset = 0)
+    : LocationOperand(mode){
+        mutable_bundle()->register0_id = static_cast<int16_t>(register0_id);
+        mutable_bundle()->register1_id = static_cast<int16_t>(register1_id);
+        mutable_bundle()->offset = static_cast<int16_t>(offset);
     }
     
-    DEF_VAL_GETTER(AddressingMode, mode);
-    DEF_VAL_GETTER(int, register0_id);
-    DEF_VAL_GETTER(int, register1_id);
-    DEF_VAL_PROP_RW(int, k);
+    LocationOperand(AddressingMode mode, int register0_id, int offset = 0)
+    : LocationOperand(mode){
+        mutable_bundle()->register0_id = static_cast<int16_t>(register0_id);
+        mutable_bundle()->register1_id = -1;
+        mutable_bundle()->offset = static_cast<int16_t>(offset);
+    }
+    
+    AddressingMode mode() const { return static_cast<AddressingMode>(bundle()->mode); }
+
+    int register0_id() const {
+        //DCHECK(bundle()->register0_id >= 0);
+        return static_cast<int>(bundle()->register0_id);
+    }
+    int register1_id() const {
+        //DCHECK(bundle()->register1_id >= 0);
+        return static_cast<int>(bundle()->register1_id);
+    }
+    int offset() const { return bundle()->offset; }
 
 private:
-    AddressingMode mode_;
-    int register0_id_;
-    int register1_id_;
-    int k_;
+    LocationOperand(AddressingMode mode)
+    : InstructionOperand(kLocation) {
+        mutable_bundle()->mode = static_cast<int16_t>(mode);
+    }
+    
+    LocationBundle *mutable_bundle() { return &location_values_; }
+    const LocationBundle *bundle() const { return &location_values_; }
 }; // class LocationOperand
+
+static_assert(sizeof(LocationOperand) == sizeof(InstructionOperand), "");
 
 class RegisterOperand final : public InstructionOperand {
 public:
     RegisterOperand(int register_id, MachineRepresentation rep)
-    : InstructionOperand(kRegister)
-    , register_id_(register_id)
-    , rep_(rep) {}
+    : InstructionOperand(kRegister) {
+        DCHECK(register_id >= 0);
+        mutable_bundle()->register_id = register_id;
+        mutable_bundle()->rep = rep;
+    }
     
-    DEF_VAL_GETTER(int, register_id);
-    DEF_VAL_GETTER(MachineRepresentation, rep);
+    int register_id() const {
+        DCHECK(bundle()->register_id >= 0);
+        return bundle()->register_id;
+    }
+    
+    MachineRepresentation machine_representation() const { return bundle()->rep; }
     
     bool IsGeneralRegister() const;
-    bool IsFloatRegister() const { return rep() == MachineRepresentation::kFloat32; }
-    bool IsDoubleRegister() const { return rep() == MachineRepresentation::kFloat64; }
+    bool IsFloatRegister() const { return machine_representation() == MachineRepresentation::kFloat32; }
+    bool IsDoubleRegister() const { return machine_representation() == MachineRepresentation::kFloat64; }
     
-    DISALLOW_IMPLICIT_CONSTRUCTORS(RegisterOperand);
 private:
-    int register_id_;
-    MachineRepresentation rep_;
+    RegisterBundle *mutable_bundle() { return &register_values_; }
+    const RegisterBundle *bundle() const { return &register_values_; }
 }; // class RegisterOperand
+
+static_assert(sizeof(RegisterOperand) == sizeof(InstructionOperand), "");
 
 class Instruction final {
 public:
@@ -263,41 +435,49 @@ public:
     int temps_count() const { return temps_count_; }
     size_t operands_size() const { return inputs_count() + outputs_count() + temps_count(); }
     
-    Operand *InputAt(size_t i) const {
+    Operand InputAt(size_t i) const {
         assert(i < inputs_count());
         return operands_[input_offset() + i];
     }
     
-    Operand *OutputAt(size_t i) const {
+    Operand OutputAt(size_t i) const {
         assert(i < outputs_count());
         return operands_[output_offset() + i];
     }
     
     friend class InstructionBlock;
+    friend class InstructionSelector;
     DISALLOW_IMPLICIT_CONSTRUCTORS(Instruction);
 private:
-    Instruction(Code op, size_t inputs_count, size_t outputs_count, size_t temps_count, Operand *operands[]);
+    Instruction(Code op,
+                size_t inputs_count,
+                Operand inputs[],
+                size_t outputs_count,
+                Operand outputs[],
+                size_t temps_count,
+                Operand temps[]);
     
     constexpr int input_offset() const { return 0; }
     int output_offset() const { return input_offset() + inputs_count_; }
     int temp_offset() const { return output_offset() + outputs_count_; }
     
-    static Instruction *New(base::Arena *arena, Code op, Operand *operands[] = nullptr,
-                            size_t inputs_count = 0,
-                            size_t outputs_count = 0,
-                            size_t temps_count = 0);
+    static Instruction *New(base::Arena *arena, Code op,
+                            size_t inputs_count,
+                            Operand inputs[],
+                            size_t outputs_count,
+                            Operand outputs[],
+                            size_t temps_count,
+                            Operand temps[]);
     
-    static void *AllocatePlacementMemory(base::Arena *arena,
-                                         size_t inputs_count = 0,
-                                         size_t outputs_count = 0,
-                                         size_t temps_count = 0);
+    static void *AllocatePlacementMemory(base::Arena *arena, size_t inputs_count, size_t outputs_count,
+                                         size_t temps_count);
     
     Code op_;
     uint8_t inputs_count_;
     uint8_t outputs_count_;
     uint8_t temps_count_;
     uint8_t is_call_;
-    Operand *operands_[1];
+    Operand operands_[1];
 }; // class Instruction
 
 
@@ -314,40 +494,40 @@ public:
     
     inline InstructionBlock *NewBlock(int label);
     
-    ReloactionOperand *AddExternalSymbol(const String *symbol, bool fetch_address = false) {
-        if (auto iter = external_symbols_.find(symbol->ToSlice()); iter != external_symbols_.end()) {
-            return iter->second;
-        }
-        auto rel = new (arena_) ReloactionOperand(symbol, nullptr, fetch_address);
-        external_symbols_[symbol->ToSlice()] = rel;
-        return rel;
-    }
-    
-    ReloactionOperand *AddExternalSymbol(const std::string_view symbol, bool fetch_address = false) {
-        if (auto iter = external_symbols_.find(symbol); iter != external_symbols_.end()) {
-            return iter->second;
-        }
-        auto ass = String::New(arena_, symbol);
-        auto rel = new (arena_) ReloactionOperand(ass, nullptr, fetch_address);
-        external_symbols_[ass->ToSlice()] = rel;
-        return rel;
-    }
-    
-    ReloactionOperand *AddArrayElementClassSymbol(const ir::ArrayModel *ar, bool fetch_address = false);
-    
-    ReloactionOperand *AddClassSymbol(const ir::Type &ty, bool fetch_address = false);
+//    ReloactionOperand *AddExternalSymbol(const String *symbol, bool fetch_address = false) {
+//        if (auto iter = external_symbols_.find(symbol->ToSlice()); iter != external_symbols_.end()) {
+//            return iter->second;
+//        }
+//        auto rel = new (arena_) ReloactionOperand(symbol, nullptr, fetch_address);
+//        external_symbols_[symbol->ToSlice()] = rel;
+//        return rel;
+//    }
+//
+//    ReloactionOperand *AddExternalSymbol(const std::string_view symbol, bool fetch_address = false) {
+//        if (auto iter = external_symbols_.find(symbol); iter != external_symbols_.end()) {
+//            return iter->second;
+//        }
+//        auto ass = String::New(arena_, symbol);
+//        auto rel = new (arena_) ReloactionOperand(ass, nullptr, fetch_address);
+//        external_symbols_[ass->ToSlice()] = rel;
+//        return rel;
+//    }
+//
+//    ReloactionOperand *AddArrayElementClassSymbol(const ir::ArrayModel *ar, bool fetch_address = false);
+//
+//    ReloactionOperand *AddClassSymbol(const ir::Type &ty, bool fetch_address = false);
 private:
-    ReloactionOperand *FindExternalSymbolOrNull(const std::string_view symbol) const {
-        if (auto iter = external_symbols_.find(symbol); iter != external_symbols_.end()) {
-            return iter->second;
-        }
-        return nullptr;
-    }
-    
-    ReloactionOperand *InsertExternalSymbol(const std::string_view symbol, ReloactionOperand *rel) {
-        external_symbols_[symbol] = rel;
-        return rel;
-    }
+//    ReloactionOperand *FindExternalSymbolOrNull(const std::string_view symbol) const {
+//        if (auto iter = external_symbols_.find(symbol); iter != external_symbols_.end()) {
+//            return iter->second;
+//        }
+//        return nullptr;
+//    }
+//
+//    ReloactionOperand *InsertExternalSymbol(const std::string_view symbol, ReloactionOperand *rel) {
+//        external_symbols_[symbol] = rel;
+//        return rel;
+//    }
     
     const String *const symbol_;
     base::Arena *const arena_;
@@ -359,18 +539,6 @@ private:
 class InstructionBlock final : public base::ArenaObject {
 public:
     explicit InstructionBlock(base::Arena *arena, InstructionFunction *owns, int label);
-
-    Instruction *New(Instruction::Code op);
-    Instruction *NewI(Instruction::Code op, Instruction::Operand *input);
-    Instruction *NewO(Instruction::Code op, Instruction::Operand *output);
-    Instruction *NewIO(Instruction::Code op, Instruction::Operand *io, Instruction::Operand *input);
-    Instruction *NewIO(Instruction::Code op, Instruction::Operand *output, Instruction::Operand *in1,
-                       Instruction::Operand *in2);
-    Instruction *NewIO2(Instruction::Code op, Instruction::Operand *out1, Instruction::Operand *out2,
-                        Instruction::Operand *input);
-    Instruction *NewI2O(Instruction::Code op, Instruction::Operand *io, Instruction::Operand *in1,
-                        Instruction::Operand *in2);
-    Instruction *NewII(Instruction::Code op, Instruction::Operand *in1, Instruction::Operand *in2);
 
     DEF_PTR_GETTER(InstructionFunction, owns);
     int label() const { return label_; }
