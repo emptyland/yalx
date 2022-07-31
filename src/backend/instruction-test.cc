@@ -22,12 +22,7 @@ TEST_F(InstructionTest, Sanity) {
 }
 
 TEST_F(InstructionTest, ArchNop) {
-    auto block = new (arena()) InstructionBlock(arena(), nullptr, 0);
-    auto instr = block->New(ArchNop);
-    ASSERT_EQ(ArchNop, instr->op());
-    instr = block->New(ArchUnreachable);
-    ASSERT_EQ(ArchUnreachable, instr->op());
-    ASSERT_EQ(2, block->instructions().size());
+
 }
 
 } // namespace backend
