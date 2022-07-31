@@ -17,3 +17,13 @@ fun issue2(n: int): i16 {
     }
     return c
 }
+
+@yalx.Compiler(nativeHandle=true)
+fun issue3(): int {
+    var c = 1
+    val a = @int[]{1,2,3,4,5}
+    for (i in 0 .. a.size) {
+        c = c + a[i]
+    }
+    return c
+}
