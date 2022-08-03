@@ -17,6 +17,8 @@ enum class MachineRepresentation : uint8_t {
     kWord16,
     kWord32,
     kWord64,
+    kPointer,
+    kReference,
     kFloat32,
     kFloat64,
 }; // enum class MachineRepresentation

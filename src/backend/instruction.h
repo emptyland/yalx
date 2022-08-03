@@ -20,22 +20,20 @@ namespace backend {
 using String = base::ArenaString;
 
 class UnallocatedOperand;
+class AllocatedOperand;
 class ConstantOperand;
 class ImmediateOperand;
 class ReloactionOperand;
-class LocationOperand;
-class RegisterOperand;
 
 class InstructionSelector;
 class InstructionBlock;
 
 #define DECLARE_INSTRUCTION_OPERANDS_KINDS(V) \
     V(Unallocated) \
-    V(Constant) \
-    V(Immediate) \
-    V(Reloaction) \
-    V(Location) \
-    V(Register)
+    V(Constant)    \
+    V(Immediate)   \
+    V(Reloaction)  \
+    V(Allocated)
 
 class InstructionOperand : public base::ArenaObject {
 public:
@@ -97,15 +95,10 @@ protected:
         int type;
         int symbol_id;
     };
-    struct LocationBundle {
-        int16_t mode;
-        int16_t offset;
-        int16_t register0_id;
-        int16_t register1_id;
-    };
-    struct RegisterBundle {
-        int register_id;
-        MachineRepresentation rep;
+    struct AllocatedBundle {
+        int location_kind;
+        int rep;
+        int index;
     };
     
     explicit InstructionOperand(Kind kind): kind_(kind) {}
@@ -116,8 +109,7 @@ protected:
         ReloactionBundle  reloaction_values_;
         ImmediateBundle   immediate_values_;
         ConstantBundle    constant_values_;
-        LocationBundle    location_values_;
-        RegisterBundle    register_values_;
+        AllocatedBundle   allocated_values_;
     };
 
 }; // class InstructionOperand
@@ -357,72 +349,34 @@ private:
 
 static_assert(sizeof(ReloactionOperand) == sizeof(InstructionOperand), "");
 
-class LocationOperand final : public InstructionOperand {
+class AllocatedOperand final : public InstructionOperand {
 public:
-    LocationOperand(AddressingMode mode, int register0_id, int register1_id, int offset = 0)
-    : LocationOperand(mode){
-        mutable_bundle()->register0_id = static_cast<int16_t>(register0_id);
-        mutable_bundle()->register1_id = static_cast<int16_t>(register1_id);
-        mutable_bundle()->offset = static_cast<int16_t>(offset);
+    enum LocationKind {
+        kRegister,
+        kSlot,
+    };
+    
+    AllocatedOperand(LocationKind kind, MachineRepresentation rep, int index)
+    : InstructionOperand(kAllocated) {
+        mutable_bundle()->location_kind = static_cast<int>(kind);
+        mutable_bundle()->rep = static_cast<int>(rep);
+        mutable_bundle()->index = index;
     }
     
-    LocationOperand(AddressingMode mode, int register0_id, int offset = 0)
-    : LocationOperand(mode){
-        mutable_bundle()->register0_id = static_cast<int16_t>(register0_id);
-        mutable_bundle()->register1_id = -1;
-        mutable_bundle()->offset = static_cast<int16_t>(offset);
-    }
+    LocationKind location_kind() const { return static_cast<LocationKind>(bundle()->location_kind); }
+    MachineRepresentation machine_representation() const { return static_cast<MachineRepresentation>(bundle()->rep); }
+    int index() const { return bundle()->index; }
     
-    AddressingMode mode() const { return static_cast<AddressingMode>(bundle()->mode); }
-
-    int register0_id() const {
-        //DCHECK(bundle()->register0_id >= 0);
-        return static_cast<int>(bundle()->register0_id);
-    }
-    int register1_id() const {
-        //DCHECK(bundle()->register1_id >= 0);
-        return static_cast<int>(bundle()->register1_id);
-    }
-    int offset() const { return bundle()->offset; }
+    bool IsRegisterLocation() const { return location_kind() == kRegister; }
+    bool IsSlotLocation() const { return location_kind() == kSlot; }
 
 private:
-    LocationOperand(AddressingMode mode)
-    : InstructionOperand(kLocation) {
-        mutable_bundle()->mode = static_cast<int16_t>(mode);
-    }
-    
-    LocationBundle *mutable_bundle() { return &location_values_; }
-    const LocationBundle *bundle() const { return &location_values_; }
+    AllocatedBundle *mutable_bundle() { return &allocated_values_; }
+    const AllocatedBundle *bundle() const { return &allocated_values_; }
 }; // class LocationOperand
 
-static_assert(sizeof(LocationOperand) == sizeof(InstructionOperand), "");
+static_assert(sizeof(AllocatedOperand) == sizeof(InstructionOperand), "");
 
-class RegisterOperand final : public InstructionOperand {
-public:
-    RegisterOperand(int register_id, MachineRepresentation rep)
-    : InstructionOperand(kRegister) {
-        DCHECK(register_id >= 0);
-        mutable_bundle()->register_id = register_id;
-        mutable_bundle()->rep = rep;
-    }
-    
-    int register_id() const {
-        DCHECK(bundle()->register_id >= 0);
-        return bundle()->register_id;
-    }
-    
-    MachineRepresentation machine_representation() const { return bundle()->rep; }
-    
-    bool IsGeneralRegister() const;
-    bool IsFloatRegister() const { return machine_representation() == MachineRepresentation::kFloat32; }
-    bool IsDoubleRegister() const { return machine_representation() == MachineRepresentation::kFloat64; }
-    
-private:
-    RegisterBundle *mutable_bundle() { return &register_values_; }
-    const RegisterBundle *bundle() const { return &register_values_; }
-}; // class RegisterOperand
-
-static_assert(sizeof(RegisterOperand) == sizeof(InstructionOperand), "");
 
 class Instruction final {
 public:
@@ -435,15 +389,23 @@ public:
     int temps_count() const { return temps_count_; }
     size_t operands_size() const { return inputs_count() + outputs_count() + temps_count(); }
     
-    Operand InputAt(size_t i) const {
-        assert(i < inputs_count());
-        return operands_[input_offset() + i];
+    Operand *InputAt(size_t i) {
+        DCHECK(i < inputs_count());
+        return &operands_[input_offset() + i];
     }
     
-    Operand OutputAt(size_t i) const {
-        assert(i < outputs_count());
-        return operands_[output_offset() + i];
+    Operand *OutputAt(size_t i) {
+        DCHECK(i < outputs_count());
+        return &operands_[output_offset() + i];
     }
+    
+    static Instruction *New(base::Arena *arena, Code op,
+                            size_t inputs_count,
+                            Operand inputs[],
+                            size_t outputs_count,
+                            Operand outputs[],
+                            size_t temps_count,
+                            Operand temps[]);
     
     friend class InstructionBlock;
     friend class InstructionSelector;
@@ -460,14 +422,6 @@ private:
     constexpr int input_offset() const { return 0; }
     int output_offset() const { return input_offset() + inputs_count_; }
     int temp_offset() const { return output_offset() + outputs_count_; }
-    
-    static Instruction *New(base::Arena *arena, Code op,
-                            size_t inputs_count,
-                            Operand inputs[],
-                            size_t outputs_count,
-                            Operand outputs[],
-                            size_t temps_count,
-                            Operand temps[]);
     
     static void *AllocatePlacementMemory(base::Arena *arena, size_t inputs_count, size_t outputs_count,
                                          size_t temps_count);

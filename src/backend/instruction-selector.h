@@ -3,21 +3,30 @@
 #define YALX_BACKEND_INSTRUCTION_SELECTOR_H_
 
 #include "backend/instruction-code.h"
+#include "backend/instruction.h"
 #include "base/arena-utils.h"
 #include "base/checking.h"
 #include "base/base.h"
 
 namespace yalx {
-
+namespace ir {
+class Value;
+class Type;
+class Function;
+} // namespace ir
 namespace backend {
 
+class RegistersConfiguration;
 class InstructionOperand;
 class Instruction;
+class Frame;
 
 class InstructionSelector {
 public:
-    InstructionSelector(base::Arena *arena);
+    InstructionSelector(const RegistersConfiguration *regconf, base::Arena *arena);
     
+    void VisitParameters(ir::Function *fun);
+    void VisitCall(ir::Value *value);
 
     Instruction *Emit(InstructionCode opcode, InstructionOperand output,
                       int temps_count = 0, InstructionOperand *temps = nullptr);
@@ -48,9 +57,21 @@ public:
         return instr;
     }
     
+    UnallocatedOperand DefineFixedRegister(ir::Value *value, int index);
+    UnallocatedOperand DefineFixedFPRegister(ir::Value *value, int index);
+    UnallocatedOperand DefineFixedSlot(ir::Value *value, int index);
+    
+    static InstructionOperand Invalid() { return InstructionOperand(); }
+    
+//    UnallocatedOperand Define(ir::Value *value, UnallocatedOperand operand);
+//    UnallocatedOperand Use(ir::Value *value, UnallocatedOperand operand);
+    
+    int GetVirtualRegister(ir::Value *value);
 private:
     base::Arena *const arena_;
+    const RegistersConfiguration *const regconf_;
     base::ArenaVector<Instruction *> instructions_;
+    Frame *frame_ = nullptr;
 }; // class InstructionSelector
 
 } // namespace backend

@@ -10,19 +10,6 @@ namespace yalx {
 namespace backend {
 
 
-bool RegisterOperand::IsGeneralRegister() const {
-    switch (machine_representation()) {
-        case MachineRepresentation::kWord8:
-        case MachineRepresentation::kWord16:
-        case MachineRepresentation::kWord32:
-        case MachineRepresentation::kWord64:
-            return true;
-            
-        default:
-            return false;
-    }
-}
-
 bool InstructionOperand::Equals(const InstructionOperand *other) const {
     if (kind() != other->kind()) {
         return false;
@@ -35,19 +22,11 @@ bool InstructionOperand::Equals(const InstructionOperand *other) const {
             auto rhs = other->AsConstant();
             return lhs->type() == rhs->type() && lhs->symbol_id() == rhs->symbol_id();
         } break;
-        case kLocation: {
-            auto lhs = AsLocation();
-            auto rhs = other->AsLocation();
-            return lhs->mode() == rhs->mode() &&
-                lhs->register0_id() == rhs->register0_id() &&
-                lhs->register1_id() == rhs->register1_id() &&
-                lhs->offset() == rhs->offset();
-        } break;
-        case kRegister: {
-            auto lhs = AsRegister();
-            auto rhs = other->AsRegister();
-            return lhs->machine_representation() == rhs->machine_representation() &&
-                lhs->register_id() == rhs->register_id();
+        case kAllocated: {
+            auto lhs = AsAllocated();
+            auto rhs = other->AsAllocated();
+            return lhs->location_kind() == rhs->location_kind() &&
+                lhs->machine_representation() == rhs->machine_representation() && lhs->index() == rhs->index();
         } break;
         case kImmediate: {
             auto lhs = AsImmediate();

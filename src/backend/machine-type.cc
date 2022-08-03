@@ -29,9 +29,15 @@ MachineRepresentation ToMachineRepresentation(const ir::Type ty) {
             return MachineRepresentation::kFloat64;
         case ir::Type::kReference:
         case ir::Type::kString:
-            return MachineRepresentation::kWord64;
+            return MachineRepresentation::kReference;
         case ir::Type::kValue:
-            return (ty.IsPointer() || ty.IsCompactEnum()) ? MachineRepresentation::kWord64 : MachineRepresentation::kNone;
+            if (ty.IsPointer()) {
+                return MachineRepresentation::kPointer;
+            }
+            if (ty.IsCompactEnum()) {
+                return MachineRepresentation::kReference;
+            }
+            return MachineRepresentation::kNone;
         default:
             return MachineRepresentation::kNone;
     }

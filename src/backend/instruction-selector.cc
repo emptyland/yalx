@@ -1,13 +1,71 @@
 #include "backend/instruction-selector.h"
+#include "backend/registers-configuration.h"
 #include "backend/instruction.h"
+#include "backend/frame.h"
+#include "ir/metadata.h"
+#include "ir/node.h"
+#include "ir/type.h"
 
 namespace yalx {
 
 namespace backend {
 
-InstructionSelector::InstructionSelector(base::Arena *arena)
+InstructionSelector::InstructionSelector(const RegistersConfiguration *regconf, base::Arena *arena)
 : arena_(arena)
+, regconf_(regconf)
 , instructions_(arena) {
+    
+}
+
+void InstructionSelector::VisitParameters(ir::Function *fun) {
+    //fun->paramaters()
+    int gp_index = 0;
+    int fp_index = 0;
+    for (auto param : fun->paramaters()) {
+        if (param->type().IsFloating()) {
+            if (fp_index < regconf_->number_of_argument_fp_registers()) {
+                DefineFixedFPRegister(param, regconf_->argument_fp_register(fp_index));
+            } else {
+                // TODO:
+                UNREACHABLE();
+            }
+            fp_index++;
+        } else {
+            
+            switch (param->type().kind()) {
+                case ir::Type::kValue:
+                    if (param->type().IsCompactEnum()) {
+                        goto pass_gp_register;
+                    }
+                    // TODO:
+                    UNREACHABLE();
+                    break;
+                    
+                
+                case ir::Type::kString:
+                case ir::Type::kReference:
+                default:
+                pass_gp_register:
+                    if (gp_index < regconf_->number_of_argument_gp_registers()) {
+                        DefineFixedRegister(param, regconf_->argument_gp_register(gp_index));
+                    } else {
+                        // TODO:
+                        UNREACHABLE();
+                    }
+                    break;
+            }
+            
+            gp_index++;
+        }
+    }
+}
+
+void InstructionSelector::VisitCall(ir::Value *value) {
+//    DCHECK(value->Is(ir::Operator::kCallHandle) ||
+//           value->Is(ir::Operator::kCallVirtual) ||
+//           value->Is(ir::Operator::kCallAbstract) ||
+//           value->Is(ir::Operator::kCallDirectly) ||
+//           value->Is(ir::Operator::kCallIndirectly));
     
 }
 
@@ -67,6 +125,29 @@ Instruction *InstructionSelector::Emit(InstructionCode opcode, int outputs_count
     return Emit(instr);
 }
 
+UnallocatedOperand InstructionSelector::DefineFixedRegister(ir::Value *value, int index) {
+    return UnallocatedOperand{
+        UnallocatedOperand::kFixedRegister,
+        UnallocatedOperand::kUsedAtStart,
+        frame_->GetVirtualRegister(value)
+    };
+}
+
+UnallocatedOperand InstructionSelector::DefineFixedFPRegister(ir::Value *value, int index) {
+    return UnallocatedOperand{
+        UnallocatedOperand::kFixedFPRegister,
+        UnallocatedOperand::kUsedAtStart,
+        frame_->GetVirtualRegister(value)
+    };
+}
+
+UnallocatedOperand InstructionSelector::DefineFixedSlot(ir::Value *value, int index) {
+    return UnallocatedOperand{
+        UnallocatedOperand::kFixedSlot,
+        UnallocatedOperand::kUsedAtStart,
+        frame_->GetVirtualRegister(value)
+    };
+}
 
 } // namespace backend
 

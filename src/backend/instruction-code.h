@@ -15,6 +15,8 @@ enum InstructionCode {
     ArchRet,
     ArchJmp,
     ArchCall,
+    ArchSaveCallerRegisters,
+    ArchRestoreCallerRegisters,
     ArchFrameEnter,
     ArchFrameExit,
     ArchUnreachable,

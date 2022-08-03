@@ -204,6 +204,7 @@ int yalx_runtime_init() {
     
 
     // FIXME:
+#if 0
     const struct yalx_class *ty = yalx_find_class(ANY_CLASS_NAME);
     if (!ty) {
         die("Any class not found");
@@ -226,7 +227,7 @@ int yalx_runtime_init() {
         }
         *entry->location = ty;
     }
-
+#endif // 
     dev_print_struct_fields();
     return 0;
 }

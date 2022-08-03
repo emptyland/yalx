@@ -115,6 +115,10 @@
 		239E02C4285C864A002E6BA6 /* locks-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239E02C2285C864A002E6BA6 /* locks-test.cc */; };
 		23A7F0E12699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
 		23A7F0E22699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
+		23AE82FC289A5A160009E00E /* frame.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23AE82FB289A5A160009E00E /* frame.cc */; };
+		23AE82FD289A5A160009E00E /* frame.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23AE82FB289A5A160009E00E /* frame.cc */; };
+		23AE8300289A61D90009E00E /* registers-configuration.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23AE82FF289A61D90009E00E /* registers-configuration.cc */; };
+		23AE8301289A61D90009E00E /* registers-configuration.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23AE82FF289A61D90009E00E /* registers-configuration.cc */; };
 		23B997D926A4680300DD037B /* type-reducing.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997D826A4680300DD037B /* type-reducing.cc */; };
 		23B997DA26A4680300DD037B /* type-reducing.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997D826A4680300DD037B /* type-reducing.cc */; };
 		23B997DD26A468D500DD037B /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997DC26A468D500DD037B /* scope.cc */; };
@@ -433,6 +437,10 @@
 		23A3AB5F2664DE4D00007658 /* process.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = process.h; path = ../src/runtime/process.h; sourceTree = "<group>"; };
 		23A3AB602664E32E00007658 /* process.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = process.c; path = ../src/runtime/process.c; sourceTree = "<group>"; };
 		23A7F0E02699E22A0060BFB7 /* compiler-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "compiler-test.cc"; path = "../src/compiler/compiler-test.cc"; sourceTree = "<group>"; };
+		23AE82FA289A59540009E00E /* frame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = frame.h; path = ../src/backend/frame.h; sourceTree = "<group>"; };
+		23AE82FB289A5A160009E00E /* frame.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = frame.cc; path = ../src/backend/frame.cc; sourceTree = "<group>"; };
+		23AE82FE289A5FCB0009E00E /* registers-configuration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "registers-configuration.h"; path = "../src/backend/registers-configuration.h"; sourceTree = "<group>"; };
+		23AE82FF289A61D90009E00E /* registers-configuration.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "registers-configuration.cc"; path = "../src/backend/registers-configuration.cc"; sourceTree = "<group>"; };
 		23B997D826A4680300DD037B /* type-reducing.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "type-reducing.cc"; path = "../src/compiler/type-reducing.cc"; sourceTree = "<group>"; };
 		23B997DB26A468BE00DD037B /* scope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scope.h; path = ../src/compiler/scope.h; sourceTree = "<group>"; };
 		23B997DC26A468D500DD037B /* scope.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scope.cc; path = ../src/compiler/scope.cc; sourceTree = "<group>"; };
@@ -530,6 +538,8 @@
 				23C1344827A3CE9400C0DEB4 /* instruction.h */,
 				23667C3027B2532E00612546 /* machine-type.cc */,
 				23C1344C27A3E3B400C0DEB4 /* machine-type.h */,
+				23AE82FB289A5A160009E00E /* frame.cc */,
+				23AE82FA289A59540009E00E /* frame.h */,
 				2322269B27EEB04700B18B36 /* code-generate-arch-test.cc */,
 				2322269A27EEAFDB00B18B36 /* code-generate-arch-test.h */,
 				23CF342427E037DC0095441B /* gnu-asm-generator.cc */,
@@ -540,6 +550,8 @@
 				239735CE27B551A500FAD063 /* linkage-symbols-test.cc */,
 				239735CB27B54D2800FAD063 /* linkage-symbols.cc */,
 				239735CA27B54CD500FAD063 /* linkage-symbols.h */,
+				23AE82FF289A61D90009E00E /* registers-configuration.cc */,
+				23AE82FE289A5FCB0009E00E /* registers-configuration.h */,
 			);
 			name = Backend;
 			sourceTree = "<group>";
@@ -981,6 +993,7 @@
 				23235B872797C07600134DEB /* condition.cc in Sources */,
 				23D4A4662680D17D0090C631 /* arena-utils.cc in Sources */,
 				2387EFA52684627B002E6DCF /* lexer.cc in Sources */,
+				23AE82FD289A5A160009E00E /* frame.cc in Sources */,
 				23667C3227B2532E00612546 /* machine-type.cc in Sources */,
 				231C4B8C268DA7AD00D4AC62 /* boot-posix-arm64.s in Sources */,
 				23D4A4672680D17D0090C631 /* arena-utils.h in Sources */,
@@ -1008,6 +1021,7 @@
 				23D4A46E2680D17D0090C631 /* bit-ops.h in Sources */,
 				23B997DA26A4680300DD037B /* type-reducing.cc in Sources */,
 				2387EFB1268581AD002E6DCF /* token-test.cc in Sources */,
+				23AE8301289A61D90009E00E /* registers-configuration.cc in Sources */,
 				23D4A46F2680D17D0090C631 /* crc32.c in Sources */,
 				23D4A4702680D17D0090C631 /* env-test.cc in Sources */,
 				23C1345B27A4DA0D00C0DEB4 /* constants.cc in Sources */,
@@ -1067,6 +1081,7 @@
 				23D5A662266718F900635ADB /* arena.h in Sources */,
 				232AA00426861D4C0098E6A3 /* parser.cc in Sources */,
 				23D5A663266718F900635ADB /* at-exit.cc in Sources */,
+				23AE82FC289A5A160009E00E /* frame.cc in Sources */,
 				23448B6828583024007013EB /* logging.c in Sources */,
 				2331FFA6268DC66B00F69508 /* ast-utils.cc in Sources */,
 				23448B6428573B97007013EB /* immix-heap.c in Sources */,
@@ -1135,6 +1150,7 @@
 				23C1345327A3E8CE00C0DEB4 /* constants-pool.cc in Sources */,
 				2387EFA42684627B002E6DCF /* lexer.cc in Sources */,
 				230167692669C5DB007E8322 /* yalx-string.c in Sources */,
+				23AE8300289A61D90009E00E /* registers-configuration.cc in Sources */,
 				23D5A678266718F900635ADB /* status.cc in Sources */,
 				23D5A679266718F900635ADB /* checking.h in Sources */,
 				23C3543726A1B7E7006607D1 /* scope.cc in Sources */,
