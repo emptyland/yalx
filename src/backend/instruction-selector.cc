@@ -13,7 +13,9 @@ namespace backend {
 InstructionSelector::InstructionSelector(const RegistersConfiguration *regconf, base::Arena *arena)
 : arena_(arena)
 , regconf_(regconf)
-, instructions_(arena) {
+, instructions_(arena)
+, defined_(arena)
+, used_(arena) {
     
 }
 
@@ -126,27 +128,59 @@ Instruction *InstructionSelector::Emit(InstructionCode opcode, int outputs_count
 }
 
 UnallocatedOperand InstructionSelector::DefineFixedRegister(ir::Value *value, int index) {
-    return UnallocatedOperand{
+    return Define(value, UnallocatedOperand{
         UnallocatedOperand::kFixedRegister,
         UnallocatedOperand::kUsedAtStart,
         frame_->GetVirtualRegister(value)
-    };
+    });
 }
 
 UnallocatedOperand InstructionSelector::DefineFixedFPRegister(ir::Value *value, int index) {
-    return UnallocatedOperand{
+    return Define(value, UnallocatedOperand{
         UnallocatedOperand::kFixedFPRegister,
         UnallocatedOperand::kUsedAtStart,
         frame_->GetVirtualRegister(value)
-    };
+    });
 }
 
 UnallocatedOperand InstructionSelector::DefineFixedSlot(ir::Value *value, int index) {
-    return UnallocatedOperand{
+    return Define(value, UnallocatedOperand{
         UnallocatedOperand::kFixedSlot,
         UnallocatedOperand::kUsedAtStart,
         frame_->GetVirtualRegister(value)
-    };
+    });
+}
+
+UnallocatedOperand InstructionSelector::Define(ir::Value *value, UnallocatedOperand operand) {
+    DCHECK(frame_->GetVirtualRegister(value) == operand.virtual_register());
+    auto vid = operand.virtual_register();
+    if (vid >= defined_.size()) {
+        defined_.resize(vid + 1, false);
+    }
+    defined_[vid] = true;
+    return operand;
+}
+
+UnallocatedOperand InstructionSelector::Use(ir::Value *value, UnallocatedOperand operand) {
+    DCHECK(frame_->GetVirtualRegister(value) == operand.virtual_register());
+    auto vid = operand.virtual_register();
+    if (vid >= defined_.size()) {
+        used_.resize(vid + 1, false);
+    }
+    used_[vid] = true;
+    return operand;
+}
+
+bool InstructionSelector::IsDefined(ir::Value *value) const {
+    auto vid = frame_->GetVirtualRegister(value);
+    DCHECK(vid >= 0 && vid < defined_.size());
+    return defined_[vid];
+}
+
+bool InstructionSelector::IsUsed(ir::Value *value) const {
+    auto vid = frame_->GetVirtualRegister(value);
+    DCHECK(vid >= 0 && vid < used_.size());
+    return used_[vid];
 }
 
 } // namespace backend

@@ -13,6 +13,7 @@ namespace ir {
 class Value;
 class Type;
 class Function;
+class BasicBlock;
 } // namespace ir
 namespace backend {
 
@@ -25,6 +26,8 @@ class InstructionSelector {
 public:
     InstructionSelector(const RegistersConfiguration *regconf, base::Arena *arena);
     
+    void VisitFunction(ir::Function *fun);
+    void VisitBasicBlock(ir::BasicBlock *block);
     void VisitParameters(ir::Function *fun);
     void VisitCall(ir::Value *value);
 
@@ -63,8 +66,12 @@ public:
     
     static InstructionOperand Invalid() { return InstructionOperand(); }
     
-//    UnallocatedOperand Define(ir::Value *value, UnallocatedOperand operand);
-//    UnallocatedOperand Use(ir::Value *value, UnallocatedOperand operand);
+    UnallocatedOperand Define(ir::Value *value, UnallocatedOperand operand);
+    UnallocatedOperand Use(ir::Value *value, UnallocatedOperand operand);
+    
+    bool IsLive(ir::Value *value) const { return !IsDefined(value) && IsUsed(value); }
+    bool IsDefined(ir::Value *value) const;
+    bool IsUsed(ir::Value *value) const;
     
     int GetVirtualRegister(ir::Value *value);
 private:
@@ -72,6 +79,8 @@ private:
     const RegistersConfiguration *const regconf_;
     base::ArenaVector<Instruction *> instructions_;
     Frame *frame_ = nullptr;
+    base::ArenaVector<bool> defined_;
+    base::ArenaVector<bool> used_;
 }; // class InstructionSelector
 
 } // namespace backend

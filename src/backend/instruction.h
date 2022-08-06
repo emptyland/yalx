@@ -149,11 +149,11 @@ public:
         mutable_bundle()->value = input_index;
     }
     
-    UnallocatedOperand(FixedSlotTag, int stack_slot_offset, int virtual_register)
+    UnallocatedOperand(FixedSlotTag, int offset, int virtual_register)
     : UnallocatedOperand(virtual_register) {
         mutable_bundle()->policy = kFixedSlot;
         mutable_bundle()->life_time = kUsedAtEnd;
-        mutable_bundle()->value = stack_slot_offset;
+        mutable_bundle()->value = offset;
     }
     
     UnallocatedOperand(Policy policy, int index, int virtual_register)
