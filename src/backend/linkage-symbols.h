@@ -22,6 +22,13 @@ public:
     const String *Mangle(const char *z, size_t n) { return Mangle(std::string_view(z, n)); }
     const String *Mangle(std::string_view name);
     
+    const String *MangleClassName(const String *name) {
+        std::string buf;
+        Build(&buf, name->ToString());
+        buf.append("$class");
+        return String::New(arena_, buf);
+    }
+    
     static void BuildNativeStub(std::string *buf, std::string_view name) {
         Build(buf, name);
         buf->append("_stub");

@@ -41,6 +41,11 @@ public:
     void VisitParameters(ir::Function *fun);
     void VisitCall(ir::Value *value);
     void VisitReturn(ir::Value *value);
+    void VisitStackAlloc(ir::Value *value);
+    void VisitHeapAlloc(ir::Value *value);
+    
+    
+    //virtual
 
     Instruction *Emit(InstructionCode opcode, InstructionOperand output,
                       int temps_count = 0, InstructionOperand *temps = nullptr);
@@ -71,11 +76,14 @@ public:
         return instr;
     }
     
-    UnallocatedOperand DefineFixedRegister(ir::Value *value, int index);
-    UnallocatedOperand DefineFixedFPRegister(ir::Value *value, int index);
-    UnallocatedOperand DefineFixedSlot(ir::Value *value, int index);
+    UnallocatedOperand DefineAsFixedRegister(ir::Value *value, int index);
+    UnallocatedOperand DefineAsFixedFPRegister(ir::Value *value, int index);
+    UnallocatedOperand DefineAsFixedSlot(ir::Value *value, int index);
+    UnallocatedOperand DefineAsRegisterOrSlot(ir::Value *value);
     
-    UnallocatedOperand UseFixedSlot(ir::Value *value, int index);
+    UnallocatedOperand UseAsFixedSlot(ir::Value *value, int index);
+    
+    ReloactionOperand UseAsExternalClassName(const String *name);
 
     static InstructionOperand Invalid() { return InstructionOperand(); }
     static InstructionOperand NoOutput() { return InstructionOperand(); }
@@ -90,8 +98,9 @@ public:
     size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto) const;
     size_t ParametersSizeInBytes(const ir::Function *fun) const;
     size_t OverflowParametersSizeInBytes(const ir::Function *fun) const;
-    
-    int GetVirtualRegister(ir::Value *value);
+
+    void UpdateRenames(Instruction *instr);
+    void TryRename(InstructionOperand *opd);
     
     int NextBlockLabel() { return next_blocks_label_++; }
 private:

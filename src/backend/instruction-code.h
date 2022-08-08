@@ -21,6 +21,8 @@ enum InstructionCode {
     ArchFrameExit,
     ArchUnreachable,
     ArchSafepoint,
+    ArchStackAlloc,
+    ArchLoadEffectAddress,
 #define DEFINE_ENUM(name) name,
     X64_ARCH_OPCODE_LIST(DEFINE_ENUM)
     ARM64_ARCH_OPCODE_LIST(DEFINE_ENUM)

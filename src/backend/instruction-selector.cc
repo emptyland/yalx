@@ -98,7 +98,7 @@ void InstructionSelector::VisitParameters(ir::Function *fun) {
     for (auto param : fun->paramaters()) {
         if (param->type().IsFloating()) {
             if (fp_index < regconf_->number_of_argument_fp_registers()) {
-                DefineFixedFPRegister(param, regconf_->argument_fp_register(fp_index));
+                DefineAsFixedFPRegister(param, regconf_->argument_fp_register(fp_index));
             } else {
                 // TODO:
                 UNREACHABLE();
@@ -121,7 +121,7 @@ void InstructionSelector::VisitParameters(ir::Function *fun) {
                 default:
                 pass_gp_register:
                     if (gp_index < regconf_->number_of_argument_gp_registers()) {
-                        DefineFixedRegister(param, regconf_->argument_gp_register(gp_index));
+                        DefineAsFixedRegister(param, regconf_->argument_gp_register(gp_index));
                     } else {
                         // TODO:
                         UNREACHABLE();
@@ -158,7 +158,7 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
         if (ty.kind() == ir::Type::kVoid) {
             continue;
         }
-        inputs.push_back(UseFixedSlot(value->InputValue(i), static_cast<int>(returning_val_offset)));
+        inputs.push_back(UseAsFixedSlot(value->InputValue(i), static_cast<int>(returning_val_offset)));
         returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
     }
 
@@ -166,6 +166,27 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
     Emit(ArchFrameExit, 0, nullptr, static_cast<int>(inputs.size()), &inputs.front(), 1, &tmp);
     
     frame_->set_returning_val_size(static_cast<int>(returning_val_size));
+}
+
+void InstructionSelector::VisitStackAlloc(ir::Value *value) {
+    auto model = ir::OperatorWith<const ir::StructureModel *>::Data(value->op());
+    ImmediateOperand input{static_cast<int>(model->PlacementSizeInBytes())};
+    Emit(ArchStackAlloc, DefineAsRegisterOrSlot(value), input);
+}
+
+void InstructionSelector::VisitHeapAlloc(ir::Value *value) {
+    auto model = ir::OperatorWith<const ir::StructureModel *>::Data(value->op());
+    
+    Emit(ArchSaveCallerRegisters, NoOutput());
+    
+    ReloactionOperand klass = UseAsExternalClassName(model->full_name());
+    UnallocatedOperand arg0(UnallocatedOperand::kFixedRegister, regconf()->argument_gp_register(0), -1);
+    Emit(ArchLoadEffectAddress, NoOutput(), klass, 1, &arg0);
+    
+    //linkage()->M
+    // TODO:
+    
+    Emit(ArchRestoreCallerRegisters, NoOutput());
 }
 
 Instruction *InstructionSelector::Emit(InstructionCode opcode, InstructionOperand output,
@@ -224,7 +245,7 @@ Instruction *InstructionSelector::Emit(InstructionCode opcode, int outputs_count
     return Emit(instr);
 }
 
-UnallocatedOperand InstructionSelector::DefineFixedRegister(ir::Value *value, int index) {
+UnallocatedOperand InstructionSelector::DefineAsFixedRegister(ir::Value *value, int index) {
     return Define(value, UnallocatedOperand{
         UnallocatedOperand::kFixedRegister,
         UnallocatedOperand::kUsedAtStart,
@@ -232,7 +253,7 @@ UnallocatedOperand InstructionSelector::DefineFixedRegister(ir::Value *value, in
     });
 }
 
-UnallocatedOperand InstructionSelector::DefineFixedFPRegister(ir::Value *value, int index) {
+UnallocatedOperand InstructionSelector::DefineAsFixedFPRegister(ir::Value *value, int index) {
     return Define(value, UnallocatedOperand{
         UnallocatedOperand::kFixedFPRegister,
         UnallocatedOperand::kUsedAtStart,
@@ -240,7 +261,7 @@ UnallocatedOperand InstructionSelector::DefineFixedFPRegister(ir::Value *value, 
     });
 }
 
-UnallocatedOperand InstructionSelector::DefineFixedSlot(ir::Value *value, int index) {
+UnallocatedOperand InstructionSelector::DefineAsFixedSlot(ir::Value *value, int index) {
     return Define(value, UnallocatedOperand{
         UnallocatedOperand::kFixedSlot,
         UnallocatedOperand::kUsedAtStart,
@@ -248,8 +269,20 @@ UnallocatedOperand InstructionSelector::DefineFixedSlot(ir::Value *value, int in
     });
 }
 
-UnallocatedOperand InstructionSelector::UseFixedSlot(ir::Value *value, int index) {
+UnallocatedOperand InstructionSelector::DefineAsRegisterOrSlot(ir::Value *value) {
+    return Define(value, UnallocatedOperand{
+        UnallocatedOperand::kRegisterOrSlot,
+        UnallocatedOperand::kUsedAtStart,
+        frame_->GetVirtualRegister(value)
+    });
+}
+
+UnallocatedOperand InstructionSelector::UseAsFixedSlot(ir::Value *value, int index) {
     return Use(value, UnallocatedOperand{ UnallocatedOperand::FixedSlotTag(), index, frame_->GetVirtualRegister(value)});
+}
+
+ReloactionOperand InstructionSelector::UseAsExternalClassName(const String *name) {
+    return ReloactionOperand {linkage()->MangleClassName(name)};
 }
 
 UnallocatedOperand InstructionSelector::Define(ir::Value *value, UnallocatedOperand operand) {
@@ -323,6 +356,24 @@ size_t InstructionSelector::ParametersSizeInBytes(const ir::Function *fun) const
         size_in_bytes += size;
     }
     return size_in_bytes;
+}
+
+void InstructionSelector::UpdateRenames(Instruction *instr) {
+    for (int i = 0; i < instr->inputs_count(); i++) {
+        TryRename(instr->InputAt(i));
+    }
+}
+
+void InstructionSelector::TryRename(InstructionOperand *opd) {
+    if (!opd->IsUnallocated()) {
+        return;
+    }
+    
+    auto unallocated = opd->AsUnallocated();
+    auto rename = frame()->GetRename(unallocated->virtual_register());
+    if (rename != unallocated->virtual_register()) {
+        *opd = UnallocatedOperand(*unallocated, rename);
+    }
 }
 
 } // namespace backend

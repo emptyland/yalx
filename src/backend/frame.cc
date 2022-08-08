@@ -7,6 +7,7 @@ namespace backend {
 
 Frame::Frame(base::Arena *arena, ir::Function *fun)
 : virtual_registers_(arena)
+, virtual_register_rename_(arena)
 , fun_(fun) {
     
 }
