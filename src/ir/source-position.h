@@ -24,7 +24,7 @@ public:
     DEF_VAL_GETTER(int, line);
     DEF_VAL_GETTER(int, column);
     
-    static SourcePosition Unknown() { return {0, -1, -1}; }
+    static constexpr SourcePosition Unknown() { return {0, -1, -1}; }
     
     bool operator == (const SourcePosition &other) const {
         return file_id() == other.file_id() && line() == other.line() && column() == other.column();

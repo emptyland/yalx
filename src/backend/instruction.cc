@@ -103,10 +103,10 @@ void *Instruction::AllocatePlacementMemory(base::Arena *arena, size_t inputs_cou
     return arena->Allocate(in_memory_bytes);
 }
 
-InstructionFunction::InstructionFunction(base::Arena *arena, const String *symbol)
+InstructionFunction::InstructionFunction(base::Arena *arena, const String *symbol, Frame *frame)
 : arena_(arena)
+, frame_(frame)
 , symbol_(symbol)
-, external_symbols_(arena)
 , blocks_(arena) {
     
 }

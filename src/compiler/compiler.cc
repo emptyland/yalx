@@ -452,7 +452,7 @@ base::Status
 Compiler::SelectArm64InstructionCode(base::Arena *arena,
                                      ir::Module *module,
                                      backend::ConstantsPool *const_pool,
-                                     backend::LinkageSymbols *symbols,
+                                     backend::Linkage *symbols,
                                      int optimizing_level,
                                      base::ArenaMap<std::string_view, backend::InstructionFunction *> *funs) {
 //    backend::Arm64InstructionGenerator generator(arena, module, const_pool, symbols, optimizing_level);
@@ -465,7 +465,7 @@ base::Status
 Compiler::GenerateArm64InstructionCode(const base::ArenaMap<std::string_view, backend::InstructionFunction *> &funs,
                                        ir::Module *module,
                                        backend::ConstantsPool *const_pool,
-                                       backend::LinkageSymbols *symbols,
+                                       backend::Linkage *symbols,
                                        base::PrintingWriter *printer) {
 //    backend::Arm64CodeGenerator generator(funs, module, const_pool, symbols, printer);
 //    generator.EmitAll();
@@ -476,7 +476,7 @@ base::Status
 Compiler::SelectX64InstructionCode(base::Arena *arena,
                                    ir::Module *module,
                                    backend::ConstantsPool *const_pool,
-                                   backend::LinkageSymbols *symbols,
+                                   backend::Linkage *symbols,
                                    int optimizing_level,
                                    base::ArenaMap<std::string_view, backend::InstructionFunction *> *funs) {
 //    backend::X64InstructionGenerator generator(arena, module, const_pool, symbols, optimizing_level);
@@ -489,7 +489,7 @@ base::Status
 Compiler::GenerateX64InstructionCode(const base::ArenaMap<std::string_view, backend::InstructionFunction *> &funs,
                                      ir::Module *module,
                                      backend::ConstantsPool *const_pool,
-                                     backend::LinkageSymbols *symbols,
+                                     backend::Linkage *symbols,
                                      base::PrintingWriter *printer) {
 //    backend::X64CodeGenerator generator(funs, module, const_pool, symbols, printer);
 //    generator.EmitAll();

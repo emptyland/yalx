@@ -13,6 +13,7 @@ namespace ir {
 class Value;
 class Type;
 class Function;
+class PrototypeModel;
 class BasicBlock;
 } // namespace ir
 namespace backend {
@@ -21,15 +22,25 @@ class RegistersConfiguration;
 class InstructionOperand;
 class Instruction;
 class Frame;
+class Linkage;
+
+class InstructionFunction;
+class InstructionBlock;
 
 class InstructionSelector {
 public:
-    InstructionSelector(const RegistersConfiguration *regconf, base::Arena *arena);
+    InstructionSelector(base::Arena *arena, const RegistersConfiguration *regconf, Linkage *linkage);
     
-    void VisitFunction(ir::Function *fun);
+    DEF_PTR_GETTER(const RegistersConfiguration, regconf);
+    DEF_PTR_GETTER(Linkage, linkage);
+    DEF_PTR_GETTER(Frame, frame);
+    
+    InstructionFunction *VisitFunction(ir::Function *fun);
+    
     void VisitBasicBlock(ir::BasicBlock *block);
     void VisitParameters(ir::Function *fun);
     void VisitCall(ir::Value *value);
+    void VisitReturn(ir::Value *value);
 
     Instruction *Emit(InstructionCode opcode, InstructionOperand output,
                       int temps_count = 0, InstructionOperand *temps = nullptr);
@@ -64,7 +75,10 @@ public:
     UnallocatedOperand DefineFixedFPRegister(ir::Value *value, int index);
     UnallocatedOperand DefineFixedSlot(ir::Value *value, int index);
     
+    UnallocatedOperand UseFixedSlot(ir::Value *value, int index);
+
     static InstructionOperand Invalid() { return InstructionOperand(); }
+    static InstructionOperand NoOutput() { return InstructionOperand(); }
     
     UnallocatedOperand Define(ir::Value *value, UnallocatedOperand operand);
     UnallocatedOperand Use(ir::Value *value, UnallocatedOperand operand);
@@ -73,15 +87,27 @@ public:
     bool IsDefined(ir::Value *value) const;
     bool IsUsed(ir::Value *value) const;
     
+    size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto) const;
+    size_t ParametersSizeInBytes(const ir::Function *fun) const;
+    size_t OverflowParametersSizeInBytes(const ir::Function *fun) const;
+    
     int GetVirtualRegister(ir::Value *value);
+    
+    int NextBlockLabel() { return next_blocks_label_++; }
 private:
     base::Arena *const arena_;
     const RegistersConfiguration *const regconf_;
+    Linkage *const linkage_;
     base::ArenaVector<Instruction *> instructions_;
     Frame *frame_ = nullptr;
+    int next_blocks_label_ = 0;
     base::ArenaVector<bool> defined_;
     base::ArenaVector<bool> used_;
+    //std::vector<ImmediateOperand *> stack_size_records_;
 }; // class InstructionSelector
+
+
+InstructionFunction *Arm64SelectFunctionInstructions(base::Arena *arena, Linkage *linkage, ir::Function *fun);
 
 } // namespace backend
 

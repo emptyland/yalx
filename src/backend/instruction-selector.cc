@@ -1,22 +1,94 @@
 #include "backend/instruction-selector.h"
 #include "backend/registers-configuration.h"
+#include "backend/linkage-symbols.h"
 #include "backend/instruction.h"
 #include "backend/frame.h"
 #include "ir/metadata.h"
+#include "ir/utils.h"
 #include "ir/node.h"
 #include "ir/type.h"
+#include "base/io.h"
 
 namespace yalx {
 
 namespace backend {
 
-InstructionSelector::InstructionSelector(const RegistersConfiguration *regconf, base::Arena *arena)
+InstructionSelector::InstructionSelector(base::Arena *arena, const RegistersConfiguration *regconf,
+                                         Linkage *linkage)
 : arena_(arena)
 , regconf_(regconf)
+, linkage_(linkage)
 , instructions_(arena)
 , defined_(arena)
 , used_(arena) {
     
+}
+
+InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
+    frame_ = new (arena_) Frame(arena_, fun);
+    auto instr_fun = new (arena_) InstructionFunction(arena_, linkage()->Mangle(fun->full_name()), frame_);
+    
+    VisitParameters(fun);
+
+    std::map<ir::BasicBlock *, InstructionBlock *> block_mapping;
+    for (auto basic_block : fun->blocks()) {
+        //VisitBasicBlock(block);
+        block_mapping[basic_block] = instr_fun->NewBlock(NextBlockLabel());
+    }
+    
+    for (auto basic_block : fun->blocks()) {
+        auto instr_block = block_mapping[basic_block];
+        for (auto predecessor : basic_block->inputs()) {
+            instr_block->AddPredecessors(block_mapping[predecessor]);
+        }
+        for (auto successor : basic_block->outputs()) {
+            instr_block->AddSuccessor(block_mapping[successor]);
+        }
+        
+        if (basic_block == fun->entry()) {
+            InstructionOperand temps[1];
+            temps[0] = ImmediateOperand{-1};
+            Emit(ArchFrameEnter, NoOutput(), arraysize(temps), temps);
+        }
+        VisitBasicBlock(basic_block);
+        
+        instr_block->MovableAssign(std::move(instructions_));
+    }
+    return instr_fun;
+}
+
+void InstructionSelector::VisitBasicBlock(ir::BasicBlock *block) {
+    
+    for (auto instr : block->instructions()) {
+        
+        switch (instr->op()->value()) {
+            case ir::Operator::kCallHandle:
+            case ir::Operator::kCallVirtual:
+            case ir::Operator::kCallDirectly:
+            case ir::Operator::kCallAbstract:
+            case ir::Operator::kCallIndirectly:
+                VisitCall(instr);
+                break;
+                
+            case ir::Operator::kRet:
+                VisitReturn(instr);
+                break;
+
+            debugging_info:
+            default: {
+            #ifndef NDEBUG
+                ir::PrintingContext ctx(0);
+                std::string buf;
+                auto file = base::NewMemoryWritableFile(&buf);
+                base::PrintingWriter printer(file, true);
+                instr->PrintTo(&ctx, &printer);
+                printd("%s", buf.c_str());
+            #endif
+                UNREACHABLE();
+            } break;
+                break;
+        }
+    }
 }
 
 void InstructionSelector::VisitParameters(ir::Function *fun) {
@@ -69,6 +141,31 @@ void InstructionSelector::VisitCall(ir::Value *value) {
 //           value->Is(ir::Operator::kCallDirectly) ||
 //           value->Is(ir::Operator::kCallIndirectly));
     
+    UNREACHABLE();
+}
+
+void InstructionSelector::VisitReturn(ir::Value *value) {
+    auto fun = frame_->fun();
+    auto overflow_args_size = OverflowParametersSizeInBytes(fun);
+    auto returning_val_size = ReturningValSizeInBytes(fun->prototype());
+    auto caller_saving_size = RoundUp(overflow_args_size + returning_val_size, Frame::kStackAlignmentSize);
+    auto caller_padding_size = caller_saving_size - returning_val_size - overflow_args_size;
+    auto returning_val_offset = Frame::kCalleeReservedSize + caller_padding_size + overflow_args_size;
+
+    std::vector<InstructionOperand> inputs;
+    for (int i = value->op()->value_in() - 1; i >= 0; i--) {
+        auto ty = fun->prototype()->return_type(i);
+        if (ty.kind() == ir::Type::kVoid) {
+            continue;
+        }
+        inputs.push_back(UseFixedSlot(value->InputValue(i), static_cast<int>(returning_val_offset)));
+        returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
+    }
+
+    ImmediateOperand tmp{-1};
+    Emit(ArchFrameExit, 0, nullptr, static_cast<int>(inputs.size()), &inputs.front(), 1, &tmp);
+    
+    frame_->set_returning_val_size(static_cast<int>(returning_val_size));
 }
 
 Instruction *InstructionSelector::Emit(InstructionCode opcode, InstructionOperand output,
@@ -151,6 +248,10 @@ UnallocatedOperand InstructionSelector::DefineFixedSlot(ir::Value *value, int in
     });
 }
 
+UnallocatedOperand InstructionSelector::UseFixedSlot(ir::Value *value, int index) {
+    return Use(value, UnallocatedOperand{ UnallocatedOperand::FixedSlotTag(), index, frame_->GetVirtualRegister(value)});
+}
+
 UnallocatedOperand InstructionSelector::Define(ir::Value *value, UnallocatedOperand operand) {
     DCHECK(frame_->GetVirtualRegister(value) == operand.virtual_register());
     auto vid = operand.virtual_register();
@@ -164,7 +265,7 @@ UnallocatedOperand InstructionSelector::Define(ir::Value *value, UnallocatedOper
 UnallocatedOperand InstructionSelector::Use(ir::Value *value, UnallocatedOperand operand) {
     DCHECK(frame_->GetVirtualRegister(value) == operand.virtual_register());
     auto vid = operand.virtual_register();
-    if (vid >= defined_.size()) {
+    if (vid >= used_.size()) {
         used_.resize(vid + 1, false);
     }
     used_[vid] = true;
@@ -181,6 +282,47 @@ bool InstructionSelector::IsUsed(ir::Value *value) const {
     auto vid = frame_->GetVirtualRegister(value);
     DCHECK(vid >= 0 && vid < used_.size());
     return used_[vid];
+}
+
+size_t InstructionSelector::OverflowParametersSizeInBytes(const ir::Function *fun) const {
+    size_t size_in_bytes = 0;
+    int float_count = regconf()->number_of_argument_fp_registers();
+    int general_count = regconf()->number_of_argument_gp_registers();
+
+    for (auto param : fun->paramaters()) {
+        if (param->type().IsFloating()) {
+            if (--float_count < 0) {
+                auto size = RoundUp(param->type().ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
+                size_in_bytes += size;
+            }
+        } else {
+            if (--general_count < 0) {
+                auto size = RoundUp(param->type().ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
+                size_in_bytes += size;
+            }
+        }
+    }
+    return size_in_bytes;
+}
+
+size_t InstructionSelector::ReturningValSizeInBytes(const ir::PrototypeModel *proto) const {
+    size_t size_in_bytes = 0;
+    for (auto ty : proto->return_types()) {
+        if (ty.kind() == ir::Type::kVoid) {
+            continue;
+        }
+        size_in_bytes += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
+    }
+    return size_in_bytes;
+}
+
+size_t InstructionSelector::ParametersSizeInBytes(const ir::Function *fun) const {
+    size_t size_in_bytes = 0;
+    for (auto param : fun->paramaters()) {
+        auto size = RoundUp(param->type().ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
+        size_in_bytes += size;
+    }
+    return size_in_bytes;
 }
 
 } // namespace backend

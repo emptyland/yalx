@@ -22,7 +22,7 @@ class OperatorsFactory;
 namespace backend {
 class InstructionFunction;
 class ConstantsPool;
-class LinkageSymbols;
+class Linkage;
 } // namespace backend
 namespace cpl {
 
@@ -106,7 +106,7 @@ public:
     SelectX64InstructionCode(base::Arena *arena,
                              ir::Module *module,
                              backend::ConstantsPool *const_pool,
-                             backend::LinkageSymbols *symbols,
+                             backend::Linkage *symbols,
                              int optimizing_level,
                              base::ArenaMap<std::string_view, backend::InstructionFunction *> *funs);
     
@@ -114,14 +114,14 @@ public:
     GenerateX64InstructionCode(const base::ArenaMap<std::string_view, backend::InstructionFunction *> &funs,
                                ir::Module *module,
                                backend::ConstantsPool *const_pool,
-                               backend::LinkageSymbols *symbols,
+                               backend::Linkage *symbols,
                                base::PrintingWriter *printer);
     
     static base::Status
     SelectArm64InstructionCode(base::Arena *arena,
                                ir::Module *module,
                                backend::ConstantsPool *const_pool,
-                               backend::LinkageSymbols *symbols,
+                               backend::Linkage *symbols,
                                int optimizing_level,
                                base::ArenaMap<std::string_view, backend::InstructionFunction *> *funs);
     
@@ -129,7 +129,7 @@ public:
     GenerateArm64InstructionCode(const base::ArenaMap<std::string_view, backend::InstructionFunction *> &funs,
                                  ir::Module *module,
                                  backend::ConstantsPool *const_pool,
-                                 backend::LinkageSymbols *symbols,
+                                 backend::Linkage *symbols,
                                  base::PrintingWriter *printer);
     
     static constexpr char kSourceExtendedName[] = ".yalx";

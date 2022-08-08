@@ -412,7 +412,6 @@ BasicBlock::BasicBlock(base::Arena *arena, const String *name)
 , name_(name)
 , instructions_(arena)
 , phi_node_users_(arena)
-, persistents_(arena)
 , inputs_(arena)
 , outputs_(arena) {
 }

@@ -9,14 +9,14 @@ namespace backend {
 
 using String = base::ArenaString;
 
-class LinkageSymbols final {
+class Linkage final {
 public:
     enum Kind {
         kOriginal,
         kNativeHandle,
     };
 
-    LinkageSymbols(base::Arena *arena);
+    Linkage(base::Arena *arena);
     
     const String *Mangle(const String *name)  { return Mangle(name->ToSlice()); }
     const String *Mangle(const char *z, size_t n) { return Mangle(std::string_view(z, n)); }
@@ -32,7 +32,7 @@ public:
     }
     static void Build(std::string *buf, std::string_view name);
     
-    DISALLOW_IMPLICIT_CONSTRUCTORS(LinkageSymbols);
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Linkage);
 private:
     base::Arena *const arena_;
     base::ArenaUnorderedMap<std::string_view, const String *> symbols_;

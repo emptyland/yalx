@@ -19,6 +19,8 @@ namespace backend {
 
 using String = base::ArenaString;
 
+class Frame;
+
 class UnallocatedOperand;
 class AllocatedOperand;
 class ConstantOperand;
@@ -437,56 +439,19 @@ private:
 
 class InstructionFunction final : public base::ArenaObject {
 public:
-    using SymbolMap = base::ArenaUnorderedMap<std::string_view, ReloactionOperand *>;
-    
-    InstructionFunction(base::Arena *arena, const String *symbol);
+    InstructionFunction(base::Arena *arena, const String *symbol, Frame *frame);
     
     DEF_PTR_GETTER(const String, symbol);
+    DEF_PTR_GETTER(Frame, frame);
     DEF_PTR_PROP_RW(InstructionFunction, native_handle);
-    DEF_VAL_GETTER(SymbolMap, external_symbols);
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, block);
     
     inline InstructionBlock *NewBlock(int label);
-    
-//    ReloactionOperand *AddExternalSymbol(const String *symbol, bool fetch_address = false) {
-//        if (auto iter = external_symbols_.find(symbol->ToSlice()); iter != external_symbols_.end()) {
-//            return iter->second;
-//        }
-//        auto rel = new (arena_) ReloactionOperand(symbol, nullptr, fetch_address);
-//        external_symbols_[symbol->ToSlice()] = rel;
-//        return rel;
-//    }
-//
-//    ReloactionOperand *AddExternalSymbol(const std::string_view symbol, bool fetch_address = false) {
-//        if (auto iter = external_symbols_.find(symbol); iter != external_symbols_.end()) {
-//            return iter->second;
-//        }
-//        auto ass = String::New(arena_, symbol);
-//        auto rel = new (arena_) ReloactionOperand(ass, nullptr, fetch_address);
-//        external_symbols_[ass->ToSlice()] = rel;
-//        return rel;
-//    }
-//
-//    ReloactionOperand *AddArrayElementClassSymbol(const ir::ArrayModel *ar, bool fetch_address = false);
-//
-//    ReloactionOperand *AddClassSymbol(const ir::Type &ty, bool fetch_address = false);
 private:
-//    ReloactionOperand *FindExternalSymbolOrNull(const std::string_view symbol) const {
-//        if (auto iter = external_symbols_.find(symbol); iter != external_symbols_.end()) {
-//            return iter->second;
-//        }
-//        return nullptr;
-//    }
-//
-//    ReloactionOperand *InsertExternalSymbol(const std::string_view symbol, ReloactionOperand *rel) {
-//        external_symbols_[symbol] = rel;
-//        return rel;
-//    }
-    
-    const String *const symbol_;
     base::Arena *const arena_;
+    const String *const symbol_;
+    Frame *const frame_;
     InstructionFunction *native_handle_ = nullptr;
-    SymbolMap external_symbols_;
     base::ArenaVector<InstructionBlock *> blocks_;
 }; // class InstructionFunction
 
@@ -502,7 +467,8 @@ public:
 
     void AddSuccessor(InstructionBlock *successor) { AddLinkedNode(&successors_, successor); }
     void AddPredecessors(InstructionBlock *predecessor) { AddLinkedNode(&predecessors_, predecessor); }
-
+    void MovableAssign(base::ArenaVector<Instruction *> &&others) { instructions_ = std::move(others); }
+    
     DISALLOW_IMPLICIT_CONSTRUCTORS(InstructionBlock);
 private:
     void AddLinkedNode(base::ArenaVector<InstructionBlock *> *nodes, InstructionBlock *node) {

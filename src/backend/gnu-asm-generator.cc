@@ -17,7 +17,7 @@ namespace backend {
 GnuAsmGenerator::GnuAsmGenerator(const base::ArenaMap<std::string_view, InstructionFunction *> &funs,
                                  ir::Module *module,
                                  ConstantsPool *const_pool,
-                                 LinkageSymbols *symbols,
+                                 Linkage *symbols,
                                  base::PrintingWriter *printer)
 : funs_(funs)
 , module_(module)
@@ -93,7 +93,7 @@ void GnuAsmGenerator::EmitAll() {
     printer_->Writeln(".p2align 4");
     
     std::string symbol;
-    LinkageSymbols::Build(&symbol, module_->full_name()->ToSlice());
+    Linkage::Build(&symbol, module_->full_name()->ToSlice());
     symbol.append("$global_slots");
     //    struct pkg_global_slots {
     //        size_t size_in_bytes;
@@ -140,7 +140,7 @@ int GnuAsmGenerator::EmitGlobalSlots(std::vector<int> *refs_offset) {
         }
     
         std::string symbol;
-        LinkageSymbols::Build(&symbol, val->name()->ToSlice());
+        Linkage::Build(&symbol, val->name()->ToSlice());
         printer_->Println("%s:", symbol.c_str());
 
         if (val->type().IsReference()) {
@@ -255,7 +255,7 @@ void GnuAsmGenerator::EmitMetadata() {
 //    struct yalx_class_method **itab;
     for (auto clazz : module_->structures()) {
         std::string buf;
-        LinkageSymbols::Build(&buf, clazz->full_name()->ToSlice());
+        Linkage::Build(&buf, clazz->full_name()->ToSlice());
         buf.append("$class");
         
         printer_->Println(".global %s", buf.c_str());
@@ -269,7 +269,7 @@ void GnuAsmGenerator::EmitMetadata() {
         printer_->Indent(1)->Println(".space 4 %s padding", comment_);
         if (clazz->base_of()) {
             std::string base_name;
-            LinkageSymbols::Build(&base_name, clazz->base_of()->full_name()->ToSlice());
+            Linkage::Build(&base_name, clazz->base_of()->full_name()->ToSlice());
             base_name.append("$class");
             printer_->Indent(1)->Println(".quad %s %s super", base_name.c_str() , comment_);
         } else {
@@ -324,7 +324,7 @@ void GnuAsmGenerator::EmitMetadata() {
 
         if (!clazz->fields().empty()) {
             std::string symbol;
-            LinkageSymbols::Build(&symbol, clazz->full_name()->ToSlice());
+            Linkage::Build(&symbol, clazz->full_name()->ToSlice());
             symbol.append("$fields");
             printer_->Println("%s:", symbol.c_str());
         }
@@ -356,7 +356,7 @@ void GnuAsmGenerator::EmitMetadata() {
         
         if (!clazz->methods().empty()) {
             std::string symbol;
-            LinkageSymbols::Build(&symbol, clazz->full_name()->ToSlice());
+            Linkage::Build(&symbol, clazz->full_name()->ToSlice());
             symbol.append("$methods");
             printer_->Println("%s:", symbol.c_str());
         }
@@ -378,7 +378,7 @@ void GnuAsmGenerator::EmitMetadata() {
 //            address_t entry;
             if (method.fun == clazz->constructor()) {
                 std::string symbol;
-                LinkageSymbols::Build(&symbol, clazz->full_name()->ToSlice());
+                Linkage::Build(&symbol, clazz->full_name()->ToSlice());
                 symbol.append("$ctor");
                 printer_->Println("%s:", symbol.c_str());
             }
@@ -397,13 +397,13 @@ void GnuAsmGenerator::EmitMetadata() {
             printer_->Indent(1)->Println(".long %zd %s prototype_desc", method.fun->prototype()->name()->size(), comment_);
             printer_->Indent(1)->Println(".space 4 %s padding", comment_);
             std::string symbol;
-            LinkageSymbols::Build(&symbol, method.fun->full_name()->ToSlice());
+            Linkage::Build(&symbol, method.fun->full_name()->ToSlice());
             printer_->Indent(1)->Println(".quad %s %s entry", symbol.c_str(), comment_);
         }
         
         if (!clazz->vtab().empty()) {
             std::string symbol;
-            LinkageSymbols::Build(&symbol, clazz->full_name()->ToSlice());
+            Linkage::Build(&symbol, clazz->full_name()->ToSlice());
             symbol.append("$vtab");
             printer_->Println("%s:", symbol.c_str());
         }
@@ -415,7 +415,7 @@ void GnuAsmGenerator::EmitMetadata() {
         
         if (!clazz->itab().empty()) {
             std::string symbol;
-            LinkageSymbols::Build(&symbol, clazz->full_name()->ToSlice());
+            Linkage::Build(&symbol, clazz->full_name()->ToSlice());
             symbol.append("$itab");
             printer_->Println("%s:", symbol.c_str());
         }
@@ -471,7 +471,7 @@ void GnuAsmGenerator::EmitTypeRelocation(const ir::Type &ty, base::PrintingWrite
             break;
         case ir::Type::kValue: {
             std::string symbol;
-            LinkageSymbols::Build(&symbol, ty.model()->full_name()->ToSlice());
+            Linkage::Build(&symbol, ty.model()->full_name()->ToSlice());
             symbol.append("$class");
             printer->Write(symbol);
         } break;
@@ -487,7 +487,7 @@ void GnuAsmGenerator::EmitTypeRelocation(const ir::Type &ty, base::PrintingWrite
                 UNREACHABLE();
             } else {
                 std::string symbol;
-                LinkageSymbols::Build(&symbol, ty.model()->full_name()->ToSlice());
+                Linkage::Build(&symbol, ty.model()->full_name()->ToSlice());
                 symbol.append("$class");
                 printer->Write(symbol);
             }

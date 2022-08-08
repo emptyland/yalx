@@ -1314,7 +1314,7 @@ public:
             iter = b()->NewNode(ss.Position(), iter->type(), ops()->Add(), iter, one);
             location_->PutSymbol(ast->iterative_destination()->name()->ToSlice(), Symbol::Val(trunk.ns(), iter, b()));
             b()->NewNode(ss.Position(), Types::Void, ops()->Br(0/*value_in*/, 1/*control_out*/), cond_block);
-            b()->mutable_persistents()->push_back(cond);
+            //b()->mutable_persistents()->push_back(cond);
         }
         
         std::map<Value *, Value *> phi_nodes;

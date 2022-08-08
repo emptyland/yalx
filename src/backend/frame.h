@@ -9,12 +9,21 @@
 namespace yalx {
 namespace ir {
 class Value;
+class Function;
 } // namespace ir
 namespace backend {
 
 class Frame final : public base::ArenaObject {
 public:
-    Frame(base::Arena *arena);
+    static constexpr size_t kSlotAlignmentSize = 4;
+    static constexpr size_t kStackAlignmentSize = 16;
+    static constexpr size_t kCalleeReservedSize = 16;
+    
+    Frame(base::Arena *arena, ir::Function *fun);
+    
+    DEF_PTR_GETTER(ir::Function, fun);
+    DEF_VAL_GETTER(int, stack_size);
+    DEF_VAL_PROP_RW(int, returning_val_size);
 
     int GetVirtualRegister(ir::Value *value) {
         if (auto iter = std::find(virtual_registers_.begin(), virtual_registers_.end(), value);
@@ -31,6 +40,9 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(Frame);
 private:
     base::ArenaVector<ir::Value *> virtual_registers_;
+    ir::Function *fun_;
+    int returning_val_size_ = 0;
+    int stack_size_ = 0;
 }; // class Frame
 
 } // namespace backend

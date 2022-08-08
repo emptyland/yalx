@@ -17,7 +17,7 @@ class Type;
 namespace backend {
 
 class ConstantsPool;
-class LinkageSymbols;
+class Linkage;
 class InstructionFunction;
 
 
@@ -31,7 +31,7 @@ public:
     GnuAsmGenerator(const base::ArenaMap<std::string_view, InstructionFunction *> &funs,
                     ir::Module *module,
                     ConstantsPool *const_pool,
-                    LinkageSymbols *symbols,
+                    Linkage *symbols,
                     base::PrintingWriter *printer);
     virtual ~GnuAsmGenerator();
     
@@ -57,7 +57,7 @@ protected:
     const base::ArenaMap<std::string_view, InstructionFunction *> &funs_;
     ir::Module *const module_;
     ConstantsPool *const const_pool_;
-    LinkageSymbols *const symbols_;
+    Linkage *const symbols_;
     base::PrintingWriter *const printer_;
 }; // class GnuAsmGenerator
 

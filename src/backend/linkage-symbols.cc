@@ -39,12 +39,12 @@ DECLARE_STATIC_STRING(kRt_array_set_chunk3, "_array_set_chunk3");
 DECLARE_STATIC_STRING(kRt_closure, "_closure");
 DECLARE_STATIC_STRING(kRt_concat, "_concat");
 
-LinkageSymbols::LinkageSymbols(base::Arena *arena)
+Linkage::Linkage(base::Arena *arena)
 : arena_(arena)
 , symbols_(arena) {
 }
 
-const String *LinkageSymbols::Mangle(std::string_view name) {
+const String *Linkage::Mangle(std::string_view name) {
     if (auto iter = symbols_.find(name); iter != symbols_.end()) {
         return iter->second;
     }
@@ -55,7 +55,7 @@ const String *LinkageSymbols::Mangle(std::string_view name) {
     return symbol;
 }
 
-void LinkageSymbols::Build(std::string *buf, std::string_view name) {
+void Linkage::Build(std::string *buf, std::string_view name) {
     buf->append("_");
     for (size_t i = 0; i < name.size(); i++) {
         auto ch = name[i];

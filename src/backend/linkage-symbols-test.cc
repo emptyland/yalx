@@ -10,7 +10,7 @@ public:
     
 protected:
     base::Arena arena_;
-    LinkageSymbols symbols_;
+    Linkage symbols_;
 }; // class LinkageSymbolsTest
 
 TEST_F(LinkageSymbolsTest, Sanity) {
