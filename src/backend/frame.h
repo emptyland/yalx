@@ -26,6 +26,8 @@ public:
     DEF_VAL_GETTER(int, stack_size);
     DEF_VAL_PROP_RW(int, returning_val_size);
     
+    size_t virtual_registers_size() const { return virtual_registers_.size(); }
+    
     int AllocateSlot(size_t size_in_bytes, size_t padding_size) {
         //int origin = stack_size();
         stack_size_ += (padding_size + RoundUp(size_in_bytes, kSlotAlignmentSize));
@@ -33,15 +35,7 @@ public:
         return -stack_size();
     }
 
-    int GetVirtualRegister(ir::Value *value) {
-        if (auto iter = std::find(virtual_registers_.begin(), virtual_registers_.end(), value);
-            iter != virtual_registers_.end()) {
-            return static_cast<int>(iter - virtual_registers_.begin());
-        } else {
-            virtual_registers_.push_back(value);
-            return static_cast<int>(virtual_registers_.size()) - 1;
-        }
-    }
+    int GetVirtualRegister(ir::Value *value);
     
     ir::Value *GetValue(int vid) const;
     
@@ -68,11 +62,14 @@ public:
         return rename;
     }
     
+    int NextVirtualRegister() { return next_virtual_register_++; }
+    
     DISALLOW_IMPLICIT_CONSTRUCTORS(Frame);
 private:
     base::ArenaVector<ir::Value *> virtual_registers_;
     base::ArenaVector<int> virtual_register_rename_;
     ir::Function *fun_;
+    int next_virtual_register_ = 0;
     int returning_val_size_ = 0;
     int stack_size_ = 0;
 }; // class Frame

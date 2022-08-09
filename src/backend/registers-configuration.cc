@@ -25,6 +25,7 @@ RegistersConfiguration::RegistersConfiguration(int number_of_argument_gp_registe
                                                const int *fp_registers,
                                                int scratch0,
                                                int scratch1,
+                                               int returning0_register,
                                                int fp,
                                                int sp,
                                                int root)
@@ -46,6 +47,7 @@ RegistersConfiguration::RegistersConfiguration(int number_of_argument_gp_registe
 , fp_registers_(fp_registers)
 , scratch0_(scratch0)
 , scratch1_(scratch1)
+, returning0_register_(returning0_register)
 , fp_(fp)
 , sp_(sp)
 , root_(root) {
@@ -132,6 +134,7 @@ const RegistersConfiguration *RegistersConfiguration::of_arm64() {
                                                       nullptr, // fp_registers,
                                                       arm64::x19.code(), // scratch0,
                                                       arm64::x20.code(), // scratch1,
+                                                      arm64::x0.code(), // returning0_register
                                                       arm64::fp.code(), // fp
                                                       arm64::sp.code(), // sp,
                                                       arm64::kRootRegister.code() /*root*/);
@@ -240,6 +243,7 @@ const RegistersConfiguration *RegistersConfiguration::of_x64() {
                                                       nullptr, // fp_registers,
                                                       x64::r13.code(), // scratch0,
                                                       -1, // scratch1,
+                                                      x64::rax.code(), // returning0_register
                                                       x64::rbp.code(), // fp
                                                       x64::rsp.code(), // sp,
                                                       x64::r14.code() /*root*/);

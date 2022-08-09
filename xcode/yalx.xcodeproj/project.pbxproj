@@ -123,6 +123,8 @@
 		23AE8304289E09B90009E00E /* instruction-selector-arm64.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23AE8302289E09B90009E00E /* instruction-selector-arm64.cc */; };
 		23AE830628A0B3A10009E00E /* instruction-selector-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23AE830528A0B3A10009E00E /* instruction-selector-arm64-test.cc */; };
 		23AE830728A0B3A10009E00E /* instruction-selector-arm64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23AE830528A0B3A10009E00E /* instruction-selector-arm64-test.cc */; };
+		23AE830B28A248BD0009E00E /* register-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23AE830A28A248BD0009E00E /* register-allocator.cc */; };
+		23AE830C28A248BD0009E00E /* register-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23AE830A28A248BD0009E00E /* register-allocator.cc */; };
 		23B997D926A4680300DD037B /* type-reducing.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997D826A4680300DD037B /* type-reducing.cc */; };
 		23B997DA26A4680300DD037B /* type-reducing.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997D826A4680300DD037B /* type-reducing.cc */; };
 		23B997DD26A468D500DD037B /* scope.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23B997DC26A468D500DD037B /* scope.cc */; };
@@ -447,6 +449,9 @@
 		23AE82FF289A61D90009E00E /* registers-configuration.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "registers-configuration.cc"; path = "../src/backend/registers-configuration.cc"; sourceTree = "<group>"; };
 		23AE8302289E09B90009E00E /* instruction-selector-arm64.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instruction-selector-arm64.cc"; path = "../src/backend/arm64/instruction-selector-arm64.cc"; sourceTree = "<group>"; };
 		23AE830528A0B3A10009E00E /* instruction-selector-arm64-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instruction-selector-arm64-test.cc"; path = "../src/backend/arm64/instruction-selector-arm64-test.cc"; sourceTree = "<group>"; };
+		23AE830828A20D3B0009E00E /* bit-field.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "bit-field.h"; path = "../src/base/bit-field.h"; sourceTree = "<group>"; };
+		23AE830928A246FF0009E00E /* register-allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "register-allocator.h"; path = "../src/backend/register-allocator.h"; sourceTree = "<group>"; };
+		23AE830A28A248BD0009E00E /* register-allocator.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "register-allocator.cc"; path = "../src/backend/register-allocator.cc"; sourceTree = "<group>"; };
 		23B997D826A4680300DD037B /* type-reducing.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "type-reducing.cc"; path = "../src/compiler/type-reducing.cc"; sourceTree = "<group>"; };
 		23B997DB26A468BE00DD037B /* scope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = scope.h; path = ../src/compiler/scope.h; sourceTree = "<group>"; };
 		23B997DC26A468D500DD037B /* scope.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = scope.cc; path = ../src/compiler/scope.cc; sourceTree = "<group>"; };
@@ -558,6 +563,8 @@
 				239735CA27B54CD500FAD063 /* linkage-symbols.h */,
 				23AE82FF289A61D90009E00E /* registers-configuration.cc */,
 				23AE82FE289A5FCB0009E00E /* registers-configuration.h */,
+				23AE830A28A248BD0009E00E /* register-allocator.cc */,
+				23AE830928A246FF0009E00E /* register-allocator.h */,
 			);
 			name = Backend;
 			sourceTree = "<group>";
@@ -658,6 +665,7 @@
 		2354CD5F26439E8100A2FAC3 /* Base */ = {
 			isa = PBXGroup;
 			children = (
+				23AE830828A20D3B0009E00E /* bit-field.h */,
 				2354CD6426439E9500A2FAC3 /* arena-utils.cc */,
 				2354CD6726439E9500A2FAC3 /* arena-utils.h */,
 				2354CD8D2644D3F200A2FAC3 /* arena-test.cc */,
@@ -1026,6 +1034,7 @@
 				23FA869A269FE4D4001CC777 /* metadata.cc in Sources */,
 				232AA00826861D5D0098E6A3 /* parser-test.cc in Sources */,
 				232AA00126861A060098E6A3 /* ast-test.cc in Sources */,
+				23AE830C28A248BD0009E00E /* register-allocator.cc in Sources */,
 				231C4B8D268DA7AD00D4AC62 /* test-stub-posix-arm64.s in Sources */,
 				23D4A46E2680D17D0090C631 /* bit-ops.h in Sources */,
 				23B997DA26A4680300DD037B /* type-reducing.cc in Sources */,
@@ -1088,6 +1097,7 @@
 				23D5A65F266718F900635ADB /* arena-utils.cc in Sources */,
 				23D5A660266718F900635ADB /* arena-utils.h in Sources */,
 				23D5A661266718F900635ADB /* arena-test.cc in Sources */,
+				23AE830B28A248BD0009E00E /* register-allocator.cc in Sources */,
 				23D5A662266718F900635ADB /* arena.h in Sources */,
 				232AA00426861D4C0098E6A3 /* parser.cc in Sources */,
 				23D5A663266718F900635ADB /* at-exit.cc in Sources */,

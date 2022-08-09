@@ -444,6 +444,7 @@ public:
     DEF_PTR_GETTER(const String, symbol);
     DEF_PTR_GETTER(Frame, frame);
     DEF_PTR_PROP_RW(InstructionFunction, native_handle);
+    DEF_PTR_PROP_RW(InstructionBlock, entry);
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, block);
     
     inline InstructionBlock *NewBlock(int label);
@@ -452,6 +453,7 @@ private:
     const String *const symbol_;
     Frame *const frame_;
     InstructionFunction *native_handle_ = nullptr;
+    InstructionBlock *entry_ = nullptr;
     base::ArenaVector<InstructionBlock *> blocks_;
 }; // class InstructionFunction
 

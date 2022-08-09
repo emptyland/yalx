@@ -36,6 +36,8 @@ InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
         block_mapping[basic_block] = instr_fun->NewBlock(NextBlockLabel());
     }
     
+    instr_fun->set_entry(block_mapping[fun->entry()]);
+    
     for (auto basic_block : fun->blocks()) {
         auto instr_block = block_mapping[basic_block];
         for (auto predecessor : basic_block->inputs()) {
@@ -62,6 +64,14 @@ void InstructionSelector::VisitBasicBlock(ir::BasicBlock *block) {
     for (auto instr : block->instructions()) {
         
         switch (instr->op()->value()) {
+            case ir::Operator::kHeapAlloc:
+                VisitHeapAlloc(instr);
+                break;
+            
+            case ir::Operator::kStackAlloc:
+                VisitStackAlloc(instr);
+                break;
+                
             case ir::Operator::kCallHandle:
             case ir::Operator::kCallVirtual:
             case ir::Operator::kCallDirectly:
@@ -180,13 +190,15 @@ void InstructionSelector::VisitHeapAlloc(ir::Value *value) {
     Emit(ArchSaveCallerRegisters, NoOutput());
     
     ReloactionOperand klass = UseAsExternalClassName(model->full_name());
-    UnallocatedOperand arg0(UnallocatedOperand::kFixedRegister, regconf()->argument_gp_register(0), -1);
-    Emit(ArchLoadEffectAddress, NoOutput(), klass, 1, &arg0);
+    UnallocatedOperand arg0(UnallocatedOperand::kFixedRegister,
+                            regconf()->argument_gp_register(0),
+                            frame()->NextVirtualRegister());
+    Emit(AndBits(ArchLoadEffectAddress, CallDescriptorField::Encode(kCallNative)), arg0, klass);
     
-    //linkage()->M
-    // TODO:
+    ReloactionOperand heap_alloc = UseAsExternalCFunction(kRt_heap_alloc);
+    Emit(ArchCallNative, DefineAsRegisterOrSlot(value), heap_alloc, arg0);
     
-    Emit(ArchRestoreCallerRegisters, NoOutput());
+    Emit(AndBits(ArchRestoreCallerRegisters, CallDescriptorField::Encode(kCallNative)), NoOutput());
 }
 
 Instruction *InstructionSelector::Emit(InstructionCode opcode, InstructionOperand output,
@@ -283,6 +295,10 @@ UnallocatedOperand InstructionSelector::UseAsFixedSlot(ir::Value *value, int ind
 
 ReloactionOperand InstructionSelector::UseAsExternalClassName(const String *name) {
     return ReloactionOperand {linkage()->MangleClassName(name)};
+}
+
+ReloactionOperand InstructionSelector::UseAsExternalCFunction(const String *symbol) {
+    return ReloactionOperand {symbol};
 }
 
 UnallocatedOperand InstructionSelector::Define(ir::Value *value, UnallocatedOperand operand) {

@@ -29,6 +29,7 @@ public:
                            const int *fp_registers,
                            int scratch0,
                            int scratch1,
+                           int returning0_register,
                            int fp,
                            int sp,
                            int root);
@@ -54,6 +55,7 @@ public:
     
     DEF_VAL_GETTER(int, scratch0);
     DEF_VAL_GETTER(int, scratch1);
+    DEF_VAL_GETTER(int, returning0_register);
     DEF_VAL_GETTER(int, fp);
     DEF_VAL_GETTER(int, sp);
     DEF_VAL_GETTER(int, root);
@@ -90,6 +92,7 @@ private:
     const int scratch0_;
     const int scratch1_;
     
+    const int returning0_register_;
     const int fp_;
     const int sp_;
     const int root_;

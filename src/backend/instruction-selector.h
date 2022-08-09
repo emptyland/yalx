@@ -84,6 +84,7 @@ public:
     UnallocatedOperand UseAsFixedSlot(ir::Value *value, int index);
     
     ReloactionOperand UseAsExternalClassName(const String *name);
+    ReloactionOperand UseAsExternalCFunction(const String *symbol);
 
     static InstructionOperand Invalid() { return InstructionOperand(); }
     static InstructionOperand NoOutput() { return InstructionOperand(); }
