@@ -35,7 +35,7 @@ void RegisterAllocator::ScanLiveRange() {
     
     for (auto param : fun_->frame()->fun()->paramaters()) {
         auto vid = fun_->frame()->GetVirtualRegister(param);
-        live_ranges_[vid].Update(entry->label(), 0);
+        Define(vid, entry->label(), 0);
     }
     
     ScanBlockGraph(entry);
@@ -62,15 +62,21 @@ void RegisterAllocator::ScanBlockGraph(InstructionBlock *block) {
                 Use(opd->virtual_register(), block->label(), step);
             }
         }
-//        for (int i = 0; i < instr->temps_count(); i++) {
-//            if (auto opd = instr->Te(i)->AsUnallocated()) {
-//                Use(opd->virtual_register(), block->label(), step);
-//            }
-//        }
+        for (int i = 0; i < instr->temps_count(); i++) {
+            if (auto opd = instr->TempAt(i)->AsUnallocated()) {
+                Define(opd->virtual_register(), block->label(), step);
+            }
+        }
         step++;
     }
     
     for (auto next_block : block->successors()) {
+        if (HasTraced(next_block)) { // has ring in block graph
+            // Update used in this block
+            for (auto vid : FindVirtualRegistersUsedIn(next_block->label())) {
+                Use(vid, block->label(), step);
+            }
+        }
         ScanBlockGraph(next_block);
     }
 }
@@ -79,12 +85,23 @@ void RegisterAllocator::Define(int virtual_register, int label, int step) {
     DCHECK(virtual_register >= 0 && virtual_register < fun_->frame()->virtual_registers_size());
     DCHECK(live_ranges_[virtual_register].used_at_start.IsInvliad());
     live_ranges_[virtual_register].used_at_start = {label, step};
+    live_ranges_[virtual_register].used_at_end = {label, step};
 }
 
 void RegisterAllocator::Use(int virtual_register, int label, int step) {
     DCHECK(virtual_register >= 0 && virtual_register < fun_->frame()->virtual_registers_size());
-    DCHECK(live_ranges_[virtual_register].used_at_end.IsInvliad());
+    //DCHECK(live_ranges_[virtual_register].used_at_end.IsInvliad());
     live_ranges_[virtual_register].used_at_end = {label, step};
+}
+
+std::vector<int> RegisterAllocator::FindVirtualRegistersUsedIn(int lable) {
+    std::vector<int> vids;
+    for (int i = 0; i < fun_->frame()->virtual_registers_size(); i++) {
+        if (live_ranges_[i].does_in_label(lable)) {
+            vids.push_back(i);
+        }
+    }
+    return vids;
 }
 
 } // namespace backend

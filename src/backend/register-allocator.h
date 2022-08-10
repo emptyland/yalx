@@ -34,15 +34,7 @@ struct TopTierLiveRange {
     LivePosition used_at_start;
     LivePosition used_at_end;
     
-    void Update(int label, int step) {
-        if (used_at_start.IsInvliad()) {
-            used_at_start.label = label;
-            used_at_start.step  = step;
-        } else {
-            used_at_end.label = label;
-            used_at_end.step  = step;
-        }
-    }
+    bool does_in_label(int label) const { return used_at_end.label == label || used_at_start.label == label; }
 };
 
 class RegisterAllocator final {
@@ -52,6 +44,11 @@ public:
     void Prepare();
     
     void ScanLiveRange();
+    
+    const TopTierLiveRange &live_range(int i) const {
+        DCHECK(i >= 0);
+        return live_ranges_[i];
+    }
 private:
     void ScanBlockGraph(InstructionBlock *block);
     
@@ -59,12 +56,16 @@ private:
     void Use(int virtual_register, int label, int step);
     
     bool TryTrace(InstructionBlock *block) {
-        if (tracing_.find(block) != tracing_.end()) {
+        if (HasTraced(block)) {
             return true;
         }
         tracing_.insert(block);
         return false;
     }
+    
+    bool HasTraced(InstructionBlock *block) const { return tracing_.find(block) != tracing_.end(); }
+    
+    std::vector<int> FindVirtualRegistersUsedIn(int lable);
     
     base::Arena *const arena_;
     const RegistersConfiguration *const regconf_;

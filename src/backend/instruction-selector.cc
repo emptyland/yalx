@@ -30,21 +30,21 @@ InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
     
     VisitParameters(fun);
 
-    std::map<ir::BasicBlock *, InstructionBlock *> block_mapping;
+    //std::map<ir::BasicBlock *, InstructionBlock *> block_mapping;
     for (auto basic_block : fun->blocks()) {
         //VisitBasicBlock(block);
-        block_mapping[basic_block] = instr_fun->NewBlock(NextBlockLabel());
+        block_mapping_[basic_block] = instr_fun->NewBlock(NextBlockLabel());
     }
     
-    instr_fun->set_entry(block_mapping[fun->entry()]);
+    instr_fun->set_entry(block_mapping_[fun->entry()]);
     
     for (auto basic_block : fun->blocks()) {
-        auto instr_block = block_mapping[basic_block];
+        auto instr_block = block_mapping_[basic_block];
         for (auto predecessor : basic_block->inputs()) {
-            instr_block->AddPredecessors(block_mapping[predecessor]);
+            instr_block->AddPredecessors(block_mapping_[predecessor]);
         }
         for (auto successor : basic_block->outputs()) {
-            instr_block->AddSuccessor(block_mapping[successor]);
+            instr_block->AddSuccessor(block_mapping_[successor]);
         }
         
         if (basic_block == fun->entry()) {
@@ -56,6 +56,8 @@ InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
         
         instr_block->MovableAssign(std::move(instructions_));
     }
+    
+    block_mapping_.clear();
     return instr_fun;
 }
 
@@ -80,9 +82,25 @@ void InstructionSelector::VisitBasicBlock(ir::BasicBlock *block) {
                 VisitCall(instr);
                 break;
                 
+            case ir::Operator::kICmp:
+                VisitICmp(instr);
+                break;
+                
+            case ir::Operator::kBr:
+                if (instr->op()->value_in() > 0) {
+                    VisitCondBr(instr);
+                } else {
+                    Emit(ArchJmp, NoOutput(), ReloactionOperand(GetBlock(instr->OutputControl(0))));
+                    Emit(ArchNop, NoOutput());
+                }
+                break;
+
             case ir::Operator::kRet:
                 VisitReturn(instr);
                 break;
+                
+            case ir::Operator::kPhi:
+                break; // Ignore phi nodes
 
             debugging_info:
             default: {
@@ -390,6 +408,16 @@ void InstructionSelector::TryRename(InstructionOperand *opd) {
     if (rename != unallocated->virtual_register()) {
         *opd = UnallocatedOperand(*unallocated, rename);
     }
+}
+
+int InstructionSelector::GetLabel(ir::BasicBlock *key) const {
+    return GetBlock(key)->label();
+}
+
+InstructionBlock *InstructionSelector::GetBlock(ir::BasicBlock *key) const {
+    auto iter = block_mapping_.find(key);
+    DCHECK(iter != block_mapping_.end());
+    return iter->second;
 }
 
 } // namespace backend

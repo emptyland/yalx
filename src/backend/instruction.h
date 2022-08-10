@@ -401,6 +401,11 @@ public:
         return &operands_[output_offset() + i];
     }
     
+    Operand *TempAt(size_t i) {
+        DCHECK(i < temps_count());
+        return &operands_[temp_offset() + i];
+    }
+    
     static Instruction *New(base::Arena *arena, Code op,
                             size_t inputs_count,
                             Operand inputs[],

@@ -45,7 +45,10 @@ public:
     void VisitHeapAlloc(ir::Value *value);
     
     
+    
     //virtual
+    virtual void VisitCondBr(ir::Value *instr) {UNREACHABLE();}
+    virtual void VisitICmp(ir::Value *instr) {UNREACHABLE();}
 
     Instruction *Emit(InstructionCode opcode, InstructionOperand output,
                       int temps_count = 0, InstructionOperand *temps = nullptr);
@@ -103,6 +106,9 @@ public:
     void UpdateRenames(Instruction *instr);
     void TryRename(InstructionOperand *opd);
     
+    int GetLabel(ir::BasicBlock *key) const;
+    InstructionBlock *GetBlock(ir::BasicBlock *key) const;
+    
     int NextBlockLabel() { return next_blocks_label_++; }
 private:
     base::Arena *const arena_;
@@ -113,7 +119,7 @@ private:
     int next_blocks_label_ = 0;
     base::ArenaVector<bool> defined_;
     base::ArenaVector<bool> used_;
-    //std::vector<ImmediateOperand *> stack_size_records_;
+    std::map<ir::BasicBlock *, InstructionBlock *> block_mapping_;
 }; // class InstructionSelector
 
 

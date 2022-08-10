@@ -1,94 +1,19 @@
+#include "backend/instruction-selector-test.h"
 #include "backend/instruction-selector.h"
-#include "backend/linkage-symbols.h"
-#include "backend/frame.h"
+#include "backend/registers-configuration.h"
+#include "backend/register-allocator.h"
 #include "backend/arm64/instruction-codes-arm64.h"
-#include "ir/operators-factory.h"
-#include "ir/operator.h"
-#include "ir/metadata.h"
-#include "ir/node.h"
-#include "ir/type.h"
-#include <gtest/gtest.h>
 
 namespace yalx {
 
 namespace backend {
 
 
-
-class Arm64InstructionSelectorTest : public ::testing::Test {
+class Arm64InstructionSelectorTest : public InstructionSelectorTest {
 public:
-    static constexpr ir::SourcePosition kUnknown = ir::SourcePosition::Unknown();
     
-    Arm64InstructionSelectorTest()
-    : linkage_(&arena_)
-    , ops_(&arena_) {
-        auto name = String::New(arena(), "test");
-        auto full_name = String::New(arena(), "testing.test");
-        auto path = String::New(arena(), "testing");
-        auto full_path = String::New(arena(), "testing:testing.test");
-        module_ = new (arena()) ir::Module(arena(), name, full_name, path, full_path);
-    }
-    
-    ir::Function *NewFun(const char *name,
-                         const char *sign,
-                         std::initializer_list<ir::Type> args,
-                         std::initializer_list<ir::Type> rets) {
-        auto proto = new (arena()) ir::PrototypeModel(arena(), String::New(arena(), sign), false);
-        for (auto ty : args) {
-            proto->mutable_params()->push_back(ty);
-        }
-        for (auto ty: rets) {
-            proto->mutable_return_types()->push_back(ty);
-        }
-
-        auto fun_name = String::New(arena(), name);
-        auto fun = module_->NewStandaloneFunction(ir::Function::kDefault, fun_name, fun_name, proto);
-        
-        int hint = 0;
-        for (auto ty : args) {
-            fun->mutable_paramaters()->push_back(ir::Value::New(arena(), kUnknown, ty, ops_.Argument(hint++)));
-        }
-        fun->NewBlock(String::New(arena(), "entry"));
-        return fun;
-    }
-    
-//    const String *name;
-//    Access access;
-//    ptrdiff_t offset;
-//    Type type;
-//    int16_t enum_value;
-    ir::StructureModel *NewFooClass() {
-        auto name = String::New(arena(), "Foo");
-        auto full_name = String::New(arena(), "testing:testing.test.Foo");
-        auto klass = module_->NewClassModel(name, full_name, nullptr);
-        klass->InsertField({
-            .name = String::New(arena(), "a"),
-            .access = ir::kPublic,
-            .offset = 0,
-            .type = ir::Types::Int32,
-            .enum_value = 0
-        });
-        klass->InsertField({
-            .name = String::New(arena(), "b"),
-            .access = ir::kPublic,
-            .offset = 0,
-            .type = ir::Types::Int32,
-            .enum_value = 0
-        });
-        klass->UpdatePlacementSizeInBytes();
-        return klass;
-    }
-    
-protected:
-    base::Arena *arena() { return &arena_; }
-    
-    base::Arena arena_;
-    Linkage linkage_;
-    ir::Module *module_;
-    ir::OperatorsFactory ops_;
+    const RegistersConfiguration *regconf_ = RegistersConfiguration::of_arm64();
 }; // class Arm64InstructionSelectorTest
-
-
 
 TEST_F(Arm64InstructionSelectorTest, Sanity) {
     auto fun = NewFun("foo",
@@ -96,9 +21,9 @@ TEST_F(Arm64InstructionSelectorTest, Sanity) {
                       {ir::Types::Int32, ir::Types::Int32},
                       {ir::Types::Int32, ir::Types::Int32});
     auto blk = fun->entry();
-    blk->NewNode(kUnknown, ir::Types::Void, ops_.Ret(2), fun->paramater(1), fun->paramater(1));
+    blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(2), fun->paramater(1), fun->paramater(1));
     
-    auto instr_fun = Arm64SelectFunctionInstructions(arena(), &linkage_, fun);
+    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), fun);
     ASSERT_NE(nullptr, instr_fun);
     
     auto block = instr_fun->block(0);
@@ -126,10 +51,10 @@ TEST_F(Arm64InstructionSelectorTest, HeapAllocSelecting) {
     auto foo_ty = ir::Type::Ref(foo_class);
     auto fun = NewFun("foo", "fun ()->(testing:testing.test.Foo)", {}, {foo_ty});
     auto blk = fun->entry();
-    auto rs = blk->NewNode(kUnknown, foo_ty, ops_.HeapAlloc(foo_class));
-    blk->NewNode(kUnknown, ir::Types::Void, ops_.Ret(1), rs);
+    auto rs = blk->NewNode(kUnknown, foo_ty, ops()->HeapAlloc(foo_class));
+    blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), rs);
     
-    auto instr_fun = Arm64SelectFunctionInstructions(arena(), &linkage_, fun);
+    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), fun);
     ASSERT_NE(nullptr, instr_fun);
     
     auto block = instr_fun->block(0);
@@ -146,6 +71,86 @@ TEST_F(Arm64InstructionSelectorTest, HeapAllocSelecting) {
     
     instr = block->instruction(3);
     ASSERT_EQ(ArchCallNative, instr->op());
+}
+
+TEST_F(Arm64InstructionSelectorTest, ScanVirtualRegisters) {
+    auto foo_class = NewFooClass();
+    auto foo_ty = ir::Type::Ref(foo_class);
+    auto fun = NewFun("foo", "fun ()->(testing:testing.test.Foo)", {}, {foo_ty});
+    auto blk = fun->entry();
+    auto rs = blk->NewNode(kUnknown, foo_ty, ops()->HeapAlloc(foo_class));
+    blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), rs);
+    
+    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), fun);
+    ASSERT_NE(nullptr, instr_fun);
+    
+    RegisterAllocator allocator(arena(), regconf_, instr_fun);
+    allocator.Prepare();
+    allocator.ScanLiveRange();
+    
+    auto range = allocator.live_range(0);
+    ASSERT_EQ(0, range.used_at_start.label);
+    ASSERT_EQ(2, range.used_at_start.step);
+    ASSERT_EQ(0, range.used_at_end.label);
+    ASSERT_EQ(3, range.used_at_end.step);
+    
+    range = allocator.live_range(1);
+    ASSERT_EQ(0, range.used_at_start.label);
+    ASSERT_EQ(3, range.used_at_start.step);
+    ASSERT_EQ(0, range.used_at_end.label);
+    ASSERT_EQ(5, range.used_at_end.step);
+    
+    ASSERT_EQ(2, instr_fun->frame()->virtual_registers_size());
+}
+
+//fun issue1(%n: i32): i16 {
+//entry:
+//    Br void out [L1:]
+//L1:
+//    %0 = Phi i32 i32 0, i32 %1 in [entry:, L2:]
+//    %2 = Phi i16 i16 1, i16 %3 in [entry:, L2:]
+//    %4 = ICmp u8 i32 %0, i32 %n <sle>
+//    Br void u8 %4 out [L2:, L3:]
+//L2:
+//    %3 = Add i16 i16 %2, i16 3
+//    %1 = Add i32 i32 %0, i32 1
+//    Br void out [L1:]
+//L3:
+//    Ret void i16 %2
+//} // issue09:issue09.issue1
+TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
+    auto fun = NewFun("foo", "fun (i32)->(i32)", {ir::Types::Int32}, {ir::Types::Int32});
+    auto entry = fun->entry();
+    auto param0 = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->Argument(0));
+    fun->mutable_paramaters()->push_back(param0);
+    
+    auto l1 = fun->NewBlock(nullptr);
+    auto l2 = fun->NewBlock(nullptr);
+    auto l3 = fun->NewBlock(nullptr);
+    entry->NewNode(kUnknown, ir::Types::Void, ops()->Br(0, 1), l1);
+    entry->LinkTo(l1);
+    
+    auto zero = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(0));
+    auto one = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(1));
+    
+    auto phi0 = l1->NewNode(kUnknown, ir::Types::Int32, ops()->Phi(2, 2), zero, zero, entry, l2);
+    auto phi1 = l1->NewNode(kUnknown, ir::Types::Int32, ops()->Phi(2, 2), one, one, entry, l2);
+    auto cond = l1->NewNode(kUnknown, ir::Types::Word8, ops()->ICmp(ir::ICondition::sle), phi0, param0);
+    l1->NewNode(kUnknown, ir::Types::Void, ops()->Br(1, 2), cond, l2, l3);
+    l1->LinkTo(l2);
+    
+    auto three = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(3));
+    auto ret1 = l2->NewNode(kUnknown, ir::Types::Int32, ops()->Add(), phi1, three);
+    phi1->Replace(arena(), 1, one, ret1);
+    auto ret0 = l2->NewNode(kUnknown, ir::Types::Int32, ops()->Add(), phi0, one);
+    phi0->Replace(arena(), 1, zero, ret0);
+    l2->NewNode(kUnknown, ir::Types::Void, ops()->Br(0, 1), l1);
+    l2->LinkTo(l3);
+    
+    l3->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), phi1);
+    
+    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), fun);
+    ASSERT_NE(nullptr, instr_fun);
 }
 
 } // namespace backend
