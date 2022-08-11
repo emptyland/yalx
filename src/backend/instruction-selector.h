@@ -39,15 +39,15 @@ public:
     
     void VisitBasicBlock(ir::BasicBlock *block);
     void VisitParameters(ir::Function *fun);
+    void VisitPhi(ir::Value *instr);
     void VisitCall(ir::Value *value);
     void VisitReturn(ir::Value *value);
     void VisitStackAlloc(ir::Value *value);
     void VisitHeapAlloc(ir::Value *value);
-    
-    
-    
+
     //virtual
     virtual void VisitCondBr(ir::Value *instr) {UNREACHABLE();}
+    virtual void VisitAddOrSub(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitICmp(ir::Value *instr) {UNREACHABLE();}
 
     Instruction *Emit(InstructionCode opcode, InstructionOperand output,
@@ -75,7 +75,7 @@ public:
                       int temps_count, InstructionOperand *temps);
     
     Instruction *Emit(Instruction *instr) {
-        instructions_.push_back(instr);
+        DCHECK_NOTNULL(current_block_)->Add(instr);
         return instr;
     }
     
@@ -83,7 +83,9 @@ public:
     UnallocatedOperand DefineAsFixedFPRegister(ir::Value *value, int index);
     UnallocatedOperand DefineAsFixedSlot(ir::Value *value, int index);
     UnallocatedOperand DefineAsRegisterOrSlot(ir::Value *value);
+    UnallocatedOperand DefineAsRegister(ir::Value *value);
     
+    UnallocatedOperand UseAsRegister(ir::Value *value);
     UnallocatedOperand UseAsFixedSlot(ir::Value *value, int index);
     
     ReloactionOperand UseAsExternalClassName(const String *name);
@@ -106,17 +108,18 @@ public:
     void UpdateRenames(Instruction *instr);
     void TryRename(InstructionOperand *opd);
     
+    bool MatchCmpOnlyUsedByBr(ir::Value *instr) const;
+    
     int GetLabel(ir::BasicBlock *key) const;
     InstructionBlock *GetBlock(ir::BasicBlock *key) const;
     
-    int NextBlockLabel() { return next_blocks_label_++; }
+    //int NextBlockLabel() { return next_blocks_label_++; }
 private:
     base::Arena *const arena_;
     const RegistersConfiguration *const regconf_;
     Linkage *const linkage_;
-    base::ArenaVector<Instruction *> instructions_;
+    InstructionBlock *current_block_ = nullptr;
     Frame *frame_ = nullptr;
-    int next_blocks_label_ = 0;
     base::ArenaVector<bool> defined_;
     base::ArenaVector<bool> used_;
     std::map<ir::BasicBlock *, InstructionBlock *> block_mapping_;

@@ -86,6 +86,12 @@ Instruction::Instruction(Code op,
     ::memcpy(operands_ + temp_offset(), temps, temps_count * sizeof(Operand));
 }
 
+PhiInstruction::PhiInstruction(base::Arena *arena, int virtual_register, int input_count)
+: virtual_register_(virtual_register)
+, operands_(arena) {
+    operands_.resize(input_count, InstructionOperand::kInvliadVirtualRegister);
+}
+
 Instruction *Instruction::New(base::Arena *arena, Code op,
                               size_t inputs_count,
                               Operand inputs[],
@@ -228,6 +234,7 @@ InstructionBlock::InstructionBlock(base::Arena *arena, InstructionFunction *owns
 , successors_(arena)
 , predecessors_(arena)
 , instructions_(arena)
+, phis_(arena)
 , label_(label) {
     
 }

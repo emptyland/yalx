@@ -86,19 +86,6 @@ TEST_F(Arm64InstructionSelectorTest, ScanVirtualRegisters) {
     
     RegisterAllocator allocator(arena(), regconf_, instr_fun);
     allocator.Prepare();
-    allocator.ScanLiveRange();
-    
-    auto range = allocator.live_range(0);
-    ASSERT_EQ(0, range.used_at_start.label);
-    ASSERT_EQ(2, range.used_at_start.step);
-    ASSERT_EQ(0, range.used_at_end.label);
-    ASSERT_EQ(3, range.used_at_end.step);
-    
-    range = allocator.live_range(1);
-    ASSERT_EQ(0, range.used_at_start.label);
-    ASSERT_EQ(3, range.used_at_start.step);
-    ASSERT_EQ(0, range.used_at_end.label);
-    ASSERT_EQ(5, range.used_at_end.step);
     
     ASSERT_EQ(2, instr_fun->frame()->virtual_registers_size());
 }
@@ -135,9 +122,10 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     
     auto phi0 = l1->NewNode(kUnknown, ir::Types::Int32, ops()->Phi(2, 2), zero, zero, entry, l2);
     auto phi1 = l1->NewNode(kUnknown, ir::Types::Int32, ops()->Phi(2, 2), one, one, entry, l2);
-    auto cond = l1->NewNode(kUnknown, ir::Types::Word8, ops()->ICmp(ir::ICondition::sle), phi0, param0);
+    auto cond = l1->NewNode(kUnknown, ir::Types::UInt8, ops()->ICmp(ir::ICondition::sle), phi0, param0);
     l1->NewNode(kUnknown, ir::Types::Void, ops()->Br(1, 2), cond, l2, l3);
     l1->LinkTo(l2);
+    l1->LinkTo(l3);
     
     auto three = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(3));
     auto ret1 = l2->NewNode(kUnknown, ir::Types::Int32, ops()->Add(), phi1, three);
@@ -145,12 +133,38 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     auto ret0 = l2->NewNode(kUnknown, ir::Types::Int32, ops()->Add(), phi0, one);
     phi0->Replace(arena(), 1, zero, ret0);
     l2->NewNode(kUnknown, ir::Types::Void, ops()->Br(0, 1), l1);
-    l2->LinkTo(l3);
+    l2->LinkTo(l1);
     
     l3->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), phi1);
     
     auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), fun);
     ASSERT_NE(nullptr, instr_fun);
+    
+    RegisterAllocator allocator(arena(), regconf_, instr_fun);
+    allocator.Prepare();
+    allocator.ComputeBlocksOrder();
+    ASSERT_EQ(4, allocator.ordered_blocks_size());
+    for (int i = 0; i < allocator.ordered_blocks_size(); i++) {
+        EXPECT_EQ(i, allocator.OrderedBlockAt(i)->label());
+    }
+    
+    allocator.NumberizeAllInstructions();
+    allocator.ComputeLocalLiveSets();
+    allocator.ComputeGlobalLiveSets();
+    
+    auto state = allocator.BlockLivenssStateOf(allocator.OrderedBlockAt(0));
+    EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(param0)));
+    EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret0)));
+    EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret1)));
+    EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(zero)));
+    EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(one)));
+    
+    state = allocator.BlockLivenssStateOf(allocator.OrderedBlockAt(3));
+    EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(param0)));
+    EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret0)));
+    EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret1)));
+    EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(phi0)));
+    EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(phi1)));
 }
 
 } // namespace backend

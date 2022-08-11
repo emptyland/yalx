@@ -25,7 +25,7 @@ public:
         ReloactionOperand output(if_false);
         
         auto cond = instr->InputValue(0);
-        if (cond->op()->value() == ir::Operator::kICmp) {
+        if (cond->Is(ir::Operator::kICmp)) {
             auto code = ir::OperatorWith<ir::IConditionId>::Data(cond->op()).value;
             switch (code) {
                 case ir::IConditionId::k_sle:
@@ -37,11 +37,31 @@ public:
                     break;
             }
             
-        } if (cond->op()->value() == ir::Operator::kFCmp) {
+        } else if (cond->Is(ir::Operator::kFCmp)) {
             UNREACHABLE();
         } else {
             UNREACHABLE();
         }
+    }
+    
+    void VisitAddOrSub(ir::Value *instr) override {
+        InstructionCode op = ArchNop;
+        if (instr->Is(ir::Operator::kAdd)) {
+            op = Arm64Add;
+        } else {
+            DCHECK(instr->Is(ir::Operator::kSub));
+            op = Arm64Sub;
+        }
+        Emit(op, DefineAsRegister(instr), UseAsRegister(instr->InputValue(0)), UseAsRegister(instr->InputValue(1)));
+    }
+    
+    void VisitICmp(ir::Value *instr) override {
+        if (MatchCmpOnlyUsedByBr(instr)) {
+            Emit(Arm64Cmp, NoOutput(), UseAsRegister(instr->InputValue(0)), UseAsRegister(instr->InputValue(1)));
+            return;
+        }
+        
+        UNREACHABLE(); // TODO:
     }
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arm64InstructionSelector);

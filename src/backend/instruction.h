@@ -46,6 +46,8 @@ public:
 #undef  DEFINE_ENUM
     };
     
+    static constexpr int kInvliadVirtualRegister = -1;
+    
     InstructionOperand(): InstructionOperand(kInvalid) {}
     
     DEF_VAL_GETTER(Kind, kind);
@@ -386,6 +388,7 @@ public:
     using Operand = InstructionOperand;
     
     DEF_VAL_GETTER(Code, op);
+    DEF_VAL_PROP_RW(int, id);
     int inputs_count() const { return inputs_count_; }
     int outputs_count() const { return outputs_count_; }
     int temps_count() const { return temps_count_; }
@@ -434,12 +437,39 @@ private:
                                          size_t temps_count);
     
     Code op_;
+    int id_ = -1;
     uint8_t inputs_count_;
     uint8_t outputs_count_;
     uint8_t temps_count_;
     uint8_t is_call_;
     Operand operands_[1];
 }; // class Instruction
+
+class PhiInstruction final : public base::ArenaObject {
+public:
+    PhiInstruction(base::Arena *arena, int virtual_register, int input_count);
+    
+    DEF_VAL_PROP_RW(int, id);
+    DEF_VAL_GETTER(int, virtual_register);
+    DEF_ARENA_VECTOR_GETTER(int, operand);
+    InstructionOperand *output() { return &output_; }
+    
+    void SetInput(int index, int virtual_register) {
+        DCHECK(index >= 0 && index < operands_size());
+        DCHECK(virtual_register >= 0);
+        operands_[index] = virtual_register;
+    }
+    void RenameInput(int index, int virtual_register) {
+        SetInput(index, virtual_register);
+    }
+    
+    DISALLOW_IMPLICIT_CONSTRUCTORS(PhiInstruction);
+private:
+    int virtual_register_;
+    int id_ = -1;
+    InstructionOperand output_;
+    base::ArenaVector<int> operands_;
+}; // class PhiInstruction
 
 
 class InstructionFunction final : public base::ArenaObject {
@@ -471,6 +501,10 @@ public:
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, successor);
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, predecessor);
     DEF_ARENA_VECTOR_GETTER(Instruction *, instruction);
+    DEF_ARENA_VECTOR_GETTER(PhiInstruction *, phi);
+    
+    void Add(Instruction *instr) { instructions_.push_back(instr); }
+    void AddPhi(PhiInstruction *phi) { phis_.push_back(phi); }
 
     void AddSuccessor(InstructionBlock *successor) { AddLinkedNode(&successors_, successor); }
     void AddPredecessors(InstructionBlock *predecessor) { AddLinkedNode(&predecessors_, predecessor); }
@@ -489,6 +523,7 @@ private:
     base::ArenaVector<InstructionBlock *> successors_;
     base::ArenaVector<InstructionBlock *> predecessors_;
     base::ArenaVector<Instruction *> instructions_;
+    base::ArenaVector<PhiInstruction *> phis_;
     int label_;
 }; // class InstructionBlock
 

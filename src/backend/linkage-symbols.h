@@ -39,10 +39,13 @@ public:
     }
     static void Build(std::string *buf, std::string_view name);
     
+    int NextBlockLabel() { return next_block_label_++; }
+    
     DISALLOW_IMPLICIT_CONSTRUCTORS(Linkage);
 private:
     base::Arena *const arena_;
     base::ArenaUnorderedMap<std::string_view, const String *> symbols_;
+    int next_block_label_ = 0;
 }; // class LinkageSymbols
 
 

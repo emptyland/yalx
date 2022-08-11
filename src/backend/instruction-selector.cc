@@ -18,7 +18,6 @@ InstructionSelector::InstructionSelector(base::Arena *arena, const RegistersConf
 : arena_(arena)
 , regconf_(regconf)
 , linkage_(linkage)
-, instructions_(arena)
 , defined_(arena)
 , used_(arena) {
     
@@ -29,17 +28,16 @@ InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
     auto instr_fun = new (arena_) InstructionFunction(arena_, linkage()->Mangle(fun->full_name()), frame_);
     
     VisitParameters(fun);
-
-    //std::map<ir::BasicBlock *, InstructionBlock *> block_mapping;
+    
     for (auto basic_block : fun->blocks()) {
-        //VisitBasicBlock(block);
-        block_mapping_[basic_block] = instr_fun->NewBlock(NextBlockLabel());
+        block_mapping_[basic_block] = instr_fun->NewBlock(linkage()->NextBlockLabel());
     }
     
     instr_fun->set_entry(block_mapping_[fun->entry()]);
     
     for (auto basic_block : fun->blocks()) {
         auto instr_block = block_mapping_[basic_block];
+
         for (auto predecessor : basic_block->inputs()) {
             instr_block->AddPredecessors(block_mapping_[predecessor]);
         }
@@ -47,14 +45,16 @@ InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
             instr_block->AddSuccessor(block_mapping_[successor]);
         }
         
+        current_block_ = instr_block;
+        
         if (basic_block == fun->entry()) {
             InstructionOperand temps[1];
             temps[0] = ImmediateOperand{-1};
             Emit(ArchFrameEnter, NoOutput(), arraysize(temps), temps);
         }
-        VisitBasicBlock(basic_block);
         
-        instr_block->MovableAssign(std::move(instructions_));
+        VisitBasicBlock(basic_block);
+        current_block_ = nullptr;
     }
     
     block_mapping_.clear();
@@ -82,6 +82,11 @@ void InstructionSelector::VisitBasicBlock(ir::BasicBlock *block) {
                 VisitCall(instr);
                 break;
                 
+            case ir::Operator::kAdd:
+            case ir::Operator::kSub:
+                VisitAddOrSub(instr);
+                break;
+                
             case ir::Operator::kICmp:
                 VisitICmp(instr);
                 break;
@@ -100,6 +105,7 @@ void InstructionSelector::VisitBasicBlock(ir::BasicBlock *block) {
                 break;
                 
             case ir::Operator::kPhi:
+                VisitPhi(instr);
                 break; // Ignore phi nodes
 
             debugging_info:
@@ -159,6 +165,21 @@ void InstructionSelector::VisitParameters(ir::Function *fun) {
             
             gp_index++;
         }
+    }
+}
+
+void InstructionSelector::VisitPhi(ir::Value *instr) {
+    auto input_count = instr->op()->value_in();
+    DCHECK(input_count == current_block_->predecessors_size());
+    auto phi = new (arena_) PhiInstruction(arena_, frame()->GetVirtualRegister(instr), input_count);
+    current_block_->AddPhi(phi);
+    for (int i = 0; i < input_count; i++) {
+        auto vr = frame()->GetVirtualRegister(instr->InputValue(i));
+        phi->SetInput(i, vr);
+        if (vr >= used_.size()) {
+            used_.resize(vr + 1, false);
+        }
+        used_[vr] = true;
     }
 }
 
@@ -307,6 +328,21 @@ UnallocatedOperand InstructionSelector::DefineAsRegisterOrSlot(ir::Value *value)
     });
 }
 
+UnallocatedOperand InstructionSelector::DefineAsRegister(ir::Value *value) {
+    return Define(value, UnallocatedOperand{
+        UnallocatedOperand::kMustHaveRegister,
+        UnallocatedOperand::kUsedAtStart,
+        frame_->GetVirtualRegister(value)
+    });
+}
+
+UnallocatedOperand InstructionSelector::UseAsRegister(ir::Value *value) {
+    return Use(value, UnallocatedOperand{
+        UnallocatedOperand::kMustHaveRegister,
+        frame_->GetVirtualRegister(value)
+    });
+}
+
 UnallocatedOperand InstructionSelector::UseAsFixedSlot(ir::Value *value, int index) {
     return Use(value, UnallocatedOperand{ UnallocatedOperand::FixedSlotTag(), index, frame_->GetVirtualRegister(value)});
 }
@@ -408,6 +444,11 @@ void InstructionSelector::TryRename(InstructionOperand *opd) {
     if (rename != unallocated->virtual_register()) {
         *opd = UnallocatedOperand(*unallocated, rename);
     }
+}
+
+// instr->users().size() == 1 && instr->users().begin()->user->Is(ir::Operator::kBr)
+bool InstructionSelector::MatchCmpOnlyUsedByBr(ir::Value *instr) const {
+    return instr->users().size() == 1 && instr->users().begin()->user->Is(ir::Operator::kBr);
 }
 
 int InstructionSelector::GetLabel(ir::BasicBlock *key) const {
