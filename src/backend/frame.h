@@ -37,7 +37,11 @@ public:
 
     int GetVirtualRegister(ir::Value *value);
     
-    ir::Value *GetValue(int vid) const;
+    ir::Value *GetValue(int vid) const {
+        DCHECK(vid >= 0);
+        DCHECK(vid < virtual_registers_.size());
+        return virtual_registers_[vid];
+    }
     
     void SetRename(ir::Value *value, ir::Value *rename) {
         auto vid = GetVirtualRegister(value);

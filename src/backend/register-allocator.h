@@ -2,6 +2,8 @@
 #ifndef YALX_BACKEND_REGISTER_ALLOCATOR_H_
 #define YALX_BACKEND_REGISTER_ALLOCATOR_H_
 
+#include "backend/machine-type.h"
+#include "ir/type.h"
 #include "base/checking.h"
 #include "base/base.h"
 #include <set>
@@ -17,6 +19,7 @@ class Function;
 namespace backend {
 
 
+class UnallocatedOperand;
 class InstructionFunction;
 class InstructionBlock;
 class RegistersConfiguration;
@@ -69,6 +72,14 @@ public:
         }
     }
     
+    static void Walk(const std::vector<bool> &set, std::function<void (int)> &&callback) {
+        for (int i = 0; i < set.size(); i++) {
+            if (set[i]) {
+                callback(i);
+            }
+        }
+    }
+    
 private:
     bool DoesIn(const std::vector<bool> &set, int virtual_register) const {
         DCHECK(virtual_register >= 0);
@@ -104,6 +115,41 @@ private:
     size_t capacity_ = 0;
 };
 
+
+
+class LivenessInterval final {
+public:
+    struct Range {
+        int from;
+        int to;
+    };
+    
+    struct UsePosition {
+        int position;
+        int use_kind;
+    };
+    
+    explicit LivenessInterval(ir::Type type);
+    ~LivenessInterval();
+    
+    MachineRepresentation representation() const { return rep_; }
+    
+    Range *first_range() {
+        DCHECK(!ranges_.empty());
+        return &ranges_.front();
+    }
+    
+    void AddRange(int from, int to) { ranges_.push_back({from, to}); }
+    void AddUsePosition(int position, int used_kind) { user_positions_.push_back({position, used_kind}); }
+private:
+    ir::Type const type_;
+    MachineRepresentation const rep_;
+    LivenessInterval *split_parent_ = nullptr;
+    std::vector<LivenessInterval *> split_children_;
+    std::vector<Range> ranges_;
+    std::vector<UsePosition> user_positions_;
+}; // class LivenessInterval
+
 class RegisterAllocator final {
 public:
     RegisterAllocator(base::Arena *arena, const RegistersConfiguration *regconf, InstructionFunction *fun);
@@ -119,6 +165,8 @@ public:
     void ComputeLocalLiveSets();
     // step 4
     void ComputeGlobalLiveSets();
+    // step 5
+    void BuildIntervals();
 
     InstructionBlock *OrderedBlockAt(int i) const {
         DCHECK(i >= 0);
@@ -135,12 +183,20 @@ public:
         DCHECK(index >= 0 && index < blocks_liveness_state_.size());
         return &blocks_liveness_state_[index];
     }
+    
+    
+    LivenessInterval *IntervalOf(UnallocatedOperand *opd);
+    LivenessInterval *IntervalOfVR(int virtual_register);
+    LivenessInterval *IntervalOfGP(int gp);
+    LivenessInterval *IntervalOfFP(int fp);
+    LivenessInterval *IntervalOfIndex(int index);
 private:
     base::Arena *const arena_;
     const RegistersConfiguration *const regconf_;
     InstructionFunction *const fun_;
     std::vector<InstructionBlock *> blocks_;
     std::vector<BlockLivenssState> blocks_liveness_state_;
+    std::vector<LivenessInterval *> intervals_;
 }; // class RegisterAllocator
 
 } // namespace backend
