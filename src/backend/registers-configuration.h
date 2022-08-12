@@ -23,10 +23,8 @@ public:
                            const int *callee_save_gp_registers,
                            int number_of_callee_save_fp_registers,
                            const int *callee_save_fp_registers,
-                           int number_of_gp_registers,
-                           const int *gp_registers,
-                           int number_of_fp_registers,
-                           const int *fp_registers,
+                           int max_gp_register,
+                           int max_fp_register,
                            int scratch0,
                            int scratch1,
                            int returning0_register,
@@ -48,11 +46,11 @@ public:
     DEFINE_REGISTERS_SET(allocatable_fp_register);
     DEFINE_REGISTERS_SET(callee_save_gp_register);
     DEFINE_REGISTERS_SET(callee_save_fp_register);
-    DEFINE_REGISTERS_SET(gp_register);
-    DEFINE_REGISTERS_SET(fp_register);
     
 #undef DEFINE_REGISTERS_SET
     
+    DEF_VAL_GETTER(int, max_gp_register);
+    DEF_VAL_GETTER(int, max_fp_register);
     DEF_VAL_GETTER(int, scratch0);
     DEF_VAL_GETTER(int, scratch1);
     DEF_VAL_GETTER(int, returning0_register);
@@ -83,11 +81,8 @@ private:
     const int        number_of_callee_save_fp_registers_;
     const int *const callee_save_fp_registers_;
     
-    const int        number_of_gp_registers_;
-    const int *const gp_registers_;
-    
-    const int        number_of_fp_registers_;
-    const int *const fp_registers_;
+    const int        max_gp_register_;
+    const int        max_fp_register_;
     
     const int scratch0_;
     const int scratch1_;

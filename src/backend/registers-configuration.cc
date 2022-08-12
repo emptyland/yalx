@@ -19,10 +19,8 @@ RegistersConfiguration::RegistersConfiguration(int number_of_argument_gp_registe
                                                const int *callee_save_gp_registers,
                                                int number_of_callee_save_fp_registers,
                                                const int *callee_save_fp_registers,
-                                               int number_of_gp_registers,
-                                               const int *gp_registers,
-                                               int number_of_fp_registers,
-                                               const int *fp_registers,
+                                               int max_gp_register,
+                                               int max_fp_register,
                                                int scratch0,
                                                int scratch1,
                                                int returning0_register,
@@ -41,10 +39,8 @@ RegistersConfiguration::RegistersConfiguration(int number_of_argument_gp_registe
 , callee_save_gp_registers_(callee_save_gp_registers)
 , number_of_callee_save_fp_registers_(number_of_callee_save_fp_registers)
 , callee_save_fp_registers_(callee_save_fp_registers)
-, number_of_gp_registers_(number_of_gp_registers)
-, gp_registers_(gp_registers)
-, number_of_fp_registers_(number_of_fp_registers)
-, fp_registers_(fp_registers)
+, max_gp_register_(max_gp_register)
+, max_fp_register_(max_fp_register)
 , scratch0_(scratch0)
 , scratch1_(scratch1)
 , returning0_register_(returning0_register)
@@ -128,10 +124,8 @@ const RegistersConfiguration *RegistersConfiguration::of_arm64() {
                                                       kCalleeSaveGPRegisters, // callee_save_gp_registers,
                                                       0, // number_of_callee_save_fp_registers
                                                       nullptr, // callee_save_fp_registers
-                                                      0, // number_of_gp_registers,
-                                                      nullptr, // gp_registers,
-                                                      0, // number_of_fp_registers,
-                                                      nullptr, // fp_registers,
+                                                      32, // max_gp_register,
+                                                      32, // max_fp_register,
                                                       arm64::x19.code(), // scratch0,
                                                       arm64::x20.code(), // scratch1,
                                                       arm64::x0.code(), // returning0_register
@@ -237,10 +231,8 @@ const RegistersConfiguration *RegistersConfiguration::of_x64() {
                                                       kCalleeSaveGPRegisters, // callee_save_gp_registers,
                                                       0, // number_of_callee_save_fp_registers
                                                       nullptr, // callee_save_fp_registers
-                                                      0, // number_of_gp_registers,
-                                                      nullptr, // gp_registers,
-                                                      0, // number_of_fp_registers,
-                                                      nullptr, // fp_registers,
+                                                      16, // number_of_gp_registers,
+                                                      16, // number_of_fp_registers,
                                                       x64::r13.code(), // scratch0,
                                                       -1, // scratch1,
                                                       x64::rax.code(), // returning0_register

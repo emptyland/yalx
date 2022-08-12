@@ -38,7 +38,7 @@ public:
     InstructionFunction *VisitFunction(ir::Function *fun);
     
     void VisitBasicBlock(ir::BasicBlock *block);
-    void VisitParameters(ir::Function *fun);
+    void VisitParameters(ir::Function *fun, std::vector<InstructionOperand> *parameters);
     void VisitPhi(ir::Value *instr);
     void VisitCall(ir::Value *value);
     void VisitReturn(ir::Value *value);

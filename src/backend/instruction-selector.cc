@@ -27,7 +27,8 @@ InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
     frame_ = new (arena_) Frame(arena_, fun);
     auto instr_fun = new (arena_) InstructionFunction(arena_, linkage()->Mangle(fun->full_name()), frame_);
     
-    VisitParameters(fun);
+    std::vector<InstructionOperand> parameters;
+    VisitParameters(fun, &parameters);
     
     for (auto basic_block : fun->blocks()) {
         block_mapping_[basic_block] = instr_fun->NewBlock(linkage()->NextBlockLabel());
@@ -50,7 +51,13 @@ InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
         if (basic_block == fun->entry()) {
             InstructionOperand temps[1];
             temps[0] = ImmediateOperand{-1};
-            Emit(ArchFrameEnter, NoOutput(), arraysize(temps), temps);
+            //Emit(ArchFrameEnter, NoOutput(), arraysize(temps), temps);
+            Emit(ArchFrameEnter,
+                 static_cast<int>(parameters.size()),
+                 &parameters.front(),
+                 0,
+                 nullptr,
+                 arraysize(temps), temps);
         }
         
         VisitBasicBlock(basic_block);
@@ -125,14 +132,14 @@ void InstructionSelector::VisitBasicBlock(ir::BasicBlock *block) {
     }
 }
 
-void InstructionSelector::VisitParameters(ir::Function *fun) {
+void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<InstructionOperand> *parameters) {
     //fun->paramaters()
     int gp_index = 0;
     int fp_index = 0;
     for (auto param : fun->paramaters()) {
         if (param->type().IsFloating()) {
             if (fp_index < regconf_->number_of_argument_fp_registers()) {
-                DefineAsFixedFPRegister(param, regconf_->argument_fp_register(fp_index));
+                parameters->push_back(DefineAsFixedFPRegister(param, regconf_->argument_fp_register(fp_index)));
             } else {
                 // TODO:
                 UNREACHABLE();
@@ -155,7 +162,7 @@ void InstructionSelector::VisitParameters(ir::Function *fun) {
                 default:
                 pass_gp_register:
                     if (gp_index < regconf_->number_of_argument_gp_registers()) {
-                        DefineAsFixedRegister(param, regconf_->argument_gp_register(gp_index));
+                        parameters->push_back(DefineAsFixedRegister(param, regconf_->argument_gp_register(gp_index)));
                     } else {
                         // TODO:
                         UNREACHABLE();

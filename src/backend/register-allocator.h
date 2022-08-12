@@ -15,6 +15,7 @@ class Arena;
 } // namespace base
 namespace ir {
 class Function;
+class Value;
 } // namespace ir
 namespace backend {
 
@@ -122,6 +123,13 @@ public:
     struct Range {
         int from;
         int to;
+        
+        //a [from to]
+        //b     [from to]
+        //
+        //a     [from to]
+        //b [from to]
+        bool DoesIntersects(Range rhs) const { return to >= rhs.from && from <= rhs.to; }
     };
     
     struct UsePosition {
@@ -134,20 +142,84 @@ public:
     
     MachineRepresentation representation() const { return rep_; }
     
-    Range *first_range() {
-        DCHECK(!ranges_.empty());
+    bool should_fp_register() const {
+        return (rep_ == MachineRepresentation::kFloat32 || rep_ == MachineRepresentation::kFloat64);
+    }
+
+    bool should_gp_register() const { return !should_fp_register(); }
+    
+    bool has_assigned_any_register() const { return assigned_register() >= 0; }
+    bool has_assigned_fp_register() const { return has_assigned_any_register() && should_fp_register(); }
+    bool has_assigned_gp_register() const { return has_assigned_any_register() && should_gp_register(); }
+    
+    DEF_VAL_GETTER(int, assigned_register);
+    
+    void AssignRegister(int reg) { assigned_register_ = reg; }
+    
+    const UsePosition &earliest_use_position() const {
+        DCHECK(!use_positions_.empty());
+        return use_positions_.back();
+    }
+    
+    const UsePosition &latest_use_position() const {
+        DCHECK(!use_positions_.empty());
+        return use_positions_.front();
+    }
+    
+    const Range &earliest_range() const { return last_range(); }
+    const Range &latest_range() const { return first_range(); }
+    
+    bool has_never_used() const { return use_positions_.empty(); }
+    
+    Range *TouchFirstRange() {
+        if (ranges_.empty()) {
+            AddRange(0, 0);
+        }
         return &ranges_.front();
     }
     
+    const Range &first_range() const {
+        DCHECK(!ranges_.empty());
+        return ranges_.front();
+    }
+    
+    const Range &last_range() const {
+        DCHECK(!ranges_.empty());
+        return ranges_.back();
+    }
+    
+    bool DoesNotCovers(int position) const { return !DoesCovers(position); }
+    bool DoesCovers(int position) const {
+        for (auto range : ranges_) {
+            if (position >= range.from && position <= range.to) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    bool DoesNotIntersects(const LivenessInterval *it) const { return !DoesIntersects(it); }
+    bool DoesIntersects(const LivenessInterval *it) const {
+        for (auto rhs : it->ranges_) {
+            for (auto lhs : ranges_) {
+                if (lhs.DoesIntersects(rhs)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
     void AddRange(int from, int to) { ranges_.push_back({from, to}); }
-    void AddUsePosition(int position, int used_kind) { user_positions_.push_back({position, used_kind}); }
+    void AddUsePosition(int position, int used_kind) { use_positions_.push_back({position, used_kind}); }
 private:
     ir::Type const type_;
     MachineRepresentation const rep_;
+    int assigned_register_ = -1;
     LivenessInterval *split_parent_ = nullptr;
     std::vector<LivenessInterval *> split_children_;
     std::vector<Range> ranges_;
-    std::vector<UsePosition> user_positions_;
+    std::vector<UsePosition> use_positions_;
 }; // class LivenessInterval
 
 class RegisterAllocator final {
@@ -167,6 +239,8 @@ public:
     void ComputeGlobalLiveSets();
     // step 5
     void BuildIntervals();
+    // step 6
+    void WalkIntervals();
 
     InstructionBlock *OrderedBlockAt(int i) const {
         DCHECK(i >= 0);
@@ -186,11 +260,28 @@ public:
     
     
     LivenessInterval *IntervalOf(UnallocatedOperand *opd);
+    LivenessInterval *IntervalOf(ir::Value *value);
     LivenessInterval *IntervalOfVR(int virtual_register);
     LivenessInterval *IntervalOfGP(int gp);
     LivenessInterval *IntervalOfFP(int fp);
     LivenessInterval *IntervalOfIndex(int index);
 private:
+    struct LivenessIntervalComparator : public std::binary_function<LivenessInterval *, LivenessInterval *, bool> {
+        bool operator() (LivenessInterval *a, LivenessInterval *b) const {
+            return a->earliest_range().from <= b->earliest_range().from;
+            //return a < b;
+        }
+    };
+
+    using LivenessIntervalSet = std::set<LivenessInterval *, LivenessIntervalComparator>;
+    
+    int offset_of_virtual_register() const { return 0; }
+    int offset_of_gp_register() const;
+    int offset_of_fp_register() const;
+    
+    bool TryAllocateFreeRegister(LivenessInterval *current, const LivenessIntervalSet &active,
+                                 const LivenessIntervalSet &inactive);
+    
     base::Arena *const arena_;
     const RegistersConfiguration *const regconf_;
     InstructionFunction *const fun_;

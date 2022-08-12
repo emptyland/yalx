@@ -153,7 +153,9 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     allocator.ComputeGlobalLiveSets();
     
     auto state = allocator.BlockLivenssStateOf(allocator.OrderedBlockAt(0));
-    EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(param0)));
+    EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(param0)));
+    EXPECT_TRUE(state->DoesInLiveOut(instr_fun->frame()->GetVirtualRegister(param0)));
+
     EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret0)));
     EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret1)));
     EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(zero)));
@@ -165,6 +167,25 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret1)));
     EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(phi0)));
     EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(phi1)));
+
+    //==================================================================================================================
+    // Build Interval
+    allocator.BuildIntervals();
+    
+    auto interval = allocator.IntervalOf(param0);
+    ASSERT_NE(nullptr, interval);
+    
+    interval = allocator.IntervalOf(phi0);
+    ASSERT_NE(nullptr, interval);
+    
+    
+    //==================================================================================================================
+    // Walk Intervals
+    allocator.WalkIntervals();
+    
+    interval = allocator.IntervalOf(param0);
+    ASSERT_NE(nullptr, interval);
+    
 }
 
 } // namespace backend
