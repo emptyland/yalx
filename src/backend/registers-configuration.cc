@@ -46,7 +46,15 @@ RegistersConfiguration::RegistersConfiguration(int number_of_argument_gp_registe
 , returning0_register_(returning0_register)
 , fp_(fp)
 , sp_(sp)
-, root_(root) {
+, root_(root)
+, allocatable_gp_bitmap_(max_gp_register, false)
+, allocatable_fp_bitmap_(max_fp_register, false) {
+    for (int i = 0; i < number_of_allocatable_gp_registers; i++) {
+        allocatable_gp_bitmap_[allocatable_gp_registers[i]] = true;
+    }
+    for (int i = 0; i < number_of_allocatable_fp_registers; i++) {
+        allocatable_fp_bitmap_[allocatable_fp_registers[i]] = true;
+    }
 }
 
 const RegistersConfiguration *RegistersConfiguration::of_arm64() {

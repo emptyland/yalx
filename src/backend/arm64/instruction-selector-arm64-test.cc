@@ -108,8 +108,7 @@ TEST_F(Arm64InstructionSelectorTest, ScanVirtualRegisters) {
 TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     auto fun = NewFun("foo", "fun (i32)->(i32)", {ir::Types::Int32}, {ir::Types::Int32});
     auto entry = fun->entry();
-    auto param0 = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->Argument(0));
-    fun->mutable_paramaters()->push_back(param0);
+    auto param0 = fun->paramater(0);
     
     auto l1 = fun->NewBlock(nullptr);
     auto l2 = fun->NewBlock(nullptr);
@@ -185,6 +184,8 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     
     interval = allocator.IntervalOf(param0);
     ASSERT_NE(nullptr, interval);
+    ASSERT_TRUE(interval->has_assigned_gp_register());
+    ASSERT_EQ(0, interval->assigned_register());
     
 }
 

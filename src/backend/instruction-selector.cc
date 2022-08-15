@@ -51,7 +51,6 @@ InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
         if (basic_block == fun->entry()) {
             InstructionOperand temps[1];
             temps[0] = ImmediateOperand{-1};
-            //Emit(ArchFrameEnter, NoOutput(), arraysize(temps), temps);
             Emit(ArchFrameEnter,
                  static_cast<int>(parameters.size()),
                  &parameters.front(),

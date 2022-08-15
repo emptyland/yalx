@@ -19,13 +19,45 @@ void BlockLivenssState::Reset(size_t capacity) {
     capacity_ = capacity;
 }
 
-LivenessInterval::LivenessInterval(ir::Type type)
-: type_(type)
+LifetimeInterval::LifetimeInterval(int virtual_register, ir::Type type)
+: virtual_register_(virtual_register)
+, type_(type)
 , rep_(ToMachineRepresentation(type)) {
 }
 
-LivenessInterval::~LivenessInterval() {
+LifetimeInterval::~LifetimeInterval() {
     
+}
+
+void LifetimeInterval::AddChild(LifetimeInterval *child, int pos) {
+    DCHECK(std::find(split_children_.begin(), split_children_.end(), child) == split_children_.end());
+    if (split_parent_) {
+        child->split_parent_ = split_parent_;
+    } else {
+        child->split_parent_ = this;
+    }
+    child->split_parent_->split_children_.push_back(child);
+    
+    while (use_positions_.front().position > pos) {
+        child->use_positions_.push_back(use_positions_.front());
+        use_positions_.erase(use_positions_.begin());
+    }
+    
+    // [0, 4) [4, 10) [10, 20)
+    //           6
+    //
+    while (ranges_.front().to > pos) {
+        auto range = ranges_.front();
+        if (range.from > pos) {
+            child->ranges_.push_back(range);
+            ranges_.erase(ranges_.begin());
+        } else if (range.from <= pos && range.to > pos) {
+            ranges_.front().to = pos;
+            child->AddRange(pos, range.to);
+        } else {
+            UNREACHABLE();
+        }
+    }
 }
 
 RegisterAllocator::RegisterAllocator(base::Arena *arena, const RegistersConfiguration *regconf, InstructionFunction *fun)
@@ -150,10 +182,7 @@ void RegisterAllocator::ComputeGlobalLiveSets() {
 }
 
 void RegisterAllocator::BuildIntervals() {
-    auto size = fun_->frame()->virtual_registers_size();
-    size += regconf_->max_gp_register();
-    size += regconf_->max_fp_register();
-    intervals_.resize(size , nullptr);
+    intervals_.resize(fun_->frame()->virtual_registers_size() , nullptr);
     
     for (int i = static_cast<int>(blocks_.size()) - 1; i >= 0; i--) {
         auto block = blocks_[i];
@@ -163,7 +192,7 @@ void RegisterAllocator::BuildIntervals() {
         auto local_to   = block->instructions().back()->id();
         
         BlockLivenssState::Walk(block_state->live_out(), [this, local_from, local_to](int virtual_register) {
-            IntervalOfVR(virtual_register)->AddRange(local_from, local_to);
+            IntervalOf(virtual_register)->AddRange(local_from, local_to);
         });
         
         for (int j = static_cast<int>(block->instructions_size()) - 1; j >= 0; j--) {
@@ -175,19 +204,8 @@ void RegisterAllocator::BuildIntervals() {
                 if (auto opd = instr->OutputAt(k)->AsUnallocated()) {
                     auto interval = IntervalOf(opd);
                     interval->TouchFirstRange()->from = instr->id();
-                    interval->AddUsePosition(instr->id(), opd->policy()/*used_kind*/);
-                    
-                    if (opd->has_fixed_reigster_policy()) {
-                        interval = IntervalOfGP(opd->fixed_register_id());
-                        interval->TouchFirstRange()->from = instr->id();
-                        interval->AddUsePosition(instr->id(), opd->policy()/*used_kind*/);
-                    }
-                    
-                    if (opd->has_fixed_fp_reigster_policy()) {
-                        interval = IntervalOfFP(opd->fixed_fp_register_id());
-                        interval->TouchFirstRange()->from = instr->id();
-                        interval->AddUsePosition(instr->id(), opd->policy()/*used_kind*/);
-                    }
+
+                    AddUsePosition(instr->id(), interval, opd);
                 }
             }
             
@@ -195,19 +213,7 @@ void RegisterAllocator::BuildIntervals() {
                 if (auto opd = instr->TempAt(k)->AsUnallocated()) {
                     auto interval = IntervalOf(opd);
                     interval->AddRange(instr->id(), instr->id() + 1);
-                    interval->AddUsePosition(instr->id(), opd->policy()/*used_kind*/);
-                    
-                    if (opd->has_fixed_reigster_policy()) {
-                        interval = IntervalOfGP(opd->fixed_register_id());
-                        interval->AddRange(instr->id(), instr->id() + 1);
-                        interval->AddUsePosition(instr->id(), opd->policy()/*used_kind*/);
-                    }
-                    
-                    if (opd->has_fixed_fp_reigster_policy()) {
-                        interval = IntervalOfFP(opd->fixed_fp_register_id());
-                        interval->AddRange(instr->id(), instr->id() + 1);
-                        interval->AddUsePosition(instr->id(), opd->policy()/*used_kind*/);
-                    }
+                    AddUsePosition(instr->id(), interval, opd);
                 }
             }
             
@@ -215,19 +221,7 @@ void RegisterAllocator::BuildIntervals() {
                 if (auto opd = instr->InputAt(k)->AsUnallocated()) {
                     auto interval = IntervalOf(opd);
                     interval->AddRange(local_from, instr->id());
-                    interval->AddUsePosition(instr->id(), opd->policy()/*used_kind*/);
-                    
-                    if (opd->has_fixed_reigster_policy()) {
-                        interval = IntervalOfGP(opd->fixed_register_id());
-                        interval->AddRange(local_from, instr->id());
-                        interval->AddUsePosition(instr->id(), opd->policy()/*used_kind*/);
-                    }
-                    
-                    if (opd->has_fixed_fp_reigster_policy()) {
-                        interval = IntervalOfFP(opd->fixed_fp_register_id());
-                        interval->AddRange(local_from, instr->id());
-                        interval->AddUsePosition(instr->id(), opd->policy()/*used_kind*/);
-                    }
+                    AddUsePosition(instr->id(), interval, opd);
                 }
             }
         }
@@ -235,7 +229,7 @@ void RegisterAllocator::BuildIntervals() {
 }
 
 void RegisterAllocator::WalkIntervals() {
-    LivenessIntervalSet unhanded, active, inactive;
+    LifetimeIntervalSet unhanded, active, inactive;
     for (int i = 0; i < fun_->frame()->virtual_registers_size(); i++) {
         if (!intervals_[i]) {
             continue;
@@ -243,6 +237,32 @@ void RegisterAllocator::WalkIntervals() {
         unhanded.insert(intervals_[i]);
     }
     
+    // process paramater first;
+    DCHECK_NOTNULL(fun_->block(0));
+    if (fun_->block(0)->instruction(0)->op() == ArchFrameEnter) {
+        auto instr = fun_->block(0)->instruction(0);
+        for (int i = 0; i < instr->outputs_count(); i++) {
+            auto opd = DCHECK_NOTNULL(instr->OutputAt(i)->AsUnallocated());
+            LifetimeInterval *interval = nullptr;
+            if (opd->policy() == UnallocatedOperand::kFixedRegister) {
+                interval = IntervalOf(opd);
+                interval->AssignRegister(opd->fixed_register_id());
+            } else if (opd->policy() == UnallocatedOperand::kFixedFPRegister) {
+                interval = IntervalOf(opd);
+                interval->AssignRegister(opd->fixed_fp_register_id());
+            }
+            if (interval) {
+                for (auto iter = unhanded.begin(); iter != unhanded.end(); iter++) {
+                    if (*iter == interval) {
+                        unhanded.erase(iter);
+                        break;
+                    }
+                }
+                
+                active.insert(interval);
+            }
+        }
+    }
     
     // note: new intervals may be sorted into the unhandled list during
     // allocation when intervals are split
@@ -253,12 +273,12 @@ void RegisterAllocator::WalkIntervals() {
         const auto position = current->earliest_range().from;
         
         // check for intervals in active that are expired or inactive
-        std::vector<LivenessInterval *> incoming_removed;
+        std::vector<LifetimeInterval *> incoming_removed;
         for (auto it : active) {
             if (it->latest_range().to < position) {
                 incoming_removed.push_back(it);
                 //unhanded.insert(it);
-            } else if (it->DoesNotCovers(position)) {
+            } else if (it->IsNotCovers(position)) {
                 incoming_removed.push_back(it);
                 inactive.insert(it);
             }
@@ -273,7 +293,7 @@ void RegisterAllocator::WalkIntervals() {
             if (it->latest_range().to < position) {
                 incoming_removed.push_back(it);
                 //unhanded.insert(it);
-            } else if (it->DoesCovers(position)) {
+            } else if (it->IsCovers(position)) {
                 incoming_removed.push_back(it);
                 active.insert(it);
             }
@@ -285,7 +305,7 @@ void RegisterAllocator::WalkIntervals() {
         
         
         // find a register for current
-        if (!TryAllocateFreeRegister(current, active, inactive)) {
+        if (!TryAllocateFreeRegister(current, &unhanded, active, inactive)) {
             // fail to allocation
             // TODO:
             UNREACHABLE();
@@ -297,10 +317,14 @@ void RegisterAllocator::WalkIntervals() {
     }
 }
 
-static inline std::tuple<int, int> GetHighest(const std::vector<int> &free_reg_position) {
+static inline std::tuple<int, int> GetHighest(const std::vector<int> &free_reg_position,
+                                              const std::vector<bool> &bitmap) {
     int highest = 0;
     int reg = 0;
     for (int i = 0; i < free_reg_position.size(); i++) {
+        if (!bitmap[i]) {
+            continue;
+        }
         if (free_reg_position[i] > highest) {
             highest = free_reg_position[i];
             reg = i;
@@ -310,9 +334,44 @@ static inline std::tuple<int, int> GetHighest(const std::vector<int> &free_reg_p
     return std::make_tuple(reg, highest);
 }
 
-bool RegisterAllocator::TryAllocateFreeRegister(LivenessInterval *current, const LivenessIntervalSet &active,
-                                                const LivenessIntervalSet &inactive) {
-    //const auto max_register_slots = regconf_->max_fp_register() + regconf_->max_gp_register();
+void RegisterAllocator::AddUsePosition(int pos, LifetimeInterval *interval, const UnallocatedOperand *opd) {
+    int hint = 0;
+    if (opd->has_fixed_reigster_policy()) {
+        hint = opd->fixed_register_id();
+    }
+    
+    if (opd->has_fixed_fp_reigster_policy()) {
+        hint = opd->fixed_fp_register_id();
+    }
+    
+    if (opd->has_fixed_slot_policy()) {
+        hint = opd->fixed_slot_offset();
+    }
+    
+    interval->AddUsePosition(pos, opd->policy()/*used_kind*/, hint);
+}
+
+bool RegisterAllocator::TryAllocateFreeRegister(LifetimeInterval *current,
+                                                LifetimeIntervalSet *unhandled,
+                                                const LifetimeIntervalSet &active,
+                                                const LifetimeIntervalSet &inactive) {
+    UnallocatedOperand::Policy policy = UnallocatedOperand::kNone;
+    int hint = 0;
+    if (current->has_any_use_position()) {
+        policy = static_cast<UnallocatedOperand::Policy>(current->earliest_use_position().use_kind);
+        hint = current->earliest_use_position().hint;
+    }
+    switch (policy) {
+        case UnallocatedOperand::kFixedSlot:
+            current->AssignSlot(hint);
+            return true;
+        case UnallocatedOperand::kMustHaveSlot:
+            current->AssignSlot(fun_->frame()->AllocateSlot(current->type().PlacementSizeInBytes(), 0));
+            return true;
+        default:
+            break;
+    }
+
     std::vector<int> free_gp_position(regconf_->max_gp_register(), std::numeric_limits<int>::max());
     std::vector<int> free_fp_position(regconf_->max_fp_register(), std::numeric_limits<int>::max());
     
@@ -324,84 +383,105 @@ bool RegisterAllocator::TryAllocateFreeRegister(LivenessInterval *current, const
             free_fp_position[it->assigned_register()] = 0;
         }
     }
-    
+
     for (auto it : inactive) {
-        if (it->DoesNotIntersects(current)) {
+        auto rs = it->GetIntersection(current);
+        if (rs.from < 0 && rs.to < 0) {
             continue;
         }
         DCHECK(it->has_assigned_any_register());
         
-        // TODO:
-        UNREACHABLE();
+        if (it->has_assigned_gp_register()) {
+            free_gp_position[it->assigned_register()] = rs.from;
+        } else{
+            free_fp_position[it->assigned_register()] = rs.from;
+        }
     }
     
-    auto [reg, pos] = GetHighest(current->should_gp_register() ? free_gp_position: free_fp_position);
+    switch (policy) {
+        case UnallocatedOperand::kFixedRegister:
+            DCHECK(regconf_->allocatable_gp_bitmap()[hint]);
+            if (free_gp_position[hint] == 0) {
+                UNREACHABLE();
+            }
+            current->AssignRegister(hint);
+            return true;
+        case UnallocatedOperand::kFixedFPRegister:
+            DCHECK(regconf_->allocatable_fp_bitmap()[hint]);
+            if (free_fp_position[hint] == 0) {
+                UNREACHABLE();
+            }
+            current->AssignRegister(hint);
+            return true;
+        default:
+            break;
+    }
+    
+    auto [reg, pos] = GetHighest(current->should_gp_register()
+                                 ? free_gp_position
+                                 : free_fp_position,
+                                 current->should_gp_register()
+                                 ? regconf_->allocatable_gp_bitmap()
+                                 : regconf_->allocatable_fp_bitmap());
     if (pos == 0) {
         return false; // allocate fail
     }
 
-    if (pos > current->last_range().to) {
+    if (pos > current->latest_range().to) {
+        DCHECK(current->IsNotCovers(pos));
         // register available for whole current
         current->AssignRegister(reg);
     } else {
+        DCHECK(current->IsCovers(pos));
         // register available for first part of current
         current->AssignRegister(reg);
         // split
-        UNREACHABLE();
+        unhandled->insert(SplitInterval(current, pos));
     }
     return true;
 }
 
-LivenessInterval *RegisterAllocator::IntervalOf(UnallocatedOperand *opd) {
-    return IntervalOfVR(opd->virtual_register());
+void RegisterAllocator::AllocateBlockedRegister(LifetimeInterval *current, const LifetimeIntervalSet &active,
+                                                const LifetimeIntervalSet &inactive) {
+    std::vector<int> use_gp_position(regconf_->max_gp_register(), std::numeric_limits<int>::max());
+    std::vector<int> use_fp_position(regconf_->max_fp_register(), std::numeric_limits<int>::max());
+    std::vector<int> block_gp_position(regconf_->max_gp_register(), std::numeric_limits<int>::max());
+    std::vector<int> block_fp_position(regconf_->max_fp_register(), std::numeric_limits<int>::max());
+    
+    
 }
 
-LivenessInterval *RegisterAllocator::IntervalOf(ir::Value *value) {
+// split interval and returning child
+LifetimeInterval *RegisterAllocator::SplitInterval(LifetimeInterval *interval, int pos) {
+    auto vr = static_cast<int>(intervals_.size());
+    auto child = new LifetimeInterval(vr, interval->type());
+    intervals_.push_back(child);
+    interval->AddChild(child, pos);
+    return child;
+}
+
+LifetimeInterval *RegisterAllocator::IntervalOf(UnallocatedOperand *opd) {
+    return IntervalOf(opd->virtual_register());
+}
+
+LifetimeInterval *RegisterAllocator::IntervalOf(ir::Value *value) {
     auto vr = fun_->frame()->GetVirtualRegister(value);
-    return IntervalOfVR(vr);
+    return IntervalOf(vr);
 }
 
-LivenessInterval *RegisterAllocator::IntervalOfVR(int virtual_register) {
+LifetimeInterval *RegisterAllocator::IntervalOf(int virtual_register) {
     DCHECK(virtual_register >= 0);
-    DCHECK(virtual_register < fun_->frame()->virtual_registers_size());
-    return IntervalOfIndex(virtual_register);
-}
-
-LivenessInterval *RegisterAllocator::IntervalOfGP(int gp) {
-    DCHECK(gp >= 0 && gp < regconf_->max_gp_register());
-    return IntervalOfIndex(offset_of_gp_register() + gp);
-}
-
-LivenessInterval *RegisterAllocator::IntervalOfFP(int fp) {
-    DCHECK(fp >= 0 && fp < regconf_->max_fp_register());
-    return IntervalOfIndex(offset_of_fp_register() + fp);
-}
-
-LivenessInterval *RegisterAllocator::IntervalOfIndex(int index) {
-    DCHECK(index >= 0);
-    DCHECK(index < fun_->frame()->virtual_registers_size() + regconf_->max_gp_register() + regconf_->max_fp_register());
-    if (intervals_[index]) {
-        return intervals_[index];
-    }
-
-    if (index >= fun_->frame()->virtual_registers_size()) {
-        LivenessInterval *rs = nullptr;
-        if (index >= offset_of_gp_register() && index < offset_of_gp_register() + regconf_->max_gp_register()) {
-            rs = new LivenessInterval(ir::Types::Word64); // TODO:
-        } else {
-            rs = new LivenessInterval(ir::Types::Float64); // TODO:
-        }
-
-        intervals_[index] = rs;
-        return intervals_[index];
+    DCHECK(virtual_register < intervals_.size());
+    if (intervals_[virtual_register]) {
+        return intervals_[virtual_register];
     }
     
-    if (auto value = fun_->frame()->GetValue(index)) {
-        intervals_[index] = new LivenessInterval(value->type());
+    if (auto value = fun_->frame()->GetValue(virtual_register)) {
+        intervals_[virtual_register] = new LifetimeInterval(virtual_register, value->type());
     } else {
-        intervals_[index] = new LivenessInterval(ir::Types::Word64); // TODO:
+        intervals_[virtual_register] = new LifetimeInterval(virtual_register, ir::Types::Word64); // TODO:
     }
-    return intervals_[index];
+    return intervals_[virtual_register];
 }
 
 int RegisterAllocator::offset_of_gp_register() const {

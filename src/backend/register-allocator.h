@@ -6,8 +6,9 @@
 #include "ir/type.h"
 #include "base/checking.h"
 #include "base/base.h"
-#include <set>
+#include <numeric>
 #include <vector>
+#include <set>
 
 namespace yalx {
 namespace base {
@@ -117,28 +118,46 @@ private:
 };
 
 
-
-class LivenessInterval final {
+class LifetimeInterval final {
 public:
     struct Range {
         int from;
         int to;
         
-        //a [from to]
-        //b     [from to]
+        //a [from to)
+        //b     [from to)
         //
-        //a     [from to]
-        //b [from to]
-        bool DoesIntersects(Range rhs) const { return to >= rhs.from && from <= rhs.to; }
+        //a     [from to)
+        //b [from to)
+        bool IsIntersects(Range rhs) const { return to > rhs.from && from < rhs.to; }
+        
+        Range Intersects(Range rhs) const {
+            if (!IsIntersects(rhs)) {
+                return {-1,-1};
+            }
+            if (from <= rhs.from) {
+                return {rhs.from, to};
+            }
+            if (from >= rhs.from) {
+                return {from, rhs.to};
+            }
+            UNREACHABLE();
+        }
     };
     
     struct UsePosition {
         int position;
         int use_kind;
+        int hint;
     };
     
-    explicit LivenessInterval(ir::Type type);
-    ~LivenessInterval();
+    static constexpr int kUnassignedSlotValue = std::numeric_limits<int>::max();
+    static constexpr int kUnassignedRegisterValue = -1;
+    
+    explicit LifetimeInterval(int virtual_register, ir::Type type);
+    ~LifetimeInterval();
+    
+    DEF_VAL_GETTER(int, virtual_register);
     
     MachineRepresentation representation() const { return rep_; }
     
@@ -152,9 +171,25 @@ public:
     bool has_assigned_fp_register() const { return has_assigned_any_register() && should_fp_register(); }
     bool has_assigned_gp_register() const { return has_assigned_any_register() && should_gp_register(); }
     
-    DEF_VAL_GETTER(int, assigned_register);
+    bool has_assigned_slot() const { return assigned_slot_ != kUnassignedSlotValue; }
     
-    void AssignRegister(int reg) { assigned_register_ = reg; }
+    bool has_any_assinged() const { return has_assigned_slot() || has_assigned_any_register(); }
+    
+    DEF_VAL_GETTER(ir::Type, type);
+    DEF_VAL_GETTER(int, assigned_register);
+    DEF_VAL_GETTER(int, assigned_slot);
+    
+    void AssignRegister(int reg) {
+        DCHECK(!has_any_assinged());
+        assigned_register_ = reg;
+    }
+    
+    void AssignSlot(int offset) {
+        DCHECK(!has_any_assinged());
+        assigned_slot_ = offset;
+    }
+    
+    bool has_any_use_position() const { return !use_positions_.empty(); }
     
     const UsePosition &earliest_use_position() const {
         DCHECK(!use_positions_.empty());
@@ -188,21 +223,22 @@ public:
         return ranges_.back();
     }
     
-    bool DoesNotCovers(int position) const { return !DoesCovers(position); }
-    bool DoesCovers(int position) const {
+    bool IsNotCovers(int position) const { return !IsCovers(position); }
+    bool IsCovers(int position) const {
         for (auto range : ranges_) {
-            if (position >= range.from && position <= range.to) {
+            if (position >= range.from && position < range.to) {
                 return true;
             }
         }
         return false;
     }
     
-    bool DoesNotIntersects(const LivenessInterval *it) const { return !DoesIntersects(it); }
-    bool DoesIntersects(const LivenessInterval *it) const {
+    bool IsNotIntersects(const LifetimeInterval *it) const { return !IsIntersects(it); }
+    
+    bool IsIntersects(const LifetimeInterval *it) const {
         for (auto rhs : it->ranges_) {
             for (auto lhs : ranges_) {
-                if (lhs.DoesIntersects(rhs)) {
+                if (lhs.IsIntersects(rhs)) {
                     return true;
                 }
             }
@@ -210,17 +246,34 @@ public:
         return false;
     }
     
+    Range GetIntersection(const LifetimeInterval *it) const {
+        for (auto rhs : it->ranges_) {
+            for (auto lhs : ranges_) {
+                if (auto rs = lhs.Intersects(rhs); rs.from >= 0 && rs.to >= 0) {
+                    return rs;
+                }
+            }
+        }
+        return {-1,-1};
+    }
+    
     void AddRange(int from, int to) { ranges_.push_back({from, to}); }
-    void AddUsePosition(int position, int used_kind) { use_positions_.push_back({position, used_kind}); }
+    void AddUsePosition(int position, int used_kind, int hint = 0) {
+        use_positions_.push_back({position, used_kind, hint});
+    }
+    
+    void AddChild(LifetimeInterval *child, int pos);
 private:
+    int const virtual_register_;
     ir::Type const type_;
     MachineRepresentation const rep_;
-    int assigned_register_ = -1;
-    LivenessInterval *split_parent_ = nullptr;
-    std::vector<LivenessInterval *> split_children_;
+    int assigned_register_ = kUnassignedRegisterValue;
+    int assigned_slot_ = kUnassignedSlotValue;
+    LifetimeInterval *split_parent_ = nullptr;
+    std::vector<LifetimeInterval *> split_children_;
     std::vector<Range> ranges_;
     std::vector<UsePosition> use_positions_;
-}; // class LivenessInterval
+}; // class LifetimeInterval
 
 class RegisterAllocator final {
 public:
@@ -259,35 +312,39 @@ public:
     }
     
     
-    LivenessInterval *IntervalOf(UnallocatedOperand *opd);
-    LivenessInterval *IntervalOf(ir::Value *value);
-    LivenessInterval *IntervalOfVR(int virtual_register);
-    LivenessInterval *IntervalOfGP(int gp);
-    LivenessInterval *IntervalOfFP(int fp);
-    LivenessInterval *IntervalOfIndex(int index);
+    LifetimeInterval *IntervalOf(UnallocatedOperand *opd);
+    LifetimeInterval *IntervalOf(ir::Value *value);
+    LifetimeInterval *IntervalOf(int virtual_register);
 private:
-    struct LivenessIntervalComparator : public std::binary_function<LivenessInterval *, LivenessInterval *, bool> {
-        bool operator() (LivenessInterval *a, LivenessInterval *b) const {
+    struct LifetimeIntervalComparator : public std::binary_function<LifetimeInterval *, LifetimeInterval *, bool> {
+        bool operator() (LifetimeInterval *a, LifetimeInterval *b) const {
             return a->earliest_range().from <= b->earliest_range().from;
             //return a < b;
         }
     };
 
-    using LivenessIntervalSet = std::set<LivenessInterval *, LivenessIntervalComparator>;
+    using LifetimeIntervalSet = std::set<LifetimeInterval *, LifetimeIntervalComparator>;
     
     int offset_of_virtual_register() const { return 0; }
     int offset_of_gp_register() const;
     int offset_of_fp_register() const;
     
-    bool TryAllocateFreeRegister(LivenessInterval *current, const LivenessIntervalSet &active,
-                                 const LivenessIntervalSet &inactive);
+    static void AddUsePosition(int pos, LifetimeInterval *interval, const UnallocatedOperand *opd);
+    
+    bool TryAllocateFreeRegister(LifetimeInterval *current, LifetimeIntervalSet *unhandled,
+                                 const LifetimeIntervalSet &active,
+                                 const LifetimeIntervalSet &inactive);
+    void AllocateBlockedRegister(LifetimeInterval *current, const LifetimeIntervalSet &active,
+                                 const LifetimeIntervalSet &inactive);
+    
+    LifetimeInterval *SplitInterval(LifetimeInterval *interval, int whit_opid);
     
     base::Arena *const arena_;
     const RegistersConfiguration *const regconf_;
     InstructionFunction *const fun_;
     std::vector<InstructionBlock *> blocks_;
     std::vector<BlockLivenssState> blocks_liveness_state_;
-    std::vector<LivenessInterval *> intervals_;
+    std::vector<LifetimeInterval *> intervals_;
 }; // class RegisterAllocator
 
 } // namespace backend

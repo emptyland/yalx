@@ -4,6 +4,7 @@
 
 #include "base/checking.h"
 #include "base/base.h"
+#include <vector>
 
 namespace yalx {
 
@@ -58,6 +59,9 @@ public:
     DEF_VAL_GETTER(int, sp);
     DEF_VAL_GETTER(int, root);
     
+    DEF_VAL_GETTER(std::vector<bool>, allocatable_gp_bitmap);
+    DEF_VAL_GETTER(std::vector<bool>, allocatable_fp_bitmap);
+    
     static const RegistersConfiguration *of_arm64();
     static const RegistersConfiguration *of_x64();
     
@@ -91,6 +95,9 @@ private:
     const int fp_;
     const int sp_;
     const int root_;
+    
+    std::vector<bool> allocatable_gp_bitmap_;
+    std::vector<bool> allocatable_fp_bitmap_;
 }; // class RegistersConfiguration
 
 } // namespace backend
