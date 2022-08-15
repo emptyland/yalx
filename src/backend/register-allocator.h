@@ -120,6 +120,12 @@ private:
 
 class LifetimeInterval final {
 public:
+    enum Status {
+        kUnassigned,
+        kRegisterAssigned,
+        kSlotAssigned,
+    };
+    
     struct Range {
         int from;
         int to;
@@ -151,10 +157,7 @@ public:
         int hint;
     };
     
-    static constexpr int kUnassignedSlotValue = std::numeric_limits<int>::max();
-    static constexpr int kUnassignedRegisterValue = -1;
-    
-    explicit LifetimeInterval(int virtual_register, ir::Type type);
+    LifetimeInterval(int virtual_register, ir::Type type);
     ~LifetimeInterval();
     
     DEF_VAL_GETTER(int, virtual_register);
@@ -164,32 +167,38 @@ public:
     bool should_fp_register() const {
         return (rep_ == MachineRepresentation::kFloat32 || rep_ == MachineRepresentation::kFloat64);
     }
-
     bool should_gp_register() const { return !should_fp_register(); }
-    
-    bool has_assigned_any_register() const { return assigned_register() >= 0; }
+
     bool has_assigned_fp_register() const { return has_assigned_any_register() && should_fp_register(); }
     bool has_assigned_gp_register() const { return has_assigned_any_register() && should_gp_register(); }
     
-    bool has_assigned_slot() const { return assigned_slot_ != kUnassignedSlotValue; }
-    
+    bool has_assigned_any_register() const { return status() == kRegisterAssigned; }
+    bool has_assigned_slot() const { return status() == kSlotAssigned; }
     bool has_any_assinged() const { return has_assigned_slot() || has_assigned_any_register(); }
     
+    bool has_any_used() const { return !use_positions_.empty(); }
+    bool has_never_used() const { return use_positions_.empty(); }
+    
     DEF_VAL_GETTER(ir::Type, type);
-    DEF_VAL_GETTER(int, assigned_register);
-    DEF_VAL_GETTER(int, assigned_slot);
+    DEF_VAL_GETTER(Status, status);
+    DEF_VAL_GETTER(int, assigned_operand);
+    DEF_VAL_GETTER(std::vector<UsePosition>, use_positions);
+    
+    int GetOriginalVR() const {
+        return split_parent_ ? split_parent_->virtual_register() : virtual_register();
+    }
     
     void AssignRegister(int reg) {
         DCHECK(!has_any_assinged());
-        assigned_register_ = reg;
+        assigned_operand_ = reg;
+        status_ = kRegisterAssigned;
     }
     
     void AssignSlot(int offset) {
         DCHECK(!has_any_assinged());
-        assigned_slot_ = offset;
+        assigned_operand_ = offset;
+        status_ = kSlotAssigned;
     }
-    
-    bool has_any_use_position() const { return !use_positions_.empty(); }
     
     const UsePosition &earliest_use_position() const {
         DCHECK(!use_positions_.empty());
@@ -201,26 +210,20 @@ public:
         return use_positions_.front();
     }
     
-    const Range &earliest_range() const { return last_range(); }
-    const Range &latest_range() const { return first_range(); }
-    
-    bool has_never_used() const { return use_positions_.empty(); }
-    
+    const Range &earliest_range() const {
+        DCHECK(!ranges_.empty());
+        return ranges_.back();
+    }
+    const Range &latest_range() const {
+        DCHECK(!ranges_.empty());
+        return ranges_.front();
+    }
+
     Range *TouchFirstRange() {
         if (ranges_.empty()) {
             AddRange(0, 0);
         }
         return &ranges_.front();
-    }
-    
-    const Range &first_range() const {
-        DCHECK(!ranges_.empty());
-        return ranges_.front();
-    }
-    
-    const Range &last_range() const {
-        DCHECK(!ranges_.empty());
-        return ranges_.back();
     }
     
     bool IsNotCovers(int position) const { return !IsCovers(position); }
@@ -258,8 +261,19 @@ public:
     }
     
     void AddRange(int from, int to) { ranges_.push_back({from, to}); }
+
     void AddUsePosition(int position, int used_kind, int hint = 0) {
         use_positions_.push_back({position, used_kind, hint});
+    }
+    
+    UsePosition FindUsePositionAfter(int pos) const {
+        for (int i = static_cast<int>(use_positions_.size()) - 1; i >= 0; i--) {
+            auto use_position = use_positions_[i];
+            if (use_position.position > pos) {
+                return use_position;
+            }
+        }
+        return use_positions_[0];
     }
     
     void AddChild(LifetimeInterval *child, int pos);
@@ -267,8 +281,8 @@ private:
     int const virtual_register_;
     ir::Type const type_;
     MachineRepresentation const rep_;
-    int assigned_register_ = kUnassignedRegisterValue;
-    int assigned_slot_ = kUnassignedSlotValue;
+    Status status_ = kUnassigned;
+    int assigned_operand_ = 0;
     LifetimeInterval *split_parent_ = nullptr;
     std::vector<LifetimeInterval *> split_children_;
     std::vector<Range> ranges_;
@@ -331,6 +345,7 @@ private:
     
     static void AddUsePosition(int pos, LifetimeInterval *interval, const UnallocatedOperand *opd);
     
+    void SplitByUsePolicy(LifetimeInterval *current, std::vector<LifetimeInterval *> *splitted);
     bool TryAllocateFreeRegister(LifetimeInterval *current, LifetimeIntervalSet *unhandled,
                                  const LifetimeIntervalSet &active,
                                  const LifetimeIntervalSet &inactive);

@@ -185,7 +185,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     interval = allocator.IntervalOf(param0);
     ASSERT_NE(nullptr, interval);
     ASSERT_TRUE(interval->has_assigned_gp_register());
-    ASSERT_EQ(0, interval->assigned_register());
+    ASSERT_EQ(0, interval->assigned_operand());
     
 }
 
