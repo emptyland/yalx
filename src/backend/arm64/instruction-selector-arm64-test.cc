@@ -172,11 +172,21 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     allocator.BuildIntervals();
     
     auto interval = allocator.IntervalOf(param0);
-    ASSERT_NE(nullptr, interval);
+    EXPECT_EQ(10, interval->range(0).from);
+    EXPECT_EQ(10, interval->range(0).to);
+    
+    EXPECT_EQ(0, interval->range(1).from);
+    EXPECT_EQ(6, interval->range(1).to);
     
     interval = allocator.IntervalOf(phi0);
-    ASSERT_NE(nullptr, interval);
+    EXPECT_EQ(14, interval->range(0).from);
+    EXPECT_EQ(16, interval->range(0).to);
     
+    EXPECT_EQ(10, interval->range(1).from);
+    EXPECT_EQ(14, interval->range(1).to);
+    
+    EXPECT_EQ(6, interval->range(2).from);
+    EXPECT_EQ(10, interval->range(2).to);
     
     //==================================================================================================================
     // Walk Intervals
@@ -187,6 +197,22 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     ASSERT_TRUE(interval->has_assigned_gp_register());
     ASSERT_EQ(0, interval->assigned_operand());
     
+    interval = allocator.IntervalOf(phi0);
+    ASSERT_TRUE(interval->has_assigned_gp_register());
+    ASSERT_NE(0, interval->assigned_operand());
+    
+    interval = allocator.IntervalOf(phi1);
+    ASSERT_TRUE(interval->has_assigned_gp_register());
+    ASSERT_EQ(1, interval->assigned_operand());
+    
+    interval = allocator.IntervalOf(ret0);
+    ASSERT_TRUE(interval->has_assigned_gp_register());
+    ASSERT_EQ(4, interval->assigned_operand());
+    
+    //==================================================================================================================
+    // Finalize
+    allocator.AssignRegisters();
+    ASSERT_TRUE(true);
 }
 
 } // namespace backend

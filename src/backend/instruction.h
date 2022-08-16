@@ -382,7 +382,38 @@ private:
 static_assert(sizeof(AllocatedOperand) == sizeof(InstructionOperand), "");
 
 
-class Instruction final {
+
+class ParallelMove final : public base::ArenaObject {
+public:
+    class Operands : public base::ArenaObject {
+    public:
+        Operands(const InstructionOperand &src, const InstructionOperand &dest)
+        : src_(src)
+        , dest_(dest) {
+            DCHECK(!src.IsInvalid() && !dest.IsInvalid());
+        }
+        
+        DEF_VAL_GETTER(InstructionOperand, src);
+        DEF_VAL_GETTER(InstructionOperand, dest);
+    private:
+        InstructionOperand src_;
+        InstructionOperand dest_;
+    }; // class Operands
+    
+    ParallelMove(base::Arena *arena): moves_(arena) {}
+    
+    DEF_ARENA_VECTOR_GETTER(Operands *, move);
+    
+    Operands *AddMove(const InstructionOperand &dest, const InstructionOperand &src, base::Arena *arena) {
+        auto operands = new (arena) Operands(src, dest);
+        moves_.push_back(operands);
+        return operands;
+    }
+private:
+    base::ArenaVector<Operands *> moves_;
+}; // class ParallelMove
+
+class Instruction final /*: public base::ArenaObject*/ {
 public:
     using Code = InstructionCode;
     using Operand = InstructionOperand;
@@ -407,6 +438,31 @@ public:
     Operand *TempAt(size_t i) {
         DCHECK(i < temps_count());
         return &operands_[temp_offset() + i];
+    }
+    
+    Operand *OperandAt(size_t i) {
+        DCHECK(i < operands_size());
+        return &operands_[i];
+    }
+    
+    enum GapPosition {
+        kStart,
+        kEnd,
+    };
+    
+    ParallelMove *GetOrNewParallelMove(GapPosition pos, base::Arena *arena) {
+        if (!parallel_moves_[pos]) {
+            parallel_moves_[pos] = new (arena) ParallelMove(arena);
+        }
+        return parallel_moves_[pos];
+    }
+    
+    const ParallelMove *parallel_move(GapPosition pos) const {
+        return DCHECK_NOTNULL(parallel_moves_[pos]);
+    }
+
+    ParallelMove *mutable_parallel_move(GapPosition pos) {
+        return DCHECK_NOTNULL(parallel_moves_[pos]);
     }
     
     static Instruction *New(base::Arena *arena, Code op,
@@ -442,6 +498,7 @@ private:
     uint8_t outputs_count_;
     uint8_t temps_count_;
     uint8_t is_call_;
+    ParallelMove *parallel_moves_[2];
     Operand operands_[1];
 }; // class Instruction
 

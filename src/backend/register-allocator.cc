@@ -38,10 +38,11 @@ void LifetimeInterval::AddChild(LifetimeInterval *child, int pos) {
     }
     child->split_parent_->split_children_.push_back(child);
     
-    DCHECK(has_any_used());
-    while (use_positions_.front().position >= pos) {
-        child->use_positions_.push_back(use_positions_.front());
-        use_positions_.erase(use_positions_.begin());
+    if (has_any_used()) {
+        while (use_positions_.front().position >= pos) {
+            child->use_positions_.push_back(use_positions_.front());
+            use_positions_.erase(use_positions_.begin());
+        }
     }
     
     // [0, 4) [4, 10) [10, 20)
@@ -52,7 +53,7 @@ void LifetimeInterval::AddChild(LifetimeInterval *child, int pos) {
         if (range.from > pos) {
             child->ranges_.push_back(range);
             ranges_.erase(ranges_.begin());
-        } else if (range.from <= pos && range.to >= pos) {
+        } else if (range.from == pos) {
             child->ranges_.push_back(range);
             ranges_.erase(ranges_.begin());
             break;
@@ -64,6 +65,21 @@ void LifetimeInterval::AddChild(LifetimeInterval *child, int pos) {
             UNREACHABLE();
         }
     }
+}
+
+const LifetimeInterval *LifetimeInterval::ChildAt(int opid) const {
+    for (auto use : use_positions_) {
+        if (use.position == opid) {
+            return this;
+        }
+    }
+    for (auto child : split_children_) {
+        if (auto rs = child->ChildAt(opid)) {
+            return rs;
+        }
+    }
+    UNREACHABLE();
+    return nullptr;
 }
 
 RegisterAllocator::RegisterAllocator(base::Arena *arena, const RegistersConfiguration *regconf, InstructionFunction *fun)
@@ -195,7 +211,7 @@ void RegisterAllocator::BuildIntervals() {
         auto block_state = &blocks_liveness_state_[i];
         
         auto local_from = block->instructions().front()->id();
-        auto local_to   = block->instructions().back()->id();
+        auto local_to   = block->instructions().back()->id() + 2;
         
         BlockLivenssState::Walk(block_state->live_out(), [this, local_from, local_to](int virtual_register) {
             IntervalOf(virtual_register)->AddRange(local_from, local_to);
@@ -203,13 +219,11 @@ void RegisterAllocator::BuildIntervals() {
         
         for (int j = static_cast<int>(block->instructions_size()) - 1; j >= 0; j--) {
             auto instr = block->instruction(j);
-            
-            // TODO: process calling
-            
+
             for (int k = 0; k < instr->outputs_count(); k++) {
                 if (auto opd = instr->OutputAt(k)->AsUnallocated()) {
                     auto interval = IntervalOf(opd);
-                    interval->TouchFirstRange()->from = instr->id();
+                    interval->TouchEarliestRange()->from = instr->id();
 
                     AddUsePosition(instr->id(), interval, opd);
                 }
@@ -231,7 +245,19 @@ void RegisterAllocator::BuildIntervals() {
                 }
             }
         }
+        
+        for (int j = static_cast<int>(block->phis_size()) - 1; j >= 0; j--) {
+            auto instr = block->phi(j);
+
+            if (auto opd = instr->output()->AsUnallocated()) {
+                auto interval = IntervalOf(opd);
+                interval->TouchEarliestRange()->from = instr->id();
+
+                AddUsePosition(instr->id(), interval, opd);
+            }
+        }
     }
+
 }
 
 void RegisterAllocator::WalkIntervals() {
@@ -258,13 +284,7 @@ void RegisterAllocator::WalkIntervals() {
                 interval->AssignRegister(opd->fixed_fp_register_id());
             }
             if (interval) {
-                for (auto iter = unhanded.begin(); iter != unhanded.end(); iter++) {
-                    if (*iter == interval) {
-                        unhanded.erase(iter);
-                        break;
-                    }
-                }
-                
+                Remove(&unhanded, interval);
                 active.insert(interval);
             }
         }
@@ -291,31 +311,23 @@ void RegisterAllocator::WalkIntervals() {
         for (auto it : active) {
             if (it->latest_range().to < position) {
                 incoming_remove.push_back(it);
-                //unhanded.insert(it);
             } else if (it->IsNotCovers(position)) {
                 incoming_remove.push_back(it);
                 inactive.insert(it);
             }
         }
-        for (auto it : incoming_remove) {
-            active.erase(it);
-        }
-        incoming_remove.clear();
+        RemoveAll(&active, std::move(incoming_remove));
         
         // check for intervals in inactive that are expired or active
         for (auto it : inactive) {
             if (it->latest_range().to < position) {
                 incoming_remove.push_back(it);
-                //unhanded.insert(it);
             } else if (it->IsCovers(position)) {
                 incoming_remove.push_back(it);
                 active.insert(it);
             }
         }
-        for (auto it : incoming_remove) {
-            inactive.erase(it);
-        }
-        incoming_remove.clear();
+        RemoveAll(&inactive, std::move(incoming_remove));
         
         
         // find a register for current
@@ -326,6 +338,27 @@ void RegisterAllocator::WalkIntervals() {
 
         if (current->has_assigned_any_register()) {
             active.insert(current);
+        }
+    }
+}
+
+void RegisterAllocator::AssignRegisters() {
+    for (auto block : blocks_) {
+        
+        for (auto phi : block->phis()) {
+            if (auto opd = phi->output()->AsUnallocated()) {
+                AssignOperand(phi->id(), phi->output(), opd);
+            }
+        }
+        
+        for (auto instr : block->instructions()) {
+            for (int i = 0; i < instr->operands_size(); i++) {
+                if (auto opd = instr->OperandAt(i)->AsUnallocated()) {
+//                    auto parallel_move = instr->GetOrNewParallelMove(Instruction::kStart, arena_);
+//                    parallel_move->AddMove(*instr->OperandAt(0), *instr->OperandAt(1), arena_);
+                    AssignOperand(instr->id(), instr->OperandAt(i), opd);
+                }
+            }
         }
     }
 }
@@ -560,11 +593,50 @@ void RegisterAllocator::AllocateBlockedRegister(LifetimeInterval *current, Lifet
 
 // split interval and returning child
 LifetimeInterval *RegisterAllocator::SplitInterval(LifetimeInterval *interval, int pos) {
+    //printd("%p, %d: %d", interval, interval->virtual_register(), pos);
     auto vr = static_cast<int>(intervals_.size());
     auto child = new LifetimeInterval(vr, interval->type());
     intervals_.push_back(child);
     interval->AddChild(child, pos);
     return child;
+}
+
+void RegisterAllocator::AssignOperand(int opid, InstructionOperand *receiver, UnallocatedOperand *unalloc) {
+    auto interval = IntervalOf(unalloc->virtual_register())->ChildAt(opid);
+    switch (unalloc->policy()) {
+        case UnallocatedOperand::kRegisterOrSlot:
+        case UnallocatedOperand::kRegisterOrSlotOrConstant: {
+            DCHECK(interval->has_any_assinged());
+            *receiver = AllocatedOperand(interval->has_assigned_any_register()
+                                         ? AllocatedOperand::kRegister
+                                         : AllocatedOperand::kSlot,
+                                         interval->representation(),
+                                         interval->assigned_operand());
+        } break;
+        case UnallocatedOperand::kMustHaveRegister: {
+            DCHECK(interval->has_assigned_any_register());
+            *receiver = AllocatedOperand(AllocatedOperand::kRegister, interval->representation(),
+                                         interval->assigned_operand());
+        } break;
+        case UnallocatedOperand::kMustHaveSlot:
+            break;
+        case UnallocatedOperand::kFixedSlot:
+            *receiver = AllocatedOperand(AllocatedOperand::kSlot, interval->representation(),
+                                         unalloc->fixed_slot_offset());
+            break;
+        case UnallocatedOperand::kFixedRegister:
+            *receiver = AllocatedOperand(AllocatedOperand::kRegister, interval->representation(),
+                                         unalloc->fixed_register_id());
+            break;
+        case UnallocatedOperand::kFixedFPRegister:
+            *receiver = AllocatedOperand(AllocatedOperand::kRegister, interval->representation(),
+                                         unalloc->fixed_fp_register_id());
+            break;
+            
+        default:
+            UNREACHABLE();
+            break;
+    }
 }
 
 LifetimeInterval *RegisterAllocator::IntervalOf(UnallocatedOperand *opd) {

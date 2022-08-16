@@ -81,6 +81,8 @@ Instruction::Instruction(Code op,
 , inputs_count_(inputs_count)
 , outputs_count_(outputs_count)
 , temps_count_(temps_count) {
+    parallel_moves_[0] = nullptr;
+    parallel_moves_[1] = nullptr;
     ::memcpy(operands_ + input_offset(), inputs, inputs_count * sizeof(Operand));
     ::memcpy(operands_ + output_offset(), outputs, outputs_count * sizeof(Operand));
     ::memcpy(operands_ + temp_offset(), temps, temps_count * sizeof(Operand));
@@ -88,6 +90,7 @@ Instruction::Instruction(Code op,
 
 PhiInstruction::PhiInstruction(base::Arena *arena, int virtual_register, int input_count)
 : virtual_register_(virtual_register)
+, output_(UnallocatedOperand(UnallocatedOperand::kRegisterOrSlot, virtual_register))
 , operands_(arena) {
     operands_.resize(input_count, InstructionOperand::kInvliadVirtualRegister);
 }

@@ -22,6 +22,7 @@ namespace backend {
 
 
 class UnallocatedOperand;
+class InstructionOperand;
 class InstructionFunction;
 class InstructionBlock;
 class RegistersConfiguration;
@@ -184,6 +185,8 @@ public:
     DEF_VAL_GETTER(int, assigned_operand);
     DEF_VAL_GETTER(std::vector<UsePosition>, use_positions);
     
+    const LifetimeInterval *ChildAt(int opid) const;
+    
     int GetOriginalVR() const {
         return split_parent_ ? split_parent_->virtual_register() : virtual_register();
     }
@@ -219,11 +222,16 @@ public:
         return ranges_.front();
     }
 
-    Range *TouchFirstRange() {
+    Range *TouchEarliestRange() {
         if (ranges_.empty()) {
             AddRange(0, 0);
         }
-        return &ranges_.front();
+        return &ranges_.back();
+    }
+    
+    const Range &range(size_t i) const {
+        DCHECK(i < ranges_.size());
+        return ranges_[i];
     }
     
     bool IsNotCovers(int position) const { return !IsCovers(position); }
@@ -308,6 +316,8 @@ public:
     void BuildIntervals();
     // step 6
     void WalkIntervals();
+    // step 7
+    void AssignRegisters();
 
     InstructionBlock *OrderedBlockAt(int i) const {
         DCHECK(i >= 0);
@@ -338,6 +348,19 @@ private:
 
     using LifetimeIntervalSet = std::set<LifetimeInterval *, LifetimeIntervalComparator>;
     
+    static void RemoveAll(LifetimeIntervalSet *set, std::vector<LifetimeInterval *> &&incoming) {
+        for (auto it : incoming) { Remove(set, it); }
+    }
+    
+    static void Remove(LifetimeIntervalSet *set, LifetimeInterval *incoming) {
+        for (auto iter = set->begin(); iter != set->end(); iter++) {
+            if (*iter == incoming) {
+                set->erase(iter);
+                return;
+            }
+        }
+    }
+    
     int offset_of_virtual_register() const { return 0; }
     int offset_of_gp_register() const;
     int offset_of_fp_register() const;
@@ -354,6 +377,8 @@ private:
                                  const LifetimeIntervalSet &inactive);
     
     LifetimeInterval *SplitInterval(LifetimeInterval *interval, int whit_opid);
+    
+    void AssignOperand(int opid, InstructionOperand *receiver, UnallocatedOperand *unalloc);
     
     base::Arena *const arena_;
     const RegistersConfiguration *const regconf_;
