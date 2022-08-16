@@ -1,5 +1,6 @@
 #include "backend/frame.h"
-
+#include "ir/node.h"
+#include "ir/type.h"
 
 namespace yalx {
 
@@ -11,6 +12,8 @@ Frame::Frame(base::Arena *arena, ir::Function *fun)
 , fun_(fun) {
     
 }
+
+const ir::Type &Frame::GetType(int vr) const { return GetValue(vr)->type(); }
 
 int Frame::GetVirtualRegister(ir::Value *value) {
     if (auto iter = std::find(virtual_registers_.begin(), virtual_registers_.end(), value);

@@ -208,12 +208,12 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
     auto returning_val_offset = Frame::kCalleeReservedSize + caller_padding_size + overflow_args_size;
 
     std::vector<InstructionOperand> inputs;
-    for (int i = value->op()->value_in() - 1; i >= 0; i--) {
+    for (int i = 0; i < value->op()->value_in(); i++) {
         auto ty = fun->prototype()->return_type(i);
         if (ty.kind() == ir::Type::kVoid) {
             continue;
         }
-        inputs.push_back(UseAsFixedSlot(value->InputValue(i), static_cast<int>(returning_val_offset)));
+        inputs.push_back(UseAsRegisterOrSlot(value->InputValue(i)));
         returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
     }
 
@@ -345,6 +345,13 @@ UnallocatedOperand InstructionSelector::DefineAsRegister(ir::Value *value) {
 UnallocatedOperand InstructionSelector::UseAsRegister(ir::Value *value) {
     return Use(value, UnallocatedOperand{
         UnallocatedOperand::kMustHaveRegister,
+        frame_->GetVirtualRegister(value)
+    });
+}
+
+UnallocatedOperand InstructionSelector::UseAsRegisterOrSlot(ir::Value *value) {
+    return Use(value, UnallocatedOperand{
+        UnallocatedOperand::kRegisterOrSlot,
         frame_->GetVirtualRegister(value)
     });
 }

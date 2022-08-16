@@ -10,6 +10,7 @@
 namespace yalx {
 namespace ir {
 class Value;
+class Type;
 class Function;
 } // namespace ir
 namespace backend {
@@ -37,11 +38,13 @@ public:
 
     int GetVirtualRegister(ir::Value *value);
     
-    ir::Value *GetValue(int vid) const {
-        DCHECK(vid >= 0);
-        DCHECK(vid < virtual_registers_.size());
-        return virtual_registers_[vid];
+    ir::Value *GetValue(int vr) const {
+        DCHECK(vr >= 0);
+        DCHECK(vr < virtual_registers_.size());
+        return virtual_registers_[vr];
     }
+    
+    const ir::Type &GetType(int vr) const;
     
     void SetRename(ir::Value *value, ir::Value *rename) {
         auto vid = GetVirtualRegister(value);

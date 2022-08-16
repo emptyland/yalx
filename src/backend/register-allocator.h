@@ -333,7 +333,6 @@ private:
     struct LifetimeIntervalComparator : public std::binary_function<LifetimeInterval *, LifetimeInterval *, bool> {
         bool operator() (LifetimeInterval *a, LifetimeInterval *b) const {
             return a->earliest_range().from <= b->earliest_range().from;
-            //return a < b;
         }
     };
 
@@ -346,10 +345,12 @@ private:
     static void AddUsePosition(int pos, LifetimeInterval *interval, const UnallocatedOperand *opd);
     
     void SplitByUsePolicy(LifetimeInterval *current, std::vector<LifetimeInterval *> *splitted);
+    bool ShouldSplitByUsePolicy(int policy0, int hint0, int policy1, int hint1);
     bool TryAllocateFreeRegister(LifetimeInterval *current, LifetimeIntervalSet *unhandled,
                                  const LifetimeIntervalSet &active,
                                  const LifetimeIntervalSet &inactive);
-    void AllocateBlockedRegister(LifetimeInterval *current, const LifetimeIntervalSet &active,
+    void AllocateBlockedRegister(LifetimeInterval *current, LifetimeIntervalSet *unhandled,
+                                 const LifetimeIntervalSet &active,
                                  const LifetimeIntervalSet &inactive);
     
     LifetimeInterval *SplitInterval(LifetimeInterval *interval, int whit_opid);

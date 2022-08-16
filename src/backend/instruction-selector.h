@@ -86,6 +86,7 @@ public:
     UnallocatedOperand DefineAsRegister(ir::Value *value);
     
     UnallocatedOperand UseAsRegister(ir::Value *value);
+    UnallocatedOperand UseAsRegisterOrSlot(ir::Value *value);
     UnallocatedOperand UseAsFixedSlot(ir::Value *value, int index);
     
     ReloactionOperand UseAsExternalClassName(const String *name);

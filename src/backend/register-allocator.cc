@@ -38,6 +38,7 @@ void LifetimeInterval::AddChild(LifetimeInterval *child, int pos) {
     }
     child->split_parent_->split_children_.push_back(child);
     
+    DCHECK(has_any_used());
     while (use_positions_.front().position >= pos) {
         child->use_positions_.push_back(use_positions_.front());
         use_positions_.erase(use_positions_.begin());
@@ -320,7 +321,7 @@ void RegisterAllocator::WalkIntervals() {
         // find a register for current
         if (!TryAllocateFreeRegister(current, &unhanded, active, inactive)) {
             // fail to allocation
-            AllocateBlockedRegister(current, active, inactive);
+            AllocateBlockedRegister(current, &unhanded, active, inactive);
         }
 
         if (current->has_assigned_any_register()) {
@@ -375,14 +376,7 @@ void RegisterAllocator::SplitByUsePolicy(LifetimeInterval *current, std::vector<
         auto policy = static_cast<UnallocatedOperand::Policy>(use.use_kind);
         auto hint = use.hint;
         
-        bool should_split = false;
-        if (policy != latest_policy) {
-            should_split = true;
-        } else if (policy == UnallocatedOperand::kFixedRegister || policy == UnallocatedOperand::kFixedFPRegister) {
-            should_split = (hint != latest_hint);
-        }
-        
-        if (should_split) {
+        if (ShouldSplitByUsePolicy(latest_policy, latest_hint, policy, hint)) {
             splitted->push_back(SplitInterval(current, use.position));
         }
         latest_policy = policy;
@@ -390,15 +384,45 @@ void RegisterAllocator::SplitByUsePolicy(LifetimeInterval *current, std::vector<
     }
 }
 
+bool RegisterAllocator::ShouldSplitByUsePolicy(int policy0, int latest_hint, int policy1, int hint) {
+    auto latest_policy = static_cast<UnallocatedOperand::Policy>(policy0);
+    auto policy = static_cast<UnallocatedOperand::Policy>(policy1);
+    
+    switch (latest_policy) {
+        case UnallocatedOperand::kRegisterOrSlot:
+        case UnallocatedOperand::kRegisterOrSlotOrConstant:
+            return policy != UnallocatedOperand::kRegisterOrSlot &&
+                   policy != UnallocatedOperand::kRegisterOrSlotOrConstant;
+        case UnallocatedOperand::kFixedSlot:
+            return policy != UnallocatedOperand::kFixedSlot && policy != UnallocatedOperand::kMustHaveSlot;
+        case UnallocatedOperand::kFixedRegister:
+            return policy != UnallocatedOperand::kFixedRegister || hint != latest_hint;
+        case UnallocatedOperand::kFixedFPRegister:
+            return policy != UnallocatedOperand::kFixedFPRegister || hint != latest_hint;
+        case UnallocatedOperand::kMustHaveSlot:
+            return policy != UnallocatedOperand::kMustHaveSlot && policy != UnallocatedOperand::kFixedSlot;
+        case UnallocatedOperand::kMustHaveRegister:
+            return policy != UnallocatedOperand::kMustHaveRegister &&
+                   policy != UnallocatedOperand::kRegisterOrSlot &&
+                   policy != UnallocatedOperand::kRegisterOrSlotOrConstant;
+        case UnallocatedOperand::kNone:
+        default:
+            UNREACHABLE();
+            break;
+    }
+    return false;
+}
+
 bool RegisterAllocator::TryAllocateFreeRegister(LifetimeInterval *current,
                                                 LifetimeIntervalSet *unhandled,
                                                 const LifetimeIntervalSet &active,
                                                 const LifetimeIntervalSet &inactive) {
-    //current->latest_use_position().use_kind
+    UnallocatedOperand::Policy policy = UnallocatedOperand::kNone;
+    int hint = 0;
     if (current->has_any_used()) {
-        auto use = current->latest_use_position();
-        auto policy = static_cast<UnallocatedOperand::Policy>(use.use_kind);
-        auto hint = use.hint;
+        auto use = current->earliest_use_position();
+        policy = static_cast<UnallocatedOperand::Policy>(use.use_kind);
+        hint = use.hint;
 
         switch (policy) {
             case UnallocatedOperand::kFixedSlot:
@@ -440,12 +464,34 @@ bool RegisterAllocator::TryAllocateFreeRegister(LifetimeInterval *current,
         }
     }
     
-    auto [reg, pos] = GetHighest(current->should_gp_register()
-                                 ? free_gp_position
-                                 : free_fp_position,
-                                 current->should_gp_register()
-                                 ? regconf_->allocatable_gp_bitmap()
-                                 : regconf_->allocatable_fp_bitmap());
+    int reg = -1, pos = -1;
+    switch (policy) {
+        case UnallocatedOperand::kFixedRegister:
+            reg = hint;
+            pos = free_gp_position[reg];
+            break;
+        case UnallocatedOperand::kFixedFPRegister:
+            reg = hint;
+            pos = free_fp_position[reg];
+            break;
+        case UnallocatedOperand::kNone:
+        case UnallocatedOperand::kMustHaveRegister:
+        case UnallocatedOperand::kRegisterOrSlot:
+        case UnallocatedOperand::kRegisterOrSlotOrConstant: {
+                auto rs = GetHighest(current->should_gp_register()
+                                             ? free_gp_position
+                                             : free_fp_position,
+                                             current->should_gp_register()
+                                             ? regconf_->allocatable_gp_bitmap()
+                                             : regconf_->allocatable_fp_bitmap());
+                reg = std::get<0>(rs);
+                pos = std::get<1>(rs);
+            } break;
+        default:
+            UNREACHABLE();
+            break;
+    }
+
     if (pos == 0) {
         return false; // allocate fail
     }
@@ -464,13 +510,12 @@ bool RegisterAllocator::TryAllocateFreeRegister(LifetimeInterval *current,
     return true;
 }
 
-void RegisterAllocator::AllocateBlockedRegister(LifetimeInterval *current, const LifetimeIntervalSet &active,
+void RegisterAllocator::AllocateBlockedRegister(LifetimeInterval *current, LifetimeIntervalSet *unhandled,
+                                                const LifetimeIntervalSet &active,
                                                 const LifetimeIntervalSet &inactive) {
     std::vector<int> use_gp_position(regconf_->max_gp_register(), std::numeric_limits<int>::max());
     std::vector<int> use_fp_position(regconf_->max_fp_register(), std::numeric_limits<int>::max());
-//    std::vector<int> block_gp_position(regconf_->max_gp_register(), std::numeric_limits<int>::max());
-//    std::vector<int> block_fp_position(regconf_->max_fp_register(), std::numeric_limits<int>::max());
-    
+
     for (auto it : active) {
         DCHECK(it->has_assigned_any_register());
         auto use = it->FindUsePositionAfter(current->earliest_range().from);
@@ -482,6 +527,7 @@ void RegisterAllocator::AllocateBlockedRegister(LifetimeInterval *current, const
     }
     
     for (auto it : inactive) {
+        DCHECK(it->has_assigned_any_register());
         if (it->IsNotIntersects(current)) {
             continue;
         }
@@ -500,9 +546,15 @@ void RegisterAllocator::AllocateBlockedRegister(LifetimeInterval *current, const
                                  ? regconf_->allocatable_gp_bitmap()
                                  : regconf_->allocatable_fp_bitmap());
     if (pos < current->earliest_use_position().position) {
-        
+        // all active and inactive intervals are used before current, so it is best to spill current itself
+        auto ty = fun_->frame()->GetType(current->GetOriginalVR());
+        current->AssignSlot(fun_->frame()->AllocateSlot(ty.ReferenceSizeInBytes(), 0));
+        unhandled->insert(SplitInterval(current, current->earliest_use_position().position + 1));
     } else {
-        
+        // spilling made a register free for first part of current
+        current->AssignRegister(reg);
+        UNREACHABLE();
+        unhandled->insert(SplitInterval(current, pos));
     }
 }
 
