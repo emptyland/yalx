@@ -43,5 +43,29 @@ MachineRepresentation ToMachineRepresentation(const ir::Type ty) {
     }
 }
 
+static const char *kNames[] = {
+#define DEFINE_NAME(name, alias) #name,
+    DECLARE_MACHINE_REPRESENTATION(DEFINE_NAME)
+#undef  DEFINE_NAME
+};
+
+static const char *kAlias[] = {
+#define DEFINE_NAME(name, alias) #alias,
+    DECLARE_MACHINE_REPRESENTATION(DEFINE_NAME)
+#undef  DEFINE_NAME
+};
+
+const char *GetMachineRepresentationName(MachineRepresentation rep) {
+    auto i = static_cast<int>(rep);
+    DCHECK(i >= 0 && i < arraysize(kNames));
+    return kNames[i];
+}
+
+const char *GetMachineRepresentationAlias(MachineRepresentation rep) {
+    auto i = static_cast<int>(rep);
+    DCHECK(i >= 0 && i < arraysize(kNames));
+    return kAlias[i];
+}
+
 } // namespace backend
 } // namespace yalx

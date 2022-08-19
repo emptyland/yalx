@@ -102,7 +102,6 @@ void InstructionSelector::VisitBasicBlock(ir::BasicBlock *block) {
                     VisitCondBr(instr);
                 } else {
                     Emit(ArchJmp, NoOutput(), ReloactionOperand(GetBlock(instr->OutputControl(0))));
-                    Emit(ArchNop, NoOutput());
                 }
                 break;
 
@@ -128,6 +127,12 @@ void InstructionSelector::VisitBasicBlock(ir::BasicBlock *block) {
             } break;
                 break;
         }
+    }
+    
+    for (auto user : block->phi_node_users()) {
+        auto term = current_block_->instructions().back();
+        auto moves = term->GetOrNewParallelMove(Instruction::kStart, arena_);
+        moves->AddMove(DefineAsRegisterOrSlot(user.phi), UseAsRegisterOrSlot(user.dest), arena_);
     }
 }
 
@@ -175,18 +180,7 @@ void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<Instruc
 }
 
 void InstructionSelector::VisitPhi(ir::Value *instr) {
-    auto input_count = instr->op()->value_in();
-    DCHECK(input_count == current_block_->predecessors_size());
-    auto phi = new (arena_) PhiInstruction(arena_, frame()->GetVirtualRegister(instr), input_count);
-    current_block_->AddPhi(phi);
-    for (int i = 0; i < input_count; i++) {
-        auto vr = frame()->GetVirtualRegister(instr->InputValue(i));
-        phi->SetInput(i, vr);
-        if (vr >= used_.size()) {
-            used_.resize(vr + 1, false);
-        }
-        used_[vr] = true;
-    }
+    // Ignore
 }
 
 void InstructionSelector::VisitCall(ir::Value *value) {

@@ -222,9 +222,9 @@ public:
         return ranges_.front();
     }
 
-    Range *TouchEarliestRange() {
+    Range *TouchEarliestRange(int pos) {
         if (ranges_.empty()) {
-            AddRange(0, 0);
+            AddRange(pos, pos);
         }
         return &ranges_.back();
     }
@@ -237,11 +237,23 @@ public:
     bool IsNotCovers(int position) const { return !IsCovers(position); }
     bool IsCovers(int position) const {
         for (auto range : ranges_) {
-            if (position >= range.from && position < range.to) {
+            if (position == range.from) {
+                return true;
+            }
+            if (position > range.from && position < range.to) {
+                return true;
+            }
+        }
+        for (auto child : split_children_) {
+            if (child->IsCovers(position)) {
                 return true;
             }
         }
         return false;
+//        if (ranges_.empty()) {
+//            return false;
+//        }
+//        return position >= earliest_range().from && position < latest_range().to;
     }
     
     bool IsNotIntersects(const LifetimeInterval *it) const { return !IsIntersects(it); }
@@ -342,7 +354,11 @@ public:
 private:
     struct LifetimeIntervalComparator : public std::binary_function<LifetimeInterval *, LifetimeInterval *, bool> {
         bool operator() (LifetimeInterval *a, LifetimeInterval *b) const {
-            return a->earliest_range().from <= b->earliest_range().from;
+            if (a->earliest_range().from == b->earliest_range().from) {
+                return a->latest_range().to >= b->latest_range().to;
+            } else {
+                return a->earliest_range().from < b->earliest_range().from;
+            }
         }
     };
 
@@ -350,6 +366,7 @@ private:
     
     static void RemoveAll(LifetimeIntervalSet *set, std::vector<LifetimeInterval *> &&incoming) {
         for (auto it : incoming) { Remove(set, it); }
+        incoming.clear();
     }
     
     static void Remove(LifetimeIntervalSet *set, LifetimeInterval *incoming) {

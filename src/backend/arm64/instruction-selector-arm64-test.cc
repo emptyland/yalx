@@ -3,6 +3,7 @@
 #include "backend/registers-configuration.h"
 #include "backend/register-allocator.h"
 #include "backend/arm64/instruction-codes-arm64.h"
+#include "base/io.h"
 
 namespace yalx {
 
@@ -138,7 +139,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     
     auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), fun);
     ASSERT_NE(nullptr, instr_fun);
-    
+
     RegisterAllocator allocator(arena(), regconf_, instr_fun);
     allocator.Prepare();
     allocator.ComputeBlocksOrder();
@@ -148,6 +149,13 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     }
     
     allocator.NumberizeAllInstructions();
+    {
+        std::string buf;
+        base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+        instr_fun->PrintTo(&printer);
+
+        printf("%s", buf.c_str());
+    }
     allocator.ComputeLocalLiveSets();
     allocator.ComputeGlobalLiveSets();
     
@@ -188,6 +196,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     EXPECT_EQ(6, interval->range(2).from);
     EXPECT_EQ(10, interval->range(2).to);
     
+    
     //==================================================================================================================
     // Walk Intervals
     allocator.WalkIntervals();
@@ -195,24 +204,32 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     interval = allocator.IntervalOf(param0);
     ASSERT_NE(nullptr, interval);
     ASSERT_TRUE(interval->has_assigned_gp_register());
-    ASSERT_EQ(0, interval->assigned_operand());
+    EXPECT_EQ(0, interval->assigned_operand());
     
     interval = allocator.IntervalOf(phi0);
     ASSERT_TRUE(interval->has_assigned_gp_register());
-    ASSERT_NE(0, interval->assigned_operand());
+    EXPECT_EQ(0, interval->assigned_operand());
     
     interval = allocator.IntervalOf(phi1);
     ASSERT_TRUE(interval->has_assigned_gp_register());
-    ASSERT_EQ(1, interval->assigned_operand());
+    EXPECT_EQ(1, interval->assigned_operand());
     
     interval = allocator.IntervalOf(ret0);
     ASSERT_TRUE(interval->has_assigned_gp_register());
-    ASSERT_EQ(4, interval->assigned_operand());
+    EXPECT_EQ(5, interval->assigned_operand());
     
     //==================================================================================================================
     // Finalize
     allocator.AssignRegisters();
     ASSERT_TRUE(true);
+    
+    {
+        std::string buf;
+        base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+        instr_fun->PrintTo(&printer);
+        
+        printf("%s", buf.c_str());
+    }
 }
 
 } // namespace backend

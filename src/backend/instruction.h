@@ -14,6 +14,7 @@ class ArrayModel;
 } // namespace ir
 namespace base {
 class ArenaString;
+class PrintingWriter;
 } // namespace base
 namespace backend {
 
@@ -67,7 +68,7 @@ public:
     DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_CASTING)
 #undef  DEFINE_CASTING
     
-    //DISALLOW_IMPLICIT_CONSTRUCTORS(InstructionOperand);
+    void PrintTo(base::PrintingWriter *printer) const;
 protected:
     struct UnallocatedBundle {
         int16_t policy;
@@ -393,8 +394,8 @@ public:
             DCHECK(!src.IsInvalid() && !dest.IsInvalid());
         }
         
-        DEF_VAL_GETTER(InstructionOperand, src);
-        DEF_VAL_GETTER(InstructionOperand, dest);
+        DEF_VAL_PROP_RM(InstructionOperand, src);
+        DEF_VAL_PROP_RM(InstructionOperand, dest);
     private:
         InstructionOperand src_;
         InstructionOperand dest_;
@@ -458,11 +459,11 @@ public:
     }
     
     const ParallelMove *parallel_move(GapPosition pos) const {
-        return DCHECK_NOTNULL(parallel_moves_[pos]);
+        return parallel_moves_[pos];
     }
 
     ParallelMove *mutable_parallel_move(GapPosition pos) {
-        return DCHECK_NOTNULL(parallel_moves_[pos]);
+        return parallel_moves_[pos];
     }
     
     static Instruction *New(base::Arena *arena, Code op,
@@ -473,6 +474,8 @@ public:
                             size_t temps_count,
                             Operand temps[]);
     
+    void PrintTo(int ident, base::PrintingWriter *printer) const;
+
     friend class InstructionBlock;
     friend class InstructionSelector;
     DISALLOW_IMPLICIT_CONSTRUCTORS(Instruction);
@@ -509,23 +512,30 @@ public:
     DEF_VAL_PROP_RW(int, id);
     DEF_VAL_GETTER(int, virtual_register);
     DEF_ARENA_VECTOR_GETTER(int, operand);
+    DEF_ARENA_VECTOR_GETTER(InstructionBlock *, input);
     InstructionOperand *output() { return &output_; }
     
-    void SetInput(int index, int virtual_register) {
+    void SetInput(int index, int virtual_register, InstructionBlock *input) {
+        DCHECK(index >= 0 && index < operands_size());
+        DCHECK(virtual_register >= 0);
+        operands_[index] = virtual_register;
+        inputs_[index] = input;
+    }
+    void RenameInput(int index, int virtual_register) {
         DCHECK(index >= 0 && index < operands_size());
         DCHECK(virtual_register >= 0);
         operands_[index] = virtual_register;
     }
-    void RenameInput(int index, int virtual_register) {
-        SetInput(index, virtual_register);
-    }
+
     
+    void PrintTo(int ident, base::PrintingWriter *printer) const;
     DISALLOW_IMPLICIT_CONSTRUCTORS(PhiInstruction);
 private:
     int virtual_register_;
     int id_ = -1;
     InstructionOperand output_;
     base::ArenaVector<int> operands_;
+    base::ArenaVector<InstructionBlock *> inputs_;
 }; // class PhiInstruction
 
 
@@ -540,6 +550,10 @@ public:
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, block);
     
     inline InstructionBlock *NewBlock(int label);
+    //base::PrintingWriter *printer
+    void PrintTo(base::PrintingWriter *printer) const;
+    
+    DISALLOW_IMPLICIT_CONSTRUCTORS(InstructionFunction);
 private:
     base::Arena *const arena_;
     const String *const symbol_;
@@ -551,6 +565,11 @@ private:
 
 class InstructionBlock final : public base::ArenaObject {
 public:
+    struct PhiUser {
+        PhiInstruction *phi;
+        int src_virtual_register;
+    };
+    
     explicit InstructionBlock(base::Arena *arena, InstructionFunction *owns, int label);
 
     DEF_PTR_GETTER(InstructionFunction, owns);
@@ -558,15 +577,14 @@ public:
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, successor);
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, predecessor);
     DEF_ARENA_VECTOR_GETTER(Instruction *, instruction);
-    DEF_ARENA_VECTOR_GETTER(PhiInstruction *, phi);
     
     void Add(Instruction *instr) { instructions_.push_back(instr); }
-    void AddPhi(PhiInstruction *phi) { phis_.push_back(phi); }
 
     void AddSuccessor(InstructionBlock *successor) { AddLinkedNode(&successors_, successor); }
     void AddPredecessors(InstructionBlock *predecessor) { AddLinkedNode(&predecessors_, predecessor); }
     void MovableAssign(base::ArenaVector<Instruction *> &&others) { instructions_ = std::move(others); }
     
+    void PrintTo(base::PrintingWriter *printer) const;
     DISALLOW_IMPLICIT_CONSTRUCTORS(InstructionBlock);
 private:
     void AddLinkedNode(base::ArenaVector<InstructionBlock *> *nodes, InstructionBlock *node) {
@@ -580,7 +598,6 @@ private:
     base::ArenaVector<InstructionBlock *> successors_;
     base::ArenaVector<InstructionBlock *> predecessors_;
     base::ArenaVector<Instruction *> instructions_;
-    base::ArenaVector<PhiInstruction *> phis_;
     int label_;
 }; // class InstructionBlock
 

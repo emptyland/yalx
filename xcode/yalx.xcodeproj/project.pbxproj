@@ -281,6 +281,8 @@
 		23FA86AB26A161DF001CC777 /* codegen.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86A926A161DF001CC777 /* codegen.cc */; };
 		23FA86AD26A26CC9001CC777 /* scope-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86AC26A26CC9001CC777 /* scope-test.cc */; };
 		23FA86AE26A26CC9001CC777 /* scope-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FA86AC26A26CC9001CC777 /* scope-test.cc */; };
+		23FB5E5F28ADE29200D7D038 /* instruction-code.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FB5E5E28ADE29200D7D038 /* instruction-code.cc */; };
+		23FB5E6028ADE29200D7D038 /* instruction-code.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23FB5E5E28ADE29200D7D038 /* instruction-code.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -508,6 +510,7 @@
 		23FA86A826A161D0001CC777 /* codegen.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = codegen.h; path = ../src/ir/codegen.h; sourceTree = "<group>"; };
 		23FA86A926A161DF001CC777 /* codegen.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = codegen.cc; path = ../src/ir/codegen.cc; sourceTree = "<group>"; };
 		23FA86AC26A26CC9001CC777 /* scope-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "scope-test.cc"; path = "../src/ir/scope-test.cc"; sourceTree = "<group>"; };
+		23FB5E5E28ADE29200D7D038 /* instruction-code.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instruction-code.cc"; path = "../src/backend/instruction-code.cc"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -549,6 +552,7 @@
 				23AE830D28A3A7A30009E00E /* instruction-selector-test.h */,
 				238358E42894D86F00F655B1 /* instruction-selector.cc */,
 				238358E22894D78100F655B1 /* instruction-selector.h */,
+				23FB5E5E28ADE29200D7D038 /* instruction-code.cc */,
 				238358E72894D8D500F655B1 /* instruction-code.h */,
 				23C1346027A4E30B00C0DEB4 /* instruction-test.cc */,
 				23C1344927A3CF0B00C0DEB4 /* instruction.cc */,
@@ -1011,6 +1015,7 @@
 				23D4A4622680D17D0090C631 /* instr-arm64.h in Sources */,
 				23C1345427A3E8CE00C0DEB4 /* constants-pool.cc in Sources */,
 				23D4A4632680D17D0090C631 /* instr-arm64.cc in Sources */,
+				23FB5E6028ADE29200D7D038 /* instruction-code.cc in Sources */,
 				23D4A4642680D17D0090C631 /* gtest-all.cc in Sources */,
 				23D4A4652680D17D0090C631 /* all-tests.cc in Sources */,
 				23235B872797C07600134DEB /* condition.cc in Sources */,
@@ -1219,6 +1224,7 @@
 				233F67E6287D1E2E001982FF /* arena.cc in Sources */,
 				23D5A658266718ED00635ADB /* scheduler.cc in Sources */,
 				23D5A659266718ED00635ADB /* label.h in Sources */,
+				23FB5E5F28ADE29200D7D038 /* instruction-code.cc in Sources */,
 				23D5A65A266718ED00635ADB /* asm-x64-test.cc in Sources */,
 				2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */,
 				23D5A65B266718ED00635ADB /* asm-x64.cc in Sources */,

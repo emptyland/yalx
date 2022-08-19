@@ -10,27 +10,32 @@ namespace yalx {
 
 namespace backend {
 
+#define ARCH_OPCODE_LIST(V) \
+    V(ArchNop) \
+    V(ArchDebugBreak) \
+    V(ArchRet) \
+    V(ArchJmp) \
+    V(ArchCall) \
+    V(ArchCallNative) \
+    V(ArchSaveCallerRegisters) \
+    V(ArchRestoreCallerRegisters) \
+    V(ArchFrameEnter) \
+    V(ArchFrameExit) \
+    V(ArchUnreachable) \
+    V(ArchSafepoint) \
+    V(ArchStackAlloc) \
+    V(ArchLoadEffectAddress)
+
 enum InstructionCode {
-    ArchNop,
-    ArchDebugBreak,
-    ArchRet,
-    ArchJmp,
-    ArchCall,
-    ArchCallNative,
-    ArchSaveCallerRegisters,
-    ArchRestoreCallerRegisters,
-    ArchFrameEnter,
-    ArchFrameExit,
-    ArchUnreachable,
-    ArchSafepoint,
-    ArchStackAlloc,
-    ArchLoadEffectAddress,
 #define DEFINE_ENUM(name) name,
+    ARCH_OPCODE_LIST(DEFINE_ENUM)
     X64_ARCH_OPCODE_LIST(DEFINE_ENUM)
     ARM64_ARCH_OPCODE_LIST(DEFINE_ENUM)
 #undef DEFINE_ENUM
     kMaxInstructionCodes,
 };
+
+extern const char *const kInstrCodeNames[];
 
 inline InstructionCode AndBits(InstructionCode op, uint32_t bits) {
     return static_cast<InstructionCode>(static_cast<uint32_t>(op) | bits);

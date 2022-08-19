@@ -5,6 +5,8 @@
 #include "compiler/constants.h"
 #include "runtime/object/type.h"
 #include "base/checking.h"
+#include "base/io.h"
+#include <inttypes.h>
 
 namespace yalx {
 namespace backend {
@@ -70,6 +72,136 @@ bool InstructionOperand::Equals(const InstructionOperand *other) const {
     }
 }
 
+void InstructionOperand::PrintTo(base::PrintingWriter *printer) const {
+    switch (kind()) {
+        case kInvalid:
+            printer->Write("!INVALID!");
+            break;
+            
+        case kUnallocated: {
+            auto opd = AsUnallocated();
+            printer->Print("%%%d [", opd->virtual_register());
+            switch (opd->policy()) {
+                case UnallocatedOperand::kNone:
+                    break;
+                case UnallocatedOperand::kFixedSlot:
+                    if (opd->fixed_slot_offset() >= 0) {
+                        printer->Print("fp+%d", opd->fixed_slot_offset());
+                    } else {
+                        printer->Print("fp%d", opd->fixed_slot_offset());
+                    }
+                    break;
+                case UnallocatedOperand::kFixedRegister:
+                    printer->Print("gp=%d", opd->fixed_register_id());
+                    break;
+                case UnallocatedOperand::kFixedFPRegister:
+                    printer->Print("fp=%d", opd->fixed_fp_register_id());
+                    break;
+                case UnallocatedOperand::kMustHaveSlot:
+                    printer->Write("fp+x");
+                    break;
+                case UnallocatedOperand::kMustHaveRegister:
+                    printer->Write("r:x");
+                    break;
+                case UnallocatedOperand::kRegisterOrSlot:
+                    printer->Write("m/r");
+                    break;
+                case UnallocatedOperand::kRegisterOrSlotOrConstant:
+                    printer->Write("m/r/k");
+                    break;
+                case UnallocatedOperand::kSameAsInput:
+                    printer->Write("=in");
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+            printer->Write("]");
+        } break;
+            
+        case kAllocated: {
+            auto opd = AsAllocated();
+            printer->Print("{%s ", GetMachineRepresentationAlias(opd->machine_representation()));
+            switch (opd->location_kind()) {
+                case AllocatedOperand::kRegister:
+                    printer->Print("%d", opd->index());
+                    break;
+                case AllocatedOperand::kSlot:
+                    if (opd->index() >= 0) {
+                        printer->Print("fp+%d", opd->index());
+                    } else {
+                        printer->Print("fp%d", opd->index());
+                    }
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+            printer->Write("}");
+        } break;
+            
+        case kConstant: {
+            auto opd = AsConstant();
+            printer->Write("<");
+            switch (opd->type()) {
+                case ConstantOperand::kString:
+                    printer->Print("literals:%d", opd->symbol_id());
+                    break;
+                case ConstantOperand::kNumber:
+                    printer->Print("const:%d", opd->symbol_id());
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+            printer->Write(">");
+        } break;
+            
+        case kImmediate: {
+            auto opd = AsImmediate();
+            switch (opd->machine_representation()) {
+                case MachineRepresentation::kWord8:
+                    printer->Print("#%" PRIi8, opd->word8_value());
+                    break;
+                case MachineRepresentation::kWord16:
+                    printer->Print("#%" PRIi16, opd->word8_value());
+                    break;
+                case MachineRepresentation::kWord32:
+                    printer->Print("#%" PRIi32, opd->word8_value());
+                    break;
+                case MachineRepresentation::kWord64:
+                    printer->Print("#%" PRIi64, opd->word8_value());
+                    break;
+                case MachineRepresentation::kFloat32:
+                    printer->Print("#%f", opd->float32_value());
+                    break;
+                case MachineRepresentation::kFloat64:
+                    printer->Print("#%f", opd->float64_value());
+                    break;
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+            
+        case kReloaction: {
+            auto opd = AsReloaction();
+            printer->Write("<");
+            if (opd->is_label()) {
+                printer->Print("L%d:", opd->label()->label());
+            }
+            if (opd->is_symbol()) {
+                printer->Print("%s", opd->symbol_name()->data());
+            }
+            printer->Write(">");
+        } break;
+            
+        default:
+            UNREACHABLE();
+            break;
+    }
+}
+
 Instruction::Instruction(Code op,
                          size_t inputs_count,
                          Operand inputs[],
@@ -91,8 +223,10 @@ Instruction::Instruction(Code op,
 PhiInstruction::PhiInstruction(base::Arena *arena, int virtual_register, int input_count)
 : virtual_register_(virtual_register)
 , output_(UnallocatedOperand(UnallocatedOperand::kRegisterOrSlot, virtual_register))
-, operands_(arena) {
+, operands_(arena)
+, inputs_(arena) {
     operands_.resize(input_count, InstructionOperand::kInvliadVirtualRegister);
+    inputs_.resize(input_count, nullptr);
 }
 
 Instruction *Instruction::New(base::Arena *arena, Code op,
@@ -112,12 +246,97 @@ void *Instruction::AllocatePlacementMemory(base::Arena *arena, size_t inputs_cou
     return arena->Allocate(in_memory_bytes);
 }
 
+void Instruction::PrintTo(int ident, base::PrintingWriter *printer) const {
+    if (auto moves = parallel_move(kStart)) {
+        for (auto opds : moves->moves()) {
+            if (id() >= 0) {
+                printer->Write("[   ]")->Indent(ident)->Write("Move ");
+            } else {
+                printer->Indent(ident)->Write("Move ");
+            }
+            opds->dest().PrintTo(printer);
+            printer->Write(" <- ");
+            opds->src().PrintTo(printer);
+            printer->Writeln("");
+        }
+    }
+    
+    if (id() >= 0) {
+        printer->Print("[%03d]", id());
+    }
+    printer->Indent(ident);
+    
+    for (int i = 0; i < outputs_count(); i++) {
+        if (i > 0) {
+            printer->Write(", ");
+        }
+        operands_[output_offset() + i].PrintTo(printer);
+    }
+    
+    if (outputs_count() > 0) {
+        printer->Print(" = %s ", kInstrCodeNames[op()]);
+    } else {
+        printer->Print("%s ", kInstrCodeNames[op()]);
+    }
+    
+    for (int i = 0; i < inputs_count(); i++) {
+        if (i > 0) {
+            printer->Write(", ");
+        }
+        operands_[input_offset() + i].PrintTo(printer);
+    }
+    
+    if (temps_count() > 0) {
+        printer->Write("(");
+        for (int i = 0; i < temps_count(); i++) {
+            if (i > 0) {
+                printer->Write(", ");
+            }
+            operands_[temp_offset() + i].PrintTo(printer);
+        }
+        printer->Write(")");
+    }
+    
+    printer->Write("\n");
+    
+    if (auto moves = parallel_move(kEnd)) {
+        for (auto opds : moves->moves()) {
+            printer->Indent(ident)->Write("Move ");
+            opds->dest().PrintTo(printer);
+            printer->Write(" <- ");
+            opds->src().PrintTo(printer);
+            printer->Writeln("");
+        }
+    }
+}
+
+void PhiInstruction::PrintTo(int ident, base::PrintingWriter *printer) const {
+    
+    if (id() >= 0) {
+        printer->Print("[%03d]", id());
+    }
+    printer->Indent(ident);
+    output_.PrintTo(printer);
+    printer->Print(" = phi <%%%d>", virtual_register());
+    for (auto input : operands_) {
+        printer->Print(", %%%d", input);
+    }
+    printer->Write("\n");
+}
+
 InstructionFunction::InstructionFunction(base::Arena *arena, const String *symbol, Frame *frame)
 : arena_(arena)
 , frame_(frame)
 , symbol_(symbol)
 , blocks_(arena) {
     
+}
+
+void InstructionFunction::PrintTo(base::PrintingWriter *printer) const {
+    printer->Println("%s:", symbol()->data());
+    for (auto block : blocks()) {
+        block->PrintTo(printer);
+    }
 }
 
 //ReloactionOperand *InstructionFunction::AddArrayElementClassSymbol(const ir::ArrayModel *ar, bool fetch_address) {
@@ -237,9 +456,15 @@ InstructionBlock::InstructionBlock(base::Arena *arena, InstructionFunction *owns
 , successors_(arena)
 , predecessors_(arena)
 , instructions_(arena)
-, phis_(arena)
 , label_(label) {
     
+}
+
+void InstructionBlock::PrintTo(base::PrintingWriter *printer) const {
+    printer->Println("L%d:", label());
+    for (auto instr : instructions()) {
+        instr->PrintTo(1, printer);
+    }
 }
 
 } // namespace backend

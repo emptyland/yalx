@@ -62,9 +62,11 @@ void LifetimeInterval::AddChild(LifetimeInterval *child, int pos) {
             child->AddRange(pos, range.to);
             break;
         } else {
-            UNREACHABLE();
+            //UNREACHABLE();
+            break;
         }
     }
+    DCHECK(!child->ranges_.empty());
 }
 
 const LifetimeInterval *LifetimeInterval::ChildAt(int opid) const {
@@ -133,10 +135,6 @@ void RegisterAllocator::ComputeBlocksOrder() {
 void RegisterAllocator::NumberizeAllInstructions() {
     int next_id = 0;
     for (auto block : blocks_) {
-        for (auto phi : block->phis()) {
-            phi->set_id(next_id);
-            next_id += 2;
-        }
         for (auto instr : block->instructions()) {
             instr->set_id(next_id);
             next_id += 2;
@@ -154,16 +152,20 @@ void RegisterAllocator::ComputeLocalLiveSets() {
         auto block = blocks_[i];
         auto state = &blocks_liveness_state_[i];
         
-        for (auto phi : block->phis()) {
-            for (auto vr : phi->operands()) {
-                if (state->DoesNotInLiveKill(vr)) {
-                    state->AddLiveGen(vr);
-                }
-            }
-            state->AddLiveKill(phi->virtual_register());
-        }
         
         for (auto instr : block->instructions()) {
+            if (auto moves = instr->mutable_parallel_move(Instruction::kStart)) {
+                for (auto opds : moves->moves()) {
+                    //opds->dest()
+                    auto opd = opds->src().AsUnallocated();
+                    if (state->DoesNotInLiveKill(opd->virtual_register())) {
+                        state->AddLiveGen(opd->virtual_register());
+                    }
+                    opd = opds->dest().AsUnallocated();
+                    state->AddLiveKill(opd->virtual_register());
+                }
+            }
+
             for (int j = 0; j < instr->inputs_count(); j++) {
                 if (auto opd = instr->InputAt(j)->AsUnallocated()) {
                     if (state->DoesNotInLiveKill(opd->virtual_register())) {
@@ -178,6 +180,18 @@ void RegisterAllocator::ComputeLocalLiveSets() {
             }
             for (int j = 0; j < instr->outputs_count(); j++) {
                 if (auto opd = instr->OutputAt(j)->AsUnallocated()) {
+                    state->AddLiveKill(opd->virtual_register());
+                }
+            }
+            
+            if (auto moves = instr->mutable_parallel_move(Instruction::kEnd)) {
+                for (auto opds : moves->moves()) {
+                    //opds->dest()
+                    auto opd = opds->src().AsUnallocated();
+                    if (state->DoesNotInLiveKill(opd->virtual_register())) {
+                        state->AddLiveGen(opd->virtual_register());
+                    }
+                    opd = opds->dest().AsUnallocated();
                     state->AddLiveKill(opd->virtual_register());
                 }
             }
@@ -223,7 +237,7 @@ void RegisterAllocator::BuildIntervals() {
             for (int k = 0; k < instr->outputs_count(); k++) {
                 if (auto opd = instr->OutputAt(k)->AsUnallocated()) {
                     auto interval = IntervalOf(opd);
-                    interval->TouchEarliestRange()->from = instr->id();
+                    interval->TouchEarliestRange(instr->id());
 
                     AddUsePosition(instr->id(), interval, opd);
                 }
@@ -245,19 +259,7 @@ void RegisterAllocator::BuildIntervals() {
                 }
             }
         }
-        
-        for (int j = static_cast<int>(block->phis_size()) - 1; j >= 0; j--) {
-            auto instr = block->phi(j);
-
-            if (auto opd = instr->output()->AsUnallocated()) {
-                auto interval = IntervalOf(opd);
-                interval->TouchEarliestRange()->from = instr->id();
-
-                AddUsePosition(instr->id(), interval, opd);
-            }
-        }
     }
-
 }
 
 void RegisterAllocator::WalkIntervals() {
@@ -339,23 +341,29 @@ void RegisterAllocator::WalkIntervals() {
         if (current->has_assigned_any_register()) {
             active.insert(current);
         }
+        
+        if (!active.empty()) {
+            printf("------\n");
+            for (auto it : active) {
+                printf("%d->%d, ", it->virtual_register(), it->assigned_operand());
+            }
+            printf("\n");
+        }
     }
 }
 
 void RegisterAllocator::AssignRegisters() {
     for (auto block : blocks_) {
         
-        for (auto phi : block->phis()) {
-            if (auto opd = phi->output()->AsUnallocated()) {
-                AssignOperand(phi->id(), phi->output(), opd);
-            }
-        }
+//        for (auto phi : block->phis()) {
+//            if (auto opd = phi->output()->AsUnallocated()) {
+//                AssignOperand(phi->id(), phi->output(), opd);
+//            }
+//        }
         
         for (auto instr : block->instructions()) {
             for (int i = 0; i < instr->operands_size(); i++) {
                 if (auto opd = instr->OperandAt(i)->AsUnallocated()) {
-//                    auto parallel_move = instr->GetOrNewParallelMove(Instruction::kStart, arena_);
-//                    parallel_move->AddMove(*instr->OperandAt(0), *instr->OperandAt(1), arena_);
                     AssignOperand(instr->id(), instr->OperandAt(i), opd);
                 }
             }
@@ -374,7 +382,7 @@ static inline std::tuple<int, int> GetHighest(const std::vector<int> &free_reg_p
         if (free_reg_position[i] > highest) {
             highest = free_reg_position[i];
             reg = i;
-            break;
+            //break;
         }
     }
     return std::make_tuple(reg, highest);
@@ -410,7 +418,8 @@ void RegisterAllocator::SplitByUsePolicy(LifetimeInterval *current, std::vector<
         auto hint = use.hint;
         
         if (ShouldSplitByUsePolicy(latest_policy, latest_hint, policy, hint)) {
-            splitted->push_back(SplitInterval(current, use.position));
+            //DCHECK(current->IsCovers(use.position));
+            splitted->push_back(SplitInterval(current, use.position - 1));
         }
         latest_policy = policy;
         latest_hint   = hint;
