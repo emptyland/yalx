@@ -250,7 +250,7 @@ void Instruction::PrintTo(int ident, base::PrintingWriter *printer) const {
     if (auto moves = parallel_move(kStart)) {
         for (auto opds : moves->moves()) {
             if (id() >= 0) {
-                printer->Write("[   ]")->Indent(ident)->Write("Move ");
+                printer->Write("[ ^ ]")->Indent(ident)->Write("Move ");
             } else {
                 printer->Indent(ident)->Write("Move ");
             }
@@ -301,7 +301,11 @@ void Instruction::PrintTo(int ident, base::PrintingWriter *printer) const {
     
     if (auto moves = parallel_move(kEnd)) {
         for (auto opds : moves->moves()) {
-            printer->Indent(ident)->Write("Move ");
+            if (id() >= 0) {
+                printer->Write("[ v ]")->Indent(ident)->Write("Move ");
+            } else {
+                printer->Indent(ident)->Write("Move ");
+            }
             opds->dest().PrintTo(printer);
             printer->Write(" <- ");
             opds->src().PrintTo(printer);
@@ -450,14 +454,26 @@ void InstructionFunction::PrintTo(base::PrintingWriter *printer) const {
 //    return InsertExternalSymbol(ty.ToString(), rel);
 //}
 
-InstructionBlock::InstructionBlock(base::Arena *arena, InstructionFunction *owns, int label)
+InstructionBlock::InstructionBlock(base::Arena *arena, InstructionFunction *owns, int id, int label)
 : arena_(arena)
 , owns_(owns)
 , successors_(arena)
 , predecessors_(arena)
 , instructions_(arena)
+, loop_end_nodes_(arena)
+, id_(id)
 , label_(label) {
     
+}
+
+int InstructionBlock::GetLowerId() const { return instructions().front()->id(); }
+
+int InstructionBlock::GetUpperId() const {
+    int upper_id = instructions().back()->id();
+    for (auto end : loop_end_nodes_) {
+        upper_id = std::max(end->instructions().back()->id(), upper_id);
+    }
+    return upper_id;
 }
 
 void InstructionBlock::PrintTo(base::PrintingWriter *printer) const {

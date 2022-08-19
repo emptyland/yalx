@@ -95,7 +95,20 @@ RegisterAllocator::~RegisterAllocator() {
 }
 
 void RegisterAllocator::Prepare() {
+    std::vector<bool> visited(fun_->blocks_size(), false);
+    ComputeBlocksLoop(&visited, fun_->entry());
+}
 
+void RegisterAllocator::ComputeBlocksLoop(std::vector<bool> *visited, InstructionBlock *block) {
+    DCHECK(block->id() >= 0 && block->id() < visited->size());
+    (*visited)[block->id()] = true;
+    for (auto succ : block->successors()) {
+        if ((*visited)[succ->id()]) {
+            succ->AddLoopEnd(block);
+        } else {
+            ComputeBlocksLoop(visited, succ);
+        }
+    }
 }
 
 void RegisterAllocator::ComputeBlocksOrder() {
@@ -157,11 +170,12 @@ void RegisterAllocator::ComputeLocalLiveSets() {
             if (auto moves = instr->mutable_parallel_move(Instruction::kStart)) {
                 for (auto opds : moves->moves()) {
                     //opds->dest()
-                    auto opd = opds->src().AsUnallocated();
-                    if (state->DoesNotInLiveKill(opd->virtual_register())) {
-                        state->AddLiveGen(opd->virtual_register());
+                    if (auto opd = opds->src().AsUnallocated()) {
+                        if (state->DoesNotInLiveKill(opd->virtual_register())) {
+                            state->AddLiveGen(opd->virtual_register());
+                        }
                     }
-                    opd = opds->dest().AsUnallocated();
+                    auto opd = opds->dest().AsUnallocated();
                     state->AddLiveKill(opd->virtual_register());
                 }
             }
@@ -187,11 +201,12 @@ void RegisterAllocator::ComputeLocalLiveSets() {
             if (auto moves = instr->mutable_parallel_move(Instruction::kEnd)) {
                 for (auto opds : moves->moves()) {
                     //opds->dest()
-                    auto opd = opds->src().AsUnallocated();
-                    if (state->DoesNotInLiveKill(opd->virtual_register())) {
-                        state->AddLiveGen(opd->virtual_register());
+                    if (auto opd = opds->src().AsUnallocated()) {
+                        if (state->DoesNotInLiveKill(opd->virtual_register())) {
+                            state->AddLiveGen(opd->virtual_register());
+                        }
                     }
-                    opd = opds->dest().AsUnallocated();
+                    auto opd = opds->dest().AsUnallocated();
                     state->AddLiveKill(opd->virtual_register());
                 }
             }
@@ -224,8 +239,8 @@ void RegisterAllocator::BuildIntervals() {
         auto block = blocks_[i];
         auto block_state = &blocks_liveness_state_[i];
         
-        auto local_from = block->instructions().front()->id();
-        auto local_to   = block->instructions().back()->id() + 2;
+        auto local_from = block->GetLowerId();
+        auto local_to   = block->GetUpperId() + 2;
         
         BlockLivenssState::Walk(block_state->live_out(), [this, local_from, local_to](int virtual_register) {
             IntervalOf(virtual_register)->AddRange(local_from, local_to);
@@ -233,6 +248,22 @@ void RegisterAllocator::BuildIntervals() {
         
         for (int j = static_cast<int>(block->instructions_size()) - 1; j >= 0; j--) {
             auto instr = block->instruction(j);
+            
+            if (auto moves = instr->mutable_parallel_move(Instruction::kStart)) {
+                for (auto opds : moves->moves()) {
+                    if (auto opd = opds->mutable_dest()->AsUnallocated()) {
+                        auto interval = IntervalOf(opd);
+                        interval->TouchEarliestRange(instr->id());
+
+                        AddUsePosition(instr->id(), interval, opd);
+                    }
+                    if (auto opd = opds->mutable_src()->AsUnallocated()) {
+                        auto interval = IntervalOf(opd);
+                        interval->AddRange(local_from, instr->id());
+                        AddUsePosition(instr->id(), interval, opd);
+                    }
+                }
+            }
 
             for (int k = 0; k < instr->outputs_count(); k++) {
                 if (auto opd = instr->OutputAt(k)->AsUnallocated()) {
@@ -254,7 +285,10 @@ void RegisterAllocator::BuildIntervals() {
             for (int k = 0; k < instr->inputs_count(); k++) {
                 if (auto opd = instr->InputAt(k)->AsUnallocated()) {
                     auto interval = IntervalOf(opd);
-                    interval->AddRange(local_from, instr->id());
+                    auto upper_id = block->loop_end_nodes().empty()
+                                  ? instr->id()
+                                  : local_to;
+                    interval->AddRange(local_from, upper_id);
                     AddUsePosition(instr->id(), interval, opd);
                 }
             }
@@ -292,13 +326,13 @@ void RegisterAllocator::WalkIntervals() {
         }
     }
     
-    std::vector<LifetimeInterval *> splitted;
-    for (auto it : unhanded) {
-        SplitByUsePolicy(it, &splitted);
-    }
-    for (auto it : splitted) {
-        unhanded.insert(it);
-    }
+//    std::vector<LifetimeInterval *> splitted;
+//    for (auto it : unhanded) {
+//        SplitByUsePolicy(it, &splitted);
+//    }
+//    for (auto it : splitted) {
+//        unhanded.insert(it);
+//    }
     
     // note: new intervals may be sorted into the unhandled list during
     // allocation when intervals are split
@@ -354,14 +388,20 @@ void RegisterAllocator::WalkIntervals() {
 
 void RegisterAllocator::AssignRegisters() {
     for (auto block : blocks_) {
-        
-//        for (auto phi : block->phis()) {
-//            if (auto opd = phi->output()->AsUnallocated()) {
-//                AssignOperand(phi->id(), phi->output(), opd);
-//            }
-//        }
-        
         for (auto instr : block->instructions()) {
+            for (int i = 0; i < 2; i++) {
+                if (auto moves = instr->mutable_parallel_move(static_cast<Instruction::GapPosition>(i))) {
+                    for (auto opds : moves->moves()) {
+                        if (auto opd = opds->mutable_src()->AsUnallocated()) {
+                            AssignOperand(instr->id(), opds->mutable_src(), opd);
+                        }
+                        if (auto opd = opds->mutable_dest()->AsUnallocated()) {
+                            AssignOperand(instr->id(), opds->mutable_dest(), opd);
+                        }
+                    }
+                }
+            }
+            
             for (int i = 0; i < instr->operands_size(); i++) {
                 if (auto opd = instr->OperandAt(i)->AsUnallocated()) {
                     AssignOperand(instr->id(), instr->OperandAt(i), opd);

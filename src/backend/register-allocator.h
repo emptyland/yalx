@@ -250,10 +250,6 @@ public:
             }
         }
         return false;
-//        if (ranges_.empty()) {
-//            return false;
-//        }
-//        return position >= earliest_range().from && position < latest_range().to;
     }
     
     bool IsNotIntersects(const LifetimeInterval *it) const { return !IsIntersects(it); }
@@ -280,7 +276,14 @@ public:
         return {-1,-1};
     }
     
-    void AddRange(int from, int to) { ranges_.push_back({from, to}); }
+    void AddRange(int from, int to) {
+        for (auto range : ranges_) {
+            if (from >= range.from && to <= range.to) {
+                return;
+            }
+        }
+        ranges_.push_back({from, to});
+    }
 
     void AddUsePosition(int position, int used_kind, int hint = 0) {
         use_positions_.push_back({position, used_kind, hint});
@@ -383,6 +386,8 @@ private:
     int offset_of_fp_register() const;
     
     static void AddUsePosition(int pos, LifetimeInterval *interval, const UnallocatedOperand *opd);
+    
+    void ComputeBlocksLoop(std::vector<bool> *visited, InstructionBlock *block);
     
     void SplitByUsePolicy(LifetimeInterval *current, std::vector<LifetimeInterval *> *splitted);
     bool ShouldSplitByUsePolicy(int policy0, int hint0, int policy1, int hint1);

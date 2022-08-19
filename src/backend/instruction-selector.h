@@ -88,6 +88,7 @@ public:
     UnallocatedOperand UseAsRegister(ir::Value *value);
     UnallocatedOperand UseAsRegisterOrSlot(ir::Value *value);
     UnallocatedOperand UseAsFixedSlot(ir::Value *value, int index);
+    ImmediateOperand UseAsImmediate(ir::Value *value);
     
     ReloactionOperand UseAsExternalClassName(const String *name);
     ReloactionOperand UseAsExternalCFunction(const String *symbol);

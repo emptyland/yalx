@@ -132,7 +132,12 @@ void InstructionSelector::VisitBasicBlock(ir::BasicBlock *block) {
     for (auto user : block->phi_node_users()) {
         auto term = current_block_->instructions().back();
         auto moves = term->GetOrNewParallelMove(Instruction::kStart, arena_);
-        moves->AddMove(DefineAsRegisterOrSlot(user.phi), UseAsRegisterOrSlot(user.dest), arena_);
+        if (user.dest->op()->IsConstant()) {
+            moves->AddMove(DefineAsRegisterOrSlot(user.phi), UseAsImmediate(user.dest), arena_);
+        } else {
+            moves->AddMove(DefineAsRegisterOrSlot(user.phi), UseAsRegisterOrSlot(user.dest), arena_);
+        }
+        
     }
 }
 
@@ -352,6 +357,37 @@ UnallocatedOperand InstructionSelector::UseAsRegisterOrSlot(ir::Value *value) {
 
 UnallocatedOperand InstructionSelector::UseAsFixedSlot(ir::Value *value, int index) {
     return Use(value, UnallocatedOperand{ UnallocatedOperand::FixedSlotTag(), index, frame_->GetVirtualRegister(value)});
+}
+
+ImmediateOperand InstructionSelector::UseAsImmediate(ir::Value *value) {
+    frame()->GetVirtualRegister(value);
+    switch (value->op()->value()) {
+        case ir::Operator::kI8Constant:
+        case ir::Operator::kU8Constant:
+            return ImmediateOperand{ir::OperatorWith<int8_t>::Data(value->op())};
+            
+        case ir::Operator::kU16Constant:
+        case ir::Operator::kI16Constant:
+            return ImmediateOperand{ir::OperatorWith<int16_t>::Data(value->op())};
+            
+        case ir::Operator::kU32Constant:
+        case ir::Operator::kI32Constant:
+            return ImmediateOperand{ir::OperatorWith<int32_t>::Data(value->op())};
+            
+        case ir::Operator::kI64Constant:
+        case ir::Operator::kU64Constant:
+            return ImmediateOperand{ir::OperatorWith<int64_t>::Data(value->op())};
+            
+        case ir::Operator::kF32Constant:
+        case ir::Operator::kF64Constant:
+            UNREACHABLE();
+            break;
+            
+        default:
+            break;
+    }
+    UNREACHABLE();
+    return ImmediateOperand{0};
 }
 
 ReloactionOperand InstructionSelector::UseAsExternalClassName(const String *name) {

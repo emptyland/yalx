@@ -570,18 +570,26 @@ public:
         int src_virtual_register;
     };
     
-    explicit InstructionBlock(base::Arena *arena, InstructionFunction *owns, int label);
+    explicit InstructionBlock(base::Arena *arena, InstructionFunction *owns, int id, int label);
 
     DEF_PTR_GETTER(InstructionFunction, owns);
-    int label() const { return label_; }
+    DEF_VAL_GETTER(int, id);
+    DEF_VAL_GETTER(int, label);
+    DEF_VAL_PROP_RW(int, loop_index);
+    DEF_VAL_PROP_RW(int, loop_depth);
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, successor);
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, predecessor);
+    DEF_ARENA_VECTOR_GETTER(InstructionBlock *, loop_end_node);
     DEF_ARENA_VECTOR_GETTER(Instruction *, instruction);
+    
+    int GetLowerId() const;
+    int GetUpperId() const;
     
     void Add(Instruction *instr) { instructions_.push_back(instr); }
 
     void AddSuccessor(InstructionBlock *successor) { AddLinkedNode(&successors_, successor); }
     void AddPredecessors(InstructionBlock *predecessor) { AddLinkedNode(&predecessors_, predecessor); }
+    void AddLoopEnd(InstructionBlock *node) { loop_end_nodes_.push_back(node); }
     void MovableAssign(base::ArenaVector<Instruction *> &&others) { instructions_ = std::move(others); }
     
     void PrintTo(base::PrintingWriter *printer) const;
@@ -597,8 +605,12 @@ private:
     InstructionFunction *owns_;
     base::ArenaVector<InstructionBlock *> successors_;
     base::ArenaVector<InstructionBlock *> predecessors_;
+    base::ArenaVector<InstructionBlock *> loop_end_nodes_;
     base::ArenaVector<Instruction *> instructions_;
+    int id_;
     int label_;
+    int loop_index_ = 0;
+    int loop_depth_ = 0;
 }; // class InstructionBlock
 
 class InstructionBlockLabelGenerator final {
@@ -623,7 +635,7 @@ DECLARE_INSTRUCTION_OPERANDS_KINDS(DEFINE_CASTING)
 #undef  DEFINE_CASTING
 
 inline InstructionBlock *InstructionFunction::NewBlock(int label) {
-    auto block = new (arena_) InstructionBlock(arena_, this, label);
+    auto block = new (arena_) InstructionBlock(arena_, this, static_cast<int>(blocks_.size()), label);
     blocks_.push_back(block);
     return block;
 }

@@ -16,7 +16,7 @@ protected:
 
 
 TEST_F(InstructionTest, Sanity) {
-    auto block = new (arena()) InstructionBlock(arena(), nullptr, 0);
+    auto block = new (arena()) InstructionBlock(arena(), nullptr, 0, 0);
     ASSERT_TRUE(block->successors().empty());
     ASSERT_TRUE(block->predecessors().empty());
 }
