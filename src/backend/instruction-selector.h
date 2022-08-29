@@ -19,6 +19,7 @@ class BasicBlock;
 namespace backend {
 
 class RegistersConfiguration;
+class ConstantsPool;
 class InstructionOperand;
 class Instruction;
 class Frame;
@@ -29,11 +30,16 @@ class InstructionBlock;
 
 class InstructionSelector {
 public:
-    InstructionSelector(base::Arena *arena, const RegistersConfiguration *regconf, Linkage *linkage);
+    InstructionSelector(base::Arena *arena,
+                        const RegistersConfiguration *regconf,
+                        Linkage *linkage,
+                        ConstantsPool *const_pool);
     
     DEF_PTR_GETTER(const RegistersConfiguration, regconf);
     DEF_PTR_GETTER(Linkage, linkage);
     DEF_PTR_GETTER(Frame, frame);
+    DEF_PTR_GETTER(base::Arena, arena);
+    DEF_PTR_GETTER(ConstantsPool, const_pool);
     
     InstructionFunction *VisitFunction(ir::Function *fun);
     
@@ -92,6 +98,11 @@ public:
     
     ReloactionOperand UseAsExternalClassName(const String *name);
     ReloactionOperand UseAsExternalCFunction(const String *symbol);
+    
+    InstructionOperand TryUseAsIntegralImmediate(ir::Value *value, int bits = 64);
+    
+    static bool IsIntegralImmediate(ir::Value *value, int bits = 64);
+    static bool IsAnyConstant(ir::Value *value);
 
     static InstructionOperand Invalid() { return InstructionOperand(); }
     static InstructionOperand NoOutput() { return InstructionOperand(); }
@@ -120,6 +131,7 @@ private:
     base::Arena *const arena_;
     const RegistersConfiguration *const regconf_;
     Linkage *const linkage_;
+    ConstantsPool *const const_pool_;
     InstructionBlock *current_block_ = nullptr;
     Frame *frame_ = nullptr;
     base::ArenaVector<bool> defined_;
@@ -128,7 +140,8 @@ private:
 }; // class InstructionSelector
 
 
-InstructionFunction *Arm64SelectFunctionInstructions(base::Arena *arena, Linkage *linkage, ir::Function *fun);
+InstructionFunction *Arm64SelectFunctionInstructions(base::Arena *arena, Linkage *linkage, ConstantsPool *const_pool,
+                                                     ir::Function *fun);
 
 } // namespace backend
 

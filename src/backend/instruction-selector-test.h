@@ -4,6 +4,7 @@
 
 
 #include "backend/linkage-symbols.h"
+#include "backend/constants-pool.h"
 #include "backend/frame.h"
 #include "ir/operators-factory.h"
 #include "ir/operator.h"
@@ -24,6 +25,7 @@ public:
     
     base::Arena *arena() { return &arena_; }
     Linkage *linkage() { return &linkage_; }
+    ConstantsPool *const_pool() { return &const_pool_; }
     ir::OperatorsFactory *ops() { return &ops_; }
     DEF_PTR_GETTER(ir::Module, module);
 
@@ -35,6 +37,7 @@ public:
 protected:
     base::Arena arena_;
     Linkage linkage_;
+    ConstantsPool const_pool_;
     ir::Module *module_;
     ir::OperatorsFactory ops_;
 }; // class InstructionSelectorTest

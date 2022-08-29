@@ -7,17 +7,22 @@
 #include "ir/utils.h"
 #include "ir/node.h"
 #include "ir/type.h"
+#include "base/utils.h"
 #include "base/io.h"
+
 
 namespace yalx {
 
 namespace backend {
 
-InstructionSelector::InstructionSelector(base::Arena *arena, const RegistersConfiguration *regconf,
-                                         Linkage *linkage)
+InstructionSelector::InstructionSelector(base::Arena *arena,
+                                         const RegistersConfiguration *regconf,
+                                         Linkage *linkage,
+                                         ConstantsPool *const_pool)
 : arena_(arena)
 , regconf_(regconf)
 , linkage_(linkage)
+, const_pool_(const_pool)
 , defined_(arena)
 , used_(arena) {
     
@@ -428,6 +433,73 @@ bool InstructionSelector::IsUsed(ir::Value *value) const {
     auto vid = frame_->GetVirtualRegister(value);
     DCHECK(vid >= 0 && vid < used_.size());
     return used_[vid];
+}
+
+InstructionOperand InstructionSelector::TryUseAsIntegralImmediate(ir::Value *value, int bits) {
+    InstructionOperand invalid;
+    switch (value->op()->value()) {
+        case ir::Operator::kI8Constant:
+        case ir::Operator::kU8Constant:
+        case ir::Operator::kWord8Constant: {
+            auto imm_val = ir::OperatorWith<int8_t>::Data(value);
+            return base::is_intn(imm_val, bits) ? ImmediateOperand{imm_val} : invalid;
+        } break;
+            
+        case ir::Operator::kI16Constant:
+        case ir::Operator::kU16Constant:
+        case ir::Operator::kWord16Constant: {
+            auto imm_val = ir::OperatorWith<int16_t>::Data(value);
+            return base::is_intn(imm_val, bits) ? ImmediateOperand{imm_val} : invalid;
+        } break;
+            
+        case ir::Operator::kI32Constant:
+        case ir::Operator::kU32Constant:
+        case ir::Operator::kWord32Constant: {
+            auto imm_val = ir::OperatorWith<int32_t>::Data(value);
+            return base::is_intn(imm_val, bits) ? ImmediateOperand{imm_val} : invalid;
+        } break;
+        
+        case ir::Operator::kI64Constant:
+        case ir::Operator::kU64Constant:
+        case ir::Operator::kWord64Constant: {
+            auto imm_val = ir::OperatorWith<int64_t>::Data(value);
+            return base::is_intn(imm_val, bits) ? ImmediateOperand{imm_val} : invalid;
+        } break;
+            
+        default:
+            return invalid;
+    }
+}
+
+bool InstructionSelector::IsIntegralImmediate(ir::Value *value, int bits) {
+    switch (value->op()->value()) {
+        case ir::Operator::kI8Constant:
+        case ir::Operator::kU8Constant:
+        case ir::Operator::kWord8Constant:
+            return base::is_intn(ir::OperatorWith<int8_t>::Data(value), bits);
+            
+        case ir::Operator::kI16Constant:
+        case ir::Operator::kU16Constant:
+        case ir::Operator::kWord16Constant:
+            return base::is_intn(ir::OperatorWith<int16_t>::Data(value), bits);
+            
+        case ir::Operator::kI32Constant:
+        case ir::Operator::kU32Constant:
+        case ir::Operator::kWord32Constant:
+            return base::is_intn(ir::OperatorWith<int32_t>::Data(value), bits);
+        
+        case ir::Operator::kI64Constant:
+        case ir::Operator::kU64Constant:
+        case ir::Operator::kWord64Constant:
+            return base::is_intn(ir::OperatorWith<int64_t>::Data(value), bits);
+            
+        default:
+            return false;
+    }
+}
+
+bool InstructionSelector::IsAnyConstant(ir::Value *value) {
+    return value->op()->IsConstant();
 }
 
 size_t InstructionSelector::OverflowParametersSizeInBytes(const ir::Function *fun) const {

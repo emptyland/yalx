@@ -21,7 +21,7 @@ struct BitField final {
     static constexpr int kShift = shift;
     static constexpr int kSize  = size;
     static constexpr U kBits = (U{1} << (kSize + 1)) - 1;
-    static constexpr U kMask = kBits << kSize;
+    static constexpr U kMask = ((U{1} << kShift) << kSize) - (U{1} << kShift);
     static constexpr U kValuesCount = U{1} << kSize;
     static constexpr T kMax = static_cast<T>(kValuesCount - 1);
     
@@ -42,7 +42,7 @@ struct BitField final {
 
     // Returns a type U with the bit field value updated.
     static constexpr U Update(U previous, T value) {
-      return (previous & ~kMask) | encode(value);
+      return (previous & ~kMask) | Encode(value);
     }
 
     // Extracts the bit field from the value.

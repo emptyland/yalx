@@ -326,14 +326,6 @@ void RegisterAllocator::WalkIntervals() {
         }
     }
     
-//    std::vector<LifetimeInterval *> splitted;
-//    for (auto it : unhanded) {
-//        SplitByUsePolicy(it, &splitted);
-//    }
-//    for (auto it : splitted) {
-//        unhanded.insert(it);
-//    }
-    
     // note: new intervals may be sorted into the unhandled list during
     // allocation when intervals are split
     while (!unhanded.empty()) {
@@ -376,13 +368,13 @@ void RegisterAllocator::WalkIntervals() {
             active.insert(current);
         }
         
-        if (!active.empty()) {
-            printf("------\n");
-            for (auto it : active) {
-                printf("%d->%d, ", it->virtual_register(), it->assigned_operand());
-            }
-            printf("\n");
-        }
+//        if (!active.empty()) {
+//            printf("------\n");
+//            for (auto it : active) {
+//                printf("%d->%d, ", it->virtual_register(), it->assigned_operand());
+//            }
+//            printf("\n");
+//        }
     }
 }
 

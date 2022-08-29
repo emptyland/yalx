@@ -24,7 +24,7 @@ TEST_F(Arm64InstructionSelectorTest, Sanity) {
     auto blk = fun->entry();
     blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(2), fun->paramater(1), fun->paramater(1));
     
-    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), fun);
+    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
     ASSERT_NE(nullptr, instr_fun);
     
     auto block = instr_fun->block(0);
@@ -55,7 +55,7 @@ TEST_F(Arm64InstructionSelectorTest, HeapAllocSelecting) {
     auto rs = blk->NewNode(kUnknown, foo_ty, ops()->HeapAlloc(foo_class));
     blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), rs);
     
-    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), fun);
+    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
     ASSERT_NE(nullptr, instr_fun);
     
     auto block = instr_fun->block(0);
@@ -82,7 +82,7 @@ TEST_F(Arm64InstructionSelectorTest, ScanVirtualRegisters) {
     auto rs = blk->NewNode(kUnknown, foo_ty, ops()->HeapAlloc(foo_class));
     blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), rs);
     
-    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), fun);
+    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
     ASSERT_NE(nullptr, instr_fun);
     
     RegisterAllocator allocator(arena(), regconf_, instr_fun);
@@ -143,7 +143,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     
     l3->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), phi1);
     
-    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), fun);
+    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
     ASSERT_NE(nullptr, instr_fun);
 
     RegisterAllocator allocator(arena(), regconf_, instr_fun);
@@ -171,9 +171,9 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(param0)));
     EXPECT_TRUE(state->DoesInLiveOut(instr_fun->frame()->GetVirtualRegister(param0)));
 
-    EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret0)));
-    EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret1)));
-    EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(zero)));
+    EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret0)));
+    EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret1)));
+    EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(zero)));
     EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(one)));
     
     state = allocator.BlockLivenssStateOf(allocator.OrderedBlockAt(3));
@@ -191,8 +191,6 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
 
     interval = allocator.IntervalOf(phi0);
 
-    
-    
     //==================================================================================================================
     // Walk Intervals
     allocator.WalkIntervals();
@@ -204,7 +202,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     
     interval = allocator.IntervalOf(phi0);
     ASSERT_TRUE(interval->has_assigned_gp_register());
-    EXPECT_EQ(0, interval->assigned_operand());
+    EXPECT_EQ(2, interval->assigned_operand());
     
     interval = allocator.IntervalOf(phi1);
     ASSERT_TRUE(interval->has_assigned_gp_register());

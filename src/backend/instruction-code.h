@@ -24,6 +24,7 @@ namespace backend {
     V(ArchUnreachable) \
     V(ArchSafepoint) \
     V(ArchStackAlloc) \
+    V(ArchLoadRelocation) \
     V(ArchLoadEffectAddress)
 
 enum InstructionCode {

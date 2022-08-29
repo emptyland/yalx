@@ -124,7 +124,7 @@ void InstructionOperand::PrintTo(base::PrintingWriter *printer) const {
             printer->Print("{%s ", GetMachineRepresentationAlias(opd->machine_representation()));
             switch (opd->location_kind()) {
                 case AllocatedOperand::kRegister:
-                    printer->Print("%d", opd->index());
+                    printer->Print("$%d", opd->index());
                     break;
                 case AllocatedOperand::kSlot:
                     if (opd->index() >= 0) {
@@ -273,10 +273,12 @@ void Instruction::PrintTo(int ident, base::PrintingWriter *printer) const {
         operands_[output_offset() + i].PrintTo(printer);
     }
     
+    //printd("%08x %08x\n", InstructionCodeField::kMask, InstructionCodeField::kBits);
+    auto code = InstructionCodeField::Decode(op());
     if (outputs_count() > 0) {
-        printer->Print(" = %s ", kInstrCodeNames[op()]);
+        printer->Print(" = %s ", kInstrCodeNames[code]);
     } else {
-        printer->Print("%s ", kInstrCodeNames[op()]);
+        printer->Print("%s ", kInstrCodeNames[code]);
     }
     
     for (int i = 0; i < inputs_count(); i++) {

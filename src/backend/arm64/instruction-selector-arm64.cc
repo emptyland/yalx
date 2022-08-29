@@ -13,8 +13,8 @@ namespace backend {
 
 class Arm64InstructionSelector final : public InstructionSelector {
 public:
-    Arm64InstructionSelector(base::Arena *arena, Linkage *linkage)
-    : InstructionSelector(arena, RegistersConfiguration::of_arm64(), linkage) {}
+    Arm64InstructionSelector(base::Arena *arena, Linkage *linkage, ConstantsPool *const_pool)
+    : InstructionSelector(arena, RegistersConfiguration::of_arm64(), linkage, const_pool) {}
     
     void VisitCondBr(ir::Value *instr) override {
         DCHECK(instr->op()->value_in() == 1);
@@ -52,7 +52,7 @@ public:
             DCHECK(instr->Is(ir::Operator::kSub));
             op = Arm64Sub;
         }
-        Emit(op, DefineAsRegister(instr), UseAsRegister(instr->InputValue(0)), UseAsRegister(instr->InputValue(1)));
+        VisitArithOperands(op, DefineAsRegister(instr), instr->InputValue(0), instr->InputValue(1));
     }
     
     void VisitICmp(ir::Value *instr) override {
@@ -67,11 +67,45 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arm64InstructionSelector);
 private:
     
+    void VisitArithOperands(InstructionCode op, InstructionOperand output, ir::Value *input0, ir::Value *input1) {
+        std::vector<std::tuple<InstructionOperand, InstructionOperand>> moves;
+
+        InstructionOperand lhs;
+        if (IsAnyConstant(input0)) {
+            if (auto imm = TryUseAsIntegralImmediate(input0, 16); imm.IsInvalid()) {
+                // TODO: Load constants
+                UNREACHABLE();
+            } else {
+                lhs = UseAsRegister(input0);
+                moves.push_back({lhs, imm});
+            }
+        } else {
+            lhs = UseAsRegister(input0);
+        }
+        InstructionOperand rhs;
+        if (IsAnyConstant(input1)) {
+            if (auto imm = TryUseAsIntegralImmediate(input1, 12); !imm.IsInvalid()) {
+                rhs = imm;
+            } else if (auto imm = TryUseAsIntegralImmediate(input1, 16); !imm.IsInvalid()) {
+                rhs = UseAsRegister(input1);
+                moves.push_back({rhs, imm});
+            } else {
+                // TODO: Load constants
+                UNREACHABLE();
+            }
+        } else {
+            rhs = UseAsRegister(input1);
+        }
+        auto instr = Emit(op, output, lhs, rhs);
+        for (auto [dest, src] : moves) {
+            instr->GetOrNewParallelMove(Instruction::kStart, arena())->AddMove(dest, src, arena());
+        }
+    }
 }; // class Arm64InstructionSelector
 
-InstructionFunction *Arm64SelectFunctionInstructions(base::Arena *arena, Linkage *linkage,
+InstructionFunction *Arm64SelectFunctionInstructions(base::Arena *arena, Linkage *linkage, ConstantsPool *const_pool,
                                                      ir::Function *fun) {
-    Arm64InstructionSelector selector(arena, linkage);
+    Arm64InstructionSelector selector(arena, linkage, const_pool);
     return selector.VisitFunction(fun);
 }
 

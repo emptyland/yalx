@@ -6,6 +6,7 @@ namespace backend {
 
 InstructionSelectorTest::InstructionSelectorTest()
 : linkage_(&arena_)
+, const_pool_(&arena_)
 , ops_(&arena_) {
     auto name = String::New(arena(), "test");
     auto full_name = String::New(arena(), "testing.test");
