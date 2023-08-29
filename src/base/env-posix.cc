@@ -18,7 +18,7 @@ namespace {
 
 class PosixSequentialFile final : public SequentialFile {
 public:
-    PosixSequentialFile(FILE *fp) : fp_(DCHECK_NOTNULL(fp)) {}
+    explicit PosixSequentialFile(FILE *fp) : fp_(DCHECK_NOTNULL(fp)) {}
     ~PosixSequentialFile() override { ::fclose(fp_); }
     
     Status Read(size_t n, std::string_view *result, std::string *scratch) override {
@@ -67,7 +67,7 @@ private:
 
 class PosixWritableFile final : public WritableFile {
 public:
-    PosixWritableFile(FILE *fp) : fp_(DCHECK_NOTNULL(fp)) {}
+    explicit PosixWritableFile(FILE *fp) : fp_(DCHECK_NOTNULL(fp)) {}
     ~PosixWritableFile() override { ::fclose(fp_); }
     
     Status Append(std::string_view data) override {

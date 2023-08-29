@@ -153,9 +153,9 @@ static constexpr uint32_t kFreeZag = 0xfeedfeed;
 
 // Round bytes filling
 // For int16, 32, 64 filling:
-void *Round16BytesFill(const uint16_t zag, void *chunk, size_t n);
-void *Round32BytesFill(const uint32_t zag, void *chunk, size_t n);
-void *Round64BytesFill(const uint64_t zag, void *chunk, size_t n);
+void *Round16BytesFill(uint16_t zag, void *chunk, size_t n);
+void *Round32BytesFill(uint32_t zag, void *chunk, size_t n);
+void *Round64BytesFill(uint64_t zag, void *chunk, size_t n);
 
 #if defined(NDEBUG)
 
@@ -224,49 +224,6 @@ inline T *DbgFreeZag(T *chunk, size_t n) { return static_cast<T *>(Round32BytesF
 // Unittest Uilts
 #define FRIEND_UNITTEST_CASE(test_name, test_case) \
     friend class test_name##_##test_case##_Test
-
-//// OS platform macros
-//#if defined(_WIN32) || defined(WIN32) || defined(_WIN64)
-//#   define YALX_OS_WINDOWS 1
-//#   define YALX_OS_POSIX   0
-//#endif
-//
-//#if defined(unix) || defined(__unix) || defined(__unix__)
-//#   define YALX_OS_UNIX   1
-//#   define YALX_OS_POSIX  1
-//#endif
-//
-//#if defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
-//#   define YALX_OS_LINUX  1
-//#   define YALX_OS_POSIX  1
-//#endif
-//
-//#if defined(__APPLE__)
-//#   define YALX_OS_DARWIN 1
-//#   define YALX_OS_POSIX  1
-//#endif
-//
-//// [[gnu::always_inline]]
-//#if defined(DEBUG) || defined(_DEBUG)
-//#define ALWAYS_INLINE inline
-//#else
-//#define ALWAYS_INLINE inline
-//#endif // defined(DEBUG) || defined(_DEBUG)
-//
-//// CPU Arch macros
-//
-//#if defined(__amd64) || defined(__amd64__) || defined(__x86_64) || defined(__x86_64__)
-//#   define YALX_ARCH_X64 1
-//#endif
-//
-//#if defined(__ARM64_ARCH_8__)
-//#   define YALX_ARCH_ARM64 1
-//#endif
-//
-//#define NOTHING(...)
-//
-//#define USE(x) ((void)(x))
-
 
 
 enum Initializer {

@@ -5,7 +5,6 @@
 // OS platform macros
 #if defined(_WIN32) || defined(WIN32) || defined(_WIN64)
 #   define YALX_OS_WINDOWS 1
-#   define YALX_OS_POSIX   0
 #endif
 
 #if defined(unix) || defined(__unix) || defined(__unix__)
@@ -25,8 +24,11 @@
 
 
 // CPU Arch macros
+#if defined(_M_IX86)
+#error Not support 32bit x86 cpus
+#endif
     
-#if defined(__amd64) || defined(__amd64__) || defined(__x86_64) || defined(__x86_64__)
+#if defined(__amd64) || defined(__amd64__) || defined(__x86_64) || defined(__x86_64__) || defined(_M_X64) || defined(_M_AMD64)
 #   define YALX_ARCH_X64 1
 #endif
 

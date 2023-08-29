@@ -117,8 +117,8 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     entry->NewNode(kUnknown, ir::Types::Void, ops()->Br(0, 1), l1);
     entry->LinkTo(l1);
     
-    auto zero = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(0));
-    auto one = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(1));
+    auto zero = ir::Value::New0(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(0));
+    auto one = ir::Value::New0(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(1));
     
 //    auto phi0 = l1->NewNode(kUnknown, ir::Types::Int32, ops()->Phi(2, 2), zero, zero, entry, l2);
 //    auto phi1 = l1->NewNode(kUnknown, ir::Types::Int32, ops()->Phi(2, 2), one, one, entry, l2);
@@ -129,7 +129,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     l1->LinkTo(l2);
     l1->LinkTo(l3);
     
-    auto three = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(3));
+    auto three = ir::Value::New0(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(3));
     auto ret1 = l2->NewNode(kUnknown, ir::Types::Int32, ops()->Add(), phi1, three);
     phi1->Replace(arena(), 1, one, ret1);
     l1->AddInstruction(phi1);

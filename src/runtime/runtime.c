@@ -137,7 +137,7 @@ static void dev_print_struct_fields() {}
 
 #endif
 
-extern struct yalx_class builtin_classes[MAX_BUILTIN_TYPES];
+extern struct yalx_class builtin_classes[];
 
 struct class_load_entry {
     const char *name;

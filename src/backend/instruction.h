@@ -401,7 +401,7 @@ public:
         InstructionOperand dest_;
     }; // class Operands
     
-    ParallelMove(base::Arena *arena): moves_(arena) {}
+    explicit ParallelMove(base::Arena *arena): moves_(arena) {}
     
     DEF_ARENA_VECTOR_GETTER(Operands *, move);
     

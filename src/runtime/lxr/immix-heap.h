@@ -2,7 +2,7 @@
 #ifndef YALX_RUNTIME_LXR_IMMIX_HEAP_H_
 #define YALX_RUNTIME_LXR_IMMIX_HEAP_H_
 
-#include <pthread.h>
+#include <threads.h>
 
 #ifdef __cplusplus
 extern "C" {

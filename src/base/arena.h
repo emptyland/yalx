@@ -3,6 +3,7 @@
 #define YALX_BASE_ARENA_H_
 
 #include <map>
+#include <functional>
 #include "base/base.h"
 
 namespace yalx {
@@ -139,7 +140,7 @@ public:
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arena);
 private:
-    template<class T> struct Less : public std::binary_function<T, T, bool> {
+    template<class T> struct Less {
         bool operator ()(const T &lhs, const T &rhs) const { return lhs < rhs; }
     }; // struct ArenaLess
     
@@ -174,7 +175,7 @@ private:
         size_t block_size = n + sizeof(BlockHeader);
         void *memory = ::malloc(block_size);
         DbgInitZag(memory, block_size);
-        BlockHeader *block = static_cast<BlockHeader *>(memory);
+        auto *block = static_cast<BlockHeader *>(memory);
         block->next = large_blocks_;
         block->size = static_cast<uint32_t>(n);
         large_blocks_ = block;
@@ -182,7 +183,7 @@ private:
     }
     
     BlockHeader *NewBlock() {
-        BlockHeader *block = static_cast<BlockHeader *>(::malloc(kBlockSize));
+        auto *block = static_cast<BlockHeader *>(::malloc(kBlockSize));
         block->next = block_;
         block->size = 0;
         block_ = block;
@@ -204,6 +205,7 @@ inline T* ArenaAllocator<T>::allocate(size_t n, const void* hint) {
 class ArenaObject {
 public:
     void *operator new (size_t n, Arena *arena) { return arena->Allocate(n); }
+    void operator delete(void *, Arena *arena) {};
 }; // class ArenaObject
     
 } // namespace base

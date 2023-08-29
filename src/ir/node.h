@@ -475,6 +475,7 @@ private:
     Value(base::Arena *arena, const String *name, SourcePosition source_position, Type type, Operator *op);
     
     void *operator new (size_t /*n*/, void *chunk) { return chunk; }
+    void operator delete(void *, void *chunk) {}
     static Node *CheckNode(Node *node) { return DCHECK_NOTNULL(node); }
     
     static size_t RequiredSize(const Operator *op) {

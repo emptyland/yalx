@@ -10,6 +10,7 @@
 
 #ifdef __cplusplus
 extern "C" {
+#define _Atomic
 #else
 #include <stdatomic.h>
 #endif
@@ -163,7 +164,7 @@ static inline int yalx_return_u32(u32_t value) {
     return 0;
 }
 
-int yalx_return_cstring(const char *const z, size_t n);
+int yalx_return_cstring(const char *z, size_t n);
 
 static inline int yalx_return_ref(struct yalx_value_any *ref) {
     struct yalx_value_any **place = (struct yalx_value_any **)yalx_return_reserved(sizeof(ref));
@@ -185,7 +186,7 @@ static inline int yalx_return(const void *const p, size_t n) {
 
 void *yalx_return_reserved_do(struct yalx_returning_vals *state, size_t n);
 
-const struct yalx_class *yalx_find_class(const char *const plain_name);
+const struct yalx_class *yalx_find_class(const char *plain_name);
 
 struct backtrace_frame **yalx_unwind(size_t *depth, int dummy);
 
@@ -211,18 +212,18 @@ struct pkg_global_slots {
 };
 
 // runtime libs called by generated code
-void pkg_init_once(void *init_fun, const char *const plain_name);
+void pkg_init_once(void *init_fun, const char *plain_name);
 int pkg_initialized_count(void);
-int pkg_has_initialized(const char *const plain_name);
+int pkg_has_initialized(const char *plain_name);
 
-const struct pkg_global_slots *pkg_get_global_slots(const char *const plain_name);
+const struct pkg_global_slots *pkg_get_global_slots(const char *plain_name);
 
 // put field for post write barrier
 void put_field(struct yalx_value_any **address, struct yalx_value_any *field);
 
-void put_field_chunk(struct yalx_value_any *const host, address_t address, address_t field);
+void put_field_chunk(struct yalx_value_any *host, address_t address, address_t field);
 
-void put_field_chunk_by_index(struct yalx_value_any *const host, const int index_of_field, address_t field);
+void put_field_chunk_by_index(struct yalx_value_any *host, int index_of_field, address_t field);
 
 // lazy load object
 struct yalx_value_any *lazy_load_object(struct yalx_value_any * _Atomic *address, const struct yalx_class *clazz);
@@ -233,18 +234,17 @@ void associate_stub_returning_vals(struct yalx_returning_vals *state,
                                    address_t fun_addr);
 void *reserve_handle_returning_vals(u32_t size);
 
-struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz);
+struct yalx_value_any *heap_alloc(const struct yalx_class *clazz);
 
-struct yalx_value_array_header *array_alloc(const struct yalx_class *const element_ty, void *const elements,
-                                            int nitems);
+struct yalx_value_array_header *array_alloc(const struct yalx_class *element_ty, void *elements, int nitems);
 
 struct coroutine *current_root(void);
 
 void throw_it(struct yalx_value_any *exception);
 
-u8_t is_instance_of(struct yalx_value_any *const host, const struct yalx_class *const for_test);
+u8_t is_instance_of(struct yalx_value_any *host, const struct yalx_class *for_test);
 
-struct yalx_value_any *ref_asserted_to(struct yalx_value_any *const from, const struct yalx_class *const clazz);
+struct yalx_value_any *ref_asserted_to(struct yalx_value_any *from, const struct yalx_class *clazz);
 
 // generated entry symbol: main:main.main(): unit
 void y2zmain_main(void);

@@ -13,9 +13,7 @@
 #include <string_view>
 #include <string>
 
-namespace yalx {
-    
-namespace base {
+namespace yalx::base {
     
 class ArenaString {
 public:
@@ -25,21 +23,21 @@ public:
     DEF_VAL_GETTER(uint32_t, hash_val);
     size_t size() const { return len_;}
 
-    const char *data() const { return buf_; }
+    [[nodiscard]] const char *data() const { return buf_; }
     
-    bool empty() const { return len_ == 0; }
+    [[nodiscard]] bool empty() const { return len_ == 0; }
     
-    bool full() const { return !empty(); }
+    [[nodiscard]] bool full() const { return !empty(); }
     
     bool Equal(const char *z) const { return ::strcmp(z, data()) == 0; }
     
     bool Equal(const ArenaString *z) const { return z->size() == size() && ::strncmp(z->data(), data(), size()) == 0; }
     
-    bool StartsWith(const char *z) const { return ::strnstr(data(), z, size()) == data(); }
+    bool StartsWith(const char *z) const { return ::strstr(data(), z) == data(); }
     
-    std::string ToString() const { return std::string(data(), size()); }
+    [[nodiscard]] std::string ToString() const { return std::string{data(), size()}; }
     
-    std::string_view ToSlice() const { return std::string_view(data(), size()); }
+    [[nodiscard]] std::string_view ToSlice() const { return std::string_view{data(), size()}; }
     
     ArenaString *Duplicate(base::Arena *arena) const { return New(arena, data(), size()); }
     
@@ -55,10 +53,10 @@ public:
 
 private:
     ArenaString(const char *s, size_t n);
-    
-    ArenaString(size_t n);
-    
-    const uint32_t hash_val_;
+
+    explicit ArenaString(size_t n);
+
+    [[maybe_unused]] const uint32_t hash_val_;
     const uint32_t len_;
     char buf_[0];
 }; // class ArenaString
@@ -81,58 +79,52 @@ static ::yalx::base::StaticString<sizeof(literal)> name##_stub { \
 const ::yalx::base::ArenaString *const name = reinterpret_cast<const ::yalx::base::ArenaString *>(&name##_stub)
     
     
-template<class T> struct ArenaLess : public std::binary_function<T, T, bool> {
+template<class T> struct ArenaLess {
     bool operator ()(const T &lhs, const T &rhs) const { return lhs < rhs; }
 }; // struct ArenaLess
 
-template<> struct ArenaLess<ArenaString *>
-: public std::binary_function<ArenaString *, ArenaString *, bool> {
+template<> struct ArenaLess<ArenaString *> {
     bool operator ()(ArenaString *lhs, ArenaString *rhs) const {
         return ::strcmp(lhs->data(), rhs->data()) < 0;
     }
 }; // template<> struct ArenaLess<ArenaString *>
 
-template<> struct ArenaLess<const ArenaString *>
-: public std::binary_function<const ArenaString *, const ArenaString *, bool> {
+template<> struct ArenaLess<const ArenaString *> {
     bool operator ()(const ArenaString *lhs, const ArenaString *rhs) const {
         return ::strcmp(lhs->data(), rhs->data()) < 0;
     }
 }; // template<> struct ArenaLess<const ArenaString *>
 
-template <class T> struct ArenaHash : public std::unary_function<T, size_t> {
+template <class T> struct ArenaHash {
     size_t operator () (T value) const { return std::hash<T>{}(value); }
 }; // struct ZoneHash
 
-template <> struct ArenaHash<ArenaString *>
-    : public std::unary_function<ArenaString *, size_t> {
+template <> struct ArenaHash<ArenaString *> {
     size_t operator () (ArenaString * value) const {
         return value->hash_val();
     }
 }; // template <> struct ArenaHash<ArenaString *>
 
-template <> struct ArenaHash<const ArenaString *>
-: public std::unary_function<const ArenaString *, size_t> {
+template <> struct ArenaHash<const ArenaString *> {
     size_t operator () (const ArenaString * value) const {
         return value->hash_val();
     }
 }; // template <> struct ArenaHash<const ArenaString *>
 
 template <class T>
-struct ArenaEqualTo : public std::binary_function<T, T, bool> {
+struct ArenaEqualTo {
     bool operator () (T lhs, T rhs) {
         return std::equal_to<T>{}(lhs, rhs);
     }
 }; // template <class T> struct ArenaEqualTo
 
-template <> struct ArenaEqualTo<ArenaString *>
-: public std::binary_function<ArenaString *, ArenaString *, bool> {
+template <> struct ArenaEqualTo<ArenaString *> {
     bool operator () (ArenaString * lhs, ArenaString * rhs) const {
         return lhs->size() == rhs->size() && ::memcmp(lhs->data(), rhs->data(), lhs->size()) == 0;
     }
 }; // template <> struct ArenaEqualTo<ArenaString *>
 
-template <> struct ArenaEqualTo<const ArenaString *>
-: public std::binary_function<const ArenaString *, const ArenaString *, bool> {
+template <> struct ArenaEqualTo<const ArenaString *> {
     bool operator () (const ArenaString *lhs, const ArenaString *rhs) const {
         return lhs->size() == rhs->size() && ::memcmp(lhs->data(), rhs->data(), lhs->size()) == 0;
     }
@@ -262,8 +254,6 @@ struct ArenaUtils {
     } \
     inline const base::ArenaVector<__element_type> &__name##s() const { return __name##s_; } \
     inline base::ArenaVector<__element_type> *mutable_##__name##s() { return &__name##s_; }
-    
-} // namespace base
     
 } // namespace yalx
 

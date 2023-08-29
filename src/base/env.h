@@ -15,6 +15,10 @@
 
 #endif // defined(YALX_OS_DARWIN)
 
+#if defined(YALX_OS_WINDOWS)
+#include <windows.h>
+#endif
+
 #include <memory>
 
 namespace yalx {
@@ -27,8 +31,7 @@ class Env;
 
 class OSPageMemory {
 public:
-    OSPageMemory(OSPageMemory &&other)
-        : OSPageMemory(other.chunk(), other.size()) {
+    OSPageMemory(OSPageMemory &&other) noexcept : OSPageMemory(other.chunk(), other.size()) {
         other.chunk_ = nullptr;
         other.size_ = 0;
     }
@@ -145,6 +148,20 @@ inline Status Env::OSPageFree(void *chunk, size_t n) {
 }
 
 #endif // defined(YALX_OS_POSIX)
+
+#if defined(YALX_OS_WINDOWS)
+
+inline Status Env::OSPageAllocate(size_t n, int access, void **result) {
+    // TODO:
+    return Status::OK();
+}
+
+inline Status Env::OSPageFree(void *chunk, size_t n) {
+    // TODO:
+    return Status::OK();
+}
+
+#endif
 
 } // namespace base
 
