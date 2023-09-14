@@ -13,7 +13,7 @@ enum class CastingRule {
     ALLOW, // allow casting directly
     ALLOW_UNBOX, // allow casting unbox first
     ALLOW_TYPING, // allow casting check type first
-    ALLOW_TYPING_CONCEPT, // allow casting check type first and concept interface
+    ALLOW_TYPING_CONCEPT, // allow casting check type first and koncept interface
     ALLOW_OPTION_TEST, // allow casting and option testing
     PROTOTYPE, // allow casting check fun prototype first
     ELEMENT, // check element type first
@@ -21,7 +21,7 @@ enum class CastingRule {
     I8_U8_CHAR_ARRAY_ONLY, // only to i8[], u8[], char[]
     OPTION_VALUE,
     SELF_ONLY, // only to itself
-    CONCEPT, // check concept interface
+    CONCEPT, // check koncept interface
     CHILD_CLASS_ONLY, // child class only
     CLASS_BASE_OF, 
 }; // class enum CastingRule

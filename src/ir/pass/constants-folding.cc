@@ -1,9 +1,8 @@
 #include "ir/pass/constants-folding.h"
 #include "ir/operators-factory.h"
+#include <math.h>
 
-namespace yalx {
-
-namespace ir {
+namespace yalx::ir {
 
 ConstantsFoldingPass::ConstantsFoldingPass(base::Arena *arena, OperatorsFactory *ops, ModulesMap *modules,
                                            cpl::SyntaxFeedback *feedback)
@@ -517,7 +516,5 @@ Value *ConstantsFoldingPass::FoldValueIfNeeded(Value *input, bool *folded) {
     }
     return input;
 }
-
-} // namespace ir
 
 } // namespace yalx

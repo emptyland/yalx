@@ -9,9 +9,11 @@
 #include "base/arena.h"
 #include <gtest/gtest.h>
 
-namespace yalx {
+#ifdef interface
+#undef interface
+#endif
 
-namespace cpl {
+namespace yalx::cpl {
 
 class GenericsInstantiatingTest : public ::testing::Test {
 public:
@@ -102,7 +104,7 @@ TEST_F(GenericsInstantiatingTest, Sanity) {
     bool ok = true;
     auto file_unit = parser_.Parse(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, file_unit);
+    ASSERT_TRUE(nullptr != file_unit);
     
     Resolver resolver;
     Statement *inst = nullptr;
@@ -129,14 +131,14 @@ TEST_F(GenericsInstantiatingTest, SelfType) {
     bool ok = true;
     auto file_unit = parser_.Parse(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, file_unit);
+    ASSERT_TRUE(nullptr != file_unit);
     
     auto stmt = file_unit->interface(0);
     Statement *inst = nullptr;
     Resolver resolver;
     resolver.symbols["Foo"] = stmt;
     Instantiate(stmt, {i32_}, &inst, &resolver);
-    ASSERT_NE(nullptr, inst);
+    ASSERT_TRUE(nullptr != inst);
     ASSERT_TRUE(inst->IsInterfaceDefinition());
     auto ifdef = inst->AsInterfaceDefinition();
     ASSERT_EQ(3, ifdef->methods_size());
@@ -145,7 +147,7 @@ TEST_F(GenericsInstantiatingTest, SelfType) {
     ASSERT_EQ(resolver.symbols["main.Foo<i64>"], ifdef->method(2)->prototype()->return_type(0)->AsInterfaceType()->definition());
     
     Instantiate(stmt, {f32_}, &inst, &resolver);
-    ASSERT_NE(nullptr, inst);
+    ASSERT_TRUE(nullptr != inst);
     ASSERT_TRUE(inst->IsInterfaceDefinition());
     ifdef = inst->AsInterfaceDefinition();
     ASSERT_EQ(resolver.symbols["main.Foo<f32>"], ifdef->method(0)->prototype()->return_type(0)->AsInterfaceType()->definition());
@@ -167,7 +169,7 @@ TEST_F(GenericsInstantiatingTest, NestedType) {
     bool ok = true;
     auto file_unit = parser_.Parse(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, file_unit);
+    ASSERT_TRUE(nullptr != file_unit);
     
     
     Resolver resolver;
@@ -176,12 +178,12 @@ TEST_F(GenericsInstantiatingTest, NestedType) {
     
     Statement *inst = nullptr;
     Instantiate(file_unit->interface(0), {i32_}, &inst, &resolver);
-    ASSERT_NE(nullptr, inst);
+    ASSERT_TRUE(nullptr != inst);
     ASSERT_TRUE(inst->IsInterfaceDefinition());
     
     auto bar_i32 = new (&arena_) InterfaceType(&arena_, inst->AsInterfaceDefinition(), inst->source_position());
     Instantiate(file_unit->interface(1), {bar_i32}, &inst, &resolver);
-    ASSERT_NE(nullptr, inst);
+    ASSERT_TRUE(nullptr != inst);
     ASSERT_TRUE(inst->IsInterfaceDefinition());
     
     auto foo_bar_i32 = inst->AsInterfaceDefinition();
@@ -204,7 +206,7 @@ TEST_F(GenericsInstantiatingTest, RecursiveType) {
     bool ok = true;
     auto file_unit = parser_.Parse(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, file_unit);
+    ASSERT_TRUE(nullptr != file_unit);
 
     auto stmt = file_unit->interface(0);
     Statement *inst = nullptr;
@@ -230,7 +232,7 @@ TEST_F(GenericsInstantiatingTest, NestedRecursiveType) {
     bool ok = true;
     auto file_unit = parser_.Parse(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, file_unit);
+    ASSERT_TRUE(nullptr != file_unit);
     
     Resolver resolver;
     resolver.symbols["Bar"] = file_unit->interface(0);
@@ -255,7 +257,7 @@ TEST_F(GenericsInstantiatingTest, EnumType) {
     bool ok = true;
     auto file_unit = parser_.Parse(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, file_unit);
+    ASSERT_TRUE(nullptr != file_unit);
     
     Resolver resolver;
     Statement *inst = nullptr;
@@ -263,7 +265,7 @@ TEST_F(GenericsInstantiatingTest, EnumType) {
     auto rs = GenericsInstantiating::Instantiate(nullptr, file_unit->enum_def(0), &arena_, &feedback_, &resolver,
                                                  arraysize(argv), argv, &inst);
     ASSERT_TRUE(rs.ok());
-    ASSERT_NE(nullptr, inst);
+    ASSERT_TRUE(nullptr != inst);
     ASSERT_TRUE(inst->IsEnumDefinition());
     
     auto def = inst->AsEnumDefinition();
@@ -273,7 +275,5 @@ TEST_F(GenericsInstantiatingTest, EnumType) {
     ASSERT_STREQ("Some", val->name()->data());
     ASSERT_EQ(Type::kType_i32, val->AtItem(0)->Type()->primary_type());
 }
-
-} // namespace cpl
 
 } // namespace yalx

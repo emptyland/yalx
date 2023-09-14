@@ -11,11 +11,15 @@
 namespace yalx::base {
 
 #if defined(YALX_OS_WINDOWS)
+
 using OSChar = wchar_t;
 #define OS_LITERAL(s) _CRT_WIDE(s)
-#elif
+
+#else
+
 using OSChar = char;
 #define OS_LITERAL(s) s
+
 #endif
 
 [[noreturn]] inline void Fatal(

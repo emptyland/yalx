@@ -3,6 +3,7 @@
 #include "compiler/scope.h"
 #include "compiler/ast.h"
 #include <stack>
+#include <memory>
 
 namespace yalx {
 
@@ -131,15 +132,15 @@ public:
             copied->set_base_of(DCHECK_NOTNULL(base_of->AsClassDefinition()));
         }
         
-        for (auto concept : node->concepts()) {
-            if (auto type = TypeLink(concept); !type) {
+        for (auto koncept : node->koncepts()) {
+            if (auto type = TypeLink(koncept); !type) {
                 return -1;
             } else {
                 if (!type->IsInterfaceType()) {
-                    Feedback()->Printf(concept->source_position(), "Only interface can be implements of class");
+                    Feedback()->Printf(koncept->source_position(), "Only interface can be implements of class");
                     return -1;
                 }
-                copied->mutable_concepts()->push_back(type);
+                copied->mutable_koncepts()->push_back(type);
             }
         }
 
@@ -329,7 +330,7 @@ private:
                 
             case ForeachLoop::kOpenBound:
             case ForeachLoop::kCloseBound: {
-                ForeachLoop::IntRange range {.lower = nullptr, .upper = nullptr, .close = node->range().close};
+                ForeachLoop::IntRange range {nullptr, nullptr, node->range().close};
                 INSTANTIATE(range.lower, node->range().lower);
                 INSTANTIATE(range.upper, node->range().upper);
                 return Returning(new (arena_) ForeachLoop(node->iterative_destination(), range, body,

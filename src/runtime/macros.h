@@ -35,6 +35,28 @@
 #if defined(__ARM64_ARCH_8__)
 #   define YALX_ARCH_ARM64 1
 #endif
+
+#if defined(__GNUC__)
+#   define YALX_USE_GCC 1
+#   undef YALX_CC
+#   define YALX_CC "gcc"
+#endif
+
+#if defined(_MSC_VER)
+#   define YALX_USE_MSC 1
+#   undef YALX_CC
+#   define YALX_CC "cl"
+#endif
+
+#if defined(__clang__)
+#   define YALX_USE_CLANG 1
+#   undef YALX_CC
+#   define YALX_CC "clang"
+#endif
+
+#ifndef YALX_CC
+#error No c/c++ compiler supports.
+#endif
     
 #define NOTHING(...)
 

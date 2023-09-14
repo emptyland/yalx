@@ -552,7 +552,7 @@ StructDefinition *Parser::ParseStructDefinition(bool *ok) {
     Match(Token::kStruct, CHECK_OK);
     auto name = MatchText(Token::kIdentifier, CHECK_OK);
     auto def = new (arena_) StructDefinition(arena_, name, location);
-    ParseIncompletableDefinition(def, nullptr/* concepts */, CHECK_OK);
+    ParseIncompletableDefinition(def, nullptr/* koncepts */, CHECK_OK);
     return def;
 }
 
@@ -561,7 +561,7 @@ ClassDefinition *Parser::ParseClassDefinition(bool *ok) {
     Match(Token::kClass, CHECK_OK);
     auto name = MatchText(Token::kIdentifier, CHECK_OK);
     auto def = new (arena_) ClassDefinition(arena_, name, location);
-    ParseIncompletableDefinition(def, def->mutable_concepts(), CHECK_OK);
+    ParseIncompletableDefinition(def, def->mutable_koncepts(), CHECK_OK);
     return def;
 }
 
@@ -634,7 +634,7 @@ EnumDefinition *Parser::ParseEnumDefinition(bool *ok) {
 }
 
 IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefinition *def,
-                                                              base::ArenaVector<Type *> *concepts, bool *ok) {
+                                                              base::ArenaVector<Type *> *koncepts, bool *ok) {
     auto location = def->source_position();
     
     if (Peek().Is(Token::kLess)) {
@@ -731,7 +731,7 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
             }
             def->set_super_calling(calling);
         } else {
-            assert(concepts);
+            assert(koncepts);
             auto inst = callee->AsInstantiation();
             auto maybe_symbol = callee;
             if (inst) {
@@ -747,16 +747,16 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
             } else {
                 UNREACHABLE();
             }
-            auto concept = new (arena_) Type(arena_, symbol, symbol->source_position());
+            auto koncept = new (arena_) Type(arena_, symbol, symbol->source_position());
             if (inst) {
                 for (auto garg : inst->generic_args()) {
-                    concept->mutable_generic_args()->push_back(garg);
+                    koncept->mutable_generic_args()->push_back(garg);
                 }
             }
-            concepts->push_back(concept);
+            koncepts->push_back(koncept);
         }
         
-        if (concepts) {
+        if (koncepts) {
             while (Test(Token::kComma)) {
                 auto symbol = ParseSymbol(CHECK_OK);
                 auto type = new (arena_) Type(arena_, symbol, symbol->source_position());
@@ -767,7 +767,7 @@ IncompletableDefinition *Parser::ParseIncompletableDefinition(IncompletableDefin
                     } while (Test(Token::kComma));
                     Match(Token::kGreater, CHECK_OK);
                 }
-                concepts->push_back(type);
+                koncepts->push_back(type);
             }
         }
     }
@@ -1999,7 +1999,7 @@ Type *Parser::ParseType(bool *ok) {
         }
         
         ArrayType *ar = reinterpret_cast<ArrayType *>(type);
-        for (ssize_t i = stack.size() - 1; i >= 1; i--) {
+        for (int64_t i = stack.size() - 1; i >= 1; i--) {
             ar = new (arena_) ArrayType(arena_, ar, std::move(stack[i]), location);
         }
         type = new (arena_) ArrayType(arena_, ar, std::move(stack[0]), location);
@@ -2079,7 +2079,7 @@ ArrayType *Parser::ParseArrayTypeMaybeWithLimits(const Identifier *ns, const Str
     }
     
     ArrayType *ar = reinterpret_cast<ArrayType *>(type);
-    for (ssize_t i = stack.size() - 1; i >= 1; i--) {
+    for (int64_t i = stack.size() - 1; i >= 1; i--) {
         ar = new (arena_) ArrayType(arena_, ar, std::move(stack[i]), location);
     }
     ar = new (arena_) ArrayType(arena_, ar, std::move(stack[0]), location);

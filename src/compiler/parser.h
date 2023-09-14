@@ -50,7 +50,7 @@ public:
     ClassDefinition *ParseClassDefinition(bool *ok);
     EnumDefinition *ParseEnumDefinition(bool *ok);
     IncompletableDefinition *ParseIncompletableDefinition(IncompletableDefinition *receiver,
-                                                          base::ArenaVector<Type *> *concepts, bool *ok);
+                                                          base::ArenaVector<Type *> *koncepts, bool *ok);
     Statement *ParseStatement(bool *ok);
     Block *ParseBlock(bool *ok);
     WhileLoop *ParseWhileLoop(bool *ok);

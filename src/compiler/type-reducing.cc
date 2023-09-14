@@ -5,10 +5,9 @@
 #include "compiler/constants.h"
 #include "compiler/compiler.h"
 #include <stack>
+#include <memory>
 
-namespace yalx {
-
-namespace cpl {
+namespace yalx::cpl {
 
 class SymbolDepsScope {
 public:
@@ -551,20 +550,20 @@ private:
         }
         
         //auto classes_count = 0;
-        for (auto i = 0; i < node->concepts_size(); i++) {
-            auto concept = LinkType(node->concept(i));
-            if (!concept) {
+        for (auto i = 0; i < node->koncepts_size(); i++) {
+            auto koncept = LinkType(node->koncept(i));
+            if (!koncept) {
                 return -1;
             }
 
-            if (!concept->IsInterfaceType()) {
-                Feedback()->Printf(concept->source_position(), "Concept must be a interface");
+            if (!koncept->IsInterfaceType()) {
+                Feedback()->Printf(koncept->source_position(), "Concept must be a interface");
                 return -1;
             }
-            if (ProcessDependencySymbolIfNeeded(concept->AsInterfaceType()->definition()) < 0) {
+            if (ProcessDependencySymbolIfNeeded(koncept->AsInterfaceType()->definition()) < 0) {
                 return -1;
             }
-            *node->mutable_concept(i) = concept;
+            *node->mutable_koncept(i) = koncept;
         }
         
         // Default base class is Any;
@@ -3294,11 +3293,7 @@ private:
         if (iter != global_symbols_.end()) {
             return iter->second;
         }
-        GlobalSymbol symbol = {
-            .symbol = String::New(arena_, full_name),
-            .owns = owns,
-            .ast = ast,
-        };
+        GlobalSymbol symbol = {String::New(arena_, full_name), ast, owns};
         global_symbols_[symbol.symbol->ToSlice()] = symbol;
         //printd("insert global: %s", symbol.symbol->data());
         
@@ -3512,7 +3507,5 @@ base::Status Compiler::ReducePackageDependencesType(Package *entry, base::Arena 
     return rs;
 }
 
-
-} // namespace cpl
 
 } // namespace yalx

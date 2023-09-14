@@ -134,8 +134,8 @@ private:
     ConstantsPool *const const_pool_;
     InstructionBlock *current_block_ = nullptr;
     Frame *frame_ = nullptr;
-    base::ArenaVector<bool> defined_;
-    base::ArenaVector<bool> used_;
+    base::ArenaVector<char> defined_;
+    base::ArenaVector<char> used_;
     std::map<ir::BasicBlock *, InstructionBlock *> block_mapping_;
 }; // class InstructionSelector
 

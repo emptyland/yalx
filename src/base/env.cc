@@ -1,16 +1,25 @@
 #include "base/env.h"
 #include "base/io.h"
+#if defined(YALX_OS_POSIX)
 #include <unistd.h>
+#endif
+
 #include <stdio.h>
 
-namespace yalx {
+#include <memory>
 
-namespace base {
+namespace yalx::base {
 
 int Env::kOSPageSize = 0;
 
 Status Env::Init() {
+#if defined(YALX_OS_POSIX)
     kOSPageSize = ::getpagesize();
+#endif
+
+#if defined(YALX_OS_WINDOWS)
+    kOSPageSize = 4 * base::kKB;
+#endif
     return Status::OK();
 }
 
@@ -86,14 +95,28 @@ public:
         return Append(data);
     }
     Status Truncate(uint64_t size) override {
+        // ::SetEndOfFile()
+    #if defined(YALX_OS_WINDOWS)
+        if (!::SetEndOfFile(os_handle())) {
+    #else
         if (::ftruncate(fileno(fp_), size) < 0) {
+    #endif
             return ERR_PERROR("Truncate file fail");
         }
         return Status::OK();
     }
-    std::string ToString() const override {
+    [[nodiscard]] std::string ToString() const override {
         return "PosixWritableFile";
     }
+
+#if defined(YALX_OS_WINDOWS)
+    HANDLE os_handle() {
+        int stdc_handle = _fileno(fp_);
+        HANDLE h = reinterpret_cast<HANDLE>(_get_osfhandle(stdc_handle));
+        DCHECK(h != INVALID_HANDLE_VALUE);
+        return h;
+    }
+#endif
 private:
     FILE *fp_;
 }; // class PosixWritableFile
@@ -101,23 +124,36 @@ private:
 } // namespace
 
 Status Env::NewSequentialFile(const std::string &name, std::unique_ptr<SequentialFile> *file) {
+#if defined(YALX_OS_WINDOWS)
+    FILE *fp = nullptr;
+    if (::fopen_s(&fp, name.c_str(), "rb") != 0) {
+        return ERR_PERROR("Can not open file");
+    }
+#else
     FILE *fp = ::fopen(name.c_str(), "rb");
     if (fp == nullptr) {
         return ERR_PERROR("Can not open file");
     }
-    file->reset(new PosixSequentialFile(fp));
+#endif
+
+    *file = std::make_unique<PosixSequentialFile>(fp);
     return Status::OK();
 }
 
 Status Env::NewWritableFile(const std::string &name, bool append, std::unique_ptr<WritableFile> *file) {
+#if defined(YALX_OS_WINDOWS)
+    FILE *fp = nullptr;
+    if (::fopen_s(&fp, name.c_str(), append ? "ab" : "wb") != 0) {
+        return ERR_PERROR("Can not open file");
+    }
+#else
     FILE *fp = ::fopen(name.c_str(), append ? "ab" : "wb");
     if (fp == nullptr) {
         return ERR_PERROR("Can not open file");
     }
-    file->reset(new PosixWritableFile(fp));
+#endif
+    *file = std::make_unique<PosixWritableFile>(fp);
     return Status::OK();
 }
-
-} // namespace base
 
 } // namespace yalx

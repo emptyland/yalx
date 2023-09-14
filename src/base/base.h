@@ -4,6 +4,8 @@
 
 #include "runtime/macros.h"
 #include <type_traits>
+#include <utility>
+#include <stdint.h>
 #include <stddef.h>
 #include <assert.h>
 

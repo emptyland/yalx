@@ -4,7 +4,8 @@
 
 #include "runtime/stack.h"
 #include "runtime/runtime.h"
-#include <pthread.h>
+#include "runtime/thread.h"
+#include "runtime/locks.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -87,7 +88,7 @@ struct coroutine {
 struct machine {
     QUEUE_HEADER(struct machine);
     struct processor *owns;
-    pthread_t thread;
+    struct yalx_os_thread thread;
     enum machine_state state;
     struct coroutine *running;
     struct stack_pool stack_pool;
@@ -101,7 +102,7 @@ struct processor {
     enum processor_state state;
     int n_threads;
     struct machine machine_head;
-    pthread_mutex_t mutex;
+    struct yalx_mutex mutex;
 }; // struct processor
 
 // Implements in runtime.c
@@ -109,10 +110,13 @@ extern struct processor *procs;
 extern int nprocs;
 extern struct machine m0;
 extern struct coroutine c0;
-extern _Thread_local struct machine *thread_local_mach;
+
+extern yalx_tls_t tls_mach;
+
+#define thread_local_mach ((struct machine *)yalx_tls_get(tls_mach))
 
 
-int yalx_init_processor(const procid_t id, struct processor *proc);
+int yalx_init_processor(procid_t id, struct processor *proc);
 
 int yalx_add_machine_to_processor(struct processor *proc, struct machine *m);
 
@@ -122,7 +126,7 @@ int yalx_init_machine(struct machine *mach, struct processor *owns);
 
 static inline int yalx_is_m0(struct machine *m) { return m == &m0; }
 
-int yalx_init_coroutine(const coid_t id, struct coroutine *co, struct stack *stack, address_t entry);
+int yalx_init_coroutine(coid_t id, struct coroutine *co, struct stack *stack, address_t entry);
 
 void yalx_free_coroutine(struct coroutine *co);
 

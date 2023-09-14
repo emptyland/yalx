@@ -174,10 +174,9 @@ Statement *FileUnitScope::FindOrInsertSymbol(std::string_view name, Statement *a
         .append(name);
     auto iter = symobls_->find(full_name);
     if (iter == symobls_->cend()) {
-        GlobalSymbol symbol{
-            .symbol = String::New(file_unit()->arena(), full_name.data(), full_name.length()),
-            .ast = ast,
-            .owns = owns->pkg(),
+        GlobalSymbol symbol {
+            String::New(file_unit()->arena(), full_name.data(), full_name.length()),
+            ast, owns->pkg(),
         };
         file_unit()->Add(ast);
         (*symobls_)[symbol.symbol->ToSlice()] = symbol;
@@ -218,10 +217,9 @@ Statement *FileUnitScope::FindOrInsertExportSymbol(std::string_view prefix, std:
     full_name.append(".").append(name);
     auto iter = symobls_->find(full_name);
     if (iter == symobls_->cend()) {
-        GlobalSymbol symbol{
-            .symbol = String::New(file_unit()->arena(), full_name.data(), full_name.length()),
-            .ast = ast,
-            .owns = ast->Pack(false/*force*/),
+        GlobalSymbol symbol {
+            String::New(file_unit()->arena(), full_name.data(), full_name.length()),
+            ast, ast->Pack(false/*force*/),
         };
         file_unit()->Add(ast);
         (*symobls_)[symbol.symbol->ToSlice()] = symbol;
@@ -248,7 +246,7 @@ void DataDefinitionScope::InstallAncestorsSymbols() {
         for (auto base = def->base_of(); base != nullptr; base = base->base_of()) {
             ancestors.push(base);
         }
-        //def->concepts()
+        //def->koncepts()
     } else {
         assert(definition()->IsStructDefinition());
         auto def = definition()->AsStructDefinition();
@@ -275,20 +273,20 @@ void DataDefinitionScope::InstallAncestorsSymbols() {
 void DataDefinitionScope::InstallConcepts() {
     assert(definition()->IsClassDefinition());
     auto def = definition()->AsClassDefinition();
-    for (auto concept : def->concepts()) {
-        auto ift = DCHECK_NOTNULL(concept->AsInterfaceType())->definition();
+    for (auto koncept : def->koncepts()) {
+        auto ift = DCHECK_NOTNULL(koncept->AsInterfaceType())->definition();
         for (auto method : ift->methods()) {
-            Concept concept {
+            Concept koncept {
                 DCHECK_NOTNULL(method->prototype()->signature())->ToSlice(),
                 ift,
                 method,
                 0
             };
-            auto iter = concepts_symbols_.find(method->name()->ToSlice());
-            if (iter == concepts_symbols_.end()) {
-                concepts_symbols_[method->name()->ToSlice()] = {concept};
+            auto iter = koncepts_symbols_.find(method->name()->ToSlice());
+            if (iter == koncepts_symbols_.end()) {
+                koncepts_symbols_[method->name()->ToSlice()] = {koncept};
             } else {
-                iter->second.push_back(concept);
+                iter->second.push_back(koncept);
             }
         }
     }
@@ -329,12 +327,12 @@ EnumDefinition *DataDefinitionScope::AsEnum() const { return definition()->AsEnu
 
 DataDefinitionScope::ImplementTarget
 DataDefinitionScope::ImplementMethodOnce(std::string_view name, String *signature) {
-    auto concepts_iter = concepts_symbols_.find(name);
-    if (concepts_iter != concepts_symbols_.end()) {
+    auto koncepts_iter = koncepts_symbols_.find(name);
+    if (koncepts_iter != koncepts_symbols_.end()) {
         auto target = kNotFound;
-        for (auto &concept : concepts_iter->second) {
-            if (concept.method->prototype()->signature() == signature) {
-                concept.impl_count++;
+        for (auto &koncept : koncepts_iter->second) {
+            if (koncept.method->prototype()->signature() == signature) {
+                koncept.impl_count++;
                 target = kInterface;
             }
         }
@@ -358,11 +356,11 @@ DataDefinitionScope::ImplementMethodOnce(std::string_view name, String *signatur
 int
 DataDefinitionScope::UnimplementMethods(std::function<void(InterfaceDefinition *, FunctionDeclaration *)> &&callback) {
     int count = 0;
-    for (const auto &pair : concepts_symbols_) {
-        for (const auto &concept : pair.second) {
-            if (concept.impl_count == 0) {
+    for (const auto &pair : koncepts_symbols_) {
+        for (const auto &koncept : pair.second) {
+            if (koncept.impl_count == 0) {
                 count++;
-                callback(concept.itf, concept.method);
+                callback(koncept.itf, koncept.method);
             }
         }
     }

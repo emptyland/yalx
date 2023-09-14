@@ -183,7 +183,8 @@ private:
             //pkg_scope->pkg()->FindOrInsertDeps(, <#Statement *ast#>)
             for (int i = 0; i < node->ItemSize(); i++) {
                 auto item = node->AtItem(i);
-                auto deps = pkg_scope->pkg()->FindOrInsertDeps(item->Identifier()->ToSlice(), node);
+                auto deps = pkg_scope->pkg()->FindOrInsertDeps(arena_, item->Identifier()->ToSlice(), node);
+                USE(deps);
                 // TODO:
                 
                 if (item->Type()) {
@@ -213,6 +214,8 @@ private:
     }
     
     Type *TypeLinkage(const Symbol *name, Type *owns) {
+        DCHECK(0);
+        return nullptr;
     }
     
     SyntaxFeedback *Feedback() {
@@ -267,11 +270,7 @@ private:
         if (iter != global_symbols_.end()) {
             return iter->second;
         }
-        GlobalSymbol symbol = {
-            .symbol = String::New(arena_, full_name),
-            .owns = owns,
-            .ast = ast,
-        };
+        GlobalSymbol symbol = {String::New(arena_, full_name), ast, owns};
         global_symbols_[symbol.symbol->ToSlice()] = symbol;
         //printd("insert global: %s", symbol.symbol->data());
         

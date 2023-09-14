@@ -184,7 +184,7 @@ private:
     IncompletableDefinition *definition_;
     VariableDeclaration *this_stub_ = nullptr;
     std::map<std::string_view, Statement *> base_of_symbols_;
-    std::map<std::string_view, std::vector<Concept>> concepts_symbols_;
+    std::map<std::string_view, std::vector<Concept>> koncepts_symbols_;
 }; // class DataDefinitionScope
 
 class FunctionScope : public NamespaceScope {

@@ -15,7 +15,7 @@ protected:
 
 TEST_F(LinkageSymbolsTest, Sanity) {
     auto symbol = symbols_.Mangle("main:main.$init");
-    ASSERT_NE(nullptr, symbol);
+    ASSERT_TRUE(nullptr != symbol);
     ASSERT_STREQ("_main_Zomain_Zd_Z4init", symbol->data());
     
     symbol = symbols_.Mangle("yalx/lang:lang.Any.hashCode");

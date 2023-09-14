@@ -25,7 +25,7 @@ TEST_F(Arm64InstructionSelectorTest, Sanity) {
     blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(2), fun->paramater(1), fun->paramater(1));
     
     auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
-    ASSERT_NE(nullptr, instr_fun);
+    ASSERT_TRUE(nullptr != instr_fun);
     
     auto block = instr_fun->block(0);
     ASSERT_EQ(2, block->instructions().size());
@@ -56,7 +56,7 @@ TEST_F(Arm64InstructionSelectorTest, HeapAllocSelecting) {
     blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), rs);
     
     auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
-    ASSERT_NE(nullptr, instr_fun);
+    ASSERT_TRUE(nullptr != instr_fun);
     
     auto block = instr_fun->block(0);
     ASSERT_EQ(6, block->instructions().size());
@@ -83,7 +83,7 @@ TEST_F(Arm64InstructionSelectorTest, ScanVirtualRegisters) {
     blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), rs);
     
     auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
-    ASSERT_NE(nullptr, instr_fun);
+    ASSERT_TRUE(nullptr != instr_fun);
     
     RegisterAllocator allocator(arena(), regconf_, instr_fun);
     allocator.Prepare();
@@ -117,8 +117,8 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     entry->NewNode(kUnknown, ir::Types::Void, ops()->Br(0, 1), l1);
     entry->LinkTo(l1);
     
-    auto zero = ir::Value::New0(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(0));
-    auto one = ir::Value::New0(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(1));
+    auto zero = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(0));
+    auto one = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(1));
     
 //    auto phi0 = l1->NewNode(kUnknown, ir::Types::Int32, ops()->Phi(2, 2), zero, zero, entry, l2);
 //    auto phi1 = l1->NewNode(kUnknown, ir::Types::Int32, ops()->Phi(2, 2), one, one, entry, l2);
@@ -129,7 +129,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     l1->LinkTo(l2);
     l1->LinkTo(l3);
     
-    auto three = ir::Value::New0(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(3));
+    auto three = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(3));
     auto ret1 = l2->NewNode(kUnknown, ir::Types::Int32, ops()->Add(), phi1, three);
     phi1->Replace(arena(), 1, one, ret1);
     l1->AddInstruction(phi1);
@@ -144,7 +144,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     l3->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), phi1);
     
     auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
-    ASSERT_NE(nullptr, instr_fun);
+    ASSERT_TRUE(nullptr != instr_fun);
 
     RegisterAllocator allocator(arena(), regconf_, instr_fun);
     allocator.Prepare();
@@ -196,7 +196,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     allocator.WalkIntervals();
     
     interval = allocator.IntervalOf(param0);
-    ASSERT_NE(nullptr, interval);
+    ASSERT_TRUE(nullptr != interval);
     ASSERT_TRUE(interval->has_assigned_gp_register());
     EXPECT_EQ(0, interval->assigned_operand());
     

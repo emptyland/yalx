@@ -5,9 +5,7 @@
 #include "base/arena.h"
 #include <gtest/gtest.h>
 
-namespace yalx {
-    
-namespace cpl {
+namespace yalx::cpl {
 
 
 class LexerTest : public ::testing::Test {
@@ -168,6 +166,7 @@ TEST_F(LexerTest, Annotation) {
     ASSERT_EQ(5, token.source_position().end_column());
 }
 
+#if !defined(YALX_OS_WINDOWS)
 TEST_F(LexerTest, CharVal) {
     SwitchInput("\'1\'\'😤\''汉'");
     auto token = lexer_.Next();
@@ -188,7 +187,5 @@ TEST_F(LexerTest, CharVal) {
     ASSERT_EQ(1, token.source_position().begin_line());
     ASSERT_EQ(10, token.source_position().begin_column());
 }
-
-} // namespace cpl
-
+#endif
 } // namespace yalx

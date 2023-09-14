@@ -6,24 +6,25 @@
 #include "base/checking.h"
 #include "base/base.h"
 
-#if defined(YALX_OS_DARWIN)
+#if defined(YALX_OS_POSIX)
 #include <sys/mman.h>
+#endif
+
+#if defined(YALX_OS_DARWIN)
 #include <libkern/OSCacheControl.h>
 #if defined(YALX_ARCH_ARM64)
 #include <pthread.h>
 #endif // defined(YALX_ARCH_ARM64)
-
 #endif // defined(YALX_OS_DARWIN)
 
 #if defined(YALX_OS_WINDOWS)
 #include <windows.h>
+#include <io.h>
 #endif
 
 #include <memory>
 
-namespace yalx {
-
-namespace base  {
+namespace yalx::base  {
 
 class SequentialFile;
 class WritableFile;
@@ -162,8 +163,6 @@ inline Status Env::OSPageFree(void *chunk, size_t n) {
 }
 
 #endif
-
-} // namespace base
 
 } // namespace yalx
 

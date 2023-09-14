@@ -3,7 +3,7 @@
 #define YALX_RUNTIME_STACK_H_
 
 #include "runtime/runtime.h"
-#include <pthread.h>
+#include "runtime/locks.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +40,7 @@ struct stack_pool {
     size_t limit;
     size_t rss;
     size_t used;
-    pthread_mutex_t mutex;
+    struct yalx_mutex mutex;
 }; // struct stack_pool
 
 extern struct stack_pool stack_pool;

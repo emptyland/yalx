@@ -121,7 +121,7 @@ enum yalx_builtin_type {
     NOT_BUILTIN_TYPE,
 };
 
-extern struct yalx_class *builtin_classes;
+extern struct yalx_class builtin_classes[MAX_BUILTIN_TYPES];
 
 static inline enum yalx_builtin_type yalx_builtin_type(const struct yalx_class * klass) {
     ptrdiff_t diff = klass - builtin_classes;

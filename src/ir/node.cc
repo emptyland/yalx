@@ -453,7 +453,7 @@ void BasicBlock::PrintTo(PrintingContext *ctx, base::PrintingWriter *printer) co
 
 Value *Value::NewWithInputs(base::Arena *arena, const String *name, SourcePosition source_position, Type type,
                             Operator *op, Node **inputs, size_t size) {
-    auto value = New0(arena, name, source_position, type, op);
+    auto value = New(arena, name, source_position, type, op);
     DCHECK(size == TotalInOutputs(op));
     ::memcpy(value->io_, inputs, size * sizeof(Node *));
     for (size_t i = 0; i < size; i++) {

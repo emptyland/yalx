@@ -30,9 +30,7 @@ void Package::Prepare() {
     for (auto file : source_files()) {
         for (auto item : file->imports()) {
             imports_[item->package_path()->ToSlice()] = Import{
-                .pkg = nullptr,
-                .file_unit = file,
-                .entry = item,
+                nullptr, file, item,
             };
         }
     }
@@ -476,13 +474,13 @@ StructDefinition::StructDefinition(base::Arena *arena, const String *name, const
 
 ClassDefinition::ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position)
     : IncompletableDefinition(Node::kClassDefinition, arena, name, source_position)
-    , concepts_(arena) {
+    , koncepts_(arena) {
 }
 
 bool ClassDefinition::IsConceptOf(const InterfaceDefinition *interface) const {
     for (auto owns = this; owns != nullptr; owns = owns->base_of()) {
-        for (auto concept : concepts()) {
-            if (DCHECK_NOTNULL(concept->AsInterfaceType())->definition() == interface) {
+        for (auto koncept : koncepts()) {
+            if (DCHECK_NOTNULL(koncept->AsInterfaceType())->definition() == interface) {
                 return true;
             }
         }

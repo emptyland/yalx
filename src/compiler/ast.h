@@ -6,10 +6,9 @@
 #include "base/checking.h"
 #include "base/arena-utils.h"
 #include <functional>
+#include <algorithm>
 
-namespace yalx {
-
-namespace cpl {
+namespace yalx::cpl {
 
 class AstVisitor;
 
@@ -129,6 +128,11 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 // FileUnit
 //----------------------------------------------------------------------------------------------------------------------
+// <windows.h> defined `interface' to `struct'
+#ifdef interface
+#undef interface
+#endif
+
 class FileUnit : public AstNode {
 public:
     class ImportEntry : public AstNode {
@@ -700,13 +704,13 @@ public:
     ClassDefinition(base::Arena *arena, const String *name, const SourcePosition &source_position);
 
     DEF_PTR_PROP_RW(ClassDefinition, base_of);
-    DEF_ARENA_VECTOR_GETTER(Type *, concept);
-    Type **mutable_concept(size_t i) {
-        assert(i < concepts_size());
-        return &concepts_[i];
+    DEF_ARENA_VECTOR_GETTER(Type *, koncept);
+    Type **mutable_koncept(size_t i) {
+        assert(i < koncepts_size());
+        return &koncepts_[i];
     }
 
-    Statement *FindSymbolOrNull(std::string_view name) const {
+    [[nodiscard]] Statement *FindSymbolOrNull(std::string_view name) const {
         return std::get<0>(FindSymbolWithOwns(name));
     }
     
@@ -736,7 +740,7 @@ public:
     DECLARE_AST_NODE(ClassDefinition);
 private:
     ClassDefinition *base_of_ = nullptr;
-    base::ArenaVector<Type *> concepts_;
+    base::ArenaVector<Type *> koncepts_;
     //base::ArenaVector<InterfaceDefinition *> implements_;
 }; // class ClassDefinition
 
@@ -860,8 +864,8 @@ public:
     bool IsNotPlaceholder() const { return !IsPlaceholder(); }
     bool IsPlaceholder() const { return IsPlaceholder(name_); }
     
-    constexpr static bool IsNotPlaceholder(const String *name) { return !IsPlaceholder(name); }
-    constexpr static bool IsPlaceholder(const String *name) { return name->Equal("_"); }
+    static bool IsNotPlaceholder(const String *name) { return !IsPlaceholder(name); }
+    static bool IsPlaceholder(const String *name) { return name->Equal("_"); }
 
     DECLARE_AST_NODE(Identifier);
 private:
@@ -1819,8 +1823,6 @@ inline Type *LiteralTraits<char32_t>::Mold(base::Arena *arena, const SourcePosit
 inline Type *LiteralTraits<const String *>::Mold(base::Arena *arena, const SourcePosition &location) {
     return new (arena) Type(arena, Type::kType_string, location);
 }
-
-} // namespace cpl
 
 } // namespace yalx
 

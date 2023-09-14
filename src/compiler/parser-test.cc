@@ -52,9 +52,9 @@ TEST_F(ParserTest, Sanity) {
     bool ok = true;
     auto file_unit = parser_.Parse(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, file_unit);
+    ASSERT_TRUE(nullptr != file_unit);
     
-    ASSERT_NE(nullptr, file_unit->package_name());
+    ASSERT_TRUE(nullptr != file_unit->package_name());
     EXPECT_STREQ("main", file_unit->package_name()->data());
     
     ASSERT_EQ(1, file_unit->imports_size());
@@ -69,7 +69,7 @@ TEST_F(ParserTest, ImportStatements) {
     bool ok = true;
     auto file_unit = parser_.Parse(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, file_unit);
+    ASSERT_TRUE(nullptr != file_unit);
     
     ASSERT_EQ(2, file_unit->imports_size());
     EXPECT_STREQ("foo/bar", file_unit->import(0)->package_path()->data());
@@ -86,21 +86,21 @@ TEST_F(ParserTest, Annotation) {
     bool ok = true;
     auto annotation = parser_.ParseAnnotation(false /*skip_at*/, &ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, annotation);
+    ASSERT_TRUE(nullptr != annotation);
     
     ASSERT_STREQ("Foo", annotation->name()->name()->data());
     EXPECT_EQ(nullptr, annotation->name()->prefix_name());
     
     annotation = parser_.ParseAnnotation(false /*skip_at*/, &ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, annotation);
+    ASSERT_TRUE(nullptr != annotation);
     
     EXPECT_STREQ("foo", annotation->name()->prefix_name()->data());
     EXPECT_STREQ("Bar", annotation->name()->name()->data());
     
     annotation = parser_.ParseAnnotation(false /*skip_at*/, &ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, annotation);
+    ASSERT_TRUE(nullptr != annotation);
     
     EXPECT_STREQ("Foo", annotation->name()->name()->data());
     EXPECT_EQ(nullptr, annotation->name()->prefix_name());
@@ -117,7 +117,7 @@ TEST_F(ParserTest, AnnotationArray) {
     bool ok = true;
     auto annotation = parser_.ParseAnnotation(false /*skip_at*/, &ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, annotation);
+    ASSERT_TRUE(nullptr != annotation);
 }
 
 TEST_F(ParserTest, AnnotationDeclaration) {
@@ -128,7 +128,7 @@ TEST_F(ParserTest, AnnotationDeclaration) {
     bool ok = true;
     auto decl = parser_.ParseAnnotationDeclaration(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, decl);
+    ASSERT_TRUE(nullptr != decl);
     
     ASSERT_EQ(4, decl->annotations_size());
     auto anno = decl->annotation(1);
@@ -152,7 +152,7 @@ TEST_F(ParserTest, SimpleFunctionPrototype) {
     bool ok = true;
     auto ast = parser_.ParseType(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsFunctionPrototype());
     auto fun = ast->AsFunctionPrototype();
@@ -167,7 +167,7 @@ TEST_F(ParserTest, MutliParamsFunctionPrototype) {
     bool ok = true;
     auto ast = parser_.ParseType(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsFunctionPrototype());
     auto fun = ast->AsFunctionPrototype();
@@ -186,7 +186,7 @@ TEST_F(ParserTest, MutliReturnsFunctionPrototype) {
     bool ok = true;
     auto ast = parser_.ParseType(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsFunctionPrototype());
     auto fun = ast->AsFunctionPrototype();
@@ -204,7 +204,7 @@ TEST_F(ParserTest, SimpleNumberLiteral) {
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_EQ(Node::kIntLiteral, ast->kind());
     ASSERT_TRUE(ast->IsIntLiteral());
@@ -212,21 +212,21 @@ TEST_F(ParserTest, SimpleNumberLiteral) {
     
     ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     ASSERT_EQ(Node::kIntLiteral, ast->kind());
     ASSERT_TRUE(ast->IsIntLiteral());
     EXPECT_EQ(2, ast->AsIntLiteral()->value());
     
     ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     ASSERT_EQ(Node::kIntLiteral, ast->kind());
     ASSERT_TRUE(ast->IsIntLiteral());
     EXPECT_EQ(3, ast->AsIntLiteral()->value());
     
     ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     ASSERT_TRUE(ast->IsStringLiteral());
     EXPECT_STREQ("ok", ast->AsStringLiteral()->value()->data());
 }
@@ -236,7 +236,7 @@ TEST_F(ParserTest, ParenOrLambdaLiteral) {
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsIntLiteral());
     EXPECT_EQ(1, ast->AsIntLiteral()->value());
@@ -244,7 +244,7 @@ TEST_F(ParserTest, ParenOrLambdaLiteral) {
     SwitchInput("()->1,2\n");
     ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsLambdaLiteral());
     auto lambda = ast->AsLambdaLiteral();
@@ -258,7 +258,7 @@ TEST_F(ParserTest, LambdaLiteral) {
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsLambdaLiteral());
     auto lambda = ast->AsLambdaLiteral();
@@ -274,7 +274,7 @@ TEST_F(ParserTest, SimpleArithmetic) {
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsSub());
     auto lhs = ast->AsSub()->lhs();
@@ -293,7 +293,7 @@ TEST_F(ParserTest, SimpleIfExpression) {
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsIfExpression());
     EXPECT_EQ(nullptr, ast->AsIfExpression()->initializer());
@@ -307,7 +307,7 @@ TEST_F(ParserTest, IfExpressionWithInitializer) {
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsIfExpression());
     auto expr = ast->AsIfExpression();
@@ -324,7 +324,7 @@ TEST_F(ParserTest, IfExpressionWithElseIf) { // a<b<c<int>>() foo.Foo[~int,int](
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsIfExpression());
     auto expr = ast->AsIfExpression();
@@ -342,7 +342,7 @@ TEST_F(ParserTest, TryCatchExpression) {
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
 }
 
 TEST_F(ParserTest, WhenExpression) {
@@ -355,7 +355,7 @@ TEST_F(ParserTest, WhenExpression) {
     bool ok = true;
     auto ast = parser_.ParseWhenExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsWhenExpression());
     EXPECT_EQ(nullptr, ast->initializer());
@@ -367,7 +367,7 @@ TEST_F(ParserTest, WhenExpression) {
     ASSERT_TRUE(case_clause->then_clause()->IsIntLiteral());
     EXPECT_EQ(0, case_clause->then_clause()->AsIntLiteral()->value());
     
-    ASSERT_NE(nullptr, ast->else_clause());
+    ASSERT_TRUE(nullptr != ast->else_clause());
     ASSERT_TRUE(ast->else_clause()->IsIntLiteral());
     EXPECT_EQ(3, ast->else_clause()->AsIntLiteral()->value());
 }
@@ -382,10 +382,10 @@ TEST_F(ParserTest, WhenExpressionTypeCastingCases) {
     bool ok = true;
     auto ast = parser_.ParseWhenExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsWhenExpression());
-    ASSERT_NE(nullptr, ast->AsWhenExpression()->initializer());
+    ASSERT_TRUE(nullptr != ast->AsWhenExpression()->initializer());
     ASSERT_TRUE(ast->AsWhenExpression()->initializer()->IsVariableDeclaration());
 }
 
@@ -394,7 +394,7 @@ TEST_F(ParserTest, StringTemplate) {
     bool ok = true;
     auto ast = parser_.ParseStringTemplate(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
  
     ASSERT_TRUE(ast->IsStringTemplate());
     ASSERT_EQ(4, ast->parts_size());
@@ -412,7 +412,7 @@ TEST_F(ParserTest, Instantiation) {
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsCalling());
     ASSERT_TRUE(ast->AsCalling()->callee()->IsInstantiation());
@@ -427,7 +427,7 @@ TEST_F(ParserTest, InstantiationNested) {
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
 }
 
 
@@ -436,7 +436,7 @@ TEST_F(ParserTest, Assigment) {
     bool ok = true;
     auto ast = parser_.ParseStatement(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsAssignment());
     auto stmt = ast->AsAssignment();
@@ -451,7 +451,7 @@ TEST_F(ParserTest, AssigmentMultiLVal) {
     bool ok = true;
     auto ast = parser_.ParseStatement(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsAssignment());
     auto stmt = ast->AsAssignment();
@@ -468,7 +468,7 @@ TEST_F(ParserTest, AssigmentMultiRVal) {
     bool ok = true;
     auto ast = parser_.ParseStatement(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsAssignment());
     auto stmt = ast->AsAssignment();
@@ -488,7 +488,7 @@ TEST_F(ParserTest, WhileUnlessLoop) {
     bool ok = true;
     auto ast = parser_.ParseWhileLoop(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsWhileLoop());
     EXPECT_EQ(nullptr, ast->initializer());
@@ -497,7 +497,7 @@ TEST_F(ParserTest, WhileUnlessLoop) {
     
     auto unless = parser_.ParseUnlessLoop(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, unless);
+    ASSERT_TRUE(nullptr != unless);
     ASSERT_TRUE(unless->IsUnlessLoop());
     EXPECT_EQ(nullptr, unless->initializer());
     ASSERT_TRUE(unless->condition()->IsIdentifier());
@@ -509,12 +509,12 @@ TEST_F(ParserTest, WhileUnlessWithInitializerLoop) {
     bool ok = true;
     auto ast = parser_.ParseWhileLoop(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsWhileLoop());
-    ASSERT_NE(nullptr, ast->initializer());
+    ASSERT_TRUE(nullptr != ast->initializer());
     ASSERT_TRUE(ast->initializer()->IsVariableDeclaration());
-    ASSERT_NE(nullptr, ast->condition());
+    ASSERT_TRUE(nullptr != ast->condition());
     ASSERT_TRUE(ast->condition()->IsGreater());
 }
 
@@ -524,7 +524,7 @@ TEST_F(ParserTest, FunctionDeclaration) {
     bool ok = true;
     auto ast = parser_.ParseFunctionDeclaration(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     EXPECT_TRUE(ast->IsNative());
     EXPECT_STREQ("foo", ast->name()->data());
@@ -539,7 +539,7 @@ TEST_F(ParserTest, FunctionDeclaration) {
     
     auto param = static_cast<VariableDeclaration::Item *>(ast->prototype()->param(0));
     EXPECT_STREQ("a", param->identifier()->data());
-    ASSERT_NE(nullptr, param->annotations());
+    ASSERT_TRUE(nullptr != param->annotations());
     ASSERT_EQ(1, param->annotations()->annotations_size());
     auto anno = param->annotations()->annotation(0);
     EXPECT_STREQ("Foo", anno->name()->name()->data());
@@ -554,7 +554,7 @@ TEST_F(ParserTest, InterfaceDefinition) {
     bool ok = true;
     auto ast = parser_.ParseInterfaceDefinition(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_TRUE(ast->IsInterfaceDefinition());
     ASSERT_EQ(2, ast->methods_size());
@@ -567,7 +567,7 @@ TEST_F(ParserTest, StructDefinition) {
     bool ok = true;
     auto ast = parser_.ParseStructDefinition(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_EQ(2, ast->parameters_size());
     ASSERT_TRUE(ast->parameter(0).field_declaration);
@@ -583,17 +583,17 @@ TEST_F(ParserTest, StructDefinitionWithSuperCall) {
     bool ok = true;
     auto ast = parser_.ParseStructDefinition(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     
     ASSERT_EQ(2, ast->generic_params_size());
     EXPECT_STREQ("T", ast->generic_param(0)->name()->data());
     EXPECT_STREQ("P", ast->generic_param(1)->name()->data());
     
-    ASSERT_NE(nullptr, ast->super_calling());
+    ASSERT_TRUE(nullptr != ast->super_calling());
     ASSERT_TRUE(ast->super_calling()->IsCalling());
     EXPECT_EQ(0, ast->super_calling()->args_size());
     auto callee = ast->super_calling()->callee()->AsInstantiation();
-    ASSERT_NE(nullptr, callee);
+    ASSERT_TRUE(nullptr != callee);
     ASSERT_TRUE(callee->primary()->IsDot());
     auto symbol = callee->primary()->AsDot();
     EXPECT_STREQ("bar", symbol->primary()->AsIdentifier()->name()->data());
@@ -608,7 +608,7 @@ TEST_F(ParserTest, BreakContinueThrowStatements) {
     bool ok = true;
     auto ast = parser_.ParseStatement(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     ASSERT_TRUE(ast->IsBreak());
     
     ast = parser_.ParseStatement(&ok);
@@ -629,7 +629,7 @@ TEST_F(ParserTest, ArrayInitializer) {
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     ASSERT_TRUE(ast->IsArrayInitializer());
     auto ar1 = ast->AsArrayInitializer();
     ASSERT_EQ(3, ar1->dimensions_size());
@@ -646,7 +646,7 @@ TEST_F(ParserTest, ArrayInitializer) {
     ASSERT_TRUE(ast->IsArrayInitializer());
     auto ar3 = ast->AsArrayInitializer();
     ASSERT_EQ(3, ar3->dimensions_size());
-    ASSERT_NE(nullptr, ar3->type());
+    ASSERT_TRUE(nullptr != ar3->type());
     ASSERT_TRUE(ar3->type()->IsArrayType());
 }
 
@@ -657,7 +657,7 @@ TEST_F(ParserTest, MutliDimsArrayInitializer) {
     bool ok = true;
     auto ast = parser_.ParseExpression(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     ASSERT_TRUE(ast->IsArrayInitializer());
     auto ar = down_cast<ArrayType>(ast->AsArrayInitializer()->type());
     ASSERT_EQ(2, ar->dimension_count());
@@ -674,7 +674,7 @@ TEST_F(ParserTest, EnumDefinition) {
     bool ok = true;
     auto ast = parser_.ParseEnumDefinition(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     EXPECT_STREQ("Foo", ast->name()->data());
     ASSERT_EQ(1, ast->generic_params_size());
     
@@ -694,7 +694,7 @@ TEST_F(ParserTest, EnumDefinition) {
     })");
     ast = parser_.ParseEnumDefinition(&ok);
     ASSERT_TRUE(ok);
-    ASSERT_NE(nullptr, ast);
+    ASSERT_TRUE(nullptr != ast);
     EXPECT_STREQ("Bar", ast->name()->data());
     ASSERT_EQ(0, ast->generic_params_size());
     

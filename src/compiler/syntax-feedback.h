@@ -21,8 +21,9 @@ public:
     void Feedback(const SourcePosition &location, const char *message) {
         DidFeedback(location, message, ::strlen(message));
     }
-
+#if defined(YALX_USE_CLANG)
     __attribute__ (( __format__ (__printf__, 3, 4)))
+#endif
     void Printf(const SourcePosition &location, const char *fmt, ...) {
         va_list ap;
         va_start(ap, fmt);

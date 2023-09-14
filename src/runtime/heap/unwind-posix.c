@@ -47,12 +47,12 @@ struct backtrace_frame **yalx_unwind(size_t *depth, int dummy) {
         char name[256];
         if (unw_get_proc_name(&cursor, name, 256, &offset) == 0) {
             size_t n = yalx_symbol_demangle_on_place(name, strlen(name));
-            put_field((yalx_ref_t *)&frame->function, (yalx_ref_t)yalx_new_string(&heap, name, n));
+            put_field((yalx_ref_t *)&frame->function, (yalx_ref_t)yalx_new_string(heap, name, n));
         } else {
-            put_field((yalx_ref_t *)&frame->function, (yalx_ref_t)yalx_new_string(&heap, "<unknown>", 9));
+            put_field((yalx_ref_t *)&frame->function, (yalx_ref_t)yalx_new_string(heap, "<unknown>", 9));
         }
         frame->line = 0;
-        put_field((yalx_ref_t *)&frame->file, (yalx_ref_t)yalx_new_string(&heap, "<unknown>", 9));
+        put_field((yalx_ref_t *)&frame->file, (yalx_ref_t)yalx_new_string(heap, "<unknown>", 9));
 
         if (size + 1 > capacity) {
             capacity <<= 1;
@@ -68,7 +68,7 @@ struct backtrace_frame **yalx_unwind(size_t *depth, int dummy) {
 void yalx_Zplang_Zolang_Zdunwind_stub(void) {
     size_t size = 0;
     struct backtrace_frame **frames = yalx_unwind(&size, 1);
-    struct yalx_value_array_header *array = yalx_new_refs_array_with_data(&heap, backtrace_frame_class, 1, NULL,
+    struct yalx_value_array_header *array = yalx_new_refs_array_with_data(heap, backtrace_frame_class, 1, NULL,
                                                                           (yalx_ref_t *)frames, size);
     free(frames);
     yalx_return_ref((yalx_ref_t)array);

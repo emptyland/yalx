@@ -10,7 +10,7 @@
 // All buitlin types:
 //----------------------------------------------------------------------------------------------------------------------
 
-struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {    
+struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
     [Type_bool] = {
         .id = (uint64_t)Type_bool,
         .constraint = K_PRIMITIVE,
@@ -30,7 +30,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // bool
-    
+
     [Type_i8] = {
         .id = (uint64_t)Type_i8,
         .constraint = K_PRIMITIVE,
@@ -50,7 +50,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // i8
-    
+
     [Type_u8] = {
         .id = (uint64_t)Type_u8,
         .constraint = K_PRIMITIVE,
@@ -70,7 +70,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // u8
-    
+
     [Type_i16] = {
         .id = (uint64_t)Type_i16,
         .constraint = K_PRIMITIVE,
@@ -90,7 +90,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // i16
-    
+
     [Type_u16] = {
         .id = (uint64_t)Type_u16,
         .constraint = K_PRIMITIVE,
@@ -110,7 +110,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // u16
-    
+
     [Type_i32] = {
         .id = (uint64_t)Type_i32,
         .constraint = K_PRIMITIVE,
@@ -130,7 +130,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // i32
-    
+
     [Type_u32] = {
         .id = (uint64_t)Type_u32,
         .constraint = K_PRIMITIVE,
@@ -150,7 +150,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // u32
-    
+
     [Type_i64] = {
         .id = (uint64_t)Type_i64,
         .constraint = K_PRIMITIVE,
@@ -170,7 +170,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // i64
-    
+
     [Type_u64] = {
         .id = (uint64_t)Type_u64,
         .constraint = K_PRIMITIVE,
@@ -190,7 +190,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // u64
-    
+
     [Type_f32] = {
         .id = (uint64_t)Type_f32,
         .constraint = K_PRIMITIVE,
@@ -210,7 +210,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // f32
-    
+
     [Type_f64] = {
         .id = (uint64_t)Type_f64,
         .constraint = K_PRIMITIVE,
@@ -230,7 +230,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // f64
-    
+
     //------------------------------------------------------------------------------------------------------------------
     // Boxing types:
     //------------------------------------------------------------------------------------------------------------------
@@ -253,7 +253,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // Bool
-    
+
     [Type_I8] = {
         .id = (uint64_t)Type_I8,
         .constraint = K_PRIMITIVE,
@@ -273,7 +273,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // I8
-    
+
     [Type_U8] = {
         .id = (uint64_t)Type_U8,
         .constraint = K_PRIMITIVE,
@@ -293,7 +293,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // U8
-    
+
     [Type_I16] = {
         .id = (uint64_t)Type_I16,
         .constraint = K_PRIMITIVE,
@@ -313,7 +313,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // U8
-    
+
     [Type_U16] = {
         .id = (uint64_t)Type_U16,
         .constraint = K_PRIMITIVE,
@@ -333,7 +333,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // U16
-    
+
     [Type_I32] = {
         .id = (uint64_t)Type_I32,
         .constraint = K_PRIMITIVE,
@@ -353,7 +353,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // I32
-    
+
     [Type_U32] = {
         .id = (uint64_t)Type_U32,
         .constraint = K_PRIMITIVE,
@@ -373,7 +373,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // U32
-    
+
     [Type_I64] = {
         .id = (uint64_t)Type_I64,
         .constraint = K_PRIMITIVE,
@@ -393,7 +393,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // I64
-    
+
     [Type_U64] = {
         .id = (uint64_t)Type_U64,
         .constraint = K_PRIMITIVE,
@@ -413,7 +413,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // U64
-    
+
     [Type_F32] = {
         .id = (uint64_t)Type_F32,
         .constraint = K_PRIMITIVE,
@@ -433,7 +433,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // F32
-    
+
     [Type_F64] = {
         .id = (uint64_t)Type_F64,
         .constraint = K_PRIMITIVE,
@@ -453,7 +453,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // F64
-    
+
     [Type_array] = {
         .id = (uint64_t)Type_array,
         .constraint = K_CLASS,
@@ -473,9 +473,9 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         .refs_mark_len = 0,
         // TODO:
     }, // TypedArray
-    
+
     [Type_unused0] = {}, // unused
-    
+
     [Type_multi_dims_array] = {
         .id = (uint64_t)Type_multi_dims_array,
         .constraint = K_CLASS,

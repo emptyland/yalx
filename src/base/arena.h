@@ -31,26 +31,26 @@ public:
     //    // MSVS unfortunately requires the default constructor to be defined.
     //    ZoneAllocator() : ZoneAllocator(nullptr) { UNREACHABLE(); }
     //#endif
-    explicit ArenaAllocator(Arena* arena) throw() : arena_(arena) {}
-    explicit ArenaAllocator(const ArenaAllocator& other) throw()
+    explicit ArenaAllocator(Arena* arena) noexcept : arena_(arena) {}
+    ArenaAllocator(const ArenaAllocator& other) noexcept
         : ArenaAllocator<T>(other.arena_) {}
     template <typename U>
-    ArenaAllocator(const ArenaAllocator<U>& other) throw()
+    explicit ArenaAllocator(const ArenaAllocator<U>& other) noexcept
         : ArenaAllocator<T>(other.arena()) {}
     
     template <typename U>
     friend class ZoneAllocator;
     
     T* address(T& x) const { return &x; }
-    const T* address(const T& x) const { return &x; }
+    [[nodiscard]] const T* address(const T& x) const { return &x; }
     
     inline T* allocate(size_t n, const void* hint = 0);
     
     void deallocate(T* p, size_t) { /* noop for Zones */
     }
     
-    size_t max_size() const throw() {
-        return std::numeric_limits<int>::max() / sizeof(T);
+    [[nodiscard]] size_t max_size() const noexcept {
+        return INT32_MAX / sizeof(T);
     }
     template <typename U, typename... Args>
     void construct(U* p, Args&&... args) {
@@ -69,10 +69,10 @@ public:
         return arena_ != other.arena_;
     }
     
-    Arena* arena() const { return arena_; }
+    [[nodiscard]] Arena* arena() const { return arena_; }
     
 private:
-    Arena* arena_;
+    Arena* arena_{};
 }; // template <class T> class ArenaAllocator
     
 class Arena {

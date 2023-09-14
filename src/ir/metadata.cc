@@ -151,92 +151,52 @@ void PrimitiveShadow::Init() {
     
     kU8 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "u8"), Types::UInt8);
     kU8->Put(arena_, "toString", {
-        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("u8ToString")),
-        .access = kPublic,
-        .in_vtab = 0,
-        .id_vtab = 0,
-        .in_itab = 0,
+        DCHECK_NOTNULL(base_pkg->FindFunOrNull("u8ToString")), kPublic, 0, 0, 0,
     });
     
     kI8 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "i8"), Types::Int8);
     kI8->Put(arena_, "toString", {
-        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("i8ToString")),
-        .access = kPublic,
-        .in_vtab = 0,
-        .id_vtab = 0,
-        .in_itab = 0,
+        DCHECK_NOTNULL(base_pkg->FindFunOrNull("i8ToString")), kPublic, 0, 0, 0,
     });
     
     kU16 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "u16"), Types::UInt16);
     kU16->Put(arena_, "toString", {
-        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("u16ToString")),
-        .access = kPublic,
-        .in_vtab = 0,
-        .id_vtab = 0,
-        .in_itab = 0,
+        DCHECK_NOTNULL(base_pkg->FindFunOrNull("u16ToString")), kPublic, 0, 0, 0,
     });
     
     kI16 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "i16"), Types::Int16);
     kI16->Put(arena_, "toString", {
-        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("i16ToString")),
-        .access = kPublic,
-        .in_vtab = 0,
-        .id_vtab = 0,
-        .in_itab = 0,
+        DCHECK_NOTNULL(base_pkg->FindFunOrNull("i16ToString")), kPublic, 0, 0, 0,
     });
     
     kU32 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "u32"), Types::UInt32);
     kU32->Put(arena_, "toString", {
-        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("u32ToString")),
-        .access = kPublic,
-        .in_vtab = 0,
-        .id_vtab = 0,
-        .in_itab = 0,
+        DCHECK_NOTNULL(base_pkg->FindFunOrNull("u32ToString")), kPublic, 0, 0, 0,
     });
     
     kI32 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "i32"), Types::Int32);
     kI32->Put(arena_, "toString", {
-        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("i32ToString")),
-        .access = kPublic,
-        .in_vtab = 0,
-        .id_vtab = 0,
-        .in_itab = 0,
+        DCHECK_NOTNULL(base_pkg->FindFunOrNull("i32ToString")), kPublic, 0, 0, 0,
     });
     
     kU64 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "u64"), Types::UInt64);
     kU64->Put(arena_, "toString", {
-        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("u64ToString")),
-        .access = kPublic,
-        .in_vtab = 0,
-        .id_vtab = 0,
-        .in_itab = 0,
+        DCHECK_NOTNULL(base_pkg->FindFunOrNull("u64ToString")), kPublic, 0, 0, 0,
     });
     
     kI64 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "i64"), Types::Int64);
     kI64->Put(arena_, "toString", {
-        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("i64ToString")),
-        .access = kPublic,
-        .in_vtab = 0,
-        .id_vtab = 0,
-        .in_itab = 0,
+        DCHECK_NOTNULL(base_pkg->FindFunOrNull("i64ToString")), kPublic, 0, 0, 0,
     });
     
     kF32 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "f32"), Types::Float32);
     kF32->Put(arena_, "toString", {
-        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("f32ToString")),
-        .access = kPublic,
-        .in_vtab = 0,
-        .id_vtab = 0,
-        .in_itab = 0,
+        DCHECK_NOTNULL(base_pkg->FindFunOrNull("f32ToString")), kPublic, 0, 0, 0,
     });
     
     kF64 = new (arena_) PrimitiveModel(arena_, String::New(arena_, "f64"), Types::Float64);
     kF64->Put(arena_, "toString", {
-        .fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("f64ToString")),
-        .access = kPublic,
-        .in_vtab = 0,
-        .id_vtab = 0,
-        .in_itab = 0,
+        DCHECK_NOTNULL(base_pkg->FindFunOrNull("f64ToString")), kPublic, 0, 0, 0,
     });
 }
 
@@ -360,13 +320,7 @@ Handle *InterfaceModel::InsertMethod(Function *fun) {
     DCHECK(iter == members_.end() || !iter->second->IsMethod());
     auto handle = Handle::Method(arena_, this, fun->name(), methods_size());
     members_[name] = handle;
-    methods_.push_back({
-        .fun = fun,
-        .access = kPublic,
-        .in_vtab = 0,
-        .id_vtab = static_cast<int>(methods_.size()),
-        .in_itab = 0,
-    });
+    methods_.push_back({ fun, kPublic, 0, static_cast<int>(methods_.size()), 0 });
     return handle;
 }
 
@@ -985,10 +939,10 @@ bool StructureModel::In_vtab(const Handle *handle) const {
     return false;
 }
 
-int StructureModel::ConceptOffsetOf(const InterfaceModel *concept) {
+int StructureModel::ConceptOffsetOf(const InterfaceModel *koncept) {
     int offset = 0;
     for (auto for_test : interfaces()) {
-        if (for_test == concept) {
+        if (for_test == koncept) {
             return offset;
         }
         offset += static_cast<int>(for_test->methods_size());

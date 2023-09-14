@@ -1,11 +1,12 @@
 #include "runtime/scheduler.h"
 #include "runtime/checking.h"
 #include <pthread.h>
-#if defined(YALX_OS_DARWIN)
+#if defined(YALX_OS_POSIX)
 #include <sys/mman.h>
-#endif // defined(YALX_OS_DARWIN)
+#endif // defined(YALX_OS_POSIX)
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 struct scheduler scheduler;
 
@@ -62,7 +63,7 @@ int yalx_install_coroutine(address_t entry, size_t params_bytes, address_t param
     *(address_t *)top = stub;
     //memcpy(top, &stub, sizeof(&stub));
     
-    struct coroutine *co = (struct coroutine *)malloc(sizeof(struct coroutine));
+    struct coroutine *co = MALLOC(struct coroutine); //(struct coroutine *)malloc(sizeof(struct coroutine));
     if (!co) {
         return -1;
     }

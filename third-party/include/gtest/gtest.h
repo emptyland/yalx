@@ -7913,7 +7913,7 @@ enum RelationToSource {
 };
 
 // Adapts a native array to a read-only STL-style container.  Instead
-// of the complete STL container concept, this adaptor only implements
+// of the complete STL container koncept, this adaptor only implements
 // members useful for Google Mock's container matchers.  New members
 // should be added as needed.  To simplify the implementation, we only
 // support Element being a raw type (i.e. having no top-level const or
@@ -10093,7 +10093,7 @@ class ParamIteratorInterface {
 
 // Class iterating over elements provided by an implementation of
 // ParamGeneratorInterface<T>. It wraps ParamIteratorInterface<T>
-// and implements the const forward iterator concept.
+// and implements the const forward iterator koncept.
 template <typename T>
 class ParamIterator {
  public:
@@ -10150,7 +10150,7 @@ class ParamGeneratorInterface {
 };
 
 // Wraps ParamGeneratorInterface<T> and provides general generator syntax
-// compatible with the STL Container concept.
+// compatible with the STL Container koncept.
 // This class implements copy initialization semantics and the contained
 // ParamGeneratorInterface<T> instance is shared among all copies
 // of the original object. This is possible because that instance is immutable.
@@ -17313,9 +17313,9 @@ TYPED_TEST(FooTest, HasPropertyA) { ... }
 // different types any number of times, in any number of translation
 // units.
 //
-// If you are designing an interface or concept, you can define a
+// If you are designing an interface or koncept, you can define a
 // suite of type-parameterized tests to verify properties that any
-// valid implementation of the interface/concept should have.  Then,
+// valid implementation of the interface/koncept should have.  Then,
 // each implementation can easily instantiate the test suite to verify
 // that it conforms to the requirements, without having to write
 // similar tests repeatedly.  Here's an example:
