@@ -201,8 +201,8 @@ void *asm_stub6(void);
 // implements in boot-[Arch].s
 int trampoline(void);
 void coroutine_finalize_stub(void);
-void call0_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
-void call1_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun, intptr_t arg0);
+void call0_returning_vals(void *returning_vals, size_t size_in_bytes, void *yalx_fun);
+void call1_returning_vals(void *returning_vals, size_t size_in_bytes, void *yalx_fun, intptr_t arg0);
 
 struct pkg_global_slots {
     size_t size_in_bytes;

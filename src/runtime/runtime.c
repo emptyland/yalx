@@ -15,6 +15,9 @@
 #if defined(YALX_OS_DARWIN)
 #include <sys/sysctl.h>
 #endif
+#if defined(YALX_OS_LINUX)
+#include <sys/sysinfo.h>
+#endif
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +27,10 @@
 #include <inttypes.h>
 //#define _XOPEN_SOURCE
 //#include <ucontext.h>
+
+#ifdef __cplusplus
+#error No C++
+#endif
 
 int ncpus = 0;
 
@@ -139,7 +146,7 @@ static void dev_print_struct_fields() {}
 
 #endif
 
-extern struct yalx_class builtin_classes[];
+
 
 struct class_load_entry {
     const char *name;
@@ -174,7 +181,7 @@ int yalx_runtime_init() {
 #if defined(YALX_OS_LINUX)
     os_page_size = getpagesize();
 
-
+    ncpus = get_nprocs();
 #endif // defined(YALX_OS_LINUX)
 
     yalx_init_hash_table(&pkg_init_records, 1.2f);
