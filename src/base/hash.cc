@@ -1,8 +1,6 @@
 #include "base/hash.h"
 
-namespace yalx {
-    
-namespace base {
+namespace yalx::base {
     
 const hash_func_t Hash::kBloomFilterHashs[Hash::kNumberBloomFilterHashs] = {
     &Hash::Js, &Hash::Rs, &Hash::Bkdr, &Hash::Sdbm, &Hash::Elf,
@@ -61,7 +59,5 @@ const hash_func_t Hash::kBloomFilterHashs[Hash::kNumberBloomFilterHashs] = {
 /*static*/ uint32_t Hash::Crc32(const char *s, size_t n) {
     return ::crc32(0, s, n);
 }
-    
-} // namespace base
     
 } // namespace yalx

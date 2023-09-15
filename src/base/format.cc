@@ -2,9 +2,7 @@
 #include "base/base.h"
 #include <memory>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 /*static*/ std::string Sprintf(const char *fmt, ...) {
     va_list ap;
@@ -163,7 +161,5 @@ namespace base {
     *val = l * sign;
     return 0;
 }
-
-} // namespace base
 
 } // namespace yalx

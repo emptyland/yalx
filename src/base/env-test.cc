@@ -3,9 +3,7 @@
 #include <gtest/gtest.h>
 #include <filesystem>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 class EnvTest : public ::testing::Test {
 public:
@@ -102,7 +100,5 @@ TEST_F(EnvTest, MemoryReadFile) {
     ASSERT_EQ("hello\nworld\n", result);
 }
 
-
-} // namespace base
 
 } // namespace yalx

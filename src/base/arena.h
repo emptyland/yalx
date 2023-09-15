@@ -6,9 +6,7 @@
 #include <functional>
 #include "base/base.h"
 
-namespace yalx {
-    
-namespace base {
+namespace yalx::base {
 
 class Arena;
 
@@ -44,7 +42,7 @@ public:
     T* address(T& x) const { return &x; }
     [[nodiscard]] const T* address(const T& x) const { return &x; }
     
-    inline T* allocate(size_t n, const void* hint = 0);
+    inline T* allocate(size_t n, const void* hint = nullptr);
     
     void deallocate(T* p, size_t) { /* noop for Zones */
     }
@@ -95,7 +93,7 @@ public:
     
     void *Allocate(size_t n);
     
-    int CountBlocks() const {
+    [[nodiscard]] int CountBlocks() const {
         int n = 0;
         for (auto i = block_; i != nullptr; i = i->next) {
             n++;
@@ -103,7 +101,7 @@ public:
         return n;
     }
     
-    int CountLargeBlocks() const {
+    [[nodiscard]] int CountLargeBlocks() const {
         int n = 0;
         for (auto i = large_blocks_; i != nullptr; i = i->next) {
             n++;
@@ -162,14 +160,14 @@ private:
         BlockHeader *next;
         int32_t      size;
         
-        size_t free_size() const { return (kBlockSize - sizeof(BlockHeader)) - size; }
+        [[nodiscard]] size_t free_size() const { return (kBlockSize - sizeof(BlockHeader)) - size; }
 
         Address free_address() { return reinterpret_cast<Address>(this + 1) + size; }
     };
     
     static constexpr size_t kUsefulSize = kBlockSize - sizeof(BlockHeader);
     
-    bool ShouldUseLargeBlock(size_t n) { return n >= kUsefulSize / 2; }
+    static bool ShouldUseLargeBlock(size_t n) { return n >= kUsefulSize / 2; }
     
     BlockHeader *NewLargeBlock(size_t n) {
         size_t block_size = n + sizeof(BlockHeader);
@@ -207,8 +205,6 @@ public:
     void *operator new (size_t n, Arena *arena) { return arena->Allocate(n); }
     void operator delete(void *, Arena *arena) {};
 }; // class ArenaObject
-    
-} // namespace base
     
 } // namespace yalx
 

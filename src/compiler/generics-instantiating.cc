@@ -41,7 +41,7 @@ namespace yalx::cpl {
 
         Statement *result() {
             DCHECK(!results_.empty());
-            return static_cast<Statement *>(results_.top());
+            return down_cast<Statement>(results_.top());
         }
 
         int VisitInterfaceDefinition(InterfaceDefinition *node) override {
@@ -677,7 +677,7 @@ namespace yalx::cpl {
                 if (it = Instantiate(node->primary()); !it) {
                     return -1;
                 }
-                auto copied = new(arena_) Instantiation(arena_, static_cast<Expression *>(it), node->source_position());
+                auto copied = new(arena_) Instantiation(arena_, down_cast<Expression>(it), node->source_position());
                 for (size_t i = 0; i < node->generic_args_size(); i++) {
                     copied->mutable_generic_args()->push_back(types[i]);
                 }
@@ -917,7 +917,7 @@ namespace yalx::cpl {
                 if (!ast) {
                     //auto actual_name = String::New(arena_, BuildFullName(def->name(), argc, argv));
                     if (status_ = GenericsInstantiating::Instantiate(nullptr, def, arena_, feedback_,
-                                                                     std::move(resolver_), argc, argv, &ast);
+                                                                     resolver_, argc, argv, &ast);
                             status().fail()) {
                         return nullptr;
                     }
@@ -987,7 +987,7 @@ namespace yalx::cpl {
                     auto src = DCHECK_NOTNULL(type->AsFunctionPrototype());
                     auto copied = new(arena_) FunctionPrototype(arena_, src->vargs(), src->source_position());
                     for (auto param: src->params()) {
-                        auto item = static_cast<VariableDeclaration::Item *>(param);
+                        auto item = down_cast<VariableDeclaration::Item>(param);
                         auto it = Instantiate(item->type());
                         if (!it) {
                             return nullptr;
@@ -1054,7 +1054,7 @@ namespace yalx::cpl {
             return !actual_name_ ? String::New(arena_, BuildFullName(name, argc_, argv_)) : actual_name_;
         }
 
-        std::string BuildFullName(const String *name, size_t argc, Type **types) {
+        static std::string BuildFullName(const String *name, size_t argc, Type **types) {
             std::string buf(name->ToString());
             buf.append("<");
             for (size_t i = 0; i < argc; i++) {
@@ -1067,12 +1067,13 @@ namespace yalx::cpl {
             return buf;
         }
 
-        std::string_view GetPackageName(const String *full_name) {
+        [[maybe_unused]]
+        static std::string_view GetPackageName(const String *full_name) {
             auto p = strchr(full_name->data(), '.');
             if (!p) {
                 return "";
             }
-            return std::string_view(full_name->data(), p - full_name->data());
+            return {full_name->data(), static_cast<size_t>(p - full_name->data())};
         }
 
         SyntaxFeedback *FeedbackWith(const char *file, int line) {
@@ -1112,4 +1113,4 @@ namespace yalx::cpl {
         return base::Status::OK();
     }
 
-} // namespace yalx
+} // namespace yalx::cpl

@@ -6,9 +6,7 @@
 #include <stdint.h>
 #include <type_traits>
 
-namespace yalx {
-    
-namespace base {
+namespace yalx::base {
 
 template<class T, int shift, int size, class U = uint32_t>
 struct BitField final {
@@ -50,8 +48,6 @@ struct BitField final {
         return static_cast<T>((value & kMask) >> kShift);
     }
 };
-
-} // namespace base
 
 } // namespace yalx
 

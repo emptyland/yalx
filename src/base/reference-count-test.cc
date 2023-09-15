@@ -3,9 +3,7 @@
 #include <thread>
 #include <vector>
 
-namespace yalx {
-    
-namespace base {
+namespace yalx::base {
 
 namespace {
     
@@ -103,6 +101,4 @@ TEST(ReferenceCountTest, DynamicRefCount) {
 //    obj->ReleaseRef();
 //}
 
-} // namespace base
-    
 } // namespace yalx

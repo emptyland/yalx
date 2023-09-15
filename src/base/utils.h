@@ -5,9 +5,7 @@
 #include "base/checking.h"
 #include <stdint.h>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 static constexpr int kBitsPerByte = 8;
 
@@ -71,8 +69,6 @@ INT_1_TO_63_LIST(DECLARE_TRUNCATE_TO_INT_N)
 #undef DECLARE_IS_INT_N
 #undef DECLARE_IS_UINT_N
 #undef DECLARE_TRUNCATE_TO_INT_N
-
-} // namespace base
 
 } // namespace yalx
 

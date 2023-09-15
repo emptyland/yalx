@@ -1,8 +1,6 @@
 #include "base/checking.h"
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 #ifndef NDEBUG
 
@@ -28,7 +26,5 @@ DebugOutput::DebugOutput(const char *file, int line, const char *func) {
 }
 
 #endif // NDEBUG
-
-} // namespace base
 
 } // namespace yalx

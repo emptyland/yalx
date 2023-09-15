@@ -1,8 +1,6 @@
 #include "backend/constants-pool.h"
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 ConstantsPool::ConstantsPool(base::Arena *arena)
 : arena_(arena)
@@ -34,7 +32,5 @@ int ConstantsPool::FindOrInsertString(const String *value) {
     string_pool_.push_back(value);
     return id;
 }
-
-} // namespace backend
 
 } // namespace yalx

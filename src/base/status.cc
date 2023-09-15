@@ -2,9 +2,7 @@
 #include "base/format.h"
 #include <string.h>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 std::string Status::ToString() const {
     std::string s;
@@ -55,7 +53,5 @@ Status Status::PError(const char *file_name, int line, std::string_view message)
 }
 
 #endif // defined(YALX_OS_POSIX)
-
-} // namespace base
 
 } // namespace yalx

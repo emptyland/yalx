@@ -1,12 +1,10 @@
 #include "base/arena-utils.h"
 
-namespace yalx {
-    
-namespace base {
+namespace yalx::base {
 
 class AreanStringPool {
 public:
-    AreanStringPool(Arena *arena): pool_(arena) {}
+    explicit AreanStringPool(Arena *arena): pool_(arena) {}
     
     static uintptr_t Uniquely() {
         static int dummy = 0;
@@ -66,7 +64,5 @@ ArenaString::ArenaString(size_t n)
     , len_(static_cast<uint32_t>(n)) {
     buf_[n] = '\0';
 }
-    
-} // namespace base
     
 } // namespace yalx

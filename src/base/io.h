@@ -8,9 +8,7 @@
 #include <string_view>
 #include <string>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 class SequentialFile {
 public:
@@ -93,8 +91,6 @@ SequentialFile *NewMemorySequentialFile(const char *z, size_t n);
 
 WritableFile *NewWritableFile(FILE *fp);
 WritableFile *NewMemoryWritableFile(std::string *buf);
-
-} // namespace base
 
 } // namespace yalx
 

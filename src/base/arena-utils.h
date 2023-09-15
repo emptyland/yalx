@@ -22,7 +22,7 @@ public:
     static constexpr size_t kMaxPoolStringLen = 64;
     
     DEF_VAL_GETTER(uint32_t, hash_val);
-    size_t size() const { return len_;}
+    [[nodiscard]] size_t size() const { return len_;}
 
     [[nodiscard]] const char *data() const { return buf_; }
     
