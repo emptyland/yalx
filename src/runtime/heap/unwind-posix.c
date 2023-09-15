@@ -6,6 +6,7 @@
 #include "runtime/object/type.h"
 #include "runtime/object/throwable.h"
 #include "runtime/object/arrays.h"
+#define UNW_LOCAL_ONLY
 #include <libunwind.h>
 #include <stdio.h>
 

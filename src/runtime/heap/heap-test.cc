@@ -17,7 +17,7 @@ public:
         yalx_free_heap(heap_);
     }
 
-    struct heap *heap_;
+    struct heap *heap_ = nullptr;
     struct string_pool kpool_;
 };
 

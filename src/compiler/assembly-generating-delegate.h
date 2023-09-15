@@ -7,22 +7,23 @@
 #include <string_view>
 
 namespace yalx {
-namespace base {
-class PrintingWriter;
-} // namespace base
-namespace cpl {
+    namespace base {
+        class PrintingWriter;
+    } // namespace base
+    namespace cpl {
 
-class AssemblyGeneratingDelegate {
-public:
-    virtual ~AssemblyGeneratingDelegate() {}
-    
-    virtual bool Expired(std::string_view) = 0;
-    virtual base::Status NewOutputPrinter(std::string_view, std::shared_ptr<base::PrintingWriter> *) = 0;
-    
-    DISALLOW_IMPLICIT_CONSTRUCTORS(AssemblyGeneratingDelegate);
-}; // class AssemblyGeneratingDelegate
+        class AssemblyGeneratingDelegate {
+        public:
+            virtual ~AssemblyGeneratingDelegate() {}
 
-} // namespace cpl
+            virtual bool Expired(std::string_view) = 0;
+
+            virtual base::Status NewOutputPrinter(std::string_view, std::shared_ptr<base::PrintingWriter> *) = 0;
+
+            DISALLOW_IMPLICIT_CONSTRUCTORS(AssemblyGeneratingDelegate);
+        }; // class AssemblyGeneratingDelegate
+
+    } // namespace cpl
 
 } // namespace yalx
 

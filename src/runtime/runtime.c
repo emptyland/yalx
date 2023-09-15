@@ -254,6 +254,7 @@ error:
     yalx_tls_free(tls_mach);
     yalx_mutex_final(&pkg_init_mutex);
     yalx_os_threading_env_exit();
+    heap = NULL;
     return -1;
 }
 
@@ -265,7 +266,9 @@ void yalx_runtime_eixt(void) {
     yalx_tls_free(tls_mach);
     yalx_mutex_final(&pkg_init_mutex);
     yalx_os_threading_env_exit();
+    heap = NULL;
     // TODO:
+
 }
 
 int yalx_rt0(int argc, char *argv[]) {
@@ -662,7 +665,7 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     
     size_t buf_size = 98;
     do {
-        free(symbol);
+        //free(symbol);
         buf_size <<= 1;
         symbol = (char *)realloc(symbol, buf_size);
     } while(yalx_name_symbolize(plain_name, symbol, buf_size) < 0);

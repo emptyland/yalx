@@ -8,12 +8,12 @@
 #include "base/base.h"
 
 namespace yalx {
-namespace base {
-class ArenaString;
-} // namespace base
-namespace cpl {
+    namespace base {
+        class ArenaString;
+    } // namespace base
+    namespace cpl {
 
-using String = base::ArenaString;
+        using String = base::ArenaString;
 
 #define DECLARE_ALL_TOKEN(V) \
     V(EOF, nullptr, none) \
@@ -158,158 +158,172 @@ using String = base::ArenaString;
     V(Any, "any", none) \
     V(String, "string", none)
 
-class Token final {
-public:
-    enum Kind {
-    #define DEFINE_ENUM(name, ...) k##name,
-        DECLARE_ALL_TOKEN(DEFINE_ENUM)
-    #undef  DEFINE_ENUM
-        kMax,
-    }; // enum Kind
-    
-    Token(Kind kind, const SourcePosition &position)
-        : kind_(kind)
-        , source_position_(position) {
-        none_val_ = nullptr;
-    }
-    
-    template<class T>
-    inline const Token &With(T val) {
-        Setter<T>{}.Set(this, val);
-        return *this;
-    }
+        class Token final {
+        public:
+            enum Kind {
+#define DEFINE_ENUM(name, ...) k##name,
+                DECLARE_ALL_TOKEN(DEFINE_ENUM)
+#undef  DEFINE_ENUM
+                kMax,
+            }; // enum Kind
 
-    DEF_VAL_GETTER(Kind, kind);
-    DEF_PTR_PROP_RW(const String, text_val);
-    DEF_VAL_GETTER(SourcePosition, source_position);
-    DEF_VAL_PROP_RW(float, f32_val);
-    DEF_VAL_PROP_RW(double, f64_val);
-    DEF_VAL_PROP_RW(int8_t, i8_val);
-    DEF_VAL_PROP_RW(uint8_t, u8_val);
-    DEF_VAL_PROP_RW(int16_t, i16_val);
-    DEF_VAL_PROP_RW(uint16_t, u16_val);
-    DEF_VAL_PROP_RW(int32_t, i32_val);
-    DEF_VAL_PROP_RW(uint32_t, u32_val);
-    DEF_VAL_PROP_RW(int64_t, i64_val);
-    DEF_VAL_PROP_RW(uint64_t, u64_val);
-    DEF_VAL_PROP_RW(char32_t, char_val);
-    
-    bool Is(Kind expect) const { return kind() == expect; }
-    bool IsNot(Kind expect) const { return !Is(expect); }
-    
-    struct NamePair {
-        const char *const name;
-        const char *const literal;
-    }; // struct NamePair
+            Token(Kind kind, const SourcePosition &position)
+                    : kind_(kind), source_position_(position) {
+                none_val_ = nullptr;
+            }
 
-    const NamePair &name_pair() const { return GetNamePair(kind_); }
-    
-    std::string ToString() const { return ToString(kind_); }
-    
-    // Test: Is a keyword?
-    static Kind IsKeyword(std::string_view text);
-    
-    static const NamePair &GetNamePair(Kind kind) {
-        assert(static_cast<int>(kind) >= 0 && static_cast<int>(kind) < kMax);
-        return kNameTable[kind];
-    }
-    
-    static std::string ToString(Kind kind) {
-        const NamePair &pair = GetNamePair(kind);
-        std::string buf(pair.name);
-        if (pair.literal) {
-            buf.append(" `").append(pair.literal).append("'");
-        }
-        return buf;
-    }
-private:
-    template<class T>
-    struct Setter {
-        void Set(Token *token, T value) { token->none_val_ = nullptr; }
-    };
-    
-    template<>
-    struct Setter<const String *> {
-        void Set(Token *token, const String *value) { token->text_val_ = value; }
-    };
-    
-    template<>
-    struct Setter<int8_t> {
-        void Set(Token *token, int8_t value) { token->i8_val_ = value; }
-    };
-    
-    template<>
-    struct Setter<uint8_t> {
-        void Set(Token *token, uint8_t value) { token->u8_val_ = value; }
-    };
-    
-    template<>
-    struct Setter<int16_t> {
-        void Set(Token *token, int16_t value) { token->i16_val_ = value; }
-    };
-    
-    template<>
-    struct Setter<uint16_t> {
-        void Set(Token *token, uint16_t value) { token->u16_val_ = value; }
-    };
-    
-    template<>
-    struct Setter<int32_t> {
-        void Set(Token *token, int32_t value) { token->i32_val_ = value; }
-    };
-    
-    template<>
-    struct Setter<uint32_t> {
-        void Set(Token *token, uint32_t value) { token->u32_val_ = value; }
-    };
-    
-    template<>
-    struct Setter<int64_t> {
-        void Set(Token *token, int64_t value) { token->i64_val_ = value; }
-    };
-    
-    template<>
-    struct Setter<uint64_t> {
-        void Set(Token *token, uint64_t value) { token->u64_val_ = value; }
-    };
-    
-    template<>
-    struct Setter<float> {
-        void Set(Token *token, float value) { token->f32_val_ = value; }
-    };
-    
-    template<>
-    struct Setter<double> {
-        void Set(Token *token, double value) { token->f64_val_ = value; }
-    };
-    
-    template<>
-    struct Setter<char32_t> {
-        void Set(Token *token, char32_t value) { token->char_val_ = value; }
-    };
-    
-    static NamePair kNameTable[kMax];
-    
-    Kind kind_;
-    SourcePosition source_position_;
-    union {
-        const String *text_val_;
-        float    f32_val_;
-        double   f64_val_;
-        uint8_t  u8_val_;
-        int8_t   i8_val_;
-        uint16_t u16_val_;
-        int16_t  i16_val_;
-        uint32_t u32_val_;
-        int32_t  i32_val_;
-        uint64_t u64_val_;
-        int64_t  i64_val_;
-        char32_t char_val_;
-        void    *none_val_;
-    };
-}; // class Token
+            template<class T>
+            inline const Token &With(T val) {
+                Setter < T > {}.Set(this, val);
+                return *this;
+            }
 
-} // namespace cpl
+            DEF_VAL_GETTER(Kind, kind);
+
+            DEF_PTR_PROP_RW(const String, text_val);
+
+            DEF_VAL_GETTER(SourcePosition, source_position);
+
+            DEF_VAL_PROP_RW(float, f32_val);
+
+            DEF_VAL_PROP_RW(double, f64_val);
+
+            DEF_VAL_PROP_RW(int8_t, i8_val);
+
+            DEF_VAL_PROP_RW(uint8_t, u8_val);
+
+            DEF_VAL_PROP_RW(int16_t, i16_val);
+
+            DEF_VAL_PROP_RW(uint16_t, u16_val);
+
+            DEF_VAL_PROP_RW(int32_t, i32_val);
+
+            DEF_VAL_PROP_RW(uint32_t, u32_val);
+
+            DEF_VAL_PROP_RW(int64_t, i64_val);
+
+            DEF_VAL_PROP_RW(uint64_t, u64_val);
+
+            DEF_VAL_PROP_RW(char32_t, char_val);
+
+            bool Is(Kind expect) const { return kind() == expect; }
+
+            bool IsNot(Kind expect) const { return !Is(expect); }
+
+            struct NamePair {
+                const char *const name;
+                const char *const literal;
+            }; // struct NamePair
+
+            const NamePair &name_pair() const { return GetNamePair(kind_); }
+
+            std::string ToString() const { return ToString(kind_); }
+
+            // Test: Is a keyword?
+            static Kind IsKeyword(std::string_view text);
+
+            static const NamePair &GetNamePair(Kind kind) {
+                assert(static_cast<int>(kind) >= 0 && static_cast<int>(kind) < kMax);
+                return kNameTable[kind];
+            }
+
+            static std::string ToString(Kind kind) {
+                const NamePair &pair = GetNamePair(kind);
+                std::string buf(pair.name);
+                if (pair.literal) {
+                    buf.append(" `").append(pair.literal).append("'");
+                }
+                return buf;
+            }
+
+        private:
+            template<class T>
+            struct Setter {
+                void Set(Token *token, T value) { token->none_val_ = nullptr; }
+            };
+
+            template<>
+            struct Setter<const String *> {
+                void Set(Token *token, const String *value) { token->text_val_ = value; }
+            };
+
+            template<>
+            struct Setter<int8_t> {
+                void Set(Token *token, int8_t value) { token->i8_val_ = value; }
+            };
+
+            template<>
+            struct Setter<uint8_t> {
+                void Set(Token *token, uint8_t value) { token->u8_val_ = value; }
+            };
+
+            template<>
+            struct Setter<int16_t> {
+                void Set(Token *token, int16_t value) { token->i16_val_ = value; }
+            };
+
+            template<>
+            struct Setter<uint16_t> {
+                void Set(Token *token, uint16_t value) { token->u16_val_ = value; }
+            };
+
+            template<>
+            struct Setter<int32_t> {
+                void Set(Token *token, int32_t value) { token->i32_val_ = value; }
+            };
+
+            template<>
+            struct Setter<uint32_t> {
+                void Set(Token *token, uint32_t value) { token->u32_val_ = value; }
+            };
+
+            template<>
+            struct Setter<int64_t> {
+                void Set(Token *token, int64_t value) { token->i64_val_ = value; }
+            };
+
+            template<>
+            struct Setter<uint64_t> {
+                void Set(Token *token, uint64_t value) { token->u64_val_ = value; }
+            };
+
+            template<>
+            struct Setter<float> {
+                void Set(Token *token, float value) { token->f32_val_ = value; }
+            };
+
+            template<>
+            struct Setter<double> {
+                void Set(Token *token, double value) { token->f64_val_ = value; }
+            };
+
+            template<>
+            struct Setter<char32_t> {
+                void Set(Token *token, char32_t value) { token->char_val_ = value; }
+            };
+
+            static NamePair kNameTable[kMax];
+
+            Kind kind_;
+            SourcePosition source_position_;
+            union {
+                const String *text_val_;
+                float f32_val_;
+                double f64_val_;
+                uint8_t u8_val_;
+                int8_t i8_val_;
+                uint16_t u16_val_;
+                int16_t i16_val_;
+                uint32_t u32_val_;
+                int32_t i32_val_;
+                uint64_t u64_val_;
+                int64_t i64_val_;
+                char32_t char_val_;
+                void *none_val_;
+            };
+        }; // class Token
+
+    } // namespace cpl
 
 } // namespace yalx
 

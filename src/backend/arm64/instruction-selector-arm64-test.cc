@@ -5,9 +5,7 @@
 #include "backend/arm64/instruction-codes-arm64.h"
 #include "base/io.h"
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 
 class Arm64InstructionSelectorTest : public InstructionSelectorTest {
@@ -226,7 +224,5 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     }
 //#endif
 }
-
-} // namespace backend
 
 } // namespace yalx

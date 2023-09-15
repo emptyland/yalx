@@ -1,12 +1,7 @@
 #include "compiler/node.h"
 #include <gtest/gtest.h>
 
-namespace yalx {
+namespace yalx::cpl {
 
-namespace cpl {
-
-
-
-} // namespace cpl
 
 } // namespace yalx
