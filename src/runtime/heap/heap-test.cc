@@ -1,6 +1,5 @@
 #include "runtime/heap/heap.h"
 #include "runtime/heap/object-visitor.h"
-#include "runtime/heap/object-visitor.h"
 #include "runtime/object/yalx-string.h"
 #include "runtime/object/type.h"
 #include <gtest/gtest.h>

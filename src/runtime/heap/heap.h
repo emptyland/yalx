@@ -32,6 +32,7 @@ enum allocate_status {
 typedef enum gc_algorithm {
     GC_NONE, // No gc
     GC_LXR,  // LXR gc algorithm
+    GC_YGC,  // YGC gc algorithm
 } gc_t;
 
 struct allocate_result {
