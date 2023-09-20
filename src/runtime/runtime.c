@@ -161,10 +161,6 @@ struct class_load_entry {
 };
 
 int yalx_runtime_init() {
-    yalx_os_threading_env_enter();
-    yalx_mutex_init(&pkg_init_mutex);
-    yalx_tls_alloc(&tls_mach);
-    
 #if defined(YALX_OS_DARWIN)
     os_page_size = getpagesize();
     
@@ -183,6 +179,10 @@ int yalx_runtime_init() {
 
     ncpus = get_nprocs();
 #endif // defined(YALX_OS_LINUX)
+
+    yalx_os_threading_env_enter();
+    yalx_mutex_init(&pkg_init_mutex);
+    yalx_tls_alloc(&tls_mach);
 
     yalx_init_hash_table(&pkg_init_records, 1.2f);
     if (yalx_init_heap( GC_NONE, &heap) < 0) {

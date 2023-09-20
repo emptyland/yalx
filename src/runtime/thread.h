@@ -85,6 +85,18 @@ struct yalx_os_thread *yalx_os_thread_self();
 struct yalx_os_thread *yalx_os_thread_attach_self(struct yalx_os_thread *thread);
 
 
+struct per_cpu_storage {
+    int n;
+    void *items[1];
+};
+
+struct per_cpu_storage *per_cpu_storage_new();
+void per_cpu_storage_free(struct per_cpu_storage *storage);
+
+int cpu_id();
+
+#define per_cpu_get(ty, storage) ((ty)((storage)->items[cpu_id()]))
+
 #ifdef __cplusplus
 }
 #endif

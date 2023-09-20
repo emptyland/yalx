@@ -29,10 +29,10 @@ extern "C" {
 #define MALLOC(t) ((t *)malloc(sizeof(t)))
 #define MALLOC_N(t, n) ((t *)malloc(n * sizeof(t)))
 
-#define KB 1024
-#define MB (KB * 1024)
-#define GB (MB * 1024)
-#define TB (GB * 1024)
+#define KB 1024L
+#define MB (KB * 1024L)
+#define GB (MB * 1024L)
+#define TB (GB * 1024L)
 
 #define MEM_INIT_ZAG 0xcccccccc
 #define MEM_FREE_ZAG 0xfeedfeed
@@ -94,7 +94,7 @@ extern const struct yalx_str yalx_version;
 // Number of system cpus.
 extern int ncpus;
 
-// Size in bytes for system memory page.
+// Size in bytes for system memory ygc_page.
 extern int os_page_size;
 
 

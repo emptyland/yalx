@@ -18,7 +18,7 @@ int create_file_fd(const char *name) {
     // flag requires kernel >= 3.11. If this fails we fall back to open/unlink.
     const int fd_anon = open(tmpfs_mount_points[0], O_TMPFILE|O_EXCL|O_RDWR|O_CLOEXEC, S_IRUSR|S_IWUSR);
     if (fd_anon < 0) {
-        perror("Failed to create anonymous file in ");
+        PLOG("Failed to create anonymous file in %s", tmpfs_mount_points[0]);
     } else {
         return fd_anon;
     }
@@ -28,74 +28,52 @@ int create_file_fd(const char *name) {
     // Create file
     const int fd = open(full_name, O_CREAT|O_EXCL|O_RDWR|O_CLOEXEC, S_IRUSR|S_IWUSR);
     if (fd < 0) {
-        perror("Failed to create file");
+        PLOG("Failed to create file: %s", full_name);
         return -1;
     }
 
     if (unlink(full_name) < 0) {
-        perror("Failed to unlink file");
+        PLOG("Failed to unlink file: %s", full_name);
         return -1;
     }
 
     return fd;
 }
 
-struct os_page *allocate_os_page(size_t size) {
-    struct os_page *page = MALLOC(struct os_page);
-    if (!page) {
-        return NULL;
-    }
-    page->next = page;
-    page->prev = page;
-    page->addr = NULL;
-    page->refs = 0;
+int memory_backing_init(struct memory_backing *backing, size_t capacity) {
+    memset(backing, 0, sizeof(*backing));
 
-    page->fd = memfd_create("page", MFD_ALLOW_SEALING);
-    if (page->fd < 0) {
-        perror("memfd_create() fail");
+    backing->fd = memfd_create("ygc_page", MFD_ALLOW_SEALING);
+    if (backing->fd < 0) {
+        PLOG("Failed to memfd_create()");
+        backing->fd = create_file_fd("ygc_page");
     }
-    page->fd = create_file_fd("page");
-    if (page->fd < 0) {
-        goto fail;
-    }
-    if (ftruncate(page->fd, (off_t)size) < 0) {
-        goto fail;
-    }
-    page->size = size;
-    page->addr = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE, page->fd, 0);
-    if (page->addr == MAP_FAILED) {
-        goto fail;
+    if (backing->fd < 0) {
+        return -1;
     }
 
-    return page;
-fail:
-    if (page->addr != NULL && page->addr != MAP_FAILED) {
-        munmap(page->addr, size);
+    if (ftruncate(backing->fd, (off_t)capacity) < 0) {
+        PLOG("Failed to ftruncate %zd bytes", capacity);
+        close(backing->fd);
+        return -1;
     }
-    if (page->fd > 0) {
-        close(page->fd);
-    }
-    free(page);
-    return NULL;
+
+    backing->size = capacity;
+    backing->refs = 1;
+    return 0;
 }
 
-void free_os_page(struct os_page *page) {
-    if (!page) {
-        return;
-    }
-    munmap(page->addr, page->size);
-    close(page->fd);
-    free(page);
+void memory_backing_final(struct memory_backing *backing) {
+    close(backing->fd);
 }
 
-address_t map_virtual_addr(struct os_page *page, linear_address_t virtual_addr) {
-    void *addr = mmap((void *)virtual_addr.addr,
-                      virtual_addr.size,
-                      PROT_READ|PROT_WRITE,
-                      MAP_FIXED,
-                      page->fd, 0);
-    if (addr == MAP_FAILED) {
-        return NULL;
-    }
-    return (address_t)addr;
+void memory_backing_map(struct memory_backing *backing, uintptr_t addr, size_t size, uintptr_t offset) {
+    void *rs = mmap((void *)addr, size, PROT_WRITE|PROT_READ, MAP_FIXED|MAP_SHARED, backing->fd,
+                    (off_t)offset);
+    DCHECK(rs != MAP_FAILED);
+}
+
+void memory_backing_unmap(struct memory_backing *backing, uintptr_t addr, size_t size) {
+    USE(backing);
+    munmap((void *)addr, size);
 }

@@ -7,13 +7,25 @@ class YGCPlatformTest : public ::testing::Test {
 };
 
 TEST_F(YGCPlatformTest, Sanity) {
-    auto page = allocate_os_page(SMALL_PAGE_SIZE);
-    ASSERT_TRUE(page != nullptr);
+    memory_backing backing{};
+    ASSERT_EQ(0, memory_backing_init(&backing, 4 * GB));
 
-    ASSERT_EQ(SMALL_PAGE_SIZE, page->size);
-    ASSERT_EQ(page, page->prev);
-    ASSERT_EQ(page, page->next);
-    ASSERT_TRUE(page->addr != nullptr);
+    uintptr_t addr = 0;
+    memory_backing_map(&backing, ygc_marked0(addr), SMALL_PAGE_SIZE, addr);
+    memory_backing_map(&backing, ygc_marked1(addr), SMALL_PAGE_SIZE, addr);
+    memory_backing_map(&backing, ygc_remapped(addr), SMALL_PAGE_SIZE, addr);
 
-    free_os_page(page);
+    int *ptr2 = reinterpret_cast<int *>(ygc_marked0(addr));
+    int *ptr1 = reinterpret_cast<int *>(ygc_marked1(addr));
+    int *ptr0 = reinterpret_cast<int *>(ygc_remapped(addr));
+
+    ptr0[0] = 999;
+    ptr0[1] = 996;
+    ptr0[2] = 700;
+
+    ASSERT_EQ(ptr1[0], 999);
+    ASSERT_EQ(ptr2[1], 996);
+    ASSERT_EQ(ptr2[2], 700);
+
+    memory_backing_final(&backing);
 }

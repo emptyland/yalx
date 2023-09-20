@@ -14,7 +14,7 @@ struct scheduler {
     u64_t next_coid;
     // Mutex for scheduing
     pthread_mutex_t mutex;
-    // Safepoint polling page
+    // Safepoint polling ygc_page
     address_t notifier_page;
     // TODO:
 }; // struct scheduler

@@ -1,9 +1,15 @@
 #include "runtime/thread.h"
 #include "runtime/checking.h"
 #include "runtime/runtime.h"
+#include <dlfcn.h>
+#include <sched.h>
 #include <stdlib.h>
 
+
+
 static yalx_tls_t self_thread;
+
+static int (*yalx_sched_getcpu)();
 
 static int native_entry(void *ctx) {
     DCHECK(ctx);
@@ -21,6 +27,11 @@ static int native_entry(void *ctx) {
 }
 
 int yalx_os_threading_env_enter() {
+    DCHECK(ncpus > 0);
+    yalx_sched_getcpu = dlsym((void *)RTLD_LOCAL, "sched_getcpu");
+    if (!yalx_sched_getcpu) {
+        DLOG(ERROR, "libc function `sched_getcpu' not found!");
+    }
     return yalx_tls_alloc(&self_thread);
 }
 
@@ -64,4 +75,26 @@ struct yalx_os_thread *yalx_os_thread_attach_self(struct yalx_os_thread *thread)
     //thread->native_id = GetThreadId(thread->native_handle);
     yalx_tls_set(self_thread, thread);
     return thread;
+}
+
+struct per_cpu_storage *per_cpu_storage_new() {
+    DCHECK(ncpus > 0);
+    size_t placement_size_in_bytes = sizeof(struct per_cpu_storage) + sizeof(void *) * (ncpus - 1);
+    struct per_cpu_storage *storage = (struct per_cpu_storage *) malloc(placement_size_in_bytes);
+    if (!storage) {
+        return NULL;
+    }
+    storage->n = ncpus;
+    memset(&storage->items[0], 0, sizeof(void *) * storage->n);
+    return storage;
+}
+
+void per_cpu_storage_free(struct per_cpu_storage *storage) {
+    free(storage);
+}
+
+int cpu_id() {
+    int id = !yalx_sched_getcpu ? -1 : (int)yalx_sched_getcpu();
+    DCHECK(id >= 0 && id < ncpus);
+    return id;
 }

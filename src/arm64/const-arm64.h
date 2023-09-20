@@ -373,7 +373,7 @@ enum SystemHint {
   BTI_jc = 38
 };
 
-// In a guarded page, only BTI and PACI[AB]SP instructions are allowed to be
+// In a guarded ygc_page, only BTI and PACI[AB]SP instructions are allowed to be
 // the target of indirect branches. Details on which kinds of branches each
 // instruction allows follow in the comments below:
 enum class BranchTargetIdentifier {
