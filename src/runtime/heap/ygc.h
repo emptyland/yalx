@@ -11,22 +11,46 @@
 extern "C" {
 #endif
 
-#define SMALL_PAGE_SHIFT 21 // 2MB
+#define YGC_GRANULE_SHIFT 21
+#define YGC_GRANULE_SIZE (1L << YGC_GRANULE_SHIFT)
+
+#define SMALL_PAGE_SHIFT YGC_GRANULE_SHIFT // 2MB
 #define SMALL_PAGE_SIZE (1L << SMALL_PAGE_SHIFT)
 
-#define PAGE_GRANULE_SIZE SMALL_PAGE_SIZE
+#define MEDIUM_PAGE_SHIFT (YGC_GRANULE_SHIFT + 4) // x16
+#define MEDIUM_PAGE_SIZE (1L << MEDIUM_PAGE_SHIFT)
+
+#define SMALL_OBJECT_SIZE_LIMIT (1L << (SMALL_PAGE_SHIFT - 3))  // SMALL_PAGE_SIZE / 8 12.5%
+#define MEDIUM_OBJECT_SIZE_LIMIT (1L << (MEDIUM_PAGE_SHIFT - 3))  // MEDIUM_PAGE_SIZE / 8 12.5%
+
+#define YGC_ALLOCATION_ALIGNMENT_SIZE 4
 
 
-extern uintptr_t YGC_MARKED0_BIT; // 0x0000100000000000
-extern uintptr_t YGC_MARKED1_BIT; // 0x0000200000000000
-extern uintptr_t YGC_REMAPPED_BIT; // 0x0000400000000000
+#define YGC_METADATA_SHIFT 44
+
+extern uintptr_t YGC_METADATA_MARKED0; // 0x0000100000000000
+extern uintptr_t YGC_METADATA_MARKED1; // 0x0000200000000000
+extern uintptr_t YGC_METADATA_REMAPPED; // 0x0000400000000000
+extern uintptr_t YGC_METADATA_MARKED;
+
+extern uintptr_t YGC_METADATA_MASK;
 extern uintptr_t YGC_ADDRESS_OFFSET_MASK;
 extern size_t YGC_VIRTUAL_ADDRESS_SPACE_LEN;
 
+extern uintptr_t YGC_ADDRESS_GOOD_MASK;
+extern uintptr_t YGC_ADDRESS_BAD_MASK;
+extern uintptr_t YGC_ADDRESS_WEAK_BAD_MASK;
+
+void ygc_set_good_mask(uintptr_t mask);
+void ygc_flip_to_remapped();
+void ygc_flip_to_marked();
+
 #define ygc_offset(addr) ((uintptr_t)(addr) & YGC_ADDRESS_OFFSET_MASK)
-#define ygc_marked0(addr) ((uintptr_t)(addr) | YGC_MARKED0_BIT)
-#define ygc_marked1(addr) ((uintptr_t)(addr) | YGC_MARKED1_BIT)
-#define ygc_remapped(addr) ((uintptr_t)(addr) | YGC_REMAPPED_BIT)
+#define ygc_marked0(addr) ((uintptr_t)(addr) | YGC_METADATA_MARKED0)
+#define ygc_marked1(addr) ((uintptr_t)(addr) | YGC_METADATA_MARKED1)
+#define ygc_remapped(addr) ((uintptr_t)(addr) | YGC_METADATA_REMAPPED)
+
+#define ygc_good_address(addr) (ygc_offset(addr) | YGC_ADDRESS_GOOD_MASK)
 
 struct per_cpu_storage;
 
@@ -104,6 +128,8 @@ struct ygc_page {
     struct ygc_page *next;
     linear_address_t virtual_addr;
     struct physical_memory physical_memory;
+    _Atomic uintptr_t top;
+    uintptr_t limit;
 };
 
 struct ygc_core {
@@ -122,8 +148,15 @@ int ygc_init(struct ygc_core *ygc, size_t capacity);
 void ygc_final(struct ygc_core *ygc);
 
 struct ygc_page *ygc_page_new(struct ygc_core *ygc, size_t size);
-void ygc_page_free(struct ygc_core *ygc, struct ygc_page *pg);
+void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page);
 
+// Allocate memory chunk from page
+uintptr_t ygc_page_allocate(struct ygc_page *page, size_t size);
+uintptr_t ygc_page_atomic_allocate(struct ygc_page *page, size_t size);
+
+static inline size_t ygc_page_used_in_bytes(const struct ygc_page *page) {
+    return (size_t)page->top - page->virtual_addr.addr;
+}
 
 #ifdef __cplusplus
 }

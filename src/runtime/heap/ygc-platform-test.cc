@@ -1,5 +1,4 @@
 #include "runtime/heap/ygc.h"
-#include "runtime/heap/heap.h"
 #include <gtest/gtest.h>
 
 class YGCPlatformTest : public ::testing::Test {
@@ -89,3 +88,4 @@ TEST_F(YGCPlatformTest, VirtualAddress) {
 
     virtual_memory_management_final(&vmm);
 }
+

@@ -22,7 +22,7 @@ static struct memory_segment *split_segment(struct memory_segment *origin, size_
 
 int physical_memory_management_init(struct physical_memory_management *self, uintptr_t base_addr, size_t capacity) {
     DCHECK(capacity > 0);
-    capacity = ROUND_UP(capacity, PAGE_GRANULE_SIZE);
+    capacity = ROUND_UP(capacity, YGC_GRANULE_SIZE);
 
     self->capacity = capacity;
     self->unused_in_bytes = capacity;
@@ -55,7 +55,7 @@ int allocate_physical_memory(struct physical_memory_management *self, struct phy
     mem->segments.prev = &mem->segments;
     mem->n_segments = 0;
     mem->size_in_bytes = 0;
-    size = ROUND_UP(size, PAGE_GRANULE_SIZE);
+    size = ROUND_UP(size, YGC_GRANULE_SIZE);
 
     yalx_mutex_lock(&self->mutex);
 

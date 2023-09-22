@@ -24,7 +24,7 @@ extern "C" {
 #define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
 
 #define ROUND_DOWN(x, m)   ((x) & -(m))
-#define ROUND_UP(x, m)     ROUND_DOWN(x + m - 1, m)
+#define ROUND_UP(x, m)     ROUND_DOWN((x) + (m) - 1, (m))
 
 #define MALLOC(t) ((t *)malloc(sizeof(t)))
 #define MALLOC_N(t, n) ((t *)malloc(n * sizeof(t)))

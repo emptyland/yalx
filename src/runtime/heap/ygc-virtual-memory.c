@@ -9,7 +9,7 @@ struct memory_segment *new_segment(uintptr_t addr, size_t size);
 
 int virtual_memory_management_init(struct virtual_memory_management *self, size_t capacity) {
     DCHECK(capacity > 0);
-    self->limit_in_bytes = ROUND_UP(capacity, PAGE_GRANULE_SIZE);
+    self->limit_in_bytes = ROUND_UP(capacity, YGC_GRANULE_SIZE);
     self->unused_in_bytes = 0;
     self->free.next = &self->free;
     self->free.prev = &self->free;
@@ -26,7 +26,9 @@ void virtual_memory_management_final(struct virtual_memory_management *self) {
         QUEUE_REMOVE(segment);
         self->unused_in_bytes += segment->size;
 
-        release_mapping(segment->addr, segment->size);
+        release_mapping(ygc_marked0(segment->addr), segment->size);
+        release_mapping(ygc_marked1(segment->addr), segment->size);
+        release_mapping(ygc_remapped(segment->addr), segment->size);
         free(segment);
     }
 }
@@ -63,7 +65,7 @@ static struct memory_segment *find_fit_from_end(struct virtual_memory_management
 }
 
 linear_address_t allocate_virtual_memory(struct virtual_memory_management *self, size_t size, int force_from_end) {
-    size_t required_in_bytes = ROUND_UP(size, PAGE_GRANULE_SIZE);
+    size_t required_in_bytes = ROUND_UP(size, YGC_GRANULE_SIZE);
 
     struct memory_segment *fit = NULL;
     if (force_from_end) {
@@ -90,8 +92,6 @@ void free_virtual_memory(struct virtual_memory_management *self, linear_address_
 }
 
 void release_virtual_memory(struct virtual_memory_management *self, uintptr_t addr, size_t size) {
-    DLOG(INFO, "release [0x%lx,0x%lx)", addr, addr + size);
-
     for (struct memory_segment *s = self->free.next; s != &self->free; s = s->next) {
         if (addr + size == s->addr) { // Can be shrink
             s->addr = addr;
@@ -111,12 +111,12 @@ void release_virtual_memory(struct virtual_memory_management *self, uintptr_t ad
 }
 
 int probe_continuous_memories(struct virtual_memory_management *vmm, uintptr_t addr, size_t size) {
-    DCHECK(size % PAGE_GRANULE_SIZE == 0);
+    DCHECK(size % YGC_GRANULE_SIZE == 0);
     if (reserve_continuous_memory(addr, size)) {
         release_virtual_memory(vmm, addr, size);
         return 0;
     }
-    if (size <= PAGE_GRANULE_SIZE) {
+    if (size <= YGC_GRANULE_SIZE) {
         return 0;
     }
     return probe_continuous_memories(vmm, addr, size / 2) &&
