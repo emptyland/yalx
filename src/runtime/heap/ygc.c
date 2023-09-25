@@ -79,6 +79,68 @@ void ygc_final(struct ygc_core *ygc) {
     ygc->rss = 0;
 }
 
+static uintptr_t allocate_small_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes) {
+    struct ygc_page *page = per_cpu_get(struct ygc_page*, ygc->small_page);
+    if (page) {
+        uintptr_t chunk = ygc_page_atomic_allocate(page, size, alignment_in_bytes);
+        if (chunk != UINTPTR_MAX) {
+            return chunk;
+        }
+    }
+
+    page = ygc_page_new(ygc, SMALL_PAGE_SIZE);
+    if (!page) {
+        return UINTPTR_MAX;
+    }
+    per_cpu_set(ygc->small_page, page);
+
+    return ygc_page_allocate(page, size, alignment_in_bytes);
+}
+
+
+static uintptr_t allocate_medium_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes) {
+    static struct ygc_page *const page_busy = (struct ygc_page *)0x1;
+    for (;;) {
+        struct ygc_page *page;
+        do {
+            page = atomic_load(&ygc->medium_page);
+        } while (page != page_busy);
+        if (page) {
+            uintptr_t chunk = ygc_page_atomic_allocate(page, size, alignment_in_bytes);
+            if (chunk != UINTPTR_MAX) {
+                return chunk;
+            }
+        }
+
+        if (atomic_compare_exchange_strong(&ygc->medium_page, &page, page_busy)) {
+            page = ygc_page_new(ygc, MEDIUM_PAGE_SIZE);
+            if (!page) {
+                atomic_store(&ygc->medium_page, NULL);
+                return UINTPTR_MAX;
+            }
+            atomic_store(&ygc->medium_page, page);
+            return ygc_page_allocate(page, size, alignment_in_bytes);
+        }
+    }
+}
+
+address_t ygc_allocate_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes) {
+    uintptr_t chunk = UINTPTR_MAX;
+    if (size < SMALL_OBJECT_SIZE_LIMIT) {
+        chunk = allocate_small_object(ygc, size, alignment_in_bytes);
+    } else if (size < MEDIUM_OBJECT_SIZE_LIMIT) {
+        chunk = allocate_medium_object(ygc, size, alignment_in_bytes);
+    } else {
+        NOREACHABLE();
+    }
+    if (chunk == UINTPTR_MAX) {
+        return NULL;
+    }
+    address_t addr = (address_t)ygc_good_address(chunk);
+    dbg_init_zag(addr, size);
+    return addr;
+}
+
 static void map_page_all_views(struct memory_backing *backing, linear_address_t virtual_mem,
                                struct physical_memory *physical_mem) {
     uintptr_t addr = virtual_mem.addr;
@@ -153,25 +215,30 @@ void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page) {
     free(page);
 }
 
-uintptr_t ygc_page_allocate(struct ygc_page *page, size_t size) {
+uintptr_t ygc_page_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes) {
     DCHECK(size != 0);
-    const size_t request_in_bytes = ROUND_UP(size, YGC_ALLOCATION_ALIGNMENT_SIZE);
-    if (page->top + request_in_bytes >= page->limit) {
+    DCHECK(alignment_in_bytes != 0 && alignment_in_bytes % 2 == 0);
+
+    const uintptr_t chunk = ROUND_UP(page->top, alignment_in_bytes);
+    if (chunk + size >= page->limit) {
         return UINTPTR_MAX; // invalid address!
     }
 
-    uintptr_t addr = page->top;
-    page->top += request_in_bytes;
-    return addr;
+    page->top = chunk + size;
+    return chunk;
 }
 
-uintptr_t ygc_page_atomic_allocate(struct ygc_page *page, size_t size) {
+uintptr_t ygc_page_atomic_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes) {
     DCHECK(size != 0);
-    const size_t request_in_bytes = ROUND_UP(size, YGC_ALLOCATION_ALIGNMENT_SIZE);
+    DCHECK(alignment_in_bytes != 0 && alignment_in_bytes % 2 == 0);
 
-    uintptr_t addr = UINTPTR_MAX;
+    uintptr_t chunk = UINTPTR_MAX;
+    uintptr_t desired = 0;
     do {
-        addr = page->top;
-    } while (!atomic_compare_exchange_strong(&page->top, &addr, addr + request_in_bytes));
-    return addr + request_in_bytes >= page->limit ? UINTPTR_MAX : addr;
+        chunk = atomic_load(&page->top);
+        desired = ROUND_UP(chunk, alignment_in_bytes) + size;
+    } while (!atomic_compare_exchange_strong(&page->top, &chunk, desired));
+
+    chunk = ROUND_UP(chunk, alignment_in_bytes);
+    return chunk + size >= page->limit ? UINTPTR_MAX : chunk;
 }

@@ -40,17 +40,29 @@ TEST_F(YGCTest, PageAllocate) {
     ASSERT_TRUE(page != nullptr);
     ASSERT_EQ(SMALL_PAGE_SIZE, page->virtual_addr.size);
 
-    auto addr = ygc_page_allocate(page, 4);
+    auto addr = ygc_page_allocate(page, 4, 4);
     auto ptr = reinterpret_cast<int *>(ygc_good_address(addr));
     *ptr = 996;
 
     ASSERT_EQ(4, ygc_page_used_in_bytes(page));
 
-    addr = ygc_page_atomic_allocate(page, 4);
+    addr = ygc_page_atomic_allocate(page, 4, 4);
     ptr = reinterpret_cast<int *>(ygc_good_address(addr));
     *ptr = 700;
 
     ASSERT_EQ(8, ygc_page_used_in_bytes(page));
 
     ygc_page_free(&ygc_, page);
+}
+
+TEST_F(YGCTest, AllocateSmallObject) {
+    auto ptr = reinterpret_cast<int *>(ygc_allocate_object(&ygc_, 4, 4));
+    *ptr = 996;
+    ASSERT_EQ(996, *ptr);
+    ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 4);
+
+    ptr = reinterpret_cast<int *>(ygc_allocate_object(&ygc_, 4, 8));
+    *ptr = 770;
+    ASSERT_EQ(770, *ptr);
+    ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 8);
 }

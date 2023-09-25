@@ -23,7 +23,7 @@ extern "C" {
 #define SMALL_OBJECT_SIZE_LIMIT (1L << (SMALL_PAGE_SHIFT - 3))  // SMALL_PAGE_SIZE / 8 12.5%
 #define MEDIUM_OBJECT_SIZE_LIMIT (1L << (MEDIUM_PAGE_SHIFT - 3))  // MEDIUM_PAGE_SIZE / 8 12.5%
 
-#define YGC_ALLOCATION_ALIGNMENT_SIZE 4
+#define YGC_ALLOCATION_ALIGNMENT_SIZE 8
 
 
 #define YGC_METADATA_SHIFT 44
@@ -137,7 +137,7 @@ struct ygc_core {
     struct physical_memory_management pmm;
     struct virtual_memory_management vmm;
     struct per_cpu_storage *small_page;
-    struct ygc_page volatile *medium_page;
+    struct ygc_page *_Atomic medium_page;
     _Atomic size_t rss;
     struct ygc_page pages;
     struct yalx_mutex mutex;
@@ -147,12 +147,14 @@ struct ygc_core {
 int ygc_init(struct ygc_core *ygc, size_t capacity);
 void ygc_final(struct ygc_core *ygc);
 
+address_t ygc_allocate_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes);
+
 struct ygc_page *ygc_page_new(struct ygc_core *ygc, size_t size);
 void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page);
 
 // Allocate memory chunk from page
-uintptr_t ygc_page_allocate(struct ygc_page *page, size_t size);
-uintptr_t ygc_page_atomic_allocate(struct ygc_page *page, size_t size);
+uintptr_t ygc_page_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes);
+uintptr_t ygc_page_atomic_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes);
 
 static inline size_t ygc_page_used_in_bytes(const struct ygc_page *page) {
     return (size_t)page->top - page->virtual_addr.addr;
