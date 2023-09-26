@@ -1,8 +1,6 @@
 #include "instruction-selector-test.h"
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 InstructionSelectorTest::InstructionSelectorTest()
 : linkage_(&arena_)
@@ -64,7 +62,5 @@ ir::StructureModel *InstructionSelectorTest::NewFooClass() {
     klass->UpdatePlacementSizeInBytes();
     return klass;
 }
-
-} // namespace backend
 
 } // namespace yalx

@@ -13,9 +13,7 @@
 #include "ir/type.h"
 #include <gtest/gtest.h>
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 class InstructionSelectorTest : public ::testing::Test {
 public:
@@ -41,8 +39,6 @@ protected:
     ir::Module *module_;
     ir::OperatorsFactory ops_;
 }; // class InstructionSelectorTest
-
-} // namespace backend
 
 } // namespace yalx
 

@@ -2,8 +2,7 @@
 #include "ir/metadata.h"
 #include "ir/type.h"
 
-namespace yalx {
-namespace backend {
+namespace yalx::backend {
 
 MachineRepresentation ToMachineRepresentation(const ir::Type ty) {
     switch (ty.kind()) {
@@ -67,5 +66,4 @@ const char *GetMachineRepresentationAlias(MachineRepresentation rep) {
     return kAlias[i];
 }
 
-} // namespace backend
 } // namespace yalx

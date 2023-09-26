@@ -11,9 +11,7 @@
 #include "base/io.h"
 
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 InstructionSelector::InstructionSelector(base::Arena *arena,
                                          const RegistersConfiguration *regconf,
@@ -575,7 +573,5 @@ InstructionBlock *InstructionSelector::GetBlock(ir::BasicBlock *key) const {
     DCHECK(iter != block_mapping_.end());
     return iter->second;
 }
-
-} // namespace backend
 
 } // namespace yalx

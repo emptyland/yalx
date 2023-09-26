@@ -7,9 +7,7 @@
 #include "base/hash.h"
 #include "base/base.h"
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 using String = base::ArenaString;
 
@@ -79,8 +77,6 @@ private:
     StringPool string_pool_;
     int next_unique_id_ = 0;
 }; // class ConstantsPool
-
-} // namespace backend
 
 } // namespace yalx
 

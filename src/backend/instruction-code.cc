@@ -1,8 +1,6 @@
 #include "backend/instruction-code.h"
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 const char *const kInstrCodeNames[] = {
 #define DEFINE_NAME(name) #name,
@@ -12,7 +10,5 @@ const char *const kInstrCodeNames[] = {
 #undef DEFINE_ENUM
 };
 
-
-} // namespace backend
 
 } // namespace yalx

@@ -2,9 +2,7 @@
 #include "ir/node.h"
 #include "ir/type.h"
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 Frame::Frame(base::Arena *arena, ir::Function *fun)
 : virtual_registers_(arena)
@@ -29,7 +27,5 @@ int Frame::GetVirtualRegister(ir::Value *value) {
     return vid;
 }
 
-
-} // namespace backend
 
 } // namespace yalx

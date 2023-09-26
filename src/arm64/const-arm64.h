@@ -10,9 +10,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-namespace yalx {
-
-namespace arm64 {
+namespace yalx::arm64 {
 
 constexpr size_t kMaxPCRelativeCodeRangeInMB = 128;
 
@@ -2099,8 +2097,6 @@ enum UnallocatedOp : uint32_t {
   UnallocatedFixed = 0x00000000,
   UnallocatedFMask = 0x00000000
 };
-
-} // namespace arm64
 
 } // namespace yalx
 
