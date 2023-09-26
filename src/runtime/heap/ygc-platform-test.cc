@@ -26,6 +26,9 @@ TEST_F(YGCPlatformTest, Sanity) {
     ASSERT_EQ(ptr2[1], 996);
     ASSERT_EQ(ptr2[2], 700);
 
+    memory_backing_unmap(&backing, ygc_marked0(addr), SMALL_PAGE_SIZE);
+    memory_backing_unmap(&backing, ygc_marked1(addr), SMALL_PAGE_SIZE);
+    memory_backing_unmap(&backing, ygc_remapped(addr), SMALL_PAGE_SIZE);
     memory_backing_final(&backing);
 }
 
@@ -86,6 +89,10 @@ TEST_F(YGCPlatformTest, VirtualAddress) {
     memory_backing_map(&backing, ygc_marked1(mem.addr), SMALL_PAGE_SIZE, 0);
     memory_backing_map(&backing, ygc_remapped(mem.addr), SMALL_PAGE_SIZE, 0);
 
+
+    memory_backing_unmap(&backing, ygc_marked0(mem.addr), SMALL_PAGE_SIZE);
+    memory_backing_unmap(&backing, ygc_marked1(mem.addr), SMALL_PAGE_SIZE);
+    memory_backing_unmap(&backing, ygc_remapped(mem.addr), SMALL_PAGE_SIZE);
     virtual_memory_management_final(&vmm);
 }
 

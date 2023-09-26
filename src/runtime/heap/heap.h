@@ -21,6 +21,8 @@ struct yalx_root_visitor;
 #define KPOOL_STRIPES_SIZE  16
 #define KPOOL_REHASH_FACTOR 0.8
 
+#define OBJECT_ALIGNMENT_IN_BYTES (sizeof(uintptr_t))
+
 enum allocate_status {
     ALLOCATE_OK,
     ALLOCATE_NOTHING,
@@ -32,7 +34,7 @@ enum allocate_status {
 typedef enum gc_algorithm {
     GC_NONE, // No gc
     GC_LXR,  // LXR gc algorithm
-    GC_YGC,  // YGC gc algorithm
+    GC_YGC,  // YGC pauseless gc algorithm
 } gc_t;
 
 struct allocate_result {
@@ -87,13 +89,6 @@ struct barrier_set {
 };
 
 struct heap {
-//    // 1 pad allocation memory pool.
-//    // Only for no-gc model.
-//    struct one_time_memory_pool one_time_pool;
-//
-//    // LXR immix heap
-//    struct lxr_immix_heap lxr_immix;
-//    struct lxr_fields_logger lxr_log;
     struct barrier_set barrier_ops;
     
     struct string_pool kpool_stripes[KPOOL_STRIPES_SIZE];

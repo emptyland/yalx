@@ -1,4 +1,5 @@
 #include "runtime/heap/heap.h"
+#include "runtime/heap/ygc.h"
 #include "runtime/heap/object-visitor.h"
 #include "runtime/object/yalx-string.h"
 #include "runtime/object/number.h"
@@ -7,7 +8,6 @@
 #include "runtime/checking.h"
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 
 struct heap *heap = NULL;
@@ -15,6 +15,11 @@ struct heap *heap = NULL;
 struct no_gc_heap {
     struct heap heap;
     struct one_time_memory_pool pool;
+};
+
+struct ygc_heap {
+    struct heap heap;
+    struct ygc_core ygc;
 };
 
 static void prefix_write_barrier_no_op(struct heap *h, struct yalx_value_any *host, struct yalx_value_any *mutator) {}
@@ -44,7 +49,7 @@ static struct allocate_result allocate_from_pool(struct heap *h, size_t size, u3
     size_t used_in_bytes = pool->free - pool->chunk;
     DCHECK(used_in_bytes <= pool->size);
     size_t free_in_bytes = pool->size - used_in_bytes;
-    size_t n = ROUND_UP(size, 4);
+    size_t n = ROUND_UP(size, OBJECT_ALIGNMENT_IN_BYTES);
     
     struct allocate_result rv = {NULL, ALLOCATE_NOTHING};
     if (n > free_in_bytes) {
@@ -65,6 +70,26 @@ static void finalize_for_pool(struct heap *h) {
     free(pool->chunk);
 }
 
+static struct allocate_result allocate_from_ygc(struct heap *h, size_t size, u32_t flags) {
+    USE(flags);
+    struct ygc_core *ygc = &((struct ygc_heap *)h)->ygc;
+
+    struct allocate_result rs = {NULL, ALLOCATE_NOTHING};
+    address_t chunk = ygc_allocate_object(ygc, size, OBJECT_ALIGNMENT_IN_BYTES);
+    if (!chunk) {
+        rs.status = ALLOCATE_NOT_ENOUGH_MEMORY;
+        return rs;
+    }
+
+    rs.object = (yalx_ref_t)chunk;
+    rs.status = ALLOCATE_OK;
+    return rs;
+}
+
+static void finalize_for_ygc(struct heap *h) {
+    struct ygc_core *ygc = &((struct ygc_heap *)h)->ygc;
+    ygc_final(ygc);
+}
 
 static f32_t fast_boxing_f32_table[] = {
     -1.0,
@@ -232,8 +257,21 @@ int yalx_init_heap(gc_t gc, struct heap **receiver) {
             h->heap.finalize = finalize_for_pool;
             h->heap.barrier_ops = barrier_no_op;
             *receiver = (struct heap *) h;
-        }
-            break;
+        } break;
+
+        case GC_YGC: {
+            struct ygc_heap *h = MALLOC(struct ygc_heap);
+            if (!h) {
+                return -1;
+            }
+            if (ygc_init(&h->ygc, 4 * GB /*TODO*/) < 0) {
+                return -1;
+            }
+            h->heap.allocate = allocate_from_ygc;
+            h->heap.finalize = finalize_for_ygc;
+            *receiver = (struct heap *) h;
+        } break;
+
         case GC_LXR:
         default:
             assert(!"unreachable");
