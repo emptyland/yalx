@@ -1,5 +1,7 @@
 #include "runtime/heap/ygc.h"
+#include "runtime/thread.h"
 #include <gtest/gtest.h>
+#include <thread>
 
 class YGCTest : public ::testing::Test {
 public:
@@ -56,13 +58,78 @@ TEST_F(YGCTest, PageAllocate) {
 }
 
 TEST_F(YGCTest, AllocateSmallObject) {
+    ASSERT_TRUE(ygc_.medium_page == nullptr);
+    ASSERT_TRUE(per_cpu_get(ygc_page*, ygc_.small_page) == nullptr);
+
     auto ptr = reinterpret_cast<int *>(ygc_allocate_object(&ygc_, 4, 4));
     *ptr = 996;
     ASSERT_EQ(996, *ptr);
     ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 4);
 
+    auto page = per_cpu_get(ygc_page *, ygc_.small_page);
+    ASSERT_TRUE(page != nullptr);
+    ASSERT_EQ(4, ygc_page_used_in_bytes(page));
+
     ptr = reinterpret_cast<int *>(ygc_allocate_object(&ygc_, 4, 8));
     *ptr = 770;
     ASSERT_EQ(770, *ptr);
     ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 8);
+
+    for (auto i = 0; i < 16384; i++) {
+        ptr = reinterpret_cast<int *>(ygc_allocate_object(&ygc_, 128, 8));
+        *ptr = i;
+        ASSERT_EQ(i, *ptr);
+        ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 8);
+    }
+
+    ASSERT_NE(page, per_cpu_get(ygc_page *, ygc_.small_page));
+}
+
+TEST_F(YGCTest, MediumObjectAllocate) {
+    ASSERT_TRUE(ygc_.medium_page == nullptr);
+    ASSERT_TRUE(per_cpu_get(ygc_page*, ygc_.small_page) == nullptr);
+
+    ASSERT_EQ(4194304, MEDIUM_OBJECT_SIZE_LIMIT);
+
+    auto ptr = reinterpret_cast<int *>(ygc_allocate_object(&ygc_, 4194300, 4));
+    *ptr = 996;
+    ASSERT_EQ(996, *ptr);
+    ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 4);
+
+    ASSERT_TRUE(ygc_.medium_page != nullptr);
+    ASSERT_TRUE(per_cpu_get(ygc_page*, ygc_.small_page) == nullptr);
+}
+
+TEST_F(YGCTest, LargeObjectAllocate) {
+    ASSERT_TRUE(ygc_.medium_page == nullptr);
+    ASSERT_TRUE(per_cpu_get(ygc_page*, ygc_.small_page) == nullptr);
+
+    auto ptr = reinterpret_cast<int *>(ygc_allocate_object(&ygc_, 4194304, 4));
+    ASSERT_TRUE(ptr != nullptr);
+    *ptr = 996;
+    ASSERT_EQ(996, *ptr);
+    ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 4);
+
+    ASSERT_TRUE(ygc_.medium_page == nullptr);
+    ASSERT_TRUE(per_cpu_get(ygc_page*, ygc_.small_page) == nullptr);
+}
+
+TEST_F(YGCTest, ThreadingSafeSmallAllocation) {
+    std::thread workers[8];
+
+    for (auto & worker : workers) {
+        worker = std::move(std::thread([this] {
+            for (auto j = 0; j < 100000; j++) {
+                auto ptr = reinterpret_cast<int *>(ygc_allocate_object(&ygc_, 32, 8));
+                *ptr = j;
+                ASSERT_EQ(j, *ptr);
+                ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 8);
+            }
+        }));
+    }
+
+    for (auto & worker : workers) {
+        worker.join();
+    }
+    ASSERT_GE(ygc_.rss, 20971520);
 }

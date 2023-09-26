@@ -79,32 +79,18 @@ void ygc_final(struct ygc_core *ygc) {
     ygc->rss = 0;
 }
 
-static uintptr_t allocate_small_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes) {
-    struct ygc_page *page = per_cpu_get(struct ygc_page*, ygc->small_page);
-    if (page) {
-        uintptr_t chunk = ygc_page_atomic_allocate(page, size, alignment_in_bytes);
-        if (chunk != UINTPTR_MAX) {
-            return chunk;
-        }
-    }
+static uintptr_t allocate_object_from_shared_page(struct ygc_core *ygc,
+                                                  struct ygc_page *_Atomic *shared_page,
+                                                  size_t page_size,
+                                                  size_t size,
+                                                  uintptr_t alignment_in_bytes) {
+    static struct ygc_page *const PAGE_BUSY = (struct ygc_page *)0x1;
 
-    page = ygc_page_new(ygc, SMALL_PAGE_SIZE);
-    if (!page) {
-        return UINTPTR_MAX;
-    }
-    per_cpu_set(ygc->small_page, page);
-
-    return ygc_page_allocate(page, size, alignment_in_bytes);
-}
-
-
-static uintptr_t allocate_medium_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes) {
-    static struct ygc_page *const page_busy = (struct ygc_page *)0x1;
     for (;;) {
         struct ygc_page *page;
         do {
-            page = atomic_load(&ygc->medium_page);
-        } while (page != page_busy);
+            page = atomic_load_explicit(shared_page, memory_order_acquire);
+        } while (page == PAGE_BUSY);
         if (page) {
             uintptr_t chunk = ygc_page_atomic_allocate(page, size, alignment_in_bytes);
             if (chunk != UINTPTR_MAX) {
@@ -112,16 +98,42 @@ static uintptr_t allocate_medium_object(struct ygc_core *ygc, size_t size, uintp
             }
         }
 
-        if (atomic_compare_exchange_strong(&ygc->medium_page, &page, page_busy)) {
-            page = ygc_page_new(ygc, MEDIUM_PAGE_SIZE);
+        if (atomic_compare_exchange_strong(shared_page, &page, PAGE_BUSY)) {
+            page = ygc_page_new(ygc, page_size);
             if (!page) {
-                atomic_store(&ygc->medium_page, NULL);
+                atomic_store_explicit(shared_page, NULL, memory_order_release);
                 return UINTPTR_MAX;
             }
-            atomic_store(&ygc->medium_page, page);
-            return ygc_page_allocate(page, size, alignment_in_bytes);
+            uintptr_t chunk = ygc_page_allocate(page, size, alignment_in_bytes);
+            atomic_store_explicit(shared_page, page, memory_order_release);
+            return chunk;
         }
     }
+}
+
+
+static uintptr_t allocate_small_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes) {
+    struct ygc_page *_Atomic *shared_page = per_cpu_at(struct ygc_page *_Atomic *, ygc->small_page);
+    return allocate_object_from_shared_page(ygc, shared_page, SMALL_PAGE_SIZE, size, alignment_in_bytes);
+}
+
+
+static uintptr_t allocate_medium_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes) {
+    return allocate_object_from_shared_page(ygc, &ygc->medium_page, MEDIUM_PAGE_SIZE, size,
+                                            alignment_in_bytes);
+}
+
+uintptr_t allocate_large_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes) {
+    DCHECK(alignment_in_bytes != 0);
+    DCHECK(alignment_in_bytes % 2 == 0);
+
+    const size_t request_in_bytes = ROUND_UP(size + alignment_in_bytes, YGC_GRANULE_SIZE);
+    struct ygc_page *const page = ygc_page_new(ygc, request_in_bytes);
+    if (!page) {
+        DLOG(ERROR, "Failed to allocating large page, size=%zd", request_in_bytes);
+        return UINTPTR_MAX;
+    }
+    return ygc_page_allocate(page, size, alignment_in_bytes);
 }
 
 address_t ygc_allocate_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes) {
@@ -131,13 +143,15 @@ address_t ygc_allocate_object(struct ygc_core *ygc, size_t size, uintptr_t align
     } else if (size < MEDIUM_OBJECT_SIZE_LIMIT) {
         chunk = allocate_medium_object(ygc, size, alignment_in_bytes);
     } else {
-        NOREACHABLE();
+        chunk = allocate_large_object(ygc, size, alignment_in_bytes);
     }
     if (chunk == UINTPTR_MAX) {
         return NULL;
     }
     address_t addr = (address_t)ygc_good_address(chunk);
-    dbg_init_zag(addr, size);
+    if (size < MEDIUM_OBJECT_SIZE_LIMIT) {
+        dbg_init_zag(addr, size);
+    }
     return addr;
 }
 
@@ -232,13 +246,11 @@ uintptr_t ygc_page_atomic_allocate(struct ygc_page *page, size_t size, uintptr_t
     DCHECK(size != 0);
     DCHECK(alignment_in_bytes != 0 && alignment_in_bytes % 2 == 0);
 
-    uintptr_t chunk = UINTPTR_MAX;
-    uintptr_t desired = 0;
+    uintptr_t addr = page->top;
+    uintptr_t new_top;
     do {
-        chunk = atomic_load(&page->top);
-        desired = ROUND_UP(chunk, alignment_in_bytes) + size;
-    } while (!atomic_compare_exchange_strong(&page->top, &chunk, desired));
-
-    chunk = ROUND_UP(chunk, alignment_in_bytes);
+        new_top = ROUND_UP(addr, alignment_in_bytes) + size;
+    } while (!atomic_compare_exchange_strong(&page->top, &addr, new_top));
+    uintptr_t chunk = ROUND_UP(addr, alignment_in_bytes);
     return chunk + size >= page->limit ? UINTPTR_MAX : chunk;
 }

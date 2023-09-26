@@ -122,10 +122,10 @@ static inline void dbg_free_zag(void *chunk, size_t n) { fill_memory_zag(chunk, 
 
 void *yalx_zalloc(size_t n);
 
-char *yalx_symbol_mangle(const char *const plain_name, const char *postfix);
+char *yalx_symbol_mangle(const char *plain_name, const char *postfix);
 size_t yalx_symbol_demangle_on_place(char symbol[], size_t size);
 
-int yalx_name_symbolize(const char *const plain_name, char symbol[], size_t size);
+int yalx_name_symbolize(const char *plain_name, char symbol[], size_t size);
 
 void die(const char *fmt, ...);
 

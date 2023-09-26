@@ -95,6 +95,7 @@ void per_cpu_storage_free(struct per_cpu_storage *storage);
 
 int cpu_id();
 
+#define per_cpu_at(ty, storage) ((ty)(&(storage)->items[cpu_id()]))
 #define per_cpu_get(ty, storage) ((ty)((storage)->items[cpu_id()]))
 #define per_cpu_set(storage, item) (storage)->items[cpu_id()] = (item)
 
