@@ -44,7 +44,8 @@ static struct barrier_set barrier_no_op = {
 static struct allocate_result allocate_from_pool(struct heap *h, size_t size, u32_t flags) {
     USE(flags);
     struct one_time_memory_pool *pool = &((struct no_gc_heap *)h)->pool;
-    
+
+    //yalx_mutex_lock(&h->mutex); // TODO: used atomic ops
     DCHECK(pool->free >= pool->chunk);
     size_t used_in_bytes = pool->free - pool->chunk;
     DCHECK(used_in_bytes <= pool->size);
@@ -54,11 +55,14 @@ static struct allocate_result allocate_from_pool(struct heap *h, size_t size, u3
     struct allocate_result rv = {NULL, ALLOCATE_NOTHING};
     if (n > free_in_bytes) {
         rv.status = ALLOCATE_NOT_ENOUGH_MEMORY;
+        //yalx_mutex_unlock(&h->mutex);
         return rv;
     }
     rv.object = (yalx_ref_t)pool->free;
     rv.status = ALLOCATE_OK;
     pool->free += n;
+    //yalx_mutex_unlock(&h->mutex);
+
     dbg_init_zag(rv.object, n);
     return rv;
 }
@@ -68,6 +72,12 @@ static void finalize_for_pool(struct heap *h) {
 
     dbg_free_zag(pool->chunk, pool->size);
     free(pool->chunk);
+}
+
+static int is_in_pool(const struct heap *h, uintptr_t addr) {
+    const struct one_time_memory_pool *pool = &((const struct no_gc_heap *)h)->pool;
+    const address_t ptr = (address_t)addr;
+    return ptr >= pool->chunk && ptr < pool->free;
 }
 
 static struct allocate_result allocate_from_ygc(struct heap *h, size_t size, u32_t flags) {
@@ -89,6 +99,11 @@ static struct allocate_result allocate_from_ygc(struct heap *h, size_t size, u32
 static void finalize_for_ygc(struct heap *h) {
     struct ygc_core *ygc = &((struct ygc_heap *)h)->ygc;
     ygc_final(ygc);
+}
+
+static int is_in_ygc_heap(const struct heap *h, uintptr_t addr) {
+    const struct ygc_core *ygc = &((const struct ygc_heap *)h)->ygc;
+    return (addr & YGC_METADATA_MASK) && ygc_addr_in_heap(ygc, addr);
 }
 
 static f32_t fast_boxing_f32_table[] = {
@@ -254,6 +269,7 @@ int yalx_init_heap(gc_t gc, struct heap **receiver) {
             }
             h->pool.free = h->pool.chunk;
             h->heap.allocate = allocate_from_pool;
+            h->heap.is_in = is_in_pool;
             h->heap.finalize = finalize_for_pool;
             h->heap.barrier_ops = barrier_no_op;
             *receiver = (struct heap *) h;
@@ -268,6 +284,7 @@ int yalx_init_heap(gc_t gc, struct heap **receiver) {
                 return -1;
             }
             h->heap.allocate = allocate_from_ygc;
+            h->heap.is_in = is_in_ygc_heap;
             h->heap.finalize = finalize_for_ygc;
             *receiver = (struct heap *) h;
         } break;

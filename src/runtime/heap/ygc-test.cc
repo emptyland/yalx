@@ -110,6 +110,10 @@ TEST_F(YGCTest, LargeObjectAllocate) {
     ASSERT_EQ(996, *ptr);
     ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 4);
 
+    auto page = ygc_addr_in_page(&ygc_, reinterpret_cast<uintptr_t>(ptr));
+    ASSERT_TRUE(page != nullptr);
+    ASSERT_TRUE(ygc_is_large_page(page));
+
     ASSERT_TRUE(ygc_.medium_page == nullptr);
     ASSERT_TRUE(per_cpu_get(ygc_page*, ygc_.small_page) == nullptr);
 }
@@ -124,6 +128,7 @@ TEST_F(YGCTest, ThreadingSafeSmallAllocation) {
                 *ptr = j;
                 ASSERT_EQ(j, *ptr);
                 ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 8);
+                ASSERT_TRUE(ygc_addr_in_heap(&ygc_, reinterpret_cast<uintptr_t>(ptr)));
             }
         }));
     }

@@ -21,4 +21,7 @@ public:
 TEST_F(YGCHeapTest, Sanity) {
     auto str = yalx_new_string_direct(heap_, "hello", 5);
     ASSERT_STREQ("hello", str->bytes);
+
+    ASSERT_TRUE(heap_->is_in(heap_, reinterpret_cast<uintptr_t>(str)));
+    ASSERT_FALSE(heap_->is_in(heap_, 0));
 }

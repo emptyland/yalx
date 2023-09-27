@@ -96,6 +96,7 @@ struct heap {
 
     struct yalx_mutex mutex;
     struct allocate_result (*allocate)(struct heap *, size_t, u32_t);
+    int (*is_in)(const struct heap *, uintptr_t);
     void (*finalize)(struct heap *);
     
     gc_t gc;

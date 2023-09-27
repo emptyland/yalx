@@ -53,6 +53,8 @@ int ygc_init(struct ygc_core *ygc, size_t capacity) {
     ygc->small_page = per_cpu_storage_new();
     ygc->pages.next = &ygc->pages;
     ygc->pages.prev = &ygc->pages;
+
+    granule_map_init(&ygc->page_granules);
     yalx_mutex_init(&ygc->mutex);
 
     ygc_flip_to_remapped(); // Initialize state
@@ -61,12 +63,14 @@ int ygc_init(struct ygc_core *ygc, size_t capacity) {
 
 void ygc_final(struct ygc_core *ygc) {
     // TODO:
-    yalx_mutex_final(&ygc->mutex);
+
     while (!QUEUE_EMPTY(&ygc->pages)) {
         struct ygc_page *page = ygc->pages.next;
         QUEUE_REMOVE(page);
         ygc_page_free(ygc, page);
     }
+    yalx_mutex_final(&ygc->mutex);
+    granule_map_final(&ygc->page_granules);
 
     for (int i = 0; i < ygc->small_page->n; i++) {
         struct ygc_page *page = per_cpu_get(struct ygc_page *, ygc->small_page);
@@ -167,6 +171,18 @@ static void map_page_all_views(struct memory_backing *backing, linear_address_t 
     DCHECK(addr - virtual_mem.addr == virtual_mem.size);
 }
 
+static void page_granule_insert(struct ygc_granule_map *map, struct ygc_page *page) {
+    for (uintptr_t addr = page->virtual_addr.addr; addr < page->limit; addr += YGC_GRANULE_SIZE) {
+        granule_map_put(map, addr, (uintptr_t)page);
+    }
+}
+
+static void page_granule_remove(struct ygc_granule_map *map, struct ygc_page *page) {
+    for (uintptr_t addr = page->virtual_addr.addr; addr < page->limit; addr += YGC_GRANULE_SIZE) {
+        granule_map_put(map, addr, 0);
+    }
+}
+
 struct ygc_page *ygc_page_new(struct ygc_core *ygc, size_t size) {
     if (size == 0) {
         return NULL;
@@ -199,6 +215,7 @@ struct ygc_page *ygc_page_new(struct ygc_core *ygc, size_t size) {
 
     yalx_mutex_lock(&ygc->mutex);
     QUEUE_INSERT_TAIL(&ygc->pages, page);
+    page_granule_insert(&ygc->page_granules, page);
     yalx_mutex_unlock(&ygc->mutex);
 
     atomic_fetch_add(&ygc->rss, page->virtual_addr.size);
@@ -213,6 +230,7 @@ void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page) {
 
     yalx_mutex_lock(&ygc->mutex);
     QUEUE_REMOVE(page);
+    page_granule_remove(&ygc->page_granules, page);
     yalx_mutex_unlock(&ygc->mutex);
 
     atomic_fetch_sub(&ygc->rss, page->virtual_addr.size);

@@ -122,6 +122,37 @@ linear_address_t allocate_virtual_memory(struct virtual_memory_management *self,
 void free_virtual_memory(struct virtual_memory_management *self, linear_address_t addr);
 void release_virtual_memory(struct virtual_memory_management *self, uintptr_t addr, size_t size);
 
+struct ygc_page;
+
+struct ygc_granule_map {
+    size_t size;
+    uintptr_t *bucket;
+};
+
+static inline void granule_map_init(struct ygc_granule_map *map) {
+    map->size = 0;
+    map->bucket = NULL;
+}
+
+static inline void granule_map_final(struct ygc_granule_map *map) {
+    map->size = 0;
+    free(map->bucket);
+}
+
+static inline uintptr_t granule_map_get(const struct ygc_granule_map *map, uintptr_t key) {
+    size_t index = (size_t)(key >> YGC_GRANULE_SHIFT);
+    return index >= map->size ? 0 : map->bucket[index];
+}
+
+static inline void granule_map_put(struct ygc_granule_map *map, uintptr_t key, uintptr_t value) {
+    size_t index = (size_t)(key >> YGC_GRANULE_SHIFT);
+    if (index >= map->size) {
+        map->bucket = (uintptr_t *)realloc(map->bucket, (index + 1) * sizeof(uintptr_t));
+        memset(map->bucket + map->size, 0, (index + 1 - map->size) * sizeof(uintptr_t));
+        map->size = index + 1;
+    }
+    map->bucket[index] = value;
+}
 
 struct ygc_page {
     struct ygc_page *prev;
@@ -140,6 +171,7 @@ struct ygc_core {
     struct ygc_page *_Atomic medium_page;
     _Atomic size_t rss;
     struct ygc_page pages;
+    struct ygc_granule_map page_granules;
     struct yalx_mutex mutex;
 };
 
@@ -155,6 +187,28 @@ void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page);
 // Allocate memory chunk from page
 uintptr_t ygc_page_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes);
 uintptr_t ygc_page_atomic_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes);
+
+static inline int ygc_is_small_page(const struct ygc_page *page) {
+    return page->virtual_addr.size == SMALL_PAGE_SIZE;
+}
+
+static inline int ygc_is_medium_page(const struct ygc_page *page) {
+    return page->virtual_addr.size == MEDIUM_PAGE_SIZE;
+}
+
+static inline int ygc_is_large_page(const struct ygc_page *page) {
+    return !ygc_is_small_page(page) && !ygc_is_medium_page(page);
+}
+
+static inline struct ygc_page *ygc_addr_in_page(const struct ygc_core *ygc, uintptr_t addr) {
+    return (struct ygc_page *)granule_map_get(&ygc->page_granules, ygc_offset(addr));
+}
+
+static inline int ygc_addr_in_heap(const struct ygc_core *ygc, uintptr_t addr) {
+    const struct ygc_page *page = ygc_addr_in_page(ygc, addr);
+    const uintptr_t offset = ygc_offset(addr);
+    return page != NULL && offset >= page->virtual_addr.addr && offset < page->limit;
+}
 
 static inline size_t ygc_page_used_in_bytes(const struct ygc_page *page) {
     return (size_t)page->top - page->virtual_addr.addr;
