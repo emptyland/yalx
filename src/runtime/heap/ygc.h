@@ -2,6 +2,7 @@
 #ifndef YALX_RUNTIME_HEAP_YGC_H
 #define YALX_RUNTIME_HEAP_YGC_H
 
+#include "runtime/heap/ygc-live-map.h"
 #include "runtime/locks.h"
 #include "runtime/runtime.h"
 #include "runtime/locks.h"
@@ -155,12 +156,13 @@ static inline void granule_map_put(struct ygc_granule_map *map, uintptr_t key, u
 }
 
 struct ygc_page {
-    struct ygc_page *prev;
     struct ygc_page *next;
+    struct ygc_page *prev;
     linear_address_t virtual_addr;
     struct physical_memory physical_memory;
     _Atomic uintptr_t top;
     uintptr_t limit;
+    ygc_live_map live_map;
 };
 
 struct ygc_core {
@@ -199,6 +201,8 @@ static inline int ygc_is_medium_page(const struct ygc_page *page) {
 static inline int ygc_is_large_page(const struct ygc_page *page) {
     return !ygc_is_small_page(page) && !ygc_is_medium_page(page);
 }
+
+void ygc_page_mark_object(struct ygc_page *page, struct yalx_value_any *obj);
 
 static inline struct ygc_page *ygc_addr_in_page(const struct ygc_core *ygc, uintptr_t addr) {
     return (struct ygc_page *)granule_map_get(&ygc->page_granules, ygc_offset(addr));

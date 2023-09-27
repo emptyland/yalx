@@ -36,6 +36,12 @@ int ncpus = 0;
 
 int os_page_size = 0;
 
+size_t pointer_size_in_bytes = sizeof(void *);
+int pointer_shift_in_bytes = 0;
+size_t pointer_size_in_bits = sizeof(void *) * 8;
+int pointer_shift_in_bits = 0;
+int pointer_mask_in_bits = 0;
+
 const struct yalx_str yalx_version = YALX_STR("yalx-lang v0.0.0");
 
 struct processor *procs = NULL;
@@ -161,6 +167,10 @@ struct class_load_entry {
 };
 
 int yalx_runtime_init() {
+    pointer_shift_in_bytes = yalx_log2(pointer_size_in_bytes);
+    pointer_shift_in_bits = yalx_log2(pointer_size_in_bits);
+    pointer_mask_in_bits = (int)((1U << pointer_shift_in_bits) - 1);
+
 #if defined(YALX_OS_DARWIN)
     os_page_size = getpagesize();
     

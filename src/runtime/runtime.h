@@ -97,6 +97,12 @@ extern int ncpus;
 // Size in bytes for system memory ygc_page.
 extern int os_page_size;
 
+// Shift of pointer size.
+extern size_t pointer_size_in_bytes;
+extern int pointer_shift_in_bytes;
+extern size_t pointer_size_in_bits;
+extern int pointer_shift_in_bits;
+extern int pointer_mask_in_bits;
 
 int yalx_runtime_init(void);
 
@@ -121,6 +127,14 @@ static inline void dbg_free_zag(void *chunk, size_t n) { fill_memory_zag(chunk, 
 #endif
 
 void *yalx_zalloc(size_t n);
+
+static inline int yalx_log2(uintptr_t n) {
+    int x = 1, i = 0;
+    for (; x < n; x <<= 1) {
+        i++;
+    }
+    return i;
+}
 
 char *yalx_symbol_mangle(const char *plain_name, const char *postfix);
 size_t yalx_symbol_demangle_on_place(char symbol[], size_t size);

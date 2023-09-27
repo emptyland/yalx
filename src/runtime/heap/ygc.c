@@ -213,6 +213,8 @@ struct ygc_page *ygc_page_new(struct ygc_core *ygc, size_t size) {
     page->top = page->virtual_addr.addr;
     page->limit = page->top + page->virtual_addr.size;
 
+    live_map_init(&page->live_map, yalx_log2(512));
+
     yalx_mutex_lock(&ygc->mutex);
     QUEUE_INSERT_TAIL(&ygc->pages, page);
     page_granule_insert(&ygc->page_granules, page);
@@ -234,6 +236,8 @@ void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page) {
     yalx_mutex_unlock(&ygc->mutex);
 
     atomic_fetch_sub(&ygc->rss, page->virtual_addr.size);
+
+    live_map_final(&page->live_map);
 
     const uintptr_t addr = page->virtual_addr.addr;
     const size_t size = page->virtual_addr.size;
@@ -271,4 +275,13 @@ uintptr_t ygc_page_atomic_allocate(struct ygc_page *page, size_t size, uintptr_t
     } while (!atomic_compare_exchange_strong(&page->top, &addr, new_top));
     uintptr_t chunk = ROUND_UP(addr, alignment_in_bytes);
     return chunk + size >= page->limit ? UINTPTR_MAX : chunk;
+}
+
+void ygc_page_mark_object(struct ygc_page *page, struct yalx_value_any *obj) {
+    const uintptr_t offset = ygc_offset((uintptr_t)obj);
+    DCHECK(offset >= page->virtual_addr.addr && offset < page->top);
+    DCHECK(offset % YGC_ALLOCATION_ALIGNMENT_SIZE == 0);
+
+    live_map_increase_obj(&page->live_map, obj);
+    live_map_set(&page->live_map, (int)(offset >> pointer_shift_in_bytes));
 }
