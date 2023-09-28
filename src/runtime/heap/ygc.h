@@ -42,6 +42,8 @@ extern uintptr_t YGC_ADDRESS_GOOD_MASK;
 extern uintptr_t YGC_ADDRESS_BAD_MASK;
 extern uintptr_t YGC_ADDRESS_WEAK_BAD_MASK;
 
+extern uint32_t ygc_global_tick;
+
 void ygc_set_good_mask(uintptr_t mask);
 void ygc_flip_to_remapped();
 void ygc_flip_to_marked();
@@ -54,6 +56,7 @@ void ygc_flip_to_marked();
 #define ygc_good_address(addr) (ygc_offset(addr) | YGC_ADDRESS_GOOD_MASK)
 
 struct per_cpu_storage;
+struct yalx_heap_visitor;
 
 struct linear_address {
     uintptr_t addr;
@@ -158,6 +161,7 @@ static inline void granule_map_put(struct ygc_granule_map *map, uintptr_t key, u
 struct ygc_page {
     struct ygc_page *next;
     struct ygc_page *prev;
+    uint32_t tick;
     linear_address_t virtual_addr;
     struct physical_memory physical_memory;
     _Atomic uintptr_t top;
@@ -181,6 +185,8 @@ struct ygc_core {
 int ygc_init(struct ygc_core *ygc, size_t capacity);
 void ygc_final(struct ygc_core *ygc);
 
+struct ygc_core *ygc_heap(struct heap *h);
+
 address_t ygc_allocate_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes);
 
 struct ygc_page *ygc_page_new(struct ygc_core *ygc, size_t size);
@@ -202,7 +208,17 @@ static inline int ygc_is_large_page(const struct ygc_page *page) {
     return !ygc_is_small_page(page) && !ygc_is_medium_page(page);
 }
 
+static inline int ygc_page_is_allocating(const struct ygc_page *page) {
+    return page->tick == ygc_global_tick;
+}
+
+static inline int ygc_page_is_relocatable(const struct ygc_page *page) {
+    return page->tick < ygc_global_tick;
+}
+
 void ygc_page_mark_object(struct ygc_page *page, struct yalx_value_any *obj);
+
+void ygc_page_visit_objects(struct ygc_page *page, struct yalx_heap_visitor *visitor);
 
 static inline struct ygc_page *ygc_addr_in_page(const struct ygc_core *ygc, uintptr_t addr) {
     return (struct ygc_page *)granule_map_get(&ygc->page_granules, ygc_offset(addr));

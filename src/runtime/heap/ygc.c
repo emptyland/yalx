@@ -1,4 +1,7 @@
 #include "runtime/heap/ygc.h"
+#include "runtime/heap/heap.h"
+#include "runtime/heap/object-visitor.h"
+#include "runtime/object/any.h"
 #include "runtime/thread.h"
 #include "runtime/checking.h"
 
@@ -19,6 +22,8 @@ size_t YGC_VIRTUAL_ADDRESS_SPACE_LEN = (1L << YGC_METADATA_SHIFT);
 uintptr_t YGC_ADDRESS_GOOD_MASK;
 uintptr_t YGC_ADDRESS_BAD_MASK;
 uintptr_t YGC_ADDRESS_WEAK_BAD_MASK;
+
+uint32_t ygc_global_tick = 1;
 
 void ygc_set_good_mask(uintptr_t mask) {
     YGC_ADDRESS_GOOD_MASK = mask;
@@ -81,6 +86,11 @@ void ygc_final(struct ygc_core *ygc) {
     physical_memory_management_final(&ygc->pmm);
     memory_backing_final(&ygc->backing);
     ygc->rss = 0;
+}
+
+struct ygc_core *ygc_heap(struct heap *h) {
+    DCHECK(h != NULL);
+    return (struct ygc_core *)(h + 1);
 }
 
 static uintptr_t allocate_object_from_shared_page(struct ygc_core *ygc,
@@ -209,6 +219,7 @@ struct ygc_page *ygc_page_new(struct ygc_core *ygc, size_t size) {
     map_page_all_views(&ygc->backing, virtual_mem, &page->physical_memory);
 
 
+    page->tick = ygc_global_tick;
     page->virtual_addr = virtual_mem;
     page->top = page->virtual_addr.addr;
     page->limit = page->top + page->virtual_addr.size;
@@ -278,10 +289,20 @@ uintptr_t ygc_page_atomic_allocate(struct ygc_page *page, size_t size, uintptr_t
 }
 
 void ygc_page_mark_object(struct ygc_page *page, struct yalx_value_any *obj) {
-    const uintptr_t offset = ygc_offset((uintptr_t)obj);
+    const uintptr_t offset = ygc_offset(obj);
     DCHECK(offset >= page->virtual_addr.addr && offset < page->top);
     DCHECK(offset % YGC_ALLOCATION_ALIGNMENT_SIZE == 0);
 
-    live_map_increase_obj(&page->live_map, obj);
+    live_map_increase_obj(&page->live_map, 1, yalx_object_size_in_bytes(obj));
     live_map_set(&page->live_map, (int)(offset >> pointer_shift_in_bytes));
+}
+
+void ygc_page_visit_objects(struct ygc_page *page, struct yalx_heap_visitor *visitor) {
+    uintptr_t addr = ROUND_UP(page->virtual_addr.addr, YGC_ALLOCATION_ALIGNMENT_SIZE);
+    while (addr < atomic_load_explicit(&page->top, memory_order_acquire)) {
+        yalx_ref_t obj = (yalx_ref_t)addr;
+        visitor->visit_pointer(visitor, obj);
+        uintptr_t next = addr + yalx_object_size_in_bytes(obj);
+        addr = ROUND_UP(next, YGC_ALLOCATION_ALIGNMENT_SIZE);
+    }
 }

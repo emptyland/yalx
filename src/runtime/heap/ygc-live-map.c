@@ -69,7 +69,7 @@ int live_map_get(struct ygc_live_map *map, int index) {
     return bucket_get(map, &map->buckets[bucket], index & map->mask_per_bucket);
 }
 
-void live_map_increase_obj(struct ygc_live_map *map, struct yalx_value_any *obj) {
-    atomic_fetch_add(&map->live_objs, 1);
-    atomic_fetch_add(&map->live_objs_in_bytes, yalx_object_size_in_bytes(obj));
+void live_map_increase_obj(struct ygc_live_map *map, size_t objs, size_t objs_in_bytes) {
+    atomic_fetch_add(&map->live_objs, objs);
+    atomic_fetch_add(&map->live_objs_in_bytes, objs_in_bytes);
 }

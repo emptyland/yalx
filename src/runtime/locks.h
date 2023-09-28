@@ -66,12 +66,40 @@ static inline int yalx_mutex_try_lock(struct yalx_mutex *self) {
 static inline void yalx_mutex_unlock(struct yalx_mutex *self) {
     mtx_unlock(&self->impl);
 }
+
+struct yalx_cond {
+    cnd_t impl;
+};
+
+static inline int yalx_cond_init(struct yalx_cond *self) {
+    return cnd_init(&self->impl) == thrd_success ? 0 : -1;
+}
+
+static inline void yalx_cond_final(struct yalx_cond *self) {
+    cnd_destroy(&self->impl);
+}
+
+static inline int yalx_cond_notify_one(struct yalx_cond *self) {
+    return cnd_signal(&self->impl) == thrd_success ? 0 : -1;
+}
+
+static inline int yalx_cond_notify_all(struct yalx_cond *self) {
+    return cnd_broadcast(&self->impl) == thrd_success ? 0 : -1;
+}
+
+static inline int yalx_cond_wait(struct yalx_cond *self, struct yalx_mutex *mutex) {
+    return cnd_wait(&self->impl, &mutex->impl) == thrd_success ? 0 : -1;
+}
+
 #else
 #if defined(YALX_OS_POSIX)
 struct yalx_mutex {
     pthread_mutex_t impl;
 };
 
+struct yalx_cond {
+    pthread_cond_t impl;
+};
 #endif
 
 #if defined(YALX_OS_WINDOWS)
