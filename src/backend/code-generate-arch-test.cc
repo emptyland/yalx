@@ -1,8 +1,4 @@
-#include "backend/code-generate-arch-test.h"
 #include "runtime/object/yalx-string.h"
-#include "runtime/object/type.h"
-#include "runtime/heap/heap.h"
-#include "runtime/process.h"
 #include "runtime/runtime.h"
 #include <gtest/gtest.h>
 

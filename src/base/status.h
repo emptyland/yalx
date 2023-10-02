@@ -5,10 +5,9 @@
 #include "base/base.h"
 #include <string>
 #include <string_view>
+#include <string.h>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 class Status final {
 public:
@@ -121,7 +120,7 @@ private:
         char *state = new char[len];
         *reinterpret_cast<int *>(state) = static_cast<int>(message.length());
         *reinterpret_cast<Code *>(state + 4) = code;
-        memcpy(state + 8, message.data(), message.length());
+        ::memcpy(state + 8, message.data(), message.length());
         return state;
     }
 
@@ -135,8 +134,6 @@ private:
 #define ERR_PERROR(msg)           ::yalx::base::Status::PError(__FILE__, __LINE__, msg)
 #define ERR_NOT_SUPPORTED()       ::yalx::base::Status::NotSupported(__FILE__, __LINE__)
 #define ERR_INVALID_ARGUMENT(msg) ::yalx::base::Status::InvalidArgument(__FILE__, __LINE__, msg)
-
-} // namespace base
 
 } // namespace yalx
 

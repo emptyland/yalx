@@ -5,9 +5,7 @@
 #include "backend/arm64/instruction-codes-arm64.h"
 #include "base/io.h"
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 
 class Arm64InstructionSelectorTest : public InstructionSelectorTest {
@@ -25,7 +23,7 @@ TEST_F(Arm64InstructionSelectorTest, Sanity) {
     blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(2), fun->paramater(1), fun->paramater(1));
     
     auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
-    ASSERT_NE(nullptr, instr_fun);
+    ASSERT_TRUE(nullptr != instr_fun);
     
     auto block = instr_fun->block(0);
     ASSERT_EQ(2, block->instructions().size());
@@ -151,7 +149,7 @@ TEST_F(Arm64InstructionSelectorTest, ScanVirtualRegisters) {
     blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), rs);
     
     auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
-    ASSERT_NE(nullptr, instr_fun);
+    ASSERT_TRUE(nullptr != instr_fun);
     
     RegisterAllocator allocator(arena(), regconf_, instr_fun);
     allocator.Prepare();
@@ -210,7 +208,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     l3->NewNode(kUnknown, ir::Types::Void, ops()->Ret(1), phi1);
     
     auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
-    ASSERT_NE(nullptr, instr_fun);
+    ASSERT_TRUE(nullptr != instr_fun);
 
     RegisterAllocator allocator(arena(), regconf_, instr_fun);
     allocator.Prepare();
@@ -262,7 +260,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     allocator.WalkIntervals();
     
     interval = allocator.IntervalOf(param0);
-    ASSERT_NE(nullptr, interval);
+    ASSERT_TRUE(nullptr != interval);
     ASSERT_TRUE(interval->has_assigned_gp_register());
     EXPECT_EQ(0, interval->assigned_operand());
     
@@ -292,7 +290,5 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     }
 //#endif
 }
-
-} // namespace backend
 
 } // namespace yalx

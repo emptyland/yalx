@@ -11,8 +11,7 @@
 #include <inttypes.h>
 #include <set>
 
-namespace yalx {
-namespace backend {
+namespace yalx::backend {
 
 GnuAsmGenerator::GnuAsmGenerator(const base::ArenaMap<std::string_view, InstructionFunction *> &funs,
                                  ir::Module *module,
@@ -575,5 +574,4 @@ void GnuAsmGenerator::EmitStringConstants() {
     }
 }
 
-} // namespace backend
 } // namespace yalx

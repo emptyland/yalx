@@ -17,7 +17,7 @@ protected:
 
 TEST_F(OperandAllocatorTest, Sanity) {
     auto opd = operands_.Allocate(OperandAllocator::kVal, 4);
-    ASSERT_NE(nullptr, opd);
+    ASSERT_TRUE(nullptr != opd);
     ASSERT_TRUE(opd->IsRegister());
     ASSERT_EQ(MachineRepresentation::kWord32, opd->AsRegister()->rep());
     ASSERT_EQ(0, opd->AsRegister()->register_id());

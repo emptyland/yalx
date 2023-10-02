@@ -1,13 +1,11 @@
 #include "base/arena.h"
 #include <gtest/gtest.h>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 TEST(ArenaTest, Sanity) {
     Arena arean;
-    ASSERT_NE(arean.Allocate(1), nullptr);
+    ASSERT_TRUE(arean.Allocate(1) != nullptr);
     ASSERT_EQ(1, arean.CountBlocks());
     ASSERT_EQ(0, arean.CountLargeBlocks());
 }
@@ -31,7 +29,7 @@ TEST(ArenaTest, MutilBlocks) {
     Arena arean;
     for (int i = 0; i < 1024; i++) {
         auto p = arean.Allocate(kKB);
-        ASSERT_NE(nullptr, p);
+        ASSERT_TRUE(nullptr != p);
     }
     ASSERT_EQ(2, arean.CountBlocks());
     ASSERT_EQ(0, arean.CountLargeBlocks());
@@ -46,7 +44,5 @@ TEST(ArenaTest, ContinuousAllocation) {
     ASSERT_EQ(*x, 0xcccccccc);
     ASSERT_EQ(*p, 0xeeeeeeee);
 }
-
-} // namespace base
 
 } // namespace yalx

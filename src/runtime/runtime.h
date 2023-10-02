@@ -10,6 +10,7 @@
 
 #ifdef __cplusplus
 extern "C" {
+#define _Atomic
 #else
 #include <stdatomic.h>
 #endif
@@ -23,15 +24,15 @@ extern "C" {
 #define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
 
 #define ROUND_DOWN(x, m)   ((x) & -(m))
-#define ROUND_UP(x, m)     ROUND_DOWN(x + m - 1, m)
+#define ROUND_UP(x, m)     ROUND_DOWN((x) + (m) - 1, (m))
 
 #define MALLOC(t) ((t *)malloc(sizeof(t)))
 #define MALLOC_N(t, n) ((t *)malloc(n * sizeof(t)))
 
-#define KB 1024
-#define MB (KB * 1024)
-#define GB (MB * 1024)
-#define TB (GB * 1024)
+#define KB 1024L
+#define MB (KB * 1024L)
+#define GB (MB * 1024L)
+#define TB (GB * 1024L)
 
 #define MEM_INIT_ZAG 0xcccccccc
 #define MEM_FREE_ZAG 0xfeedfeed
@@ -93,9 +94,15 @@ extern const struct yalx_str yalx_version;
 // Number of system cpus.
 extern int ncpus;
 
-// Size in bytes for system memory page.
+// Size in bytes for system memory ygc_page.
 extern int os_page_size;
 
+// Shift of pointer size.
+extern size_t pointer_size_in_bytes;
+extern int pointer_shift_in_bytes;
+extern size_t pointer_size_in_bits;
+extern int pointer_shift_in_bits;
+extern int pointer_mask_in_bits;
 
 int yalx_runtime_init(void);
 
@@ -121,10 +128,18 @@ static inline void dbg_free_zag(void *chunk, size_t n) { fill_memory_zag(chunk, 
 
 void *yalx_zalloc(size_t n);
 
-char *yalx_symbol_mangle(const char *const plain_name, const char *postfix);
+static inline int yalx_log2(uintptr_t n) {
+    int x = 1, i = 0;
+    for (; x < n; x <<= 1) {
+        i++;
+    }
+    return i;
+}
+
+char *yalx_symbol_mangle(const char *plain_name, const char *postfix);
 size_t yalx_symbol_demangle_on_place(char symbol[], size_t size);
 
-int yalx_name_symbolize(const char *const plain_name, char symbol[], size_t size);
+int yalx_name_symbolize(const char *plain_name, char symbol[], size_t size);
 
 void die(const char *fmt, ...);
 
@@ -163,7 +178,7 @@ static inline int yalx_return_u32(u32_t value) {
     return 0;
 }
 
-int yalx_return_cstring(const char *const z, size_t n);
+int yalx_return_cstring(const char *z, size_t n);
 
 static inline int yalx_return_ref(struct yalx_value_any *ref) {
     struct yalx_value_any **place = (struct yalx_value_any **)yalx_return_reserved(sizeof(ref));
@@ -185,7 +200,7 @@ static inline int yalx_return(const void *const p, size_t n) {
 
 void *yalx_return_reserved_do(struct yalx_returning_vals *state, size_t n);
 
-const struct yalx_class *yalx_find_class(const char *const plain_name);
+const struct yalx_class *yalx_find_class(const char *plain_name);
 
 struct backtrace_frame **yalx_unwind(size_t *depth, int dummy);
 
@@ -200,8 +215,8 @@ void *asm_stub6(void);
 // implements in boot-[Arch].s
 int trampoline(void);
 void coroutine_finalize_stub(void);
-void call0_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun);
-void call1_returning_vals(void *returnning_vals, size_t size_in_bytes, void *yalx_fun, intptr_t arg0);
+void call0_returning_vals(void *returning_vals, size_t size_in_bytes, void *yalx_fun);
+void call1_returning_vals(void *returning_vals, size_t size_in_bytes, void *yalx_fun, intptr_t arg0);
 
 struct pkg_global_slots {
     size_t size_in_bytes;
@@ -211,18 +226,18 @@ struct pkg_global_slots {
 };
 
 // runtime libs called by generated code
-void pkg_init_once(void *init_fun, const char *const plain_name);
+void pkg_init_once(void *init_fun, const char *plain_name);
 int pkg_initialized_count(void);
-int pkg_has_initialized(const char *const plain_name);
+int pkg_has_initialized(const char *plain_name);
 
-const struct pkg_global_slots *pkg_get_global_slots(const char *const plain_name);
+const struct pkg_global_slots *pkg_get_global_slots(const char *plain_name);
 
 // put field for post write barrier
 void put_field(struct yalx_value_any **address, struct yalx_value_any *field);
 
-void put_field_chunk(struct yalx_value_any *const host, address_t address, address_t field);
+void put_field_chunk(struct yalx_value_any *host, address_t address, address_t field);
 
-void put_field_chunk_by_index(struct yalx_value_any *const host, const int index_of_field, address_t field);
+void put_field_chunk_by_index(struct yalx_value_any *host, int index_of_field, address_t field);
 
 // lazy load object
 struct yalx_value_any *lazy_load_object(struct yalx_value_any * _Atomic *address, const struct yalx_class *clazz);
@@ -233,18 +248,17 @@ void associate_stub_returning_vals(struct yalx_returning_vals *state,
                                    address_t fun_addr);
 void *reserve_handle_returning_vals(u32_t size);
 
-struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz);
+struct yalx_value_any *heap_alloc(const struct yalx_class *clazz);
 
-struct yalx_value_array_header *array_alloc(const struct yalx_class *const element_ty, void *const elements,
-                                            int nitems);
+struct yalx_value_array_header *array_alloc(const struct yalx_class *element_ty, void *elements, int nitems);
 
 struct coroutine *current_root(void);
 
 void throw_it(struct yalx_value_any *exception);
 
-u8_t is_instance_of(struct yalx_value_any *const host, const struct yalx_class *const for_test);
+u8_t is_instance_of(struct yalx_value_any *host, const struct yalx_class *for_test);
 
-struct yalx_value_any *ref_asserted_to(struct yalx_value_any *const from, const struct yalx_class *const clazz);
+struct yalx_value_any *ref_asserted_to(struct yalx_value_any *from, const struct yalx_class *clazz);
 
 // generated entry symbol: main:main.main(): unit
 void y2zmain_main(void);

@@ -11,9 +11,7 @@
 #include "base/base.h"
 #include <string.h>
 
-namespace yalx {
-
-namespace arm64 {
+namespace yalx::arm64 {
 
 enum ImmBranchType {
     UnknownBranchType = 0,
@@ -147,8 +145,6 @@ private:
     
 }; // class Instruction
 
-
-} // namespace arm64
 
 } // namespace yalx
 

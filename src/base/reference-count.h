@@ -6,9 +6,7 @@
 #include "base/base.h"
 #include <atomic>
 
-namespace yalx {
-    
-namespace base {
+namespace yalx::base {
     
 template<class T>
 class intrusive_ptr final {
@@ -185,8 +183,6 @@ public:
 private:
     mutable std::atomic<int> ref_count_;
 }; // class ReferenceCounted
-    
-} // namespace base
     
 } // namespace yalx
 

@@ -9,6 +9,11 @@
 extern "C" {
 #endif
 
+struct yalx_value_any;
+struct yalx_value_str;
+struct yalx_value_array;
+struct yalx_value_multi_dims_array;
+
 enum yalx_access_desc {
     ACC_PUBLIC,
     ACC_PRIVATE,
@@ -170,6 +175,11 @@ extern const struct yalx_class *throwable_class;
 extern const struct yalx_class *exception_class;
 extern const struct yalx_class *bad_casting_exception_class;
 extern const struct yalx_class *array_index_out_of_bounds_exception_class;
+
+size_t class_ty_size(const struct yalx_class *klass, const struct yalx_value_any *obj);
+size_t string_ty_size(const struct yalx_class *klass, const struct yalx_value_str *obj);
+size_t array_ty_size(const struct yalx_class *klass, const struct yalx_value_array *obj);
+size_t multi_dims_array_ty_size(const struct yalx_class *klass, const struct yalx_value_multi_dims_array *obj);
 
 #ifdef __cplusplus
 }

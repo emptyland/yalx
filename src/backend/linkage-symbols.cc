@@ -1,8 +1,7 @@
 #include "backend/linkage-symbols.h"
 
 
-namespace yalx {
-namespace backend {
+namespace yalx::backend {
 
 
 DECLARE_STATIC_STRING(kLibc_memcpy, "_memcpy");
@@ -86,5 +85,4 @@ void Linkage::Build(std::string *buf, std::string_view name) {
     }
 }
 
-} // namespace backend
 } // namespace yalx

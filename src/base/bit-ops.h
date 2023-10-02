@@ -5,9 +5,7 @@
 #include "base/base.h"
 #include <stdint.h>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 struct Bits {
 
@@ -131,8 +129,6 @@ struct Bits {
         return CountTrailingZeros32(static_cast<uint32_t>(x));
     }
 }
-
-} // namespace base
 
 } // namespace yalx
 

@@ -69,7 +69,7 @@ TEST_F(Arm64CodeGeneratorTest, YalxLang) {
     ASSERT_TRUE(ok);
     //printf("%s\n", buf.c_str());
     auto clazz = yalx_find_class("yalx/lang:lang.String");
-    ASSERT_NE(nullptr, clazz);
+    ASSERT_TRUE(nullptr != clazz);
     ASSERT_EQ(1, clazz->refs_mark_len);
     ASSERT_EQ(32, clazz->refs_mark[0].offset);
     
@@ -233,7 +233,7 @@ TEST_F(Arm64CodeGeneratorTest, TryCatchSanity) {
 TEST_F(Arm64CodeGeneratorTest, GlobalInit03) {
     pkg_init_once(reinterpret_cast<void *>(&issue03_Zoissue03_Zd_Z4init), "issue03:issue03");
     auto slots = pkg_get_global_slots("issue03:issue03");
-    ASSERT_NE(nullptr, slots);
+    ASSERT_TRUE(nullptr != slots);
     ASSERT_GT(slots->mark_size, 0);
     auto obj = *reinterpret_cast<yalx_ref_t *>(slots->slots + slots->marks[0]);
     ASSERT_STREQ("Foo", CLASS(obj)->name.z);
@@ -275,9 +275,9 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
         auto ref = vals[1];
-        ASSERT_NE(nullptr, ref);
+        ASSERT_TRUE(nullptr != ref);
         auto klass = CLASS(ref);
-        ASSERT_NE(nullptr, klass);
+        ASSERT_TRUE(nullptr != klass);
         ASSERT_STREQ("Array", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_array *>(ref);
@@ -298,9 +298,9 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
         auto ref = vals[1];
-        ASSERT_NE(nullptr, ref);
+        ASSERT_TRUE(nullptr != ref);
         auto klass = CLASS(ref);
-        ASSERT_NE(nullptr, klass);
+        ASSERT_TRUE(nullptr != klass);
         ASSERT_STREQ("Array", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_array *>(ref);
@@ -321,9 +321,9 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
         auto ref = vals[1];
-        ASSERT_NE(nullptr, ref);
+        ASSERT_TRUE(nullptr != ref);
         auto klass = CLASS(ref);
-        ASSERT_NE(nullptr, klass);
+        ASSERT_TRUE(nullptr != klass);
         ASSERT_STREQ("Array", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_array *>(ref);
@@ -341,9 +341,9 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
         auto ref = vals[1];
-        ASSERT_NE(nullptr, ref);
+        ASSERT_TRUE(nullptr != ref);
         auto klass = CLASS(ref);
-        ASSERT_NE(nullptr, klass);
+        ASSERT_TRUE(nullptr != klass);
         ASSERT_STREQ("Array", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_array *>(ref);
@@ -363,9 +363,9 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
         auto ref = vals[1];
-        ASSERT_NE(nullptr, ref);
+        ASSERT_TRUE(nullptr != ref);
         auto klass = CLASS(ref);
-        ASSERT_NE(nullptr, klass);
+        ASSERT_TRUE(nullptr != klass);
         ASSERT_STREQ("Array", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_array *>(ref);
@@ -389,9 +389,9 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
         auto ref = vals[1];
-        ASSERT_NE(nullptr, ref);
+        ASSERT_TRUE(nullptr != ref);
         auto klass = CLASS(ref);
-        ASSERT_NE(nullptr, klass);
+        ASSERT_TRUE(nullptr != klass);
         ASSERT_STREQ("MultiDimsArray", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(ref);
@@ -421,9 +421,9 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
         auto ref = vals[1];
-        ASSERT_NE(nullptr, ref);
+        ASSERT_TRUE(nullptr != ref);
         auto klass = CLASS(ref);
-        ASSERT_NE(nullptr, klass);
+        ASSERT_TRUE(nullptr != klass);
         ASSERT_STREQ("MultiDimsArray", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(ref);
@@ -446,9 +446,9 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
         auto ref = vals[1];
-        ASSERT_NE(nullptr, ref);
+        ASSERT_TRUE(nullptr != ref);
         auto klass = CLASS(ref);
-        ASSERT_NE(nullptr, klass);
+        ASSERT_TRUE(nullptr != klass);
         ASSERT_STREQ("MultiDimsArray", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(ref);
@@ -472,9 +472,9 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
         auto ref = vals[1];
-        ASSERT_NE(nullptr, ref);
+        ASSERT_TRUE(nullptr != ref);
         auto klass = CLASS(ref);
-        ASSERT_NE(nullptr, klass);
+        ASSERT_TRUE(nullptr != klass);
         ASSERT_STREQ("MultiDimsArray", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(ref);
@@ -523,9 +523,9 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
         auto ref = vals[1];
-        ASSERT_NE(nullptr, ref);
+        ASSERT_TRUE(nullptr != ref);
         auto klass = CLASS(ref);
-        ASSERT_NE(nullptr, klass);
+        ASSERT_TRUE(nullptr != klass);
         ASSERT_STREQ("Array", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_array *>(ref);
@@ -553,9 +553,9 @@ TEST_F(Arm64CodeGeneratorTest, ArrayInitialization) {
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
         auto ref = vals[1];
-        ASSERT_NE(nullptr, ref);
+        ASSERT_TRUE(nullptr != ref);
         auto klass = CLASS(ref);
-        ASSERT_NE(nullptr, klass);
+        ASSERT_TRUE(nullptr != klass);
         ASSERT_STREQ("MultiDimsArray", klass->name.z);
         
         auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(ref);
@@ -715,7 +715,7 @@ TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
         ASSERT_STREQ("bzz", baz->bzz.name->bytes);
         ASSERT_EQ(3, baz->name->len);
         ASSERT_STREQ("baz", baz->name->bytes);
-        ASSERT_NE(nullptr, baz->nick_name);
+        ASSERT_TRUE(nullptr != baz->nick_name);
         ASSERT_EQ(4, baz->nick_name->len);
         ASSERT_STREQ("niko", baz->nick_name->bytes);
     }
@@ -739,7 +739,7 @@ TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
     
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
-        ASSERT_NE(nullptr, vals[1]);
+        ASSERT_TRUE(nullptr != vals[1]);
         auto klass = CLASS(vals[1]);
         ASSERT_EQ(array_class, klass);
         auto ar = reinterpret_cast<yalx_value_array *>(vals[1]);
@@ -750,7 +750,7 @@ TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
         
         auto elems = reinterpret_cast<yalx_str_handle>(ar->data);
         ASSERT_EQ(nullptr, elems[0]);
-        ASSERT_NE(nullptr, elems[1]);
+        ASSERT_TRUE(nullptr != elems[1]);
         ASSERT_STREQ("ok", elems[1]->bytes);
     }
     
@@ -762,7 +762,7 @@ TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
     
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
-        ASSERT_NE(nullptr, vals[1]);
+        ASSERT_TRUE(nullptr != vals[1]);
         auto klass = CLASS(vals[1]);
         ASSERT_EQ(multi_dims_array_class, klass);
         auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(vals[1]);
@@ -788,7 +788,7 @@ TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
     
     {
         auto vals = reinterpret_cast<yalx_ref_t *>(state.buf);
-        ASSERT_NE(nullptr, vals[1]);
+        ASSERT_TRUE(nullptr != vals[1]);
         auto klass = CLASS(vals[1]);
         ASSERT_EQ(multi_dims_array_class, klass);
         auto ar = reinterpret_cast<yalx_value_multi_dims_array *>(vals[1]);
@@ -801,9 +801,9 @@ TEST_F(Arm64CodeGeneratorTest, EnumValueDeclare) {
         ASSERT_STREQ("yalx/lang:lang.Optional<string>", ar->item->location.z);
         
         auto elems = reinterpret_cast<yalx_str_handle>(yalx_multi_dims_array_data(ar));
-        ASSERT_NE(nullptr, elems[0]);
+        ASSERT_TRUE(nullptr != elems[0]);
         ASSERT_STREQ("ok", elems[0]->bytes);
-        ASSERT_NE(nullptr, elems[3]);
+        ASSERT_TRUE(nullptr != elems[3]);
         ASSERT_STREQ("hello", elems[3]->bytes);
     }
     
@@ -887,7 +887,7 @@ TEST_F(Arm64CodeGeneratorTest, CallVirtual) {
         auto closure = reinterpret_cast<Issue07DummyClosure0 *>(vals[1]);
         auto klass = CLASS(closure);
         ASSERT_STREQ("issue07:issue07.anonymous.fun0.closure", klass->location.z);
-        ASSERT_NE(nullptr, closure->entry);
+        ASSERT_TRUE(nullptr != closure->entry);
         ASSERT_EQ(228, closure->a);
     }
     yalx_exit_returning_scope(&state);
@@ -901,7 +901,7 @@ TEST_F(Arm64CodeGeneratorTest, CallVirtual) {
         auto closure = reinterpret_cast<Issue07DummyClosure1 *>(vals[1]);
         auto klass = CLASS(closure);
         ASSERT_STREQ("issue07:issue07.anonymous.fun1.closure", klass->location.z);
-        ASSERT_NE(nullptr, closure->entry);
+        ASSERT_TRUE(nullptr != closure->entry);
         ASSERT_EQ(119, closure->a);
         ASSERT_EQ(515, closure->b);
     }
@@ -926,7 +926,7 @@ TEST_F(Arm64CodeGeneratorTest, CallVirtual) {
     {
         auto vals = reinterpret_cast<Issue07DummyClosure3 **>(state.buf);
         auto closure = vals[1];
-        ASSERT_NE(nullptr, closure);
+        ASSERT_TRUE(nullptr != closure);
         auto klass = CLASS(closure);
         ASSERT_EQ(3, klass->n_fields);
         ASSERT_STREQ("issue07:issue07.anonymous.fun3.closure", klass->location.z);

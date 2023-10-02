@@ -1,8 +1,7 @@
 #include "base/arena.h"
+#include <string.h>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 Arena::Arena(): lazy_objects_(this) {}
 
@@ -43,7 +42,5 @@ void *Arena::Allocate(size_t n) {
     block->size += n;
     return DbgInitZag(chunk, n);
 }
-
-} // namespace base
 
 } // namespace yalx

@@ -1,4 +1,6 @@
 #include "runtime/runtime.h"
+#include "runtime/thread.h"
+#include "runtime/locks.h"
 #include "runtime/scheduler.h"
 #include "runtime/process.h"
 #include "runtime/checking.h"
@@ -13,6 +15,9 @@
 #if defined(YALX_OS_DARWIN)
 #include <sys/sysctl.h>
 #endif
+#if defined(YALX_OS_LINUX)
+#include <sys/sysinfo.h>
+#endif
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,9 +28,19 @@
 //#define _XOPEN_SOURCE
 //#include <ucontext.h>
 
+#ifdef __cplusplus
+#error No C++
+#endif
+
 int ncpus = 0;
 
 int os_page_size = 0;
+
+size_t pointer_size_in_bytes = sizeof(void *);
+int pointer_shift_in_bytes = 0;
+size_t pointer_size_in_bits = sizeof(void *) * 8;
+int pointer_shift_in_bits = 0;
+int pointer_mask_in_bits = 0;
 
 const struct yalx_str yalx_version = YALX_STR("yalx-lang v0.0.0");
 
@@ -36,7 +51,7 @@ int nprocs = 0;
 struct machine m0;
 struct coroutine c0;
 
-_Thread_local struct machine *thread_local_mach;
+yalx_tls_t tls_mach;
 
 struct stack_pool stack_pool;
 
@@ -48,7 +63,7 @@ extern uint32_t yalx_magic_number2;
 extern uint32_t yalx_magic_number3;
 
 static struct hash_table pkg_init_records;
-static pthread_mutex_t pkg_init_mutex = PTHREAD_MUTEX_INITIALIZER;
+static struct yalx_mutex pkg_init_mutex;
 
 #ifndef NDEBUG
 
@@ -137,7 +152,7 @@ static void dev_print_struct_fields() {}
 
 #endif
 
-extern struct yalx_class builtin_classes[MAX_BUILTIN_TYPES];
+
 
 struct class_load_entry {
     const char *name;
@@ -152,7 +167,10 @@ struct class_load_entry {
 };
 
 int yalx_runtime_init() {
-    
+    pointer_shift_in_bytes = yalx_log2(pointer_size_in_bytes);
+    pointer_shift_in_bits = yalx_log2(pointer_size_in_bits);
+    pointer_mask_in_bits = (int)((1U << pointer_shift_in_bits) - 1);
+
 #if defined(YALX_OS_DARWIN)
     os_page_size = getpagesize();
     
@@ -165,21 +183,32 @@ int yalx_runtime_init() {
     }
     ncpus = (int)cpu_count;
 #endif // defined(YALX_OS_DARWIN)
-    yalx_init_hash_table(&pkg_init_records, 1.2);
-    if (yalx_init_heap(&heap, GC_LXR) < 0) {
-        return -1;
+
+#if defined(YALX_OS_LINUX)
+    os_page_size = getpagesize();
+
+    ncpus = get_nprocs();
+#endif // defined(YALX_OS_LINUX)
+
+    yalx_os_threading_env_enter();
+    yalx_mutex_init(&pkg_init_mutex);
+    yalx_tls_alloc(&tls_mach);
+
+    yalx_init_hash_table(&pkg_init_records, 1.2f);
+    if (yalx_init_heap( GC_NONE, &heap) < 0) {
+        goto error;
     }
     
     yalx_init_stack_pool(&stack_pool, 10 * MB);
     
     yalx_init_machine(&m0, &procs[0]);
-    m0.thread = pthread_self();
-    
-    thread_local_mach = &m0;
+    yalx_os_thread_attach_self(&m0.thread);
+
+    yalx_tls_set(tls_mach, &m0);
     
     struct stack *s0 = yalx_new_stack_from_pool(&m0.stack_pool, 1 * MB);
     if (!s0) {
-        return -1;
+        goto error;
     }
     coid_t coid;
     coid.value = 0;
@@ -188,13 +217,14 @@ int yalx_runtime_init() {
     nprocs = ncpus;
     procs = malloc(nprocs * sizeof(struct processor));
     if (!procs) {
-        return -1;
+        goto error;
     }
     
     for (int i = 0; i < nprocs; i++) {
         procid_t id = {i};
         if (yalx_init_processor(id, &procs[i]) < 0) {
-            return -1;
+            free(procs);
+            goto error;
         }
     }
     
@@ -230,12 +260,25 @@ int yalx_runtime_init() {
 #endif // 
     dev_print_struct_fields();
     return 0;
+error:
+    yalx_tls_free(tls_mach);
+    yalx_mutex_final(&pkg_init_mutex);
+    yalx_os_threading_env_exit();
+    heap = NULL;
+    return -1;
 }
 
 void yalx_runtime_eixt(void) {
     yalx_free_hash_table(&pkg_init_records);
     yalx_free_scheduler(&scheduler);
+    yalx_free_heap(heap);
+
+    yalx_tls_free(tls_mach);
+    yalx_mutex_final(&pkg_init_mutex);
+    yalx_os_threading_env_exit();
+    heap = NULL;
     // TODO:
+
 }
 
 int yalx_rt0(int argc, char *argv[]) {
@@ -564,7 +607,7 @@ int yalx_return_cstring(const char *const z, size_t n) {
     if (!place) {
         return -1;
     }
-    *place = yalx_new_string(&heap, z, n);
+    *place = yalx_new_string(heap, z, n);
     return 0;
 }
 
@@ -589,7 +632,12 @@ const struct yalx_class *yalx_find_class(const char *const plain_name) {
     DCHECK(plain_name != NULL);
     DCHECK(plain_name[0] != 0);
     const char *const symbol = yalx_symbol_mangle(plain_name, "$class");
+#if defined(YALX_OS_DARWIN)
     const struct yalx_class *const clazz = (struct yalx_class *)dlsym(RTLD_MAIN_ONLY, symbol + 1);
+#endif
+#if defined(YALX_OS_LINUX)
+    const struct yalx_class *const clazz = (struct yalx_class *)dlsym(RTLD_LOCAL, symbol + 1);
+#endif
     //puts(symbol);
     free((void *)symbol);
     return clazz;
@@ -605,12 +653,20 @@ struct kstr_header {
     struct yalx_value_str *ks[1];
 };
 
+#if defined(YALX_OS_LINUX)
+void *const YALX_DL_HANDLE = RTLD_LOCAL;
+#endif
+#if defined(YALX_OS_DARWIN)
+void *const YALX_DL_HANDLE = RTLD_MAIN_ONLY;
+#endif
+
+
 void pkg_init_once(void *init_fun, const char *const plain_name) {
     // $global_slots
     static const size_t kMaxPostfixSize = 16;
     char *symbol = NULL;
     char buf[16] = {0};
-    pthread_mutex_lock(&pkg_init_mutex);
+    yalx_mutex_lock(&pkg_init_mutex);
 
     struct hash_table_value_span pkg = yalx_get_string_key(&pkg_init_records, plain_name);
     if (pkg.value != NULL) {
@@ -619,7 +675,7 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     
     size_t buf_size = 98;
     do {
-        free(symbol);
+        //free(symbol);
         buf_size <<= 1;
         symbol = (char *)realloc(symbol, buf_size);
     } while(yalx_name_symbolize(plain_name, symbol, buf_size) < 0);
@@ -632,19 +688,19 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     strncpy(symbol + prefix_len, "_Lksz", 6);
     
 #if defined(YALX_OS_POSIX)
-    struct lksz_header *lksz_addr = (struct lksz_header *)dlsym(RTLD_MAIN_ONLY, symbol + 1/*Skip prefx '_'*/);
+    struct lksz_header *lksz_addr = (struct lksz_header *)dlsym(YALX_DL_HANDLE, symbol + 1/*Skip prefx '_'*/);
 #endif
     
     strncpy(symbol + prefix_len, "_Kstr", 6);
 
 #if defined(YALX_OS_POSIX)
-    struct kstr_header *kstr_addr = (struct kstr_header *)dlsym(RTLD_MAIN_ONLY, symbol + 1/*Skip prefx '_'*/);
+    struct kstr_header *kstr_addr = (struct kstr_header *)dlsym(YALX_DL_HANDLE, symbol + 1/*Skip prefx '_'*/);
 #endif
     
     strncpy(symbol + prefix_len, "$global_slots", 14);
     
 #if defined(YALX_OS_POSIX)
-    struct pkg_global_slots *slots = (struct pkg_global_slots *)dlsym(RTLD_MAIN_ONLY, symbol + 1/*Skip prefx '_'*/);
+    struct pkg_global_slots *slots = (struct pkg_global_slots *)dlsym(YALX_DL_HANDLE, symbol + 1/*Skip prefx '_'*/);
 #endif
     
     if (!lksz_addr || !kstr_addr) {
@@ -654,14 +710,14 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     assert(lksz_addr->number_of_strings == kstr_addr->number_of_strings);
     
     for (int i = 0; i < lksz_addr->number_of_strings; i++) {
-        kstr_addr->ks[i] = yalx_new_string(&heap, lksz_addr->sz[i], strlen(lksz_addr->sz[i]));
+        kstr_addr->ks[i] = yalx_new_string(heap, lksz_addr->sz[i], strlen(lksz_addr->sz[i]));
     }
     
     hash_table_value_span_t rs = yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name), sizeof(slots));
     //TODO: memcpy(rs.value, &slots, sizeof(slots));
     *((struct pkg_global_slots **)rs.value) = slots;
 done:
-    pthread_mutex_unlock(&pkg_init_mutex);
+    yalx_mutex_unlock(&pkg_init_mutex);
     //printf("pkg init...%s\n", plain_name);
     free(symbol);
     if (init_fun) {
@@ -672,28 +728,28 @@ done:
 int pkg_initialized_count() { return pkg_init_records.size; }
 
 int pkg_has_initialized(const char *const plain_name) {
-    pthread_mutex_lock(&pkg_init_mutex);
+    yalx_mutex_lock(&pkg_init_mutex);
     hash_table_value_span_t span = yalx_get_string_key(&pkg_init_records, plain_name);
-    pthread_mutex_unlock(&pkg_init_mutex);
+    yalx_mutex_unlock(&pkg_init_mutex);
     return span.value != NULL;
 }
 
 const struct pkg_global_slots *pkg_get_global_slots(const char *const plain_name) {
     const struct pkg_global_slots *rs = NULL;
-    pthread_mutex_lock(&pkg_init_mutex);
+    yalx_mutex_lock(&pkg_init_mutex);
     hash_table_value_span_t span = yalx_get_string_key(&pkg_init_records, plain_name);
     if (span.value == NULL) {
         rs = NULL;
     } else {
         rs = *(struct pkg_global_slots **)span.value;
     }
-    pthread_mutex_unlock(&pkg_init_mutex);
+    yalx_mutex_unlock(&pkg_init_mutex);
     return rs;
 }
 
 void put_field(struct yalx_value_any **address, struct yalx_value_any *field) {
     DCHECK(address != NULL);
-    post_write_barrier(&heap, address, field);
+    post_write_barrier(heap, address, field);
     *address = field;
 }
 
@@ -710,7 +766,7 @@ void put_field_chunk(struct yalx_value_any *const host, address_t address, addre
         }
     }
     DCHECK(field != NULL);
-    post_typing_write_barrier_if_needed(&heap, field->type, address, incoming);
+    post_typing_write_barrier_if_needed(heap, field->type, address, incoming);
     memcpy(address, incoming, field->type->instance_size);
 }
 
@@ -721,7 +777,7 @@ void put_field_chunk_by_index(struct yalx_value_any *const host, const int index
     
     const struct yalx_class_field *const field = &klass->fields[index_of_field];
     address_t location = (address_t)host + field->offset_of_head;
-    post_typing_write_barrier_if_needed(&heap, field->type, location, incoming);
+    post_typing_write_barrier_if_needed(heap, field->type, location, incoming);
     memcpy(location, incoming, field->type->instance_size);
 }
 
@@ -744,7 +800,7 @@ struct yalx_value_any *lazy_load_object(struct yalx_value_any *_Atomic *address,
     DCHECK(clazz != NULL);
     
     if (!((uintptr_t)atomic_load_explicit(address, memory_order_acquire) & kCreatedMask) && need_init(address)) {
-        struct allocate_result rs = yalx_heap_allocate(&heap, clazz, clazz->instance_size, 0);
+        struct allocate_result rs = yalx_heap_allocate(heap, clazz, clazz->instance_size, 0);
         assert(rs.object != NULL);
 
         // call constructor:
@@ -780,7 +836,7 @@ void *reserve_handle_returning_vals(u32_t size) {
 }
 
 struct yalx_value_any *heap_alloc(const struct yalx_class *const clazz) {
-    struct allocate_result result = yalx_heap_allocate(&heap, clazz, clazz->instance_size, 0);
+    struct allocate_result result = yalx_heap_allocate(heap, clazz, clazz->instance_size, 0);
     if (result.status != ALLOCATE_OK) {
         DCHECK(!"TODO: throw Exception");
         return NULL; // TODO: throw Exception
@@ -803,7 +859,7 @@ struct yalx_value_array_header *array_alloc(const struct yalx_class *const eleme
         case Type_string:
         case Type_array:
         case Type_multi_dims_array:
-            return yalx_new_refs_array_with_data(&heap, element_ty, dims, caps, (yalx_ref_t *)elements, nitems);
+            return yalx_new_refs_array_with_data(heap, element_ty, dims, caps, (yalx_ref_t *)elements, nitems);
             
         case NOT_BUILTIN_TYPE: // It's not user definition types
             break;
@@ -819,14 +875,14 @@ struct yalx_value_array_header *array_alloc(const struct yalx_class *const eleme
                 }
             }
             DCHECK(element_ty->constraint == K_PRIMITIVE);
-            return yalx_new_vals_array_with_data(&heap, element_ty, dims, caps, elements, nitems);
+            return yalx_new_vals_array_with_data(heap, element_ty, dims, caps, elements, nitems);
         } break;
     }
     if (element_ty->constraint == K_CLASS || element_ty->compact_enum) {
-        return yalx_new_refs_array_with_data(&heap, element_ty, dims, caps, (yalx_ref_t *)elements, nitems);
+        return yalx_new_refs_array_with_data(heap, element_ty, dims, caps, (yalx_ref_t *)elements, nitems);
     }
     DCHECK(element_ty->constraint == K_STRUCT);
-    return yalx_new_vals_array_with_data(&heap, element_ty, dims, caps, elements, nitems);
+    return yalx_new_vals_array_with_data(heap, element_ty, dims, caps, elements, nitems);
 }
 
 struct yalx_value_array_header *array_fill(const struct yalx_class *const element_ty, const void *params) {
@@ -839,11 +895,11 @@ struct yalx_value_array_header *array_fill(const struct yalx_class *const elemen
     struct yalx_value_array_header *rs = NULL;
     address_t data = NULL;
     if (dims == 1) {
-        struct yalx_value_array *ar = yalx_new_array(&heap, element_ty, caps[0]);
+        struct yalx_value_array *ar = yalx_new_array(heap, element_ty, caps[0]);
         data = ar->data;
         rs = (struct yalx_value_array_header *)ar;
     } else {
-        struct yalx_value_multi_dims_array *ar = yalx_new_multi_dims_array(&heap, element_ty, dims, caps);
+        struct yalx_value_multi_dims_array *ar = yalx_new_multi_dims_array(heap, element_ty, dims, caps);
         data = yalx_multi_dims_array_data(ar);
         rs = (struct yalx_value_array_header *)ar;
     }
@@ -852,18 +908,18 @@ struct yalx_value_array_header *array_fill(const struct yalx_class *const elemen
         
         for (address_t p = data; p < data + rs->len * element_ty->instance_size; p += element_ty->instance_size) {
             memcpy(p, filling, element_ty->instance_size);
-            init_typing_write_barrier_if_needed(&heap, element_ty, p);
+            init_typing_write_barrier_if_needed(heap, element_ty, p);
         }
     } else if (element_ty->compact_enum || yalx_is_ref_type(element_ty)) {
         for (yalx_ref_t *p = (yalx_ref_t *)data; p < (yalx_ref_t *)data + rs->len; p++) {
             yalx_ref_t obj = *(yalx_ref_t *)filling;
             
             if (yalx_is_array(obj)) {
-                obj = (yalx_ref_t)yalx_array_clone(&heap, (struct yalx_value_array_header *)obj);
+                obj = (yalx_ref_t)yalx_array_clone(heap, (struct yalx_value_array_header *)obj);
             }
             
             *p = obj;
-            init_write_barrier(&heap, p);
+            init_write_barrier(heap, p);
         }
     } else {
         DCHECK(element_ty->constraint == K_PRIMITIVE);
@@ -1040,7 +1096,7 @@ void array_set_chunk1(struct yalx_value_array_header *const array, const i32_t i
     
     struct yalx_value_array *ar = (struct yalx_value_array *)array;
     ptrdiff_t offset = index * ar->item->instance_size;
-    post_typing_write_barrier_if_needed(&heap, ar->item, ar->data + offset, chunk);
+    post_typing_write_barrier_if_needed(heap, ar->item, ar->data + offset, chunk);
     memcpy(ar->data + offset, chunk, ar->item->instance_size);
 }
 
@@ -1060,7 +1116,7 @@ void array_set_chunk2(struct yalx_value_array_header *const array, const i32_t d
     }
 
     address_t dest = yalx_array_location2(ar, d0, d1);
-    post_typing_write_barrier_if_needed(&heap, ar->item, dest, chunk);
+    post_typing_write_barrier_if_needed(heap, ar->item, dest, chunk);
     memcpy(dest, chunk, ar->item->instance_size);
 }
 
@@ -1084,7 +1140,7 @@ void array_set_chunk3(struct yalx_value_array_header *const array, const i32_t d
     }
     
     address_t dest = yalx_array_location3(ar, d0, d1, d2);
-    post_typing_write_barrier_if_needed(&heap, ar->item, dest, chunk);
+    post_typing_write_barrier_if_needed(heap, ar->item, dest, chunk);
     memcpy(dest, chunk, ar->item->instance_size);
 }
 
@@ -1108,7 +1164,7 @@ void array_set_chunk(struct yalx_value_array_header *const array, const i32_t *c
     }
     
     address_t dest = yalx_array_location_more(ar, indices);
-    post_typing_write_barrier_if_needed(&heap, ar->item, dest, chunk);
+    post_typing_write_barrier_if_needed(heap, ar->item, dest, chunk);
     memcpy(dest, chunk, ar->item->instance_size);
 }
 
@@ -1158,23 +1214,23 @@ struct yalx_value_any *closure(const struct yalx_class *const klass, address_t b
             case K_ENUM:
                 if (ty->compact_enum) {
                     memcpy(dest, p, ty->reference_size);
-                    init_write_barrier(&heap, (yalx_ref_t *)dest);
+                    init_write_barrier(heap, (yalx_ref_t *)dest);
                     p += ROUND_UP(ty->reference_size, STACK_SLOT_ALIGNMENT);
                 } else {
                     memcpy(dest, p, ty->instance_size);
-                    init_typing_write_barrier_if_needed(&heap, ty, dest);
+                    init_typing_write_barrier_if_needed(heap, ty, dest);
                     p += ROUND_UP(ty->instance_size, STACK_SLOT_ALIGNMENT);
                 }
                 break;
             case K_CLASS:
                 memcpy(dest, p, ty->reference_size);
-                init_write_barrier(&heap, (yalx_ref_t *)dest);
+                init_write_barrier(heap, (yalx_ref_t *)dest);
                 p += ROUND_UP(ty->reference_size, STACK_SLOT_ALIGNMENT);
                 break;
             case K_STRUCT:
                 memcpy(dest, p, ty->instance_size);
                 if (ty->refs_mark_len > 0) {
-                    init_typing_write_barrier_if_needed(&heap, ty, dest);
+                    init_typing_write_barrier_if_needed(heap, ty, dest);
                 }
                 p += ROUND_UP(ty->instance_size, STACK_SLOT_ALIGNMENT);
                 break;
@@ -1188,7 +1244,7 @@ struct yalx_value_any *closure(const struct yalx_class *const klass, address_t b
 }
 
 struct yalx_value_str *concat(struct yalx_value_str **parts, size_t n) {
-    struct yalx_value_str *rs = yalx_build_string(&heap, parts, n);
+    struct yalx_value_str *rs = yalx_build_string(heap, parts, n);
     if (!rs) {
         DCHECK(!"TODO");
     }
@@ -1197,7 +1253,7 @@ struct yalx_value_str *concat(struct yalx_value_str **parts, size_t n) {
 
 struct yalx_value_str *concat2(struct yalx_value_str *part0, struct yalx_value_str *part1) {
     struct yalx_value_str *parts[] = {part0, part1};
-    struct yalx_value_str *rs = yalx_build_string(&heap, parts, arraysize(parts));
+    struct yalx_value_str *rs = yalx_build_string(heap, parts, arraysize(parts));
     if (!rs) {
         DCHECK(!"TODO");
     }
@@ -1206,7 +1262,7 @@ struct yalx_value_str *concat2(struct yalx_value_str *part0, struct yalx_value_s
 
 struct yalx_value_str *concat3(struct yalx_value_str *part0, struct yalx_value_str *part1, struct yalx_value_str *part2) {
     struct yalx_value_str *parts[] = {part0, part1, part2};
-    struct yalx_value_str *rs = yalx_build_string(&heap, parts, arraysize(parts));
+    struct yalx_value_str *rs = yalx_build_string(heap, parts, arraysize(parts));
     if (!rs) {
         DCHECK(!"TODO");
     }
@@ -1216,7 +1272,7 @@ struct yalx_value_str *concat3(struct yalx_value_str *part0, struct yalx_value_s
 struct yalx_value_str *concat4(struct yalx_value_str *part0, struct yalx_value_str *part1, struct yalx_value_str *part2,
                                struct yalx_value_str *part3) {
     struct yalx_value_str *parts[] = {part0, part1, part2, part3};
-    struct yalx_value_str *rs = yalx_build_string(&heap, parts, arraysize(parts));
+    struct yalx_value_str *rs = yalx_build_string(heap, parts, arraysize(parts));
     if (!rs) {
         DCHECK(!"TODO");
     }

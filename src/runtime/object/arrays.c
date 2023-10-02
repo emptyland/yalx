@@ -74,7 +74,7 @@ struct yalx_value_array *yalx_new_array(struct heap *heap, const struct yalx_cla
 }
 
 struct yalx_value_multi_dims_array *
-yalx_new_multi_dims_array(struct heap *heap, const struct yalx_class *item, u32_t dims, const u32_t *caps) {
+yalx_new_multi_dims_array(struct heap *h, const struct yalx_class *item, u32_t dims, const u32_t *caps) {
     DCHECK(item != NULL);
     DCHECK(dims > 1);
     DCHECK(caps != NULL);
@@ -87,7 +87,7 @@ yalx_new_multi_dims_array(struct heap *heap, const struct yalx_class *item, u32_
     const size_t size = sizeof(struct yalx_value_multi_dims_array) // header
         + (dims - 1) * sizeof(u32_t) // caps
         + (nitems * item_size);      // data of items
-    struct allocate_result result = yalx_heap_allocate(heap, multi_dims_array_class, size, 0);
+    struct allocate_result result = yalx_heap_allocate(h, multi_dims_array_class, size, 0);
     if (result.status != ALLOCATE_OK) {
         return NULL;
     }

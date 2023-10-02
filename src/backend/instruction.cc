@@ -8,9 +8,7 @@
 #include "base/io.h"
 #include <inttypes.h>
 
-namespace yalx {
-namespace backend {
-
+namespace yalx::backend {
 
 bool InstructionOperand::Equals(const InstructionOperand *other) const {
     if (kind() != other->kind()) {
@@ -488,5 +486,4 @@ void InstructionBlock::PrintTo(base::PrintingWriter *printer) const {
     }
 }
 
-} // namespace backend
 } // namespace yalx

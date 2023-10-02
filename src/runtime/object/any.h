@@ -43,6 +43,8 @@ struct yalx_value_closure {
 // reference by any-[os]-[arch].s
 struct yalx_value_str *yalx_any_to_string(struct yalx_value_any *any);
 
+size_t yalx_object_size_in_bytes(yalx_ref_t obj);
+
 #define ANY_OFFSET_OF_KLASS offsetof(struct yalx_value_any, klass)
 
 #ifdef __cplusplus

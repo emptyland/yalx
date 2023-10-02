@@ -52,17 +52,17 @@ struct Symbol {
     bool IsFound() const { return !IsNotFound(); }
     bool IsNotFound() const { return kind == kNotFound; }
     
-    static Symbol NotFound() { return {.kind = kNotFound}; }
+    static Symbol NotFound() { return {kNotFound}; }
     
     static Symbol Val(NamespaceScope *owns, Value *value, BasicBlock *block, cpl::Statement *node = nullptr) {
         return {
-            .kind  = kValue,
-            .node  = node,
-            .block = block,
-            .core  = {
+            kValue,
+            node,
+            block,
+            {
                 .value = value
             },
-            .owns  = owns,
+            owns,
         };
     }
     

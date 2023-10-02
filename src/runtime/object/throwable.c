@@ -25,19 +25,19 @@ static void throw_exception(const struct yalx_class *ty,
     struct yalx_value_exception *ex = (struct yalx_value_exception *)heap_alloc(ty);
     assert(ex != NULL);
     ex->cause = cause;
-    init_write_barrier(&heap, (yalx_ref_t *)&ex->cause);
+    init_write_barrier(heap, (yalx_ref_t *)&ex->cause);
     ex->message = message;
-    init_write_barrier(&heap, (yalx_ref_t *)&ex->message);
+    init_write_barrier(heap, (yalx_ref_t *)&ex->message);
     
     size_t n = 0;
     struct backtrace_frame **frames = yalx_unwind(&n, 2/*dummy*/);
-    struct yalx_value_array *ar = (struct yalx_value_array *)yalx_new_refs_array_with_data(&heap, backtrace_frame_class,
+    struct yalx_value_array *ar = (struct yalx_value_array *)yalx_new_refs_array_with_data(heap, backtrace_frame_class,
                                                                                            1, NULL, (yalx_ref_t *)frames,
                                                                                            n);
     free(frames);
     
     ex->backtrace = ar;
-    init_write_barrier(&heap, (yalx_ref_t *)&ex->backtrace);
+    init_write_barrier(heap, (yalx_ref_t *)&ex->backtrace);
     
     throw_it((yalx_ref_t)ex);
     assert(!"Unreachable");
@@ -46,7 +46,7 @@ static void throw_exception(const struct yalx_class *ty,
 void throw_bad_casting_exception(const struct yalx_class *const from, const struct yalx_class *const to) {
     char *buf = (char *)malloc(1024);
     snprintf(buf, 1024, "%s -> %s", from->location.z, to->location.z);
-    struct yalx_value_str *message = yalx_new_string(&heap, buf, strlen(buf));
+    struct yalx_value_str *message = yalx_new_string(heap, buf, strlen(buf));
     free(buf);
     throw_exception(bad_casting_exception_class, message, NULL);
 }
@@ -66,7 +66,7 @@ void throw_array_index_out_of_bounds_exception(const struct yalx_value_array_hea
         snprintf(buf, 1024, "Dimension %d size is %u, but index at %u", dim, ar->caps[dim], index);
     }
     
-    struct yalx_value_str *message = yalx_new_string(&heap, buf, strlen(buf));
+    struct yalx_value_str *message = yalx_new_string(heap, buf, strlen(buf));
     free(buf);
     
     throw_exception(array_index_out_of_bounds_exception_class, message, NULL);

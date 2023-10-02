@@ -7,9 +7,7 @@
 #include <atomic>
 #include <thread>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 template<class T>
 class DefaultLazyPolicy {
@@ -62,8 +60,6 @@ private:
     std::atomic<uintptr_t> inst_;
     char body_[sizeof(T)];
 }; // class LazyInstance
-
-} // namespace base
 
 } // namespace yalx
 

@@ -1,14 +1,16 @@
 #ifndef YALX_BASE_FORMAT_H_
 #define YALX_BASE_FORMAT_H_
 
+#include "runtime/macros.h"
 #include <stdarg.h>
 #include <string>
+#include <string.h>
 
-namespace yalx {
+namespace yalx::base {
 
-namespace base {
-
+#if defined(YALX_USE_CLANG)
 __attribute__ (( __format__ (__printf__, 1, 2)))
+#endif
 std::string Sprintf(const char *fmt, ...);
 
 std::string Vsprintf(const char *fmt, va_list ap);
@@ -67,8 +69,6 @@ inline int ParseI32(const char *s, int32_t *val) {
     return ParseI32(s, !s ? 0 : strlen(s), val);
 }
 
-
-} // namespace base
 
 } // namespace yalx
 

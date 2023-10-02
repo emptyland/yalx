@@ -184,7 +184,7 @@ TEST_F(X64CodeGeneratorTest, TryCatchSanity) {
 TEST_F(X64CodeGeneratorTest, GlobalInit03) {
     pkg_init_once(reinterpret_cast<void *>(&issue03_Zoissue03_Zd_Z4init), "issue03:issue03");
     auto slots = pkg_get_global_slots("issue03:issue03");
-    ASSERT_NE(nullptr, slots);
+    ASSERT_TRUE(nullptr != slots);
     ASSERT_GT(slots->mark_size, 0);
     auto obj = *reinterpret_cast<yalx_ref_t *>(slots->slots + slots->marks[0]);
     ASSERT_STREQ("Foo", CLASS(obj)->name.z);

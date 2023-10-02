@@ -7,9 +7,7 @@
 
 extern "C" uint32_t crc32(uint32_t crc, const void *buf, size_t size);
 
-namespace yalx {
-    
-namespace base {
+namespace yalx::base {
     
 typedef uint32_t (*hash_func_t) (const char *, size_t);
 
@@ -26,8 +24,6 @@ struct Hash {
     
 }; // struct Hash
 
-} // namespace base
-    
 } // namespace yalx
 
 #endif // YALX_BASE_HASH_H_

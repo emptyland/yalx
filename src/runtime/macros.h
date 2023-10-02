@@ -5,7 +5,6 @@
 // OS platform macros
 #if defined(_WIN32) || defined(WIN32) || defined(_WIN64)
 #   define YALX_OS_WINDOWS 1
-#   define YALX_OS_POSIX   0
 #endif
 
 #if defined(unix) || defined(__unix) || defined(__unix__)
@@ -25,13 +24,38 @@
 
 
 // CPU Arch macros
+#if defined(_M_IX86)
+#error Not support 32bit x86 cpus
+#endif
     
-#if defined(__amd64) || defined(__amd64__) || defined(__x86_64) || defined(__x86_64__)
+#if defined(__amd64) || defined(__amd64__) || defined(__x86_64) || defined(__x86_64__) || defined(_M_X64) || defined(_M_AMD64)
 #   define YALX_ARCH_X64 1
 #endif
 
 #if defined(__ARM64_ARCH_8__)
 #   define YALX_ARCH_ARM64 1
+#endif
+
+#if defined(__GNUC__)
+#   define YALX_USE_GCC 1
+#   undef YALX_CC
+#   define YALX_CC "gcc"
+#endif
+
+#if defined(_MSC_VER)
+#   define YALX_USE_MSC 1
+#   undef YALX_CC
+#   define YALX_CC "cl"
+#endif
+
+#if defined(__clang__)
+#   define YALX_USE_CLANG 1
+#   undef YALX_CC
+#   define YALX_CC "clang"
+#endif
+
+#ifndef YALX_CC
+#error No c/c++ compiler supports.
 #endif
     
 #define NOTHING(...)

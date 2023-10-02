@@ -6,10 +6,10 @@
 #include "base/arena.h"
 
 namespace yalx {
-namespace base {
-class ArenaString;
-} // namespace base
-namespace cpl {
+    namespace base {
+        class ArenaString;
+    } // namespace base
+    namespace cpl {
 
 // Node
 //    +: il
@@ -209,70 +209,83 @@ namespace cpl {
     V(FunctionPrototype)
 
 #define DEFINE_PREDECL_CLASSES(name) class name;
-    DECLARE_ALL_NODES(DEFINE_PREDECL_CLASSES)
+
+        DECLARE_ALL_NODES(DEFINE_PREDECL_CLASSES)
+
 #undef DEFINE_PREDECL_CLASSES
 
 
-using String = base::ArenaString;
-class Literal;
-class Expression;
-class Statement;
-class Declaration;
-class Definition;
-class IncompletableDefinition;
-class Circulation;
-class ConditionLoop;
+        using String = base::ArenaString;
 
-class Node : public base::ArenaObject {
-public:
-    enum Kind {
+        class Literal;
+
+        class Expression;
+
+        class Statement;
+
+        class Declaration;
+
+        class Definition;
+
+        class IncompletableDefinition;
+
+        class Circulation;
+
+        class ConditionLoop;
+
+        class Node : public base::ArenaObject {
+        public:
+            enum Kind {
 #define DEFINE_ENUM(name) k##name,
-        DECLARE_ALL_NODES(DEFINE_ENUM)
+                DECLARE_ALL_NODES(DEFINE_ENUM)
 #undef DEFINE_ENUM
-        kMaxKinds,
-    }; // enum Kind
+                kMaxKinds,
+            }; // enum Kind
 
 #define DEFINE_METHODS(name) \
     bool Is##name() const { return kind() == k##name; } \
     inline name *As##name(); \
-    inline const name *As##name() const; 
-    DECLARE_ALL_NODES(DEFINE_METHODS)
+    inline const name *As##name() const;
+
+            DECLARE_ALL_NODES(DEFINE_METHODS)
+
 #undef DEFINE_METHODS
 
-    DEF_VAL_GETTER(Kind, kind);
-    DEF_VAL_PROP_RM(SourcePosition, source_position);
-    
-    DISALLOW_IMPLICIT_CONSTRUCTORS(Node);
-protected:
-    Node(Kind kind, const SourcePosition &source_position): kind_(kind), source_position_(source_position) {}
-    
-private:
-    Kind kind_;
-    SourcePosition source_position_;
-}; // class Node
+            DEF_VAL_GETTER(Kind, kind);
+
+            DEF_VAL_PROP_RM(SourcePosition, source_position);
+
+            DISALLOW_IMPLICIT_CONSTRUCTORS(Node);
+        protected:
+            Node(Kind kind, const SourcePosition &source_position) : kind_(kind), source_position_(source_position) {}
+
+        private:
+            Kind kind_;
+            SourcePosition source_position_;
+        }; // class Node
 
 
-class Symbol : public Node {
-public:
-    Symbol(const String *name, const SourcePosition &source_position = {0, 0})
-        : Symbol(nullptr, name, source_position) {}
+        class Symbol : public Node {
+        public:
+            Symbol(const String *name, const SourcePosition &source_position = {0, 0})
+                    : Symbol(nullptr, name, source_position) {}
 
-    Symbol(const String *prefix_name, const String *name, const SourcePosition &source_position = {0, 0})
-        : Node(kMaxKinds, source_position)
-        , prefix_name_(prefix_name)
-        , name_(name) {}
+            Symbol(const String *prefix_name, const String *name, const SourcePosition &source_position = {0, 0})
+                    : Node(kMaxKinds, source_position), prefix_name_(prefix_name), name_(name) {}
 
-    DEF_PTR_GETTER(const String, prefix_name);
-    DEF_PTR_GETTER(const String, name);
-    
-    std::string ToString() const;
-private:
-    const String *prefix_name_;
-    const String *name_;
-}; // class Symbol
+            DEF_PTR_GETTER(const String, prefix_name);
+
+            DEF_PTR_GETTER(const String, name);
+
+            std::string ToString() const;
+
+        private:
+            const String *prefix_name_;
+            const String *name_;
+        }; // class Symbol
 
 
-} // namespace cpl
+    } // namespace cpl
 
 } // namespace yalx
 

@@ -29,8 +29,8 @@ protected:
 };
 
 TEST_F(NodeTest, Sanity) {
-    auto k1 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
-    auto k2 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
+    auto k1 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
+    auto k2 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
     auto ret = Value::New(&arena_, SourcePosition::Unknown(), Types::Void, ops_.Ret(2), k1, k2);
     
     ASSERT_EQ(Operator::kRet, ret->op()->value());
@@ -49,8 +49,8 @@ TEST_F(NodeTest, Module) {
     auto bb = fun->NewBlock(String::kEmpty);
     EXPECT_EQ(bb, fun->entry());
 
-    fun->mutable_paramaters()->push_back(Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(0)));
-    fun->mutable_paramaters()->push_back(Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(1)));
+    fun->mutable_paramaters()->push_back(Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(0)));
+    fun->mutable_paramaters()->push_back(Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(1)));
     
     auto val = bb->NewNode(SourcePosition::Unknown(), Types::Int32, ops_.Add(), fun->paramater(0), fun->paramater(1));
     val = bb->NewNode(SourcePosition::Unknown(), Types::Void, ops_.Ret(1), val);

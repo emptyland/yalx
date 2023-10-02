@@ -1,5 +1,8 @@
 #include "runtime/object/type.h"
 #include "runtime/object/any.h"
+#include "runtime/object/arrays.h"
+#include "runtime/object/yalx-string.h"
+#include "runtime/checking.h"
 
 int yalx_is_ref_type(const struct yalx_class * klass) {
     enum yalx_builtin_type maybe_builtin_ty = yalx_builtin_type(klass);
@@ -35,4 +38,43 @@ int yalx_is_compact_enum_type_fallback(const struct yalx_class * klass) {
         }
     }
     return 0;
+}
+
+
+size_t class_ty_size(const struct yalx_class *klass, const struct yalx_value_any *obj) {
+    DCHECK(yalx_is_ref_type(klass));
+    DCHECK(klass == CLASS(obj->klass));
+    return (size_t)klass->instance_size;
+}
+
+size_t string_ty_size(const struct yalx_class *klass, const struct yalx_value_str *obj) {
+    DCHECK(klass->id == Type_string);
+    DCHECK(klass == CLASS(obj->klass));
+    return yalx_reserve_string_bytes(obj->bytes, obj->len);
+}
+
+size_t array_ty_size(const struct yalx_class *klass, const struct yalx_value_array *obj) {
+    DCHECK(klass->id == Type_array);
+    DCHECK(klass == CLASS(obj->klass));
+
+    const struct yalx_class *item = obj->item;
+    const size_t item_size = yalx_is_ref_type(item) ? item->reference_size : item->instance_size;
+    return sizeof(struct yalx_value_array) + (obj->len * item_size);
+}
+
+size_t multi_dims_array_ty_size(const struct yalx_class *klass, const struct yalx_value_multi_dims_array *obj) {
+    DCHECK(klass->id == Type_array);
+    DCHECK(klass == CLASS(obj->klass));
+
+    size_t nitems = obj->caps[0];
+    for (u32_t i = 1; i < obj->rank; i++) {
+        nitems *= obj->caps[i];
+    }
+
+    const struct yalx_class *item = obj->item;
+    const size_t item_size = yalx_is_ref_type(item) ? item->reference_size : item->instance_size;
+    const size_t size = sizeof(struct yalx_value_multi_dims_array) // header
+                        + (obj->rank - 1) * sizeof(u32_t) // caps
+                        + (nitems * item_size);      // data of items
+    return size;
 }

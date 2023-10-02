@@ -1,11 +1,26 @@
 #include "runtime/object/any.h"
-#include "runtime/process.h"
+#include "runtime/object/arrays.h"
+#include "runtime/object/type.h"
+#include "runtime/checking.h"
 #include <stdio.h>
-#include <assert.h>
 
+
+size_t yalx_object_size_in_bytes(yalx_ref_t obj) {
+    const struct yalx_class *klass = CLASS(obj->klass);
+
+    switch (klass->id) {
+        case Type_string:
+            return string_ty_size(klass, (const struct yalx_value_str *) obj);
+        case Type_array:
+            return array_ty_size(klass, (const struct yalx_value_array *) obj);
+        case Type_multi_dims_array:
+            return multi_dims_array_ty_size(klass, (const struct yalx_value_multi_dims_array *) obj);
+    }
+    return class_ty_size(klass, obj);
+}
 
 struct yalx_value_str *yalx_any_to_string(struct yalx_value_any *any) {
-    
+    NOREACHABLE();
     return NULL;
 }
 

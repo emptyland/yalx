@@ -4,9 +4,7 @@
 
 #include <mutex>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 class AtExit {
 public:
@@ -28,8 +26,6 @@ private:
     Hook *hook_ = nullptr;
     std::mutex mutex_;
 }; // class AtExit
-
-} // namespace base
 
 } // namespace yalx
 

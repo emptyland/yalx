@@ -125,7 +125,7 @@ void yalx_Zplang_Zolang_ZdU32_ZdtoString_stub(yalx_ref_handle self) {
 }
 
 void yalx_Zplang_Zolang_Zdu8ToString_stub(u8_t value) {
-    yalx_return_ref((yalx_ref_t)yalx_uint_to_string(&heap, value, 10));
+    yalx_return_ref((yalx_ref_t)yalx_uint_to_string(heap, value, 10));
 }
 
 void yalx_Zplang_Zolang_Zdi8ToString_stub(i8_t value) {
@@ -134,27 +134,27 @@ void yalx_Zplang_Zolang_Zdi8ToString_stub(i8_t value) {
 }
 
 void yalx_Zplang_Zolang_Zdu16ToString_stub(u16_t value) {
-    yalx_return_ref((yalx_ref_t)yalx_uint_to_string(&heap, value, 10));
+    yalx_return_ref((yalx_ref_t)yalx_uint_to_string(heap, value, 10));
 }
 
 void yalx_Zplang_Zolang_Zdi16ToString_stub(i16_t value) {
-    yalx_return_ref((yalx_ref_t)yalx_int_to_string(&heap, value, 10));
+    yalx_return_ref((yalx_ref_t)yalx_int_to_string(heap, value, 10));
 }
 
 void yalx_Zplang_Zolang_Zdi32ToString_stub(i32_t value) {
-    yalx_return_ref((yalx_ref_t)yalx_int_to_string(&heap, value, 10));
+    yalx_return_ref((yalx_ref_t)yalx_int_to_string(heap, value, 10));
 }
 
 void yalx_Zplang_Zolang_Zdu32ToString_stub(u32_t value) {
-    yalx_return_ref((yalx_ref_t)yalx_uint_to_string(&heap, value, 10));
+    yalx_return_ref((yalx_ref_t)yalx_uint_to_string(heap, value, 10));
 }
 
 void yalx_Zplang_Zolang_Zdu64ToString_stub(u64_t value) {
-    yalx_return_ref((yalx_ref_t)yalx_uint_to_string(&heap, value, 10));
+    yalx_return_ref((yalx_ref_t)yalx_uint_to_string(heap, value, 10));
 }
 
 void yalx_Zplang_Zolang_Zdi64ToString_stub(i64_t value) {
-    yalx_return_ref((yalx_ref_t)yalx_int_to_string(&heap, value, 10));
+    yalx_return_ref((yalx_ref_t)yalx_int_to_string(heap, value, 10));
 }
 
 void yalx_Zplang_Zolang_Zdf32ToString_stub(f32_t value) {

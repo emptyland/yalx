@@ -1,9 +1,8 @@
 #include "base/format.h"
 #include "base/base.h"
+#include <memory>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 /*static*/ std::string Sprintf(const char *fmt, ...) {
     va_list ap;
@@ -25,7 +24,7 @@ namespace base {
         va_copy(ap, copied);
     } while (rv > len);
     //buf[rv] = 0;
-    return std::string(buf.get());
+    return std::string{buf.get()};
 }
 
 /*static*/ int ParseI64(const char *s, size_t n, int64_t *val) {
@@ -162,7 +161,5 @@ namespace base {
     *val = l * sign;
     return 0;
 }
-
-} // namespace base
 
 } // namespace yalx
