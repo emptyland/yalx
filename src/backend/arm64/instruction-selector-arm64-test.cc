@@ -36,14 +36,12 @@ TEST_F(Arm64InstructionSelectorTest, Sanity) {
     ASSERT_EQ(ArchFrameExit, instr->op());
     ASSERT_TRUE(instr->InputAt(0)->IsUnallocated());
     if (auto opd = instr->InputAt(0)->AsUnallocated()) {
-        ASSERT_EQ(UnallocatedOperand::kFixedSlot, opd->policy());
-        ASSERT_EQ(24, opd->fixed_slot_offset());
+        ASSERT_EQ(UnallocatedOperand::kRegisterOrSlot, opd->policy());
     }
     
     ASSERT_TRUE(instr->InputAt(1)->IsUnallocated());
     if (auto opd = instr->InputAt(1)->AsUnallocated()) {
-        ASSERT_EQ(UnallocatedOperand::kFixedSlot, opd->policy());
-        ASSERT_EQ(28, opd->fixed_slot_offset());
+        ASSERT_EQ(UnallocatedOperand::kRegisterOrSlot, opd->policy());
     }
 }
 
@@ -57,21 +55,91 @@ TEST_F(Arm64InstructionSelectorTest, HeapAllocSelecting) {
     
     auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
     ASSERT_NE(nullptr, instr_fun);
+    {
+        std::string buf;
+        base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+        instr_fun->PrintTo(&printer);
+
+        static const char z[] = R"(_foo:
+L0:
+    ArchFrameEnter (#-1)
+    ArchSaveCallerRegisters
+    %0 [gp=0] = ArchLoadEffectAddress <_testing_Zotesting_Zdtest_ZdFoo$class>
+    %1 [gp=0] = ArchCallNative <_heap_alloc>, %0 [gp=0]
+    ArchRestoreCallerRegisters
+    ArchFrameExit %1 [m/r](#-1)
+)";
+        EXPECT_EQ(z, buf) << buf;
+    }
     
-    auto block = instr_fun->block(0);
-    ASSERT_EQ(6, block->instructions().size());
+    RegisterAllocator allocator(arena(), regconf_, instr_fun);
+    allocator.Run();
+    {
+        std::string buf;
+        base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+        instr_fun->PrintTo(&printer);
+
+        static const char z[] = R"(_foo:
+L0:
+[000]    ArchFrameEnter (#-1)
+[002]    ArchSaveCallerRegisters
+[004]    {qword $0} = ArchLoadEffectAddress <_testing_Zotesting_Zdtest_ZdFoo$class>
+[006]    {ref $0} = ArchCallNative <_heap_alloc>, {qword $0}
+[008]    ArchRestoreCallerRegisters
+[010]    ArchFrameExit {ref $0}(#-1)
+)";
+        EXPECT_EQ(z, buf) << buf;
+        //printf("%s", buf.c_str());
+    }
+}
+
+TEST_F(Arm64InstructionSelectorTest, HeapAllocWithOverlay) {
+    auto foo_class = NewFooClass();
+    auto foo_ty = ir::Type::Ref(foo_class);
+    auto fun = NewFun("foo", "fun (i16)->(testing:testing.test.Foo, i16)", {ir::Types::Int16}, {foo_ty, ir::Types::Int16});
+    auto blk = fun->entry();
+    auto rs = blk->NewNode(kUnknown, foo_ty, ops()->HeapAlloc(foo_class));
+    auto arg0 = fun->paramater(0);
+    blk->NewNode(kUnknown, ir::Types::Void, ops()->Ret(2), rs, arg0);
     
-    auto instr = block->instruction(0);
-    ASSERT_EQ(ArchFrameEnter, instr->op());
+    auto instr_fun = Arm64SelectFunctionInstructions(arena(), linkage(), const_pool(), fun);
+    ASSERT_NE(nullptr, instr_fun);
+    {
+        std::string buf;
+        base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+        instr_fun->PrintTo(&printer);
+
+        static const char z[] = R"(_foo:
+L0:
+    %0 [gp=0] = ArchFrameEnter (#-1)
+    ArchSaveCallerRegisters
+    %1 [gp=0] = ArchLoadEffectAddress <_testing_Zotesting_Zdtest_ZdFoo$class>
+    %2 [gp=0] = ArchCallNative <_heap_alloc>, %1 [gp=0]
+    ArchRestoreCallerRegisters
+    ArchFrameExit %2 [m/r], %0 [m/r](#-1)
+)";
+        EXPECT_EQ(z, buf) << buf;
+    }
     
-    instr = block->instruction(1);
-    ASSERT_EQ(ArchSaveCallerRegisters, instr->op());
-    
-    instr = block->instruction(2);
-    ASSERT_EQ(ArchLoadEffectAddress, instr->op());
-    
-    instr = block->instruction(3);
-    ASSERT_EQ(ArchCallNative, instr->op());
+    RegisterAllocator allocator(arena(), regconf_, instr_fun);
+    allocator.Run();
+    {
+        std::string buf;
+        base::PrintingWriter printer(base::NewMemoryWritableFile(&buf), true/*ownership*/);
+        instr_fun->PrintTo(&printer);
+
+//        static const char z[] = R"(_foo:
+//L0:
+//[000]    ArchFrameEnter (#-1)
+//[002]    ArchSaveCallerRegisters
+//[004]    {qword $0} = ArchLoadEffectAddress <_testing_Zotesting_Zdtest_ZdFoo$class>
+//[006]    {ref $0} = ArchCallNative <_heap_alloc>, {qword $0}
+//[008]    ArchRestoreCallerRegisters
+//[010]    ArchFrameExit {ref $0}(#-1)
+//)";
+        //EXPECT_EQ(z, buf) << buf;
+        printf("%s", buf.c_str());
+    }
 }
 
 TEST_F(Arm64InstructionSelectorTest, ScanVirtualRegisters) {
@@ -119,9 +187,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     
     auto zero = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(0));
     auto one = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->I32Constant(1));
-    
-//    auto phi0 = l1->NewNode(kUnknown, ir::Types::Int32, ops()->Phi(2, 2), zero, zero, entry, l2);
-//    auto phi1 = l1->NewNode(kUnknown, ir::Types::Int32, ops()->Phi(2, 2), one, one, entry, l2);
+
     auto phi0 = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->Phi(2, 2), zero, zero, entry, l2);
     auto phi1 = ir::Value::New(arena(), kUnknown, ir::Types::Int32, ops()->Phi(2, 2), one, one, entry, l2);
     auto cond = l1->NewNode(kUnknown, ir::Types::UInt8, ops()->ICmp(ir::ICondition::sle), phi0, param0);
@@ -174,7 +240,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret0)));
     EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(ret1)));
     EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(zero)));
-    EXPECT_TRUE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(one)));
+    EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(one)));
     
     state = allocator.BlockLivenssStateOf(allocator.OrderedBlockAt(3));
     EXPECT_FALSE(state->DoesInLiveIn(instr_fun->frame()->GetVirtualRegister(param0)));
@@ -210,7 +276,7 @@ TEST_F(Arm64InstructionSelectorTest, PhiNodesAndLoop) {
     
     interval = allocator.IntervalOf(ret0);
     ASSERT_TRUE(interval->has_assigned_gp_register());
-    EXPECT_EQ(5, interval->assigned_operand());
+    EXPECT_EQ(3, interval->assigned_operand());
     
     //==================================================================================================================
     // Finalize
