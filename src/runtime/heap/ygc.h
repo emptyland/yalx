@@ -166,7 +166,7 @@ struct ygc_page {
     struct physical_memory physical_memory;
     _Atomic uintptr_t top;
     uintptr_t limit;
-    ygc_live_map live_map;
+    struct ygc_live_map live_map;
 };
 
 struct ygc_core {
