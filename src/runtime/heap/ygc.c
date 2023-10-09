@@ -16,7 +16,7 @@ uintptr_t YGC_METADATA_MASK = (1L << YGC_METADATA_SHIFT) |
 
 uintptr_t YGC_ADDRESS_OFFSET_MASK = (1L << YGC_METADATA_SHIFT) - 1;
 
-size_t YGC_VIRTUAL_ADDRESS_SPACE_LEN = (1L << YGC_METADATA_SHIFT);
+size_t YGC_ADDRESS_OFFSET_MAX = (1L << YGC_METADATA_SHIFT);
 
 
 uintptr_t YGC_ADDRESS_GOOD_MASK;
@@ -31,12 +31,12 @@ void ygc_set_good_mask(uintptr_t mask) {
     YGC_ADDRESS_WEAK_BAD_MASK = (YGC_ADDRESS_GOOD_MASK | YGC_METADATA_REMAPPED) ^ YGC_METADATA_MASK;
 }
 
-void ygc_flip_to_marked() {
+void ygc_flip_to_marked(void) {
     YGC_METADATA_MARKED ^= (YGC_METADATA_MARKED0 | YGC_METADATA_MARKED1);
     ygc_set_good_mask(YGC_METADATA_MARKED);
 }
 
-void ygc_flip_to_remapped() {
+void ygc_flip_to_remapped(void) {
     ygc_set_good_mask(YGC_METADATA_REMAPPED);
 }
 
@@ -48,7 +48,7 @@ int ygc_init(struct ygc_core *ygc, size_t capacity) {
         memory_backing_final(&ygc->backing);
         return -1;
     }
-    if (virtual_memory_management_init(&ygc->vmm, YGC_VIRTUAL_ADDRESS_SPACE_LEN) < 0) {
+    if (virtual_memory_management_init(&ygc->vmm, YGC_ADDRESS_OFFSET_MAX) < 0) {
         memory_backing_final(&ygc->backing);
         physical_memory_management_final(&ygc->pmm);
         return -1;

@@ -2,20 +2,22 @@
 #include "runtime/checking.h"
 #include "runtime/runtime.h"
 
-int reserve_continuous_memory(uintptr_t addr, size_t size);
+int probe_linear_memories(struct virtual_memory_management *vmm, size_t size);
 int probe_continuous_memories(struct virtual_memory_management *vmm, uintptr_t addr, size_t size);
+int reserve_continuous_memory(uintptr_t addr, size_t size);
+
 void release_mapping(uintptr_t addr, size_t size);
 struct memory_segment *new_segment(uintptr_t addr, size_t size);
 
 int virtual_memory_management_init(struct virtual_memory_management *self, size_t capacity) {
     DCHECK(capacity > 0);
-    self->limit_in_bytes = ROUND_UP(capacity, YGC_GRANULE_SIZE);
+    self->capacity = ROUND_UP(capacity, YGC_GRANULE_SIZE);
     self->unused_in_bytes = 0;
     self->free.next = &self->free;
     self->free.prev = &self->free;
     yalx_mutex_init(&self->mutex);
 
-    return probe_continuous_memories(self, 0, self->limit_in_bytes);
+    return probe_linear_memories(self, self->capacity);
 }
 
 void virtual_memory_management_final(struct virtual_memory_management *self) {
@@ -108,6 +110,70 @@ void release_virtual_memory(struct virtual_memory_management *self, uintptr_t ad
 
     struct memory_segment *fit = new_segment(addr, size);
     QUEUE_INSERT_TAIL(&self->free, fit); // No fit position, insert into free list tail.
+}
+
+static size_t min2(size_t a, size_t b) {
+    return a < b ? a : b;
+}
+
+static size_t probe_discontiguous_memories2(struct virtual_memory_management *vmm, uintptr_t start, size_t size,
+                                            size_t min_range) {
+    if (size < min_range) {
+        // Too small
+        return 0;
+    }
+
+    DCHECK(size % YGC_GRANULE_SIZE == 0);
+
+    if (reserve_continuous_memory(start, size)) {
+        // Make the address range free
+        release_virtual_memory(vmm, start, size);
+        return size;
+    }
+
+    const size_t half = size / 2;
+    if (half < min_range) {
+        // Too small
+        return 0;
+    }
+
+    // Divide and conquer
+    const size_t first_part = ROUND_DOWN(half, YGC_GRANULE_SIZE);
+    const size_t second_part = size - first_part;
+    return probe_discontiguous_memories2(vmm, start, first_part, min_range) +
+           probe_discontiguous_memories2(vmm, start + first_part, second_part, min_range);
+}
+
+static size_t probe_discontiguous_memories(struct virtual_memory_management *vmm, size_t size) {
+    // Don't try to reserve address ranges smaller than 1% of the requested size.
+    // This avoids an explosion of reservation attempts in case large parts of the
+    // address space is already occupied.
+    const size_t min_range = ROUND_UP(size / 100, YGC_GRANULE_SIZE);
+    size_t start = 0;
+    size_t reserved = 0;
+
+    // Reserve size somewhere between [0, ZAddressOffsetMax)
+    while (reserved < size && start < YGC_ADDRESS_OFFSET_MAX) {
+      const size_t remaining = min2(size - reserved, YGC_ADDRESS_OFFSET_MAX - start);
+      reserved += probe_discontiguous_memories2(vmm, start, remaining, min_range);
+      start += remaining;
+    }
+
+    return reserved;
+}
+
+int probe_linear_memories(struct virtual_memory_management *vmm, size_t size) {
+    const uintptr_t end = YGC_ADDRESS_OFFSET_MAX - size;
+    const uintptr_t increment = ROUND_UP(end / 8192, YGC_GRANULE_SIZE);
+    
+    for (uintptr_t start = 0; start <= end; start += increment) {
+        if (reserve_continuous_memory(start, size)) {
+            release_virtual_memory(vmm, start, size);
+            return 0;
+        }
+    }
+    
+    return probe_discontiguous_memories(vmm, size) >= size ? 0 : -1;
 }
 
 int probe_continuous_memories(struct virtual_memory_management *vmm, uintptr_t addr, size_t size) {

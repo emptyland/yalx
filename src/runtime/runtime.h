@@ -10,7 +10,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#define _Atomic
+// #define _Atomic
 #else
 #include <stdatomic.h>
 #endif

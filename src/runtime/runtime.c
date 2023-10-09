@@ -131,7 +131,7 @@ static void dev_print_fields(const struct dev_struct_field *field) {
     }
 }
 
-static void dev_print_struct_fields() {
+static void dev_print_struct_fields(void) {
     printf("magic numbers: %u, %u, %u\n", yalx_magic_number1, yalx_magic_number2, yalx_magic_number3);
     
     printf("struct scheduler:\n");
@@ -166,7 +166,7 @@ struct class_load_entry {
     {NULL, NULL} // end of entries
 };
 
-int yalx_runtime_init() {
+int yalx_runtime_init(void) {
     pointer_shift_in_bytes = yalx_log2(pointer_size_in_bytes);
     pointer_shift_in_bits = yalx_log2(pointer_size_in_bits);
     pointer_mask_in_bits = (int)((1U << pointer_shift_in_bits) - 1);
@@ -195,7 +195,7 @@ int yalx_runtime_init() {
     yalx_tls_alloc(&tls_mach);
 
     yalx_init_hash_table(&pkg_init_records, 1.2f);
-    if (yalx_init_heap( GC_NONE, &heap) < 0) {
+    if (yalx_init_heap(GC_NONE, &heap) < 0) {
         goto error;
     }
     
@@ -725,7 +725,7 @@ done:
     }
 }
 
-int pkg_initialized_count() { return pkg_init_records.size; }
+int pkg_initialized_count(void) { return pkg_init_records.size; }
 
 int pkg_has_initialized(const char *const plain_name) {
     yalx_mutex_lock(&pkg_init_mutex);
@@ -1168,7 +1168,7 @@ void array_set_chunk(struct yalx_value_array_header *const array, const i32_t *c
     memcpy(dest, chunk, ar->item->instance_size);
 }
 
-struct coroutine *current_root() { return CURRENT_COROUTINE; }
+struct coroutine *current_root(void) { return CURRENT_COROUTINE; }
 
 
 u8_t is_instance_of(struct yalx_value_any *const host, const struct yalx_class *const for_test) {

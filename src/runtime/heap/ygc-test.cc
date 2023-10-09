@@ -122,7 +122,7 @@ TEST_F(YGCTest, ThreadingSafeSmallAllocation) {
     std::thread workers[8];
 
     for (auto & worker : workers) {
-        worker = std::move(std::thread([this] {
+        worker = std::thread([this] {
             for (auto j = 0; j < 100000; j++) {
                 auto ptr = reinterpret_cast<int *>(ygc_allocate_object(&ygc_, 32, 8));
                 *ptr = j;
@@ -130,7 +130,7 @@ TEST_F(YGCTest, ThreadingSafeSmallAllocation) {
                 ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 8);
                 ASSERT_TRUE(ygc_addr_in_heap(&ygc_, reinterpret_cast<uintptr_t>(ptr)));
             }
-        }));
+        });
     }
 
     for (auto & worker : workers) {

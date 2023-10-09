@@ -50,18 +50,18 @@ _asm_stub4:
 
 
 // test get thread-local variable
-.global _asm_stub5,_thread_local_mach
+.global _asm_stub5 //,_thread_local_mach
 _asm_stub5:
     sub sp, sp, 0x10
     stp fp, lr, [sp, 0]
 
     // Load the thread-local variable
-    adrp x8, _thread_local_mach@PAGE
-    add x8, x8, _thread_local_mach@PAGEOFF
-    ldr x9, [x8]
-    mov x0, x8
-    blr x9
-    ldr x0, [x0, 0]
+    // adrp x8, _thread_local_mach@PAGE
+    // add x8, x8, _thread_local_mach@PAGEOFF
+    // ldr x9, [x8]
+    // mov x0, x8
+    // blr x9
+    // ldr x0, [x0, 0]
     
     ldp fp, lr, [sp, 0]
     add sp, sp, 0x10
