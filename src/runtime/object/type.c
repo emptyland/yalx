@@ -43,19 +43,19 @@ int yalx_is_compact_enum_type_fallback(const struct yalx_class * klass) {
 
 size_t class_ty_size(const struct yalx_class *klass, const struct yalx_value_any *obj) {
     DCHECK(yalx_is_ref_type(klass));
-    DCHECK(klass == CLASS(obj->klass));
+    DCHECK(klass == CLASS(obj));
     return (size_t)klass->instance_size;
 }
 
 size_t string_ty_size(const struct yalx_class *klass, const struct yalx_value_str *obj) {
     DCHECK(klass->id == Type_string);
-    DCHECK(klass == CLASS(obj->klass));
+    DCHECK(klass == CLASS(obj));
     return yalx_reserve_string_bytes(obj->bytes, obj->len);
 }
 
 size_t array_ty_size(const struct yalx_class *klass, const struct yalx_value_array *obj) {
     DCHECK(klass->id == Type_array);
-    DCHECK(klass == CLASS(obj->klass));
+    DCHECK(klass == CLASS(obj));
 
     const struct yalx_class *item = obj->item;
     const size_t item_size = yalx_is_ref_type(item) ? item->reference_size : item->instance_size;
@@ -64,7 +64,7 @@ size_t array_ty_size(const struct yalx_class *klass, const struct yalx_value_arr
 
 size_t multi_dims_array_ty_size(const struct yalx_class *klass, const struct yalx_value_multi_dims_array *obj) {
     DCHECK(klass->id == Type_array);
-    DCHECK(klass == CLASS(obj->klass));
+    DCHECK(klass == CLASS(obj));
 
     size_t nitems = obj->caps[0];
     for (u32_t i = 1; i < obj->rank; i++) {

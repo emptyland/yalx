@@ -6,7 +6,7 @@
 
 
 size_t yalx_object_size_in_bytes(yalx_ref_t obj) {
-    const struct yalx_class *klass = CLASS(obj->klass);
+    const struct yalx_class *klass = CLASS(obj);
 
     switch (klass->id) {
         case Type_string:

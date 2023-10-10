@@ -9,7 +9,8 @@ void release_mapping(uintptr_t addr, size_t size) {
 }
 
 static int probe_mapping(uintptr_t addr, size_t size) {
-    void *rs = mmap((void*)addr, size, PROT_NONE, MAP_FIXED| MAP_ANONYMOUS|MAP_PRIVATE|MAP_NORESERVE, -1, 0);
+    void *rs = mmap((void*)addr, size, PROT_NONE, MAP_FIXED| MAP_ANONYMOUS|MAP_PRIVATE|MAP_NORESERVE,
+                    -1, 0);
     if (rs == MAP_FAILED) {
         return 0; // Address space unusable
     }
@@ -18,7 +19,6 @@ static int probe_mapping(uintptr_t addr, size_t size) {
         return 0;
     }
 
-    DLOG(INFO, "[%lx,%lx) probe ok", addr, addr + size);
     return 1; // Ok
 }
 

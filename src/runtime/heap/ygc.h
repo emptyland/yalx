@@ -190,7 +190,7 @@ struct ygc_core {
 int ygc_init(struct ygc_core *ygc, size_t capacity);
 void ygc_final(struct ygc_core *ygc);
 
-struct ygc_core *ygc_heap(struct heap *h);
+struct ygc_core *ygc_heap_of(struct heap *h);
 
 address_t ygc_allocate_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes);
 

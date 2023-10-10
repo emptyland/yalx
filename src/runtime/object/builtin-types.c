@@ -454,6 +454,26 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
         // TODO:
     }, // F64
 
+    [Type_string] = {
+        .id = (uint64_t)Type_string,
+        .constraint = K_CLASS,
+        .reference_size = sizeof(yalx_ref_t),
+        .instance_size = sizeof(struct yalx_value_str),
+        .super = &builtin_classes[Type_any],
+        .name = YALX_STR("String"),
+        .location = YALX_STR("String"),
+        .n_annotations = 0,
+        .n_fields = 0,
+        .fields = NULL,
+        .ctor = NULL,
+        .n_methods = 0,
+        .methods = NULL, // TODO:
+        .n_itab = 0,
+        .n_vtab = 0,
+        .refs_mark_len = 0,
+        // TODO:
+    },
+
     [Type_array] = {
         .id = (uint64_t)Type_array,
         .constraint = K_CLASS,

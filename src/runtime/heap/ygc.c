@@ -88,7 +88,7 @@ void ygc_final(struct ygc_core *ygc) {
     ygc->rss = 0;
 }
 
-struct ygc_core *ygc_heap(struct heap *h) {
+struct ygc_core *ygc_heap_of(struct heap *h) {
     DCHECK(h != NULL);
     return (struct ygc_core *)(h + 1);
 }
@@ -294,7 +294,8 @@ void ygc_page_mark_object(struct ygc_page *page, struct yalx_value_any *obj) {
     DCHECK(offset % YGC_ALLOCATION_ALIGNMENT_SIZE == 0);
 
     live_map_increase_obj(&page->live_map, 1, yalx_object_size_in_bytes(obj));
-    live_map_set(&page->live_map, (int)(offset >> pointer_shift_in_bytes));
+    int index = (int)((offset - page->virtual_addr.addr) >> pointer_shift_in_bytes);
+    live_map_set(&page->live_map, index);
 }
 
 void ygc_page_visit_objects(struct ygc_page *page, struct yalx_heap_visitor *visitor) {

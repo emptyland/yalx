@@ -20,7 +20,7 @@ struct yalx_value_any {
 struct yalx_class;
 struct yalx_value_str;
 
-#define CLASS(ptr) ((struct yalx_class *)(((yalx_ref_t)ptr)->klass & (~0x1)))
+#define CLASS(ref)  ((struct yalx_class *)((ref)->klass & ~1))
 
 typedef struct yalx_value_any *yalx_ref_t;
 typedef struct yalx_value_any **yalx_ref_handle;
