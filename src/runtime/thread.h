@@ -6,13 +6,13 @@
 #if defined(YALX_OS_POSIX)
     #ifndef __STDC_NO_THREADS__
         #include <threads.h>
-    #else
-        #include <pthread.h>
     #endif
+#include <pthread.h>
 #endif
 #if defined(YALX_OS_WINDOWS)
 #include <Windows.h>
 #endif
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,6 +35,7 @@ struct yalx_os_thread {
 
 struct os_thread_bundle {
     struct yalx_os_thread *thread;
+    const char *name;
     yalx_os_thread_fn entry;
     void *param;
 };
@@ -99,6 +100,8 @@ int yalx_os_thread_start(
         const char *name,
         const char *file,
         int line);
+
+int yalx_os_thread_join(struct yalx_os_thread *thread, uint64_t timeout_in_mills);
 
 struct yalx_os_thread *yalx_os_thread_self(void);
 struct yalx_os_thread *yalx_os_thread_attach_self(struct yalx_os_thread *thread);

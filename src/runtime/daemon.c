@@ -12,7 +12,7 @@ int task_queue_init(struct task_queue *q) {
     return 0;
 }
 
-int task_queue_final(struct task_queue *q) {
+void task_queue_final(struct task_queue *q) {
     // TODO:
     yalx_mutex_final(&q->mutex);
     yalx_cond_final(&q->not_empty);
@@ -40,13 +40,14 @@ int task_queue_take(struct task_queue *q, struct task_entry **task) {
     return 1;
 }
 
-struct task_entry *task_new(struct task_queue *q, void *ctx, task_run_fn_t run, task_finalize_fn_t finalize) {
-    struct task_entry *task = MALLOC(struct task_entry);
-    task->next = task;
+struct task_entry *task_alloc(struct task_queue *q, size_t size) {
+    const size_t required_size = size < sizeof(struct task_entry) ? sizeof(struct task_entry) : size;
+    struct task_entry *const task = (struct task_entry *) malloc(required_size);
     task->prev = task;
-    task->ctx = ctx;
-    task->run = run;
-    task->finalize = finalize;
+    task->next = task;
+    task->ctx = NULL;
+    task->run = NULL;
+    task->finalize = NULL;
     task->param1 = 0;
     task->param2 = 0;
     return task;

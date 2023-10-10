@@ -5,6 +5,9 @@
 #include "runtime/locks.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct task_entry;
 
@@ -29,14 +32,26 @@ struct task_queue {
 };
 
 int task_queue_init(struct task_queue *q);
-int task_queue_final(struct task_queue *q);
+void task_queue_final(struct task_queue *q);
 
 void task_queue_post(struct task_queue *q, struct task_entry *task);
 int task_queue_take(struct task_queue *q, struct task_entry **task);
 
-struct task_entry *task_new(struct task_queue *q, void *ctx, task_run_fn_t run, task_finalize_fn_t finalize);
+struct task_entry *task_alloc(struct task_queue *q, size_t size);
+
+static inline
+struct task_entry *task_new(struct task_queue *q, void *ctx, task_run_fn_t run, task_finalize_fn_t finalize) {
+    struct task_entry *task = task_alloc(q, sizeof(struct task_entry));
+    task->ctx = ctx;
+    task->run = run;
+    task->finalize = finalize;
+    return task;
+}
+
 void task_final(struct task_queue *q, struct task_entry *task);
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif //YALX_RUNTIME_DAEMON_H

@@ -7,6 +7,9 @@
 #if defined(YALX_OS_DRAWIN)
 
 #endif
+#if defined(YALX_OS_LINUX)
+#include <sys/prctl.h>
+#endif
 
 static yalx_tls_t self_thread;
 
@@ -21,9 +24,16 @@ static void *native_entry(void *ctx) {
     struct yalx_os_thread *thread = bundle->thread;
     yalx_os_thread_fn entry = bundle->entry;
     void *param = bundle->param;
+    char *name = (char *)bundle->name;
     free(bundle);
 
     yalx_tls_set(self_thread, thread);
+#if defined(YALX_OS_LINUX)
+    if (name) {
+        prctl(PR_SET_NAME, name);
+        free(name);
+    }
+#endif
     entry(param);
     yalx_tls_set(self_thread, NULL);
 
@@ -66,12 +76,19 @@ int yalx_os_thread_start(
     thread->start_point.file = file;
     thread->start_point.line = line;
     bundle->thread = thread;
+    bundle->name = strdup(name);
 
     if (pthread_create(&thread->native_handle, NULL, native_entry, bundle) == 0) {
         return 0;
     }
     free(bundle);
     return -1;
+}
+
+int yalx_os_thread_join(struct yalx_os_thread *thread, uint64_t timeout_in_mills) {
+    USE(timeout_in_mills);
+    void *rt = NULL;
+    return pthread_join(thread->native_handle, &rt);
 }
 
 struct yalx_os_thread *yalx_os_thread_self(void) {
