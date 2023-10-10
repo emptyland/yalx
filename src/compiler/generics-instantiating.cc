@@ -987,7 +987,7 @@ namespace yalx::cpl {
                     auto src = DCHECK_NOTNULL(type->AsFunctionPrototype());
                     auto copied = new(arena_) FunctionPrototype(arena_, src->vargs(), src->source_position());
                     for (auto param: src->params()) {
-                        auto item = down_cast<VariableDeclaration::Item>(param);
+                        auto item = static_cast<VariableDeclaration::Item *>(param);
                         auto it = Instantiate(item->type());
                         if (!it) {
                             return nullptr;

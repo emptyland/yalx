@@ -38,7 +38,8 @@ TEST_F(HeapTest, StringPoolRehash) {
     
     char buf[16];
     for (int i = 0; i < 32; i++) {
-        sprintf(buf, "%04x", i);
+        //sprintf(buf, "%04x", i);
+        snprintf(buf, arraysize(buf), "%04x", i);
         auto str = yalx_new_string_direct(heap_, buf, strlen(buf));
         auto space = string_pool_ensure_space(&kpool_, str->bytes, str->len);
         space->value = str;

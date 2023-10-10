@@ -8,7 +8,7 @@
 #ifdef __cplusplus
 extern "C" {
 
-#define _Atomic
+// #define _Atomic
 
 #if defined(YALX_OS_POSIX)
 #include <pthread.h>
@@ -100,6 +100,26 @@ struct yalx_mutex {
 struct yalx_cond {
     pthread_cond_t impl;
 };
+
+static inline int yalx_mutex_init(struct yalx_mutex *self) {
+    return pthread_mutex_init(&self->impl, NULL);
+}
+
+static inline void yalx_mutex_final(struct yalx_mutex *self) {
+    pthread_mutex_destroy(&self->impl);
+}
+
+static inline void yalx_mutex_lock(struct yalx_mutex *self) {
+    pthread_mutex_lock(&self->impl);
+}
+
+static inline int yalx_mutex_try_lock(struct yalx_mutex *self) {
+    return pthread_mutex_trylock(&self->impl);
+}
+
+static inline void yalx_mutex_unlock(struct yalx_mutex *self) {
+    pthread_mutex_unlock(&self->impl);
+}
 #endif
 
 #if defined(YALX_OS_WINDOWS)

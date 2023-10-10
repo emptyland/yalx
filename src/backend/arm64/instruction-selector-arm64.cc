@@ -53,7 +53,7 @@ public:
     
     void VisitICmp(ir::Value *instr) override {
         if (MatchCmpOnlyUsedByBr(instr)) {
-            Emit(Arm64Cmp, NoOutput(), UseAsRegister(instr->InputValue(0)), UseAsRegister(instr->InputValue(1)));
+            VisitArithOperands(Arm64Cmp, NoOutput(), instr->InputValue(0), instr->InputValue(1));
             return;
         }
         

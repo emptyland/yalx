@@ -2,7 +2,6 @@
 #include "runtime/macros.h"
 #if defined(YALX_OS_POSIX)
 #include <errno.h>
-#include <error.h>
 #include <string.h>
 #endif
 #include <stdarg.h>

@@ -4,8 +4,11 @@
 
 #include "runtime/macros.h"
 #if defined(YALX_OS_POSIX)
-#include <pthread.h>
-#include <threads.h>
+    #ifndef __STDC_NO_THREADS__
+        #include <threads.h>
+    #else
+        #include <pthread.h>
+    #endif
 #endif
 #if defined(YALX_OS_WINDOWS)
 #include <Windows.h>
@@ -22,7 +25,7 @@ struct yalx_os_thread {
     HANDLE native_handle;
     DWORD  native_id;
 #elif defined(YALX_OS_POSIX)
-    thrd_t native_handle;
+    pthread_t native_handle;
 #endif
     struct {
         const char *file;
@@ -58,6 +61,8 @@ static inline int yalx_tls_alloc(yalx_tls_t *key) {
 #elif defined(YALX_OS_POSIX) // defined(YALX_OS_WINDOWS)
 // pthread_key_t
 
+#ifndef __STDC_NO_THREADS__ // std thread.h
+
 typedef tss_t yalx_tls_t;
 
 static inline int yalx_tls_alloc(yalx_tls_t *key) {
@@ -68,10 +73,24 @@ static inline int yalx_tls_alloc(yalx_tls_t *key) {
 #define yalx_tls_get(tls) ((void *)tss_get(tls))
 #define yalx_tls_free(tls) tss_delete(tls)
 
+#else // pthread
+
+typedef pthread_key_t yalx_tls_t;
+
+static inline int yalx_tls_alloc(yalx_tls_t *key) {
+    return pthread_key_create(key, NULL);
+}
+
+#define yalx_tls_set(tls, value) pthread_setspecific(tls, (void *)(value))
+#define yalx_tls_get(tls) ((void *)pthread_getspecific(tls))
+#define yalx_tls_free(tls) pthread_key_delete(tls)
+
+#endif
+
 #endif // defined(YALX_OS_POSIX)
 
-int yalx_os_threading_env_enter();
-void yalx_os_threading_env_exit();
+int yalx_os_threading_env_enter(void);
+void yalx_os_threading_env_exit(void);
 
 int yalx_os_thread_start(
         struct yalx_os_thread *thread,
@@ -81,7 +100,7 @@ int yalx_os_thread_start(
         const char *file,
         int line);
 
-struct yalx_os_thread *yalx_os_thread_self();
+struct yalx_os_thread *yalx_os_thread_self(void);
 struct yalx_os_thread *yalx_os_thread_attach_self(struct yalx_os_thread *thread);
 
 
@@ -90,10 +109,10 @@ struct per_cpu_storage {
     void *items[1];
 };
 
-struct per_cpu_storage *per_cpu_storage_new();
+struct per_cpu_storage *per_cpu_storage_new(void);
 void per_cpu_storage_free(struct per_cpu_storage *storage);
 
-int cpu_id();
+int cpu_id(void);
 
 #define per_cpu_at(ty, storage) ((ty)(&(storage)->items[cpu_id()]))
 #define per_cpu_get(ty, storage) ((ty)((storage)->items[cpu_id()]))

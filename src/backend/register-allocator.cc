@@ -90,6 +90,17 @@ RegisterAllocator::RegisterAllocator(base::Arena *arena, const RegistersConfigur
 , fun_(fun) {
 }
 
+void RegisterAllocator::Run() {
+    Prepare();
+    ComputeBlocksOrder();
+    NumberizeAllInstructions();
+    ComputeLocalLiveSets();
+    ComputeGlobalLiveSets();
+    BuildIntervals();
+    WalkIntervals();
+    AssignRegisters();
+}
+
 RegisterAllocator::~RegisterAllocator() {
     for (auto interval : intervals_) { delete interval; }
 }
@@ -613,12 +624,20 @@ void RegisterAllocator::AllocateBlockedRegister(LifetimeInterval *current, Lifet
         }
     }
     
+    UnallocatedOperand::Policy policy = UnallocatedOperand::kNone;
+    int hint = 0;
+    if (current->has_any_used()) {
+        auto use = current->earliest_use_position();
+        policy = static_cast<UnallocatedOperand::Policy>(use.use_kind);
+        hint = use.hint;
+    }
+
     auto [reg, pos] = GetHighest(current->should_gp_register()
-                                 ? use_gp_position
-                                 : use_fp_position,
-                                 current->should_gp_register()
-                                 ? regconf_->allocatable_gp_bitmap()
-                                 : regconf_->allocatable_fp_bitmap());
+                         ? use_gp_position
+                         : use_fp_position,
+                         current->should_gp_register()
+                         ? regconf_->allocatable_gp_bitmap()
+                         : regconf_->allocatable_fp_bitmap());
     if (pos < current->earliest_use_position().position) {
         // all active and inactive intervals are used before current, so it is best to spill current itself
         auto ty = fun_->frame()->GetType(current->GetOriginalVR());
@@ -627,6 +646,10 @@ void RegisterAllocator::AllocateBlockedRegister(LifetimeInterval *current, Lifet
     } else {
         // spilling made a register free for first part of current
         current->AssignRegister(reg);
+        if (pos >= current->latest_range().to) {
+            return;
+        }
+        printd("reg=%d, pos=%d", reg, pos);
         UNREACHABLE();
         unhandled->insert(SplitInterval(current, pos));
     }

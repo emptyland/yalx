@@ -318,6 +318,8 @@ public:
     RegisterAllocator(base::Arena *arena, const RegistersConfiguration *regconf, InstructionFunction *fun);
     ~RegisterAllocator();
     
+    void Run();
+    
     // step 0
     void Prepare();
     // step 1

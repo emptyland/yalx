@@ -36,7 +36,7 @@ extern uintptr_t YGC_METADATA_MARKED;
 
 extern uintptr_t YGC_METADATA_MASK;
 extern uintptr_t YGC_ADDRESS_OFFSET_MASK;
-extern size_t YGC_VIRTUAL_ADDRESS_SPACE_LEN;
+extern size_t YGC_ADDRESS_OFFSET_MAX;
 
 extern uintptr_t YGC_ADDRESS_GOOD_MASK;
 extern uintptr_t YGC_ADDRESS_BAD_MASK;
@@ -45,8 +45,8 @@ extern uintptr_t YGC_ADDRESS_WEAK_BAD_MASK;
 extern uint32_t ygc_global_tick;
 
 void ygc_set_good_mask(uintptr_t mask);
-void ygc_flip_to_remapped();
-void ygc_flip_to_marked();
+void ygc_flip_to_remapped(void);
+void ygc_flip_to_marked(void);
 
 #define ygc_offset(addr) ((uintptr_t)(addr) & YGC_ADDRESS_OFFSET_MASK)
 #define ygc_marked0(addr) ((uintptr_t)(addr) | YGC_METADATA_MARKED0)
@@ -57,6 +57,7 @@ void ygc_flip_to_marked();
 
 struct per_cpu_storage;
 struct yalx_heap_visitor;
+struct heap;
 
 struct linear_address {
     uintptr_t addr;
@@ -70,6 +71,10 @@ struct memory_backing {
 #if defined(YALX_OS_LINUX)
     int fd; // only linux has fd
 #endif // defined(YALX_OS_LINUX)
+    
+#if defined(YALX_OS_DARWIN)
+    uintptr_t base;
+#endif // defined(YALX_OS_DARWIN)
     int refs;
 };
 
@@ -113,7 +118,7 @@ void debug_physical_memory_management(struct physical_memory_management *self);
 
 
 struct virtual_memory_management {
-    size_t limit_in_bytes;
+    size_t capacity;
     size_t unused_in_bytes;
     struct memory_segment free;
     struct yalx_mutex mutex;

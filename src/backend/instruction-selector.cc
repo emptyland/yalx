@@ -243,7 +243,7 @@ void InstructionSelector::VisitHeapAlloc(ir::Value *value) {
     Emit(AndBits(ArchLoadEffectAddress, CallDescriptorField::Encode(kCallNative)), arg0, klass);
     
     ReloactionOperand heap_alloc = UseAsExternalCFunction(kRt_heap_alloc);
-    Emit(ArchCallNative, DefineAsRegisterOrSlot(value), heap_alloc, arg0);
+    Emit(ArchCallNative, DefineAsFixedRegister(value, regconf()->returning0_register()), heap_alloc, arg0);
     
     Emit(AndBits(ArchRestoreCallerRegisters, CallDescriptorField::Encode(kCallNative)), NoOutput());
 }
@@ -360,6 +360,22 @@ UnallocatedOperand InstructionSelector::UseAsRegisterOrSlot(ir::Value *value) {
 
 UnallocatedOperand InstructionSelector::UseAsFixedSlot(ir::Value *value, int index) {
     return Use(value, UnallocatedOperand{ UnallocatedOperand::FixedSlotTag(), index, frame_->GetVirtualRegister(value)});
+}
+
+UnallocatedOperand InstructionSelector::UseAsFixedRegister(ir::Value *value, int index) {
+    return Use(value, UnallocatedOperand{
+        UnallocatedOperand::kFixedRegister,
+        UnallocatedOperand::kUsedAtEnd,
+        frame_->GetVirtualRegister(value)
+    });
+}
+
+UnallocatedOperand InstructionSelector::UseAsFixedFPRegister(ir::Value *value, int index) {
+    return Use(value, UnallocatedOperand{
+        UnallocatedOperand::kFixedFPRegister,
+        UnallocatedOperand::kUsedAtEnd,
+        frame_->GetVirtualRegister(value)
+    });
 }
 
 ImmediateOperand InstructionSelector::UseAsImmediate(ir::Value *value) {
