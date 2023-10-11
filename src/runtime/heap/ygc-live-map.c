@@ -1,4 +1,6 @@
 #include "runtime/heap/ygc-live-map.h"
+#include "runtime/heap/ygc.h"
+#include "runtime/heap/object-visitor.h"
 #include "runtime/object/any.h"
 #include "runtime/locks.h"
 #include "runtime/checking.h"
@@ -38,11 +40,12 @@ static void bucket_set(struct ygc_live_map *map, struct ygc_live_bucket *bucket,
         bucket->item_size = segments_size;
     }
 
-    bucket->bits[index >> pointer_shift_in_bits] |= (1U << (index & pointer_mask_in_bits));
+    bucket->bits[index >> pointer_shift_in_bits] |= ((uintptr_t)1 << (index & pointer_mask_in_bits));
 }
 
 void live_map_set(struct ygc_live_map *map, int index) {
     DCHECK(index >= 0);
+    //DLOG(INFO, "set index=%d", index);
     const size_t bucket = (size_t)index >> map->shift_per_bucket;
     if (bucket >= map->bucket_size) {
         map->buckets = (struct ygc_live_bucket *) realloc(map->buckets, (bucket + 1) * sizeof(struct ygc_live_bucket));
@@ -57,7 +60,7 @@ static int bucket_get(struct ygc_live_map *map, struct ygc_live_bucket *bucket, 
     if (!bucket->bits) {
         return 0;
     }
-    return (bucket->bits[index >> pointer_shift_in_bits] & (1U << (index & pointer_mask_in_bits))) != 0;
+    return (bucket->bits[index >> pointer_shift_in_bits] & ((uintptr_t)1 << (index & pointer_mask_in_bits))) != 0;
 }
 
 int live_map_get(struct ygc_live_map *map, int index) {
@@ -72,4 +75,34 @@ int live_map_get(struct ygc_live_map *map, int index) {
 void live_map_increase_obj(struct ygc_live_map *map, size_t objs, size_t objs_in_bytes) {
     atomic_fetch_add(&map->live_objs, objs);
     atomic_fetch_add(&map->live_objs_in_bytes, objs_in_bytes);
+}
+
+static
+void visit_objects_in_bucket(size_t base, struct ygc_live_bucket *bucket, struct ygc_page *page,
+                             struct yalx_heap_visitor *visitor) {
+    for (int i = 0; i < bucket->item_size; i++) {
+        if (!bucket->bits[i]) {
+            continue;
+        }
+        for (int j = 0; j < pointer_size_in_bits; j++) {
+            const uintptr_t mask = ((uintptr_t)1) << j;
+            if (bucket->bits[i] & mask) {
+                size_t index = base + (i << pointer_shift_in_bits) + j;
+                uintptr_t offset = page->virtual_addr.addr + (index << pointer_shift_in_bytes);
+                yalx_ref_t obj = (yalx_ref_t)ygc_good_address(offset);
+                //DLOG(INFO, "obj=%p, index=%zd, bits=%p, test=%x", obj, index, bucket->bits[i], mask);
+                visitor->visit_pointer(visitor, obj);
+            }
+        }
+    }
+}
+
+void live_map_visit_objects(struct ygc_live_map *map, struct ygc_page *page, struct yalx_heap_visitor *visitor) {
+    for (int i = 0; i < map->bucket_size; i++) {
+        if (!map->buckets[i].bits) {
+            continue;
+        }
+        struct ygc_live_bucket *bucket = &map->buckets[i];
+        visit_objects_in_bucket(i << map->shift_per_bucket, bucket, page, visitor);
+    }
 }

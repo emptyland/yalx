@@ -301,7 +301,7 @@ void ygc_page_mark_object(struct ygc_page *page, struct yalx_value_any *obj) {
 void ygc_page_visit_objects(struct ygc_page *page, struct yalx_heap_visitor *visitor) {
     uintptr_t addr = ROUND_UP(page->virtual_addr.addr, YGC_ALLOCATION_ALIGNMENT_SIZE);
     while (addr < atomic_load_explicit(&page->top, memory_order_acquire)) {
-        yalx_ref_t obj = (yalx_ref_t)addr;
+        yalx_ref_t obj = (yalx_ref_t) ygc_good_address(addr);
         visitor->visit_pointer(visitor, obj);
         uintptr_t next = addr + yalx_object_size_in_bytes(obj);
         addr = ROUND_UP(next, YGC_ALLOCATION_ALIGNMENT_SIZE);

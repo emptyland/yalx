@@ -12,6 +12,19 @@ int yalx_is_ref_type(const struct yalx_class * klass) {
         case Type_array:
         case Type_multi_dims_array:
             return 1;
+
+        case Type_Bool:
+        case Type_I8:
+        case Type_U8:
+        case Type_I16:
+        case Type_U16:
+        case Type_I32:
+        case Type_U32:
+        case Type_I64:
+        case Type_U64:
+        case Type_F32:
+        case Type_F64:
+            return 1;
             
         case NOT_BUILTIN_TYPE:
             return klass->constraint == K_CLASS;

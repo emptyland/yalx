@@ -9,8 +9,10 @@
 extern "C" {
 #endif
 
+struct yalx_heap_visitor;
 struct ygc_live_bucket;
 struct yalx_value_any;
+struct ygc_page;
 
 struct ygc_live_map {
     _Atomic size_t live_objs;
@@ -28,6 +30,8 @@ void live_map_set(struct ygc_live_map *map, int index);
 int live_map_get(struct ygc_live_map *map, int index);
 
 void live_map_increase_obj(struct ygc_live_map *map, size_t objs, size_t objs_in_bytes);
+
+void live_map_visit_objects(struct ygc_live_map *map, struct ygc_page *page, struct yalx_heap_visitor *visitor);
 
 #ifdef __cplusplus
 }

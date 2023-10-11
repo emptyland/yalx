@@ -236,7 +236,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
     //------------------------------------------------------------------------------------------------------------------
     [Type_Bool] = {
         .id = (uint64_t)Type_Bool,
-        .constraint = K_PRIMITIVE,
+        .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
         .instance_size = sizeof(struct yalx_value_number_l),
         .super = &builtin_classes[Type_any],
@@ -256,7 +256,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
 
     [Type_I8] = {
         .id = (uint64_t)Type_I8,
-        .constraint = K_PRIMITIVE,
+        .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
         .instance_size = sizeof(struct yalx_value_number_l),
         .super = &builtin_classes[Type_any],
@@ -276,7 +276,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
 
     [Type_U8] = {
         .id = (uint64_t)Type_U8,
-        .constraint = K_PRIMITIVE,
+        .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
         .instance_size = sizeof(struct yalx_value_number_l),
         .super = &builtin_classes[Type_any],
@@ -296,7 +296,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
 
     [Type_I16] = {
         .id = (uint64_t)Type_I16,
-        .constraint = K_PRIMITIVE,
+        .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
         .instance_size = sizeof(struct yalx_value_number_l),
         .super = &builtin_classes[Type_any],
@@ -316,7 +316,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
 
     [Type_U16] = {
         .id = (uint64_t)Type_U16,
-        .constraint = K_PRIMITIVE,
+        .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
         .instance_size = sizeof(struct yalx_value_number_l),
         .super = &builtin_classes[Type_any],
@@ -336,7 +336,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
 
     [Type_I32] = {
         .id = (uint64_t)Type_I32,
-        .constraint = K_PRIMITIVE,
+        .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
         .instance_size = sizeof(struct yalx_value_number_l),
         .super = &builtin_classes[Type_any],
@@ -356,7 +356,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
 
     [Type_U32] = {
         .id = (uint64_t)Type_U32,
-        .constraint = K_PRIMITIVE,
+        .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
         .instance_size = sizeof(struct yalx_value_number_l),
         .super = &builtin_classes[Type_any],
@@ -376,7 +376,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
 
     [Type_I64] = {
         .id = (uint64_t)Type_I64,
-        .constraint = K_PRIMITIVE,
+        .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
         .instance_size = sizeof(struct yalx_value_number_w),
         .super = &builtin_classes[Type_any],
@@ -396,7 +396,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
 
     [Type_U64] = {
         .id = (uint64_t)Type_U64,
-        .constraint = K_PRIMITIVE,
+        .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
         .instance_size = sizeof(struct yalx_value_number_w),
         .super = &builtin_classes[Type_any],
@@ -416,7 +416,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
 
     [Type_F32] = {
         .id = (uint64_t)Type_F32,
-        .constraint = K_PRIMITIVE,
+        .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
         .instance_size = sizeof(struct yalx_value_number_l),
         .super = &builtin_classes[Type_any],
@@ -436,7 +436,7 @@ struct yalx_class builtin_classes[MAX_BUILTIN_TYPES] = {
 
     [Type_F64] = {
         .id = (uint64_t)Type_F64,
-        .constraint = K_PRIMITIVE,
+        .constraint = K_CLASS,
         .reference_size = sizeof(yalx_ref_t),
         .instance_size = sizeof(struct yalx_value_number_w),
         .super = &builtin_classes[Type_any],
