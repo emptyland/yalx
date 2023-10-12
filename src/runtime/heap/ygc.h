@@ -26,8 +26,13 @@ extern "C" {
 
 #define YGC_ALLOCATION_ALIGNMENT_SIZE 8
 
-
 #define YGC_METADATA_SHIFT 44
+
+enum ygc_phase {
+    YGC_PHASE_MARK,
+    YGC_PHASE_MARK_COMPLETE,
+    YGC_PHASE_RELOCATE,
+};
 
 extern uintptr_t YGC_METADATA_MARKED0; // 0x0000100000000000
 extern uintptr_t YGC_METADATA_MARKED1; // 0x0000200000000000
@@ -42,6 +47,7 @@ extern uintptr_t YGC_ADDRESS_GOOD_MASK;
 extern uintptr_t YGC_ADDRESS_BAD_MASK;
 extern uintptr_t YGC_ADDRESS_WEAK_BAD_MASK;
 
+extern enum ygc_phase ygc_global_phase;
 extern uint32_t ygc_global_tick;
 
 void ygc_set_good_mask(uintptr_t mask);
@@ -54,6 +60,13 @@ void ygc_flip_to_marked(void);
 #define ygc_remapped(addr) ((uintptr_t)(addr) | YGC_METADATA_REMAPPED)
 
 #define ygc_good_address(addr) (ygc_offset(addr) | YGC_ADDRESS_GOOD_MASK)
+
+#define ygc_is_bad(addr)       ((uintptr_t)(addr) & YGC_ADDRESS_BAD_MASK)
+#define ygc_is_weak_bad(addr)  ((uintptr_t)(addr) & YGC_ADDRESS_WEAK_BAD_MASK)
+#define ygc_is_good(addr)      !(ygc_is_bad(addr))
+#define ygc_is_weak_good(addr) !(ygc_is_weak_bad(addr))
+#define ygc_is_marked(addr)    ((uintptr_t)(addr) & YGC_METADATA_MARKED)
+#define ygc_is_remapped(addr)  ((uintptr_t)(addr) & YGC_METADATA_REMAPPED)
 
 struct per_cpu_storage;
 struct yalx_heap_visitor;
@@ -237,6 +250,16 @@ static inline int ygc_addr_in_heap(const struct ygc_core *ygc, uintptr_t addr) {
 
 static inline size_t ygc_page_used_in_bytes(const struct ygc_page *page) {
     return (size_t)page->top - page->virtual_addr.addr;
+}
+
+void ygc_mark_start(struct heap *h);
+void ygc_mark(struct heap *h, int initial);
+
+uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr);
+
+static inline void ygc_mark_object(struct ygc_core *ygc, uintptr_t addr) {
+    struct ygc_page *page = ygc_addr_in_page(ygc, addr);
+    ygc_page_mark_object(page, (struct yalx_value_any *)addr);
 }
 
 #ifdef __cplusplus

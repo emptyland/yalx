@@ -136,6 +136,14 @@ static inline int yalx_log2(uintptr_t n) {
     return i;
 }
 
+static inline int yalx_u32_is_power_of_2(uint32_t x) {
+    return (x > 0) && ((x & (x - 1)) == 0);
+}
+
+static inline int yalx_u64_is_power_of_2(uint64_t x) {
+    return (x > 0) && ((x & (x - 1)) == 0);
+}
+
 char *yalx_symbol_mangle(const char *plain_name, const char *postfix);
 size_t yalx_symbol_demangle_on_place(char symbol[], size_t size);
 

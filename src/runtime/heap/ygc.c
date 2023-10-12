@@ -23,6 +23,7 @@ uintptr_t YGC_ADDRESS_GOOD_MASK;
 uintptr_t YGC_ADDRESS_BAD_MASK;
 uintptr_t YGC_ADDRESS_WEAK_BAD_MASK;
 
+enum ygc_phase ygc_global_phase = YGC_PHASE_RELOCATE;
 uint32_t ygc_global_tick = 1;
 
 void ygc_set_good_mask(uintptr_t mask) {
@@ -63,6 +64,9 @@ int ygc_init(struct ygc_core *ygc, size_t capacity) {
     yalx_mutex_init(&ygc->mutex);
 
     ygc_flip_to_remapped(); // Initialize state
+    ygc_global_phase = YGC_PHASE_RELOCATE;
+    ygc_global_tick = 1;
+
     return 0;
 }
 
@@ -90,6 +94,7 @@ void ygc_final(struct ygc_core *ygc) {
 
 struct ygc_core *ygc_heap_of(struct heap *h) {
     DCHECK(h != NULL);
+    DCHECK(h->gc == GC_YGC);
     return (struct ygc_core *)(h + 1);
 }
 
@@ -260,6 +265,97 @@ void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page) {
     free_physical_memory(&ygc->pmm, &page->physical_memory);
 
     free(page);
+}
+
+static uintptr_t barrier_mark(struct ygc_core *ygc, uintptr_t addr) {
+    uintptr_t good_addr = 0;
+
+    if (ygc_is_marked(addr)) {
+        // Already marked, but try to mark though anyway
+        good_addr = ygc_good_address(addr);
+    } else if (ygc_is_remapped(addr)) {
+        // Already remapped, but also needs to be marked
+        good_addr = ygc_good_address(addr);
+    } else {
+        // Needs to be both remapped and marked
+        DCHECK(!ygc_is_good(addr));
+        DCHECK(!ygc_is_weak_good(addr));
+        good_addr = ygc_remap_object(ygc, addr);
+    }
+
+    if (ygc_global_phase == YGC_PHASE_MARK) {
+        ygc_mark_object(ygc, good_addr);
+    }
+    return good_addr;
+}
+
+static inline void root_barrier_field(struct ygc_core *ygc, struct yalx_value_any *o, struct yalx_value_any **p) {
+    uintptr_t addr = (uintptr_t)o;
+    if (ygc_is_good(addr)) {
+        return;
+    }
+    uintptr_t good_addr = barrier_mark(ygc, addr);
+    *p = (struct yalx_value_any *)good_addr;
+}
+
+static void visit_root_pointer(struct yalx_root_visitor *v, yalx_ref_t *p) {
+    struct ygc_core *ygc = (struct ygc_core *)v->ctx;
+//    struct ygc_page *owns_page = ygc_addr_in_page(ygc, (uintptr_t) *p);
+//    DCHECK(owns_page != NULL);
+    root_barrier_field(ygc, *p, p);
+}
+
+static void visit_root_pointers(struct yalx_root_visitor *v, yalx_ref_t *begin, yalx_ref_t *end) {
+    for (yalx_ref_t *x = begin; x < end; x++) {
+        visit_root_pointer(v, x);
+    }
+}
+
+void ygc_mark_start(struct heap *h) {
+    // should at safepoint
+    struct ygc_core *ygc = ygc_heap_of(h);
+
+    ygc_flip_to_marked();
+
+    // Retire allocating pages
+    for (int i = 0; i < ygc->small_page->n; i++) {
+        ygc->small_page->items[i] = NULL;
+    }
+    ygc->medium_page = NULL;
+
+    // Enter mark phase
+    ygc_global_phase = YGC_PHASE_MARK;
+
+    // Increment global sequence number to invalidate
+    // marking information for all pages.
+    ygc_global_tick++;
+
+    // Mark roots objects
+    struct yalx_root_visitor visitor = {
+        ygc,
+        0,
+        0,
+        visit_root_pointers,
+        visit_root_pointer,
+    };
+    yalx_heap_visit_root(h, &visitor);
+}
+
+void ygc_mark(struct heap *h, int initial) {
+    // should at safepoint
+    struct ygc_core *ygc = ygc_heap_of(h);
+
+    if (initial) {
+        // TODO: mark roots
+    }
+
+    NOREACHABLE();
+}
+
+uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr) {
+    // TODO: remap object in forwarding table
+    NOREACHABLE();
+    return UINTPTR_MAX;
 }
 
 uintptr_t ygc_page_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes) {
