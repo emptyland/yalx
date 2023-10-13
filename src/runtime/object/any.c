@@ -20,7 +20,7 @@ size_t yalx_object_size_in_bytes(yalx_ref_t obj) {
 }
 
 struct yalx_value_str *yalx_any_to_string(struct yalx_value_any *any) {
-    NOREACHABLE();
+    UNREACHABLE();
     return NULL;
 }
 

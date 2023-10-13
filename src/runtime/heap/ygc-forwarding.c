@@ -113,3 +113,16 @@ struct forwarding_entry forwarding_first(struct forwarding *fwd, uintptr_t from_
     *pos = hash & mask;
     return atomic_load_explicit(fwd->entries + *pos, memory_order_acquire);
 }
+
+void forwarding_table_insert(struct ygc_granule_map *map, struct forwarding *fwd) {
+    granule_map_put(map, fwd->virtual_addr.addr, (uintptr_t)fwd);
+}
+
+void forwarding_table_remove(struct ygc_granule_map *map, struct forwarding *fwd) {
+    granule_map_put(map, fwd->virtual_addr.addr, 0);
+    //forwarding_free(fwd);
+}
+
+struct forwarding *forwarding_table_get(struct ygc_granule_map *map, uintptr_t addr) {
+    return (struct forwarding *)granule_map_get(map, ygc_offset(addr));
+}

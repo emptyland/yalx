@@ -6,6 +6,10 @@
 #include <stddef.h>
 #include <stdatomic.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct ygc_page;
 struct ygc_granule_map;
 
@@ -45,6 +49,7 @@ struct forwarding {
     _Atomic int pinned;
 };
 
+
 struct forwarding *forwarding_new(struct ygc_page *page);
 void forwarding_free(struct forwarding *fwd);
 
@@ -61,5 +66,11 @@ struct forwarding_entry forwarding_next(struct forwarding *fwd, size_t *pos) {
 
 void forwarding_table_insert(struct ygc_granule_map *map, struct forwarding *fwd);
 void forwarding_table_remove(struct ygc_granule_map *map, struct forwarding *fwd);
+struct forwarding *forwarding_table_get(struct ygc_granule_map *map, uintptr_t addr);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //YALX_YGC_RUNTIME_HEAP_FORWARDING_H

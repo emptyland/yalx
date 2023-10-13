@@ -291,7 +291,7 @@ static uintptr_t barrier_mark(struct ygc_core *ygc, uintptr_t addr) {
 
 static inline void root_barrier_field(struct ygc_core *ygc, struct yalx_value_any *o, struct yalx_value_any **p) {
     uintptr_t addr = (uintptr_t)o;
-    if (ygc_is_good(addr)) {
+    if (ygc_is_good(addr) || addr == 0) {
         return;
     }
     uintptr_t good_addr = barrier_mark(ygc, addr);
@@ -349,12 +349,12 @@ void ygc_mark(struct heap *h, int initial) {
         // TODO: mark roots
     }
 
-    NOREACHABLE();
+    UNREACHABLE();
 }
 
 uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr) {
     // TODO: remap object in forwarding table
-    NOREACHABLE();
+    UNREACHABLE();
     return UINTPTR_MAX;
 }
 

@@ -31,8 +31,8 @@ enum logging_level {
 #define PLOG(...) yalx_logging_sys_error(__FILE__, __LINE__, __VA_ARGS__)
 #endif
 
-#ifndef NOREACHABLE
-#define NOREACHABLE() LOG(FATAL, "No Reachable")
+#ifndef UNREACHABLE
+#define UNREACHABLE() LOG(FATAL, "No Reachable")
 #endif
 
 
