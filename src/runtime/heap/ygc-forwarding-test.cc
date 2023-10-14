@@ -1,6 +1,6 @@
 #include "runtime/heap/ygc-forwarding.h"
 #include "runtime/heap/ygc.h"
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 class ForwardingTest : public ::testing::Test {
 public:

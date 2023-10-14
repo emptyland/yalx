@@ -166,7 +166,7 @@ struct class_load_entry {
     {NULL, NULL} // end of entries
 };
 
-int yalx_runtime_init(void) {
+int yalx_runtime_init(const struct yalx_runtime_options *options) {
     pointer_shift_in_bytes = yalx_log2(pointer_size_in_bytes);
     pointer_shift_in_bits = yalx_log2(pointer_size_in_bits);
     pointer_mask_in_bits = (int)((1U << pointer_shift_in_bits) - 1);
@@ -195,11 +195,11 @@ int yalx_runtime_init(void) {
     yalx_tls_alloc(&tls_mach);
 
     yalx_init_hash_table(&pkg_init_records, 1.2f);
-    if (yalx_init_heap(GC_NONE, &heap) < 0) {
+    if (yalx_init_heap(options->gc, options->max_heap_in_bytes, &heap) < 0) {
         goto error;
     }
     
-    yalx_init_stack_pool(&stack_pool, 10 * MB);
+    yalx_init_stack_pool(&stack_pool, 4 * GB);
     
     yalx_init_machine(&m0, &procs[0]);
     yalx_os_thread_attach_self(&m0.thread);
