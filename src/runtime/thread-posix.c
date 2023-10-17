@@ -12,6 +12,7 @@
 #endif
 
 static yalx_tls_t self_thread;
+static _Atomic uint64_t global_next_thread_id = 1;
 
 #if defined(YALX_OS_LINUX)
 static int (*yalx_sched_getcpu)(void);
@@ -75,6 +76,7 @@ int yalx_os_thread_start(
     bundle->param = param;
     thread->start_point.file = file;
     thread->start_point.line = line;
+    thread->id = atomic_fetch_add(&global_next_thread_id, 1);
     bundle->thread = thread;
     bundle->name = strdup(name);
 

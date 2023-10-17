@@ -61,6 +61,7 @@ int ygc_init(struct ygc_core *ygc, size_t capacity) {
     ygc->pages.prev = &ygc->pages;
 
     granule_map_init(&ygc->page_granules);
+    ygc_mark_init(&ygc->mark);
     yalx_mutex_init(&ygc->mutex);
 
     ygc_flip_to_remapped(); // Initialize state
@@ -79,6 +80,7 @@ void ygc_final(struct ygc_core *ygc) {
         ygc_page_free(ygc, page);
     }
     yalx_mutex_final(&ygc->mutex);
+    ygc_mark_final(&ygc->mark);
     granule_map_final(&ygc->page_granules);
 
     for (int i = 0; i < ygc->small_page->n; i++) {

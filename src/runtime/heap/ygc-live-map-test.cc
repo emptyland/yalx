@@ -1,6 +1,6 @@
 #include "runtime/heap/ygc-live-map.h"
 #include "runtime/runtime.h"
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 class YGCLiveMapTest : public ::testing::Test {
 public:

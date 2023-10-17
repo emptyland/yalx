@@ -53,6 +53,8 @@ static inline uint32_t hash_uint32_to_uint32(uint32_t key) {
 //}
 
 struct forwarding *forwarding_new(struct ygc_page *page) {
+    DCHECK(sizeof(struct forwarding_entry) == sizeof(uint64_t) && "struct forwarding_entry too small");
+
     struct forwarding *fwd = MALLOC(struct forwarding);
     fwd->page = page;
     fwd->virtual_addr.addr = page->virtual_addr.addr;

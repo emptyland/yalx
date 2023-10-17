@@ -27,6 +27,7 @@ struct yalx_os_thread {
 #elif defined(YALX_OS_POSIX)
     pthread_t native_handle;
 #endif
+    uint64_t id;
     struct {
         const char *file;
         int line;

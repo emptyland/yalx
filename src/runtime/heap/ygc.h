@@ -3,6 +3,7 @@
 #define YALX_RUNTIME_HEAP_YGC_H
 
 #include "runtime/heap/ygc-live-map.h"
+#include "runtime/heap/ygc-mark.h"
 #include "runtime/locks.h"
 #include "runtime/runtime.h"
 #include "runtime/locks.h"
@@ -196,6 +197,8 @@ struct ygc_core {
     _Atomic size_t rss;
     struct ygc_page pages;
     struct ygc_granule_map page_granules;
+
+    struct ygc_mark mark;
     struct yalx_mutex mutex;
 };
 
@@ -260,6 +263,7 @@ uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr);
 static inline void ygc_mark_object(struct ygc_core *ygc, uintptr_t addr) {
     struct ygc_page *page = ygc_addr_in_page(ygc, addr);
     ygc_page_mark_object(page, (struct yalx_value_any *)addr);
+    ygc_marking_mark_object(&ygc->mark, addr);
 }
 
 #ifdef __cplusplus
