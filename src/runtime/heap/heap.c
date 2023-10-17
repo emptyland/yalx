@@ -253,7 +253,7 @@ struct string_pool_entry *string_pool_ensure_space(struct string_pool *pool, con
     return node;
 }
 
-int yalx_init_heap(gc_t gc, struct heap **receiver) {
+int yalx_init_heap(gc_t gc, size_t max_heap_in_bytes, struct heap **receiver) {
     assert(*receiver == NULL); // Make sure has not init.
 
     switch (gc) {
@@ -262,7 +262,7 @@ int yalx_init_heap(gc_t gc, struct heap **receiver) {
             if (!h) {
                 return -1;
             }
-            h->pool.size = 10 * MB;
+            h->pool.size = max_heap_in_bytes;
             h->pool.chunk = (address_t)malloc(h->pool.size);
             if (!h->pool.chunk) {
                 return -1;
@@ -280,7 +280,7 @@ int yalx_init_heap(gc_t gc, struct heap **receiver) {
             if (!h) {
                 return -1;
             }
-            if (ygc_init(&h->ygc, 4 * GB /*TODO*/) < 0) {
+            if (ygc_init(&h->ygc, max_heap_in_bytes) < 0) {
                 return -1;
             }
             h->heap.allocate = allocate_from_ygc;

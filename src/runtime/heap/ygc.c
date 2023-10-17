@@ -49,7 +49,7 @@ int ygc_init(struct ygc_core *ygc, size_t capacity) {
         memory_backing_final(&ygc->backing);
         return -1;
     }
-    if (virtual_memory_management_init(&ygc->vmm, YGC_ADDRESS_OFFSET_MAX) < 0) {
+    if (virtual_memory_management_init(&ygc->vmm, capacity) < 0) {
         memory_backing_final(&ygc->backing);
         physical_memory_management_final(&ygc->pmm);
         return -1;

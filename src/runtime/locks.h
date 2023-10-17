@@ -120,6 +120,26 @@ static inline int yalx_mutex_try_lock(struct yalx_mutex *self) {
 static inline void yalx_mutex_unlock(struct yalx_mutex *self) {
     pthread_mutex_unlock(&self->impl);
 }
+
+static inline int yalx_cond_init(struct yalx_cond *self) {
+    return pthread_cond_init(&self->impl, NULL);
+}
+
+static inline void yalx_cond_final(struct yalx_cond *self) {
+    pthread_cond_destroy(&self->impl);
+}
+
+static inline int yalx_cond_notify_one(struct yalx_cond *self) {
+    return pthread_cond_signal(&self->impl);
+}
+
+static inline int yalx_cond_notify_all(struct yalx_cond *self) {
+    return pthread_cond_broadcast(&self->impl);
+}
+
+static inline int yalx_cond_wait(struct yalx_cond *self, struct yalx_mutex *mutex) {
+    return pthread_cond_wait(&self->impl, &mutex->impl);
+}
 #endif
 
 #if defined(YALX_OS_WINDOWS)

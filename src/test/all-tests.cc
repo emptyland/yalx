@@ -1,13 +1,19 @@
+#include "runtime/heap/heap.h"
+#include "runtime/runtime.h"
 #include "base/env.h"
 #include "base/at-exit.h"
 #include "base/base.h"
-#include "runtime/runtime.h"
 #include "gtest/gtest.h"
 
 int main(int argc, char *argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
     yalx::base::Env::Init();
     yalx::base::AtExit at_exit(yalx::base::AtExit::INITIALIZER);
-    ::yalx_runtime_init();
+    
+    yalx_runtime_options options {
+        512 * MB,
+        GC_NONE,
+    };
+    ::yalx_runtime_init(&options);
     return RUN_ALL_TESTS();
 }

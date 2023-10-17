@@ -6,7 +6,7 @@
 class YGCTest : public ::testing::Test {
 public:
     void SetUp() override {
-        ASSERT_EQ(0, ygc_init(&ygc_, 4 * GB));
+        ASSERT_EQ(0, ygc_init(&ygc_, 512 * MB));
     }
 
     void TearDown() override {

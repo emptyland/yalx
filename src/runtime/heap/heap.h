@@ -104,7 +104,7 @@ struct heap {
 
 extern struct heap *heap;
 
-int yalx_init_heap(gc_t gc, struct heap **receiver);
+int yalx_init_heap(gc_t gc, size_t max_heap_in_bytes, struct heap **receiver);
 void yalx_free_heap(struct heap *);
 
 // For GC root marking~

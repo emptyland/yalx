@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <stdatomic.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,12 +56,7 @@ uintptr_t forwarding_insert(struct forwarding *fwd, uintptr_t from_index, uintpt
 struct forwarding_entry forwarding_find(struct forwarding *fwd, uintptr_t from_index, size_t *pos);
 struct forwarding_entry forwarding_first(struct forwarding *fwd, uintptr_t from_index, size_t *pos);
 
-static inline
-struct forwarding_entry forwarding_next(struct forwarding *fwd, size_t *pos) {
-    const size_t mask = fwd->n_entries - 1;
-    *pos = (*pos + 1) & mask;
-    return atomic_load_explicit(fwd->entries + *pos, memory_order_acquire);
-}
+struct forwarding_entry forwarding_next(struct forwarding *fwd, size_t *pos);
 
 void forwarding_table_insert(struct ygc_granule_map *map, struct forwarding *fwd);
 void forwarding_table_remove(struct ygc_granule_map *map, struct forwarding *fwd);

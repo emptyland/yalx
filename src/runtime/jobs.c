@@ -1,4 +1,5 @@
 #include "runtime/jobs.h"
+#include "runtime/locks.h"
 #include "runtime/checking.h"
 #include "runtime/runtime.h"
 #include <stdatomic.h>
@@ -13,7 +14,7 @@ void yalx_job_init(struct yalx_job *job, const char *name, size_t n_concurrent) 
     for (int i = 0; i < job->n_workers; i++) {
         job->workers[i].id = i;
         job->workers[i].owns = job;
-        job->workers[i].total = n_concurrent;
+        job->workers[i].total = (int)n_concurrent;
         job->workers[i].run = NULL;
     }
     task_queue_init(&job->queue);

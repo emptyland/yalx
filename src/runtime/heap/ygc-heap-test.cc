@@ -7,7 +7,7 @@
 class YGCHeapTest : public ::testing::Test {
 public:
     void SetUp() override {
-        ASSERT_EQ(0, yalx_init_heap(GC_YGC, &heap_));
+        ASSERT_EQ(0, yalx_init_heap(GC_YGC, 512 * MB, &heap_));
     }
 
     void TearDown() override {

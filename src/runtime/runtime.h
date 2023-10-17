@@ -104,7 +104,13 @@ extern size_t pointer_size_in_bits;
 extern int pointer_shift_in_bits;
 extern int pointer_mask_in_bits;
 
-int yalx_runtime_init(void);
+struct yalx_runtime_options {
+    size_t max_heap_in_bytes;
+    int gc;
+    // TODO:
+};
+
+int yalx_runtime_init(const struct yalx_runtime_options *options);
 
 void yalx_runtime_eixt(void);
 

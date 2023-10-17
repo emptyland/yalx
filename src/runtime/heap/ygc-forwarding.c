@@ -1,6 +1,7 @@
 #include "runtime/heap/ygc-forwarding.h"
 #include "runtime/heap/ygc.h"
 #include "runtime/checking.h"
+#include <stdatomic.h>
 
 static int count_leading_zeros_32(uint32_t x) {
     static const int zval[16] = {
@@ -113,6 +114,12 @@ struct forwarding_entry forwarding_first(struct forwarding *fwd, uintptr_t from_
     const size_t mask = fwd->n_entries - 1;
     const size_t hash = hash_uint32_to_uint32((uint32_t)from_index);
     *pos = hash & mask;
+    return atomic_load_explicit(fwd->entries + *pos, memory_order_acquire);
+}
+
+struct forwarding_entry forwarding_next(struct forwarding *fwd, size_t *pos) {
+    const size_t mask = fwd->n_entries - 1;
+    *pos = (*pos + 1) & mask;
     return atomic_load_explicit(fwd->entries + *pos, memory_order_acquire);
 }
 
