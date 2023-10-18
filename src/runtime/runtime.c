@@ -6,6 +6,7 @@
 #include "runtime/checking.h"
 #include "runtime/hash-table.h"
 #include "runtime/heap/heap.h"
+#include "runtime/heap/object-visitor.h"
 #include "runtime/object/yalx-string.h"
 #include "runtime/object/number.h"
 #include "runtime/object/throwable.h"
@@ -62,8 +63,31 @@ extern uint32_t yalx_magic_number1;
 extern uint32_t yalx_magic_number2;
 extern uint32_t yalx_magic_number3;
 
+#define PKG_RECORD_VAL_SIZE (pointer_size_in_bytes * 2)
+//
+// const str
+//
+// global var slots
+//
 static struct hash_table pkg_init_records;
 static struct yalx_mutex pkg_init_mutex;
+
+struct lksz_header {
+    int number_of_strings;
+    const char *const sz[1];
+};
+
+struct kstr_header {
+    int number_of_strings;
+    struct yalx_value_str *ks[1];
+};
+
+#if defined(YALX_OS_LINUX)
+void *const YALX_DL_HANDLE = RTLD_LOCAL;
+#endif
+#if defined(YALX_OS_DARWIN)
+void *const YALX_DL_HANDLE = RTLD_MAIN_ONLY;
+#endif
 
 #ifndef NDEBUG
 
@@ -279,6 +303,31 @@ void yalx_runtime_eixt(void) {
     heap = NULL;
     // TODO:
 
+}
+
+void yalx_global_visit_root(struct yalx_root_visitor *visitor) {
+    yalx_mutex_lock(&pkg_init_mutex);
+
+    const size_t n = 1u << pkg_init_records.capacity_shift;
+    for (size_t i = 0; i < n; i++) {
+        struct hash_table_slot *const slot = &pkg_init_records.slots[i];
+        for (struct hash_table_slot *node = slot->next; node != slot; node = node->next) {
+            hash_table_value_span_t span;
+            span.value = &node->key[(ROUND_UP(node->key_size, 4))];
+            span.size  = node->value_size;
+
+            struct kstr_header *const_str = (struct kstr_header *)(((void **)span.value)[0]);
+            struct pkg_global_slots *global_slots = (struct pkg_global_slots *)(((void **)span.value)[1]);
+
+            visitor->visit_pointers(visitor,
+                                    (yalx_ref_t *) const_str->ks,
+                                    (yalx_ref_t *) (const_str->ks + const_str->number_of_strings));
+
+            USE(global_slots);
+        }
+    }
+
+    yalx_mutex_unlock(&pkg_init_mutex);
 }
 
 int yalx_rt0(int argc, char *argv[]) {
@@ -643,24 +692,6 @@ const struct yalx_class *yalx_find_class(const char *const plain_name) {
     return clazz;
 }
 
-struct lksz_header {
-    int number_of_strings;
-    const char *const sz[1];
-};
-
-struct kstr_header {
-    int number_of_strings;
-    struct yalx_value_str *ks[1];
-};
-
-#if defined(YALX_OS_LINUX)
-void *const YALX_DL_HANDLE = RTLD_LOCAL;
-#endif
-#if defined(YALX_OS_DARWIN)
-void *const YALX_DL_HANDLE = RTLD_MAIN_ONLY;
-#endif
-
-
 void pkg_init_once(void *init_fun, const char *const plain_name) {
     // $global_slots
     static const size_t kMaxPostfixSize = 16;
@@ -713,9 +744,12 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
         kstr_addr->ks[i] = yalx_new_string(heap, lksz_addr->sz[i], strlen(lksz_addr->sz[i]));
     }
     
-    hash_table_value_span_t rs = yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name), sizeof(slots));
+    hash_table_value_span_t rs = yalx_hash_table_put(&pkg_init_records, plain_name, strlen(plain_name), PKG_RECORD_VAL_SIZE);
     //TODO: memcpy(rs.value, &slots, sizeof(slots));
-    *((struct pkg_global_slots **)rs.value) = slots;
+    //*((struct pkg_global_slots **)rs.value) = slots;
+    DCHECK(PKG_RECORD_VAL_SIZE == rs.size);
+    ((void **)rs.value)[0] = kstr_addr;
+    ((void **)rs.value)[1] = slots;
 done:
     yalx_mutex_unlock(&pkg_init_mutex);
     //printf("pkg init...%s\n", plain_name);

@@ -15,11 +15,9 @@ extern "C" {
 #include <stdatomic.h>
 #endif
 
-#ifdef arraysize
-#undef arraysize
-#endif
-
+#ifndef arraysize
 #define arraysize(a) (sizeof(a)/sizeof(a[0]))
+#endif
 
 #define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
 
@@ -86,7 +84,9 @@ struct yalx_str {
 
 struct yalx_value_any;
 struct yalx_class;
+struct yalx_root_visitor;
 struct backtrace_frame;
+
 
 // Version of yalx
 extern const struct yalx_str yalx_version;
@@ -113,6 +113,9 @@ struct yalx_runtime_options {
 int yalx_runtime_init(const struct yalx_runtime_options *options);
 
 void yalx_runtime_eixt(void);
+
+// For GC root marking~
+void yalx_global_visit_root(struct yalx_root_visitor *visitor);
 
 int yalx_rt0(int argc, char *argv[]);
 

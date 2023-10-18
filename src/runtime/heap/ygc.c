@@ -1,4 +1,5 @@
 #include "runtime/heap/ygc.h"
+#include "runtime/heap/ygc-forwarding.h"
 #include "runtime/heap/heap.h"
 #include "runtime/heap/object-visitor.h"
 #include "runtime/object/any.h"
@@ -61,7 +62,9 @@ int ygc_init(struct ygc_core *ygc, size_t capacity) {
     ygc->pages.prev = &ygc->pages;
 
     granule_map_init(&ygc->page_granules);
+    granule_map_init(&ygc->forwarding_table);
     ygc_mark_init(&ygc->mark);
+    ygc_relocate_init(&ygc->relocate);
     yalx_mutex_init(&ygc->mutex);
 
     ygc_flip_to_remapped(); // Initialize state
@@ -81,6 +84,8 @@ void ygc_final(struct ygc_core *ygc) {
     }
     yalx_mutex_final(&ygc->mutex);
     ygc_mark_final(&ygc->mark);
+    ygc_relocate_final(&ygc->relocate);
+    granule_map_final(&ygc->forwarding_table);
     granule_map_final(&ygc->page_granules);
 
     for (int i = 0; i < ygc->small_page->n; i++) {
@@ -341,6 +346,7 @@ void ygc_mark_start(struct heap *h) {
         visit_root_pointer,
     };
     yalx_heap_visit_root(h, &visitor);
+    yalx_global_visit_root(&visitor);
 }
 
 void ygc_mark(struct heap *h, int initial) {
@@ -355,9 +361,14 @@ void ygc_mark(struct heap *h, int initial) {
 }
 
 uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr) {
-    // TODO: remap object in forwarding table
-    UNREACHABLE();
-    return UINTPTR_MAX;
+    DCHECK(ygc_global_phase == YGC_PHASE_MARK || ygc_global_phase == YGC_PHASE_MARK_COMPLETE);
+
+    struct forwarding *fwd = forwarding_table_get(&ygc->forwarding_table, addr);
+    if (!fwd) {
+        // Not forwarding
+        return ygc_good_address(addr);
+    }
+    return ygc_relocate_forward_object(&ygc->relocate, fwd, addr);
 }
 
 uintptr_t ygc_page_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes) {

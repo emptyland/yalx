@@ -48,7 +48,25 @@ add_library(runtime STATIC
         src/runtime/tls.h
         src/runtime/platform.h
         src/runtime/boot-linux-x64.s
-        src/runtime/heap/ygc.h src/runtime/heap/ygc-platform-linux.c src/runtime/heap/ygc.c src/runtime/checking.c src/runtime/heap/ygc-physical-memory.c src/runtime/heap/ygc-virtual-memory.c src/runtime/heap/ygc-virtual-memory-posix.c src/runtime/heap/ygc-live-map.h src/runtime/heap/ygc-live-map.c src/runtime/daemon.h src/runtime/daemon.c src/runtime/mm-thread.h src/runtime/mm-thread.c src/runtime/heap/ygc-forwarding.h src/runtime/heap/ygc-forwarding.c src/runtime/jobs.h src/runtime/jobs.c src/runtime/heap/ygc-mark.h src/runtime/heap/ygc-mark.c)
+        src/runtime/heap/ygc.h
+        src/runtime/heap/ygc-platform-linux.c
+        src/runtime/heap/ygc.c
+        src/runtime/checking.c
+        src/runtime/heap/ygc-physical-memory.c
+        src/runtime/heap/ygc-virtual-memory.c
+        src/runtime/heap/ygc-virtual-memory-posix.c
+        src/runtime/heap/ygc-live-map.h
+        src/runtime/heap/ygc-live-map.c
+        src/runtime/daemon.h
+        src/runtime/daemon.c
+        src/runtime/mm-thread.h
+        src/runtime/mm-thread.c
+        src/runtime/heap/ygc-forwarding.h
+        src/runtime/heap/ygc-forwarding.c
+        src/runtime/jobs.h
+        src/runtime/jobs.c
+        src/runtime/heap/ygc-mark.h
+        src/runtime/heap/ygc-mark.c src/runtime/heap/ygc-relocate.h src/runtime/heap/ygc-relocate.c)
 
 add_library(compiler STATIC
         src/arch/label.h
@@ -216,7 +234,14 @@ add_executable(yalx-test
         src/test/gtest-all.cc
         src/x64/asm-x64-test.cc
         third-party/include/gtest/gtest.h
-        src/runtime/heap/ygc-test.cc src/runtime/heap/ygc-heap-test.cc src/runtime/heap/ygc-live-map-test.cc src/runtime/daemon-test.cc src/runtime/mm-thread-test.cc src/runtime/heap/ygc-forwarding-test.cc src/runtime/jobs-test.cc src/runtime/heap/ygc-mark-test.cc)
+        src/runtime/heap/ygc-test.cc
+        src/runtime/heap/ygc-heap-test.cc
+        src/runtime/heap/ygc-live-map-test.cc
+        src/runtime/daemon-test.cc
+        src/runtime/mm-thread-test.cc
+        src/runtime/heap/ygc-forwarding-test.cc
+        src/runtime/jobs-test.cc
+        src/runtime/heap/ygc-mark-test.cc)
 
 
 target_link_libraries(yalx-test compiler runtime pthread unwind m)

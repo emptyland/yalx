@@ -42,7 +42,9 @@ template <class T, size_t N>
 char (&ArraySizeHelper(const T (&array)[N]))[N];
 #endif
 
+#ifndef arraysize
 #define arraysize(array) (sizeof(::yalx::ArraySizeHelper(array)))
+#endif
 
 /**
  * Safaty down cast

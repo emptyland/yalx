@@ -4,6 +4,7 @@
 
 #include "runtime/heap/ygc-live-map.h"
 #include "runtime/heap/ygc-mark.h"
+#include "runtime/heap/ygc-relocate.h"
 #include "runtime/locks.h"
 #include "runtime/runtime.h"
 #include "runtime/locks.h"
@@ -198,7 +199,9 @@ struct ygc_core {
     struct ygc_page pages;
     struct ygc_granule_map page_granules;
 
+    struct ygc_granule_map forwarding_table;
     struct ygc_mark mark;
+    struct ygc_relocate relocate;
     struct yalx_mutex mutex;
 };
 
