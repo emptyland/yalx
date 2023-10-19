@@ -27,6 +27,7 @@ struct ygc_mark {
 void ygc_mark_init(struct ygc_mark *mark);
 void ygc_mark_final(struct ygc_mark *mark);
 void ygc_marking_mark_object(struct ygc_mark *mark, uintptr_t addr);
+void ygc_marking_mark(struct ygc_mark *mark);
 
 #ifdef __cplusplus
 }

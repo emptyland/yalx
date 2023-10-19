@@ -6,7 +6,13 @@
 #include <stdlib.h>
 
 void ygc_mark_init(struct ygc_mark *mark) {
-    yalx_job_init(&mark->job, "yalx-marking", ncpus / 2 < 4 ? 4 : ncpus / 2);
+    size_t n = ncpus / 2;
+    if (n > YGC_MAX_MARKING_STRIPES) {
+        n = YGC_MAX_MARKING_STRIPES;
+    } else if (n < 4) {
+        n = 4;
+    }
+    yalx_job_init(&mark->job, "yalx-marking", n);
     memset(mark->stripes, 0, sizeof(mark->stripes));
 }
 
@@ -56,4 +62,28 @@ void ygc_marking_mark_object(struct ygc_mark *mark, uintptr_t addr) {
     DCHECK(ygc_is_marked(addr) && "addr must be marked");
     struct ygc_marking_stripe *stripe = stripe_for_addr(mark, addr);
     stripe_push_to(stripe, addr);
+}
+
+static void marking_mark_stripe(struct ygc_mark *mark, struct ygc_marking_stripe *stripe) {
+    // TODO:
+}
+
+static void marking_entry(struct yalx_worker *worker) {
+    struct ygc_mark *mark = (struct ygc_mark *)worker->ctx;
+    if (worker->total >= YGC_MAX_MARKING_STRIPES) {
+        struct ygc_marking_stripe *stripe = &mark->stripes[worker->id];
+        marking_mark_stripe(mark, stripe);
+    } else {
+        const size_t begin = worker->id * worker->total;
+        const size_t end = (begin + worker->total);
+        const size_t limit = end > YGC_MAX_MARKING_STRIPES ? YGC_MAX_MARKING_STRIPES : end;
+        for (size_t i = begin; i < limit; i++) {
+            struct ygc_marking_stripe *stripe = &mark->stripes[i];
+            marking_mark_stripe(mark, stripe);
+        }
+    }
+}
+
+void ygc_marking_mark(struct ygc_mark *mark) {
+    yalx_job_submit(&mark->job, marking_entry, (void *)mark);
 }

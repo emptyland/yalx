@@ -53,3 +53,32 @@ TEST_F(YGCMarkTest, ThreadingSafe) {
     const ygc_marking_stripe *const stripe = &mark_.stripes[0];
     EXPECT_EQ(ncpus * 10000, stripe->top);
 }
+
+//template <class T>
+//class CC
+//{
+//};
+//
+//template <int d, class N>
+//class CB
+//{
+//public:
+//    typedef CC<CB<d, N>> *pointer_type;
+//};
+//
+//template <class X>
+//class CA
+//{
+//public:
+//    template <int d>
+//    static CA FromCB(const typename CB<d, X>::pointer_type x) {
+//        printf("dim: %d, value: %p\n", d, x);
+//        return CA{};
+//    }
+//};
+//
+//
+//TEST_F(YGCMarkTest, CtorDemo) {
+//    CB<2, double>::pointer_type v = nullptr;
+//    CA<double> t = CA<double>::FromCB<2>(v);
+//}

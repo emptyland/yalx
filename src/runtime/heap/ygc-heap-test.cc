@@ -85,3 +85,21 @@ TEST_F(YGCHeapTest, ObjectMarkingInPage) {
     ASSERT_EQ(1, objs.size());
     EXPECT_EQ(world, objs[0]);
 }
+
+TEST_F(YGCHeapTest, MarkStartSanity) {
+    ASSERT_EQ(YGC_METADATA_MARKED0, YGC_METADATA_MARKED);
+
+    auto hello1 = yalx_new_string(heap_, "hello", 5);
+
+    ygc_mark_start(heap_);
+    ASSERT_EQ(2, ygc_global_tick);
+    ASSERT_EQ(YGC_PHASE_MARK, ygc_global_phase);
+    ASSERT_EQ(YGC_METADATA_MARKED1, YGC_METADATA_MARKED);
+
+    auto hello2 = yalx_new_string(heap_, "hello", 5);
+    ASSERT_EQ(ygc_offset(hello1), ygc_offset(hello2));
+    ASSERT_TRUE(ygc_is_remapped(hello1));
+    ASSERT_TRUE(ygc_is_marked(hello2));
+    ASSERT_TRUE(ygc_is_bad(hello1));
+    ASSERT_TRUE(ygc_is_good(hello2));
+}

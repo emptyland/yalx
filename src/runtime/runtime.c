@@ -324,6 +324,7 @@ void yalx_global_visit_root(struct yalx_root_visitor *visitor) {
                                     (yalx_ref_t *) (const_str->ks + const_str->number_of_strings));
 
             USE(global_slots);
+            DLOG(INFO, "Visit global slots has not support yet");
         }
     }
 
