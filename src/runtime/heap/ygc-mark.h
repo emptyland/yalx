@@ -14,7 +14,7 @@ extern "C" {
 struct yalx_value_any;
 
 struct ygc_marking_stripe {
-    uintptr_t *_Atomic stack;
+    volatile uintptr_t *_Atomic stack;
     size_t top;
     size_t max;
 };

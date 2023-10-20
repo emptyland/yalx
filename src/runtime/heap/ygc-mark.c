@@ -5,6 +5,8 @@
 #include <stdatomic.h>
 #include <stdlib.h>
 
+static uintptr_t *const BUSY = (uintptr_t *)0x1;
+
 void ygc_mark_init(struct ygc_mark *mark) {
     size_t n = ncpus / 2;
     if (n > YGC_MAX_MARKING_STRIPES) {
@@ -31,10 +33,9 @@ static struct ygc_marking_stripe *stripe_for_addr(struct ygc_mark *mark, uintptr
 }
 
 static void stripe_push_to(struct ygc_marking_stripe *stripe, uintptr_t addr) {
-    static uintptr_t *const BUSY = (uintptr_t *)0x1;
 
     for (;;) {
-        uintptr_t *stack = stripe->stack;
+        volatile uintptr_t *stack = stripe->stack;
         if (!atomic_compare_exchange_strong(&stripe->stack, &stack, BUSY)) {
             continue;
         }
@@ -50,7 +51,7 @@ static void stripe_push_to(struct ygc_marking_stripe *stripe, uintptr_t addr) {
                 stripe->max <<= 1;
             }
 
-            stack = realloc(stack, stripe->max * sizeof(uintptr_t));
+            stack = realloc((void *)stack, stripe->max * sizeof(uintptr_t));
         }
         stack[top] = addr;
         atomic_store(&stripe->stack, stack);
@@ -64,8 +65,34 @@ void ygc_marking_mark_object(struct ygc_mark *mark, uintptr_t addr) {
     stripe_push_to(stripe, addr);
 }
 
+static uintptr_t stripe_pop_from(struct ygc_marking_stripe *stripe) {
+    for (;;) {
+        volatile uintptr_t *stack = stripe->stack;
+        if (!atomic_compare_exchange_strong(&stripe->stack, &stack, BUSY)) {
+            continue;
+        }
+        if (stack == BUSY) {
+            continue;
+        }
+
+        uintptr_t addr = 0;
+        if (stripe->top > 0) {
+            addr = stack[--stripe->top];
+        }
+        atomic_store(&stripe->stack, stack);
+        return addr;
+    }
+}
+
 static void marking_mark_stripe(struct ygc_mark *mark, struct ygc_marking_stripe *stripe) {
-    // TODO:
+    for (;;) {
+        struct yalx_value_any *obj = (struct yalx_value_any *)stripe_pop_from(stripe);
+        if (!obj) {
+            break;
+        }
+
+        UNREACHABLE();
+    }
 }
 
 static void marking_entry(struct yalx_worker *worker) {
