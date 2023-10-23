@@ -80,6 +80,11 @@ static int is_in_pool(const struct heap *h, uintptr_t addr) {
     return ptr >= pool->chunk && ptr < pool->free;
 }
 
+static void thread_scope_for_pool(struct heap *h, struct yalx_os_thread *thread) {
+    USE(h);
+    USE(thread);
+}
+
 static struct allocate_result allocate_from_ygc(struct heap *h, size_t size, u32_t flags) {
     USE(flags);
     struct ygc_core *ygc = &((struct ygc_heap *)h)->ygc;
@@ -271,6 +276,8 @@ int yalx_init_heap(gc_t gc, size_t max_heap_in_bytes, struct heap **receiver) {
             h->heap.allocate = allocate_from_pool;
             h->heap.is_in = is_in_pool;
             h->heap.finalize = finalize_for_pool;
+            h->heap.thread_enter = thread_scope_for_pool;
+            h->heap.thread_exit = thread_scope_for_pool;
             h->heap.barrier_ops = barrier_no_op;
             *receiver = (struct heap *) h;
         } break;
@@ -286,6 +293,8 @@ int yalx_init_heap(gc_t gc, size_t max_heap_in_bytes, struct heap **receiver) {
             h->heap.allocate = allocate_from_ygc;
             h->heap.is_in = is_in_ygc_heap;
             h->heap.finalize = finalize_for_ygc;
+            h->heap.thread_enter = ygc_thread_enter;
+            h->heap.thread_exit = ygc_thread_exit;
             *receiver = (struct heap *) h;
         } break;
 

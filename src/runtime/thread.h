@@ -28,6 +28,7 @@ struct yalx_os_thread {
     pthread_t native_handle;
 #endif
     uint64_t id;
+    uintptr_t gc_data[19];
     struct {
         const char *file;
         int line;

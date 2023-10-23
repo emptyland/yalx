@@ -105,6 +105,34 @@ struct ygc_core *ygc_heap_of(struct heap *h) {
     return (struct ygc_core *)(h + 1);
 }
 
+void ygc_thread_enter(struct heap *h, struct yalx_os_thread *thread) {
+    DCHECK(h != NULL);
+    DCHECK(h->gc == GC_YGC);
+    struct ygc_tls_struct *tls = (struct ygc_tls_struct *)thread->gc_data;
+    for (int i = 0; i < YGC_MAX_MARKING_STRIPES; i++) {
+        tls->stacks[i] = NULL;
+    }
+
+    // TODO:
+}
+
+void ygc_thread_exit(struct heap *h, struct yalx_os_thread *thread) {
+    // TODO:
+    struct ygc_core *ygc = ygc_heap_of(h);
+    struct ygc_tls_struct *tls = (struct ygc_tls_struct *)thread->gc_data;
+    for (int i = 0; i < YGC_MAX_MARKING_STRIPES; i++) {
+        if (tls->stacks[i]) {
+            struct ygc_marking_stripe *stripe = &ygc->mark.stripes[i];
+            ygc_marking_stripe_commit(stripe, tls->stacks[i]);
+            tls->stacks[i] = NULL;
+        }
+    }
+}
+
+struct ygc_tls_struct *ygc_tls_data() {
+    return (struct ygc_tls_struct *)yalx_os_thread_self()->gc_data;
+}
+
 static uintptr_t allocate_object_from_shared_page(struct ygc_core *ygc,
                                                   struct ygc_page *_Atomic *shared_page,
                                                   size_t page_size,

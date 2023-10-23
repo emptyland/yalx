@@ -1,4 +1,5 @@
 #include "runtime/thread.h"
+#include "runtime/heap/heap.h"
 #include "runtime/checking.h"
 #include "runtime/runtime.h"
 #include <dlfcn.h>
@@ -35,7 +36,9 @@ static void *native_entry(void *ctx) {
         free(name);
     }
 #endif
+    if (heap) { heap->thread_enter(heap, thread); }
     entry(param);
+    if (heap) { heap->thread_exit(heap, thread); }
     yalx_tls_set(self_thread, NULL);
 
     return NULL;

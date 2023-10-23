@@ -73,6 +73,7 @@ void ygc_flip_to_marked(void);
 struct per_cpu_storage;
 struct yalx_heap_visitor;
 struct heap;
+struct ygc_marking_stack;
 
 struct linear_address {
     uintptr_t addr;
@@ -178,6 +179,10 @@ static inline void granule_map_put(struct ygc_granule_map *map, uintptr_t key, u
     map->bucket[index] = value;
 }
 
+struct ygc_tls_struct {
+    struct ygc_marking_stack *stacks[YGC_MAX_MARKING_STRIPES];
+};
+
 struct ygc_page {
     struct ygc_page *next;
     struct ygc_page *prev;
@@ -210,6 +215,9 @@ int ygc_init(struct ygc_core *ygc, size_t capacity);
 void ygc_final(struct ygc_core *ygc);
 
 struct ygc_core *ygc_heap_of(struct heap *h);
+void ygc_thread_enter(struct heap *h, struct yalx_os_thread *thread);
+void ygc_thread_exit(struct heap *h, struct yalx_os_thread *thread);
+struct ygc_tls_struct *ygc_tls_data();
 
 address_t ygc_allocate_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes);
 
@@ -258,6 +266,9 @@ static inline size_t ygc_page_used_in_bytes(const struct ygc_page *page) {
     return (size_t)page->top - page->virtual_addr.addr;
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+// GC phases:
+//----------------------------------------------------------------------------------------------------------------------
 void ygc_mark_start(struct heap *h);
 void ygc_mark(struct heap *h, int initial);
 

@@ -78,6 +78,7 @@ struct boxing_number_pool {
 }; // struct number_pool
 
 struct heap;
+struct yalx_os_thread;
 
 struct barrier_set {
     void (*prefix_write_barrier)(struct heap *, struct yalx_value_any *, struct yalx_value_any *);
@@ -98,6 +99,8 @@ struct heap {
     struct allocate_result (*allocate)(struct heap *, size_t, u32_t);
     int (*is_in)(const struct heap *, uintptr_t);
     void (*finalize)(struct heap *);
+    void (*thread_enter)(struct heap *, struct yalx_os_thread *);
+    void (*thread_exit)(struct heap *, struct yalx_os_thread *);
     
     gc_t gc;
 }; // struct heap

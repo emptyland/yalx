@@ -114,3 +114,11 @@ static void marking_entry(struct yalx_worker *worker) {
 void ygc_marking_mark(struct ygc_mark *mark) {
     yalx_job_submit(&mark->job, marking_entry, (void *)mark);
 }
+
+void ygc_marking_stripe_commit(struct ygc_marking_stripe *stripe, struct ygc_marking_stack *stack) {
+    volatile struct ygc_marking_stack *next = NULL;
+    do {
+        next = stripe->committed_stacks;
+        stack->next = next;
+    } while (!atomic_compare_exchange_strong(&stripe->committed_stacks, &next, stack));
+}
