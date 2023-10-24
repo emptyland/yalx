@@ -12,14 +12,15 @@ extern "C" {
 #define YGC_MAX_MARKING_STRIPES 16
 
 struct yalx_value_any;
+struct yalx_os_thread;
 struct ygc_core;
 
 struct ygc_marking_stack {
     volatile struct ygc_marking_stack *_Atomic next;
+    struct ygc_marking_stripe *stripe;
     uintptr_t *stack;
     size_t top;
     size_t max;
-    int thread_id;
 };
 
 struct ygc_marking_stripe {
@@ -28,15 +29,24 @@ struct ygc_marking_stripe {
 };
 
 struct ygc_mark {
+    struct ygc_core *owns;
     struct yalx_job job;
     struct ygc_marking_stripe stripes[YGC_MAX_MARKING_STRIPES];
 };
 
-void ygc_mark_init(struct ygc_mark *mark);
+void ygc_mark_init(struct ygc_mark *mark, struct ygc_core *owns);
 void ygc_mark_final(struct ygc_mark *mark);
+
+// Mark a single object
 void ygc_marking_mark_object(struct ygc_mark *mark, uintptr_t addr);
-void ygc_marking_mark(struct ygc_mark *mark);
+
+void ygc_marking_concurrent_mark(struct ygc_mark *mark);
+
+// Commit thread local all stacks to stripes
+void ygc_marking_tls_commit(struct ygc_mark *mark, struct yalx_os_thread *thread);
+
 void ygc_marking_stripe_commit(struct ygc_marking_stripe *stripe, struct ygc_marking_stack *stack);
+void ygc_marking_stripe_clear(struct ygc_marking_stripe *stripe);
 
 #ifdef __cplusplus
 }

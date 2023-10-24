@@ -63,7 +63,7 @@ int ygc_init(struct ygc_core *ygc, size_t capacity) {
 
     granule_map_init(&ygc->page_granules);
     granule_map_init(&ygc->forwarding_table);
-    ygc_mark_init(&ygc->mark);
+    ygc_mark_init(&ygc->mark, ygc);
     ygc_relocate_init(&ygc->relocate);
     yalx_mutex_init(&ygc->mutex);
 
@@ -302,7 +302,7 @@ void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page) {
     free(page);
 }
 
-static uintptr_t barrier_mark(struct ygc_core *ygc, uintptr_t addr) {
+uintptr_t ygc_barrier_mark(struct ygc_core *ygc, uintptr_t addr) {
     uintptr_t good_addr = 0;
 
     if (ygc_is_marked(addr)) {
@@ -329,14 +329,12 @@ static inline void root_barrier_field(struct ygc_core *ygc, struct yalx_value_an
     if (ygc_is_good(addr) || addr == 0) {
         return;
     }
-    uintptr_t good_addr = barrier_mark(ygc, addr);
+    uintptr_t good_addr = ygc_barrier_mark(ygc, addr);
     *p = (struct yalx_value_any *)good_addr;
 }
 
 static void visit_root_pointer(struct yalx_root_visitor *v, yalx_ref_t *p) {
     struct ygc_core *ygc = (struct ygc_core *)v->ctx;
-//    struct ygc_page *owns_page = ygc_addr_in_page(ygc, (uintptr_t) *p);
-//    DCHECK(owns_page != NULL);
     root_barrier_field(ygc, *p, p);
 }
 

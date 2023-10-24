@@ -267,9 +267,18 @@ static inline size_t ygc_page_used_in_bytes(const struct ygc_page *page) {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// Barrier Ops:
+//----------------------------------------------------------------------------------------------------------------------
+uintptr_t ygc_barrier_mark(struct ygc_core *ygc, uintptr_t addr);
+
+//----------------------------------------------------------------------------------------------------------------------
 // GC phases:
 //----------------------------------------------------------------------------------------------------------------------
+
+// Paused mark start
 void ygc_mark_start(struct heap *h);
+
+// Concurrent marking entry:
 void ygc_mark(struct heap *h, int initial);
 
 uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr);
