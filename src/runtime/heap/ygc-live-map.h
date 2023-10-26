@@ -15,6 +15,7 @@ struct yalx_value_any;
 struct ygc_page;
 
 struct ygc_live_map {
+    _Atomic uint32_t tick;
     _Atomic size_t live_objs;
     _Atomic size_t live_objs_in_bytes;
     struct ygc_live_bucket *buckets;
@@ -28,6 +29,9 @@ void live_map_final(struct ygc_live_map *map);
 
 void live_map_set(struct ygc_live_map *map, int index);
 int live_map_get(struct ygc_live_map *map, int index);
+
+void live_map_reinit(struct ygc_live_map *map);
+int live_map_is_marked(struct ygc_live_map const *map);
 
 void live_map_increase_obj(struct ygc_live_map *map, size_t objs, size_t objs_in_bytes);
 

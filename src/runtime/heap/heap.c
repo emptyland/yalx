@@ -287,7 +287,7 @@ int yalx_init_heap(gc_t gc, size_t max_heap_in_bytes, struct heap **receiver) {
             if (!h) {
                 return -1;
             }
-            if (ygc_init(&h->ygc, max_heap_in_bytes) < 0) {
+            if (ygc_init(&h->ygc, max_heap_in_bytes, 25) < 0) {
                 return -1;
             }
             h->heap.allocate = allocate_from_ygc;

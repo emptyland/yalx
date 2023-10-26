@@ -5,7 +5,7 @@
 class ForwardingTest : public ::testing::Test {
 public:
     void SetUp() override {
-        ASSERT_EQ(0, ygc_init(&ygc_, 512 * MB));
+        ASSERT_EQ(0, ygc_init(&ygc_, 512 * MB, 25));
         page_ = ygc_page_new(&ygc_, SMALL_PAGE_SIZE);
         ASSERT_TRUE(page_ != nullptr);
         live_map_increase_obj(&page_->live_map, 100, 1024);

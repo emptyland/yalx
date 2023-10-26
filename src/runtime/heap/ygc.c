@@ -42,7 +42,7 @@ void ygc_flip_to_remapped(void) {
     ygc_set_good_mask(YGC_METADATA_REMAPPED);
 }
 
-int ygc_init(struct ygc_core *ygc, size_t capacity) {
+int ygc_init(struct ygc_core *ygc, size_t capacity, int fragmentation_limit) {
     if (memory_backing_init(&ygc->backing, capacity) < 0) {
         return -1;
     }
@@ -56,6 +56,8 @@ int ygc_init(struct ygc_core *ygc, size_t capacity) {
         return -1;
     }
     ygc->rss = 0;
+    DCHECK(fragmentation_limit >= 0 && fragmentation_limit <= 100);
+    ygc->fragmentation_limit = fragmentation_limit;
     ygc->medium_page = NULL;
     ygc->small_page = per_cpu_storage_new();
     ygc->pages.next = &ygc->pages;
@@ -64,7 +66,8 @@ int ygc_init(struct ygc_core *ygc, size_t capacity) {
     granule_map_init(&ygc->page_granules);
     granule_map_init(&ygc->forwarding_table);
     ygc_mark_init(&ygc->mark, ygc);
-    ygc_relocate_init(&ygc->relocate);
+    ygc_relocate_init(&ygc->relocate, ygc);
+    ygc_relocation_set_init(&ygc->relocation_set);
     yalx_mutex_init(&ygc->mutex);
 
     ygc_flip_to_remapped(); // Initialize state
@@ -80,10 +83,11 @@ void ygc_final(struct ygc_core *ygc) {
     while (!QUEUE_EMPTY(&ygc->pages)) {
         struct ygc_page *page = ygc->pages.next;
         QUEUE_REMOVE(page);
-        ygc_page_free(ygc, page);
+        ygc_page_free(ygc, page, 0/*dont should locking*/);
     }
     yalx_mutex_final(&ygc->mutex);
     ygc_mark_final(&ygc->mark);
+    ygc_relocation_set_final(&ygc->relocation_set);
     ygc_relocate_final(&ygc->relocate);
     granule_map_final(&ygc->forwarding_table);
     granule_map_final(&ygc->page_granules);
@@ -276,15 +280,15 @@ struct ygc_page *ygc_page_new(struct ygc_core *ygc, size_t size) {
     return page;
 }
 
-void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page) {
+void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page, int should_locking) {
     if (!page) {
         return;
     }
 
-    yalx_mutex_lock(&ygc->mutex);
+    if (should_locking) { yalx_mutex_lock(&ygc->mutex); }
     QUEUE_REMOVE(page);
     page_granule_remove(&ygc->page_granules, page);
-    yalx_mutex_unlock(&ygc->mutex);
+    if (should_locking) { yalx_mutex_unlock(&ygc->mutex); }
 
     atomic_fetch_sub(&ygc->rss, page->virtual_addr.size);
 
@@ -324,18 +328,44 @@ uintptr_t ygc_barrier_mark(struct ygc_core *ygc, uintptr_t addr) {
     return good_addr;
 }
 
-static inline void root_barrier_field(struct ygc_core *ygc, struct yalx_value_any *o, struct yalx_value_any **p) {
-    uintptr_t addr = (uintptr_t)o;
-    if (ygc_is_good(addr) || addr == 0) {
+struct yalx_value_any *ygc_barrier_load(struct yalx_value_any *_Atomic volatile *p) {
+    return atomic_load_explicit(p, memory_order_relaxed);
+}
+
+void ygc_barrier_self_heal_fast_on_good_or_null(struct yalx_value_any *_Atomic volatile *p, uintptr_t addr,
+                                                uintptr_t heal_addr) {
+    if (heal_addr == 0) {
+        // Never heal with null since it interacts badly with reference processing.
+        // A mutator clearing an oop would be similar to calling Reference.clear(),
+        // which would make the reference non-discoverable or silently dropped
+        // by the reference processor.
         return;
     }
-    uintptr_t good_addr = ygc_barrier_mark(ygc, addr);
-    *p = (struct yalx_value_any *)good_addr;
+
+    DCHECK(!ygc_is_good(addr) && addr != 0);
+    DCHECK(ygc_is_good(heal_addr) || heal_addr == 0);
+
+    for (;;) {
+        if (atomic_compare_exchange_strong((volatile _Atomic uintptr_t *)p, &addr, heal_addr)) {
+            // Ok
+            return;
+        }
+
+        if (ygc_is_good(addr) || addr == 0) {
+            // Must not self heal
+            return;
+        }
+
+        // The oop location was healed by another barrier, but still needs upgrading.
+        // Re-apply healing to make sure the oop is not left with weaker (remapped or
+        // finalizable) metadata bits than what this barrier tried to apply.
+        DCHECK(ygc_offset(addr) == ygc_offset(heal_addr));
+    }
 }
 
 static void visit_root_pointer(struct yalx_root_visitor *v, yalx_ref_t *p) {
     struct ygc_core *ygc = (struct ygc_core *)v->ctx;
-    root_barrier_field(ygc, *p, p);
+    ygc_barrier_mark_on_root(ygc, *p, p);
 }
 
 static void visit_root_pointers(struct yalx_root_visitor *v, yalx_ref_t *begin, yalx_ref_t *end) {
@@ -373,17 +403,67 @@ void ygc_mark_start(struct heap *h) {
     };
     yalx_heap_visit_root(h, &visitor);
     yalx_global_visit_root(&visitor);
+
+    DLOG(WARN, "Visit coroutines and others...");
 }
 
 void ygc_mark(struct heap *h, int initial) {
-    // should at safepoint
     struct ygc_core *ygc = ygc_heap_of(h);
 
     if (initial) {
-        // TODO: mark roots
+        // TODO: mark roots: Threads/Coroutines stacks
     }
 
-    UNREACHABLE();
+    ygc_marking_concurrent_mark(&ygc->mark);
+}
+
+void ygc_reset_relocation_set(struct heap *h) {
+    struct ygc_core *ygc = ygc_heap_of(h);
+
+    for (size_t i = 0; i < ygc->relocation_set.size; i++) {
+        forwarding_table_remove(&ygc->forwarding_table, ygc->relocation_set.forwards[i]);
+    }
+
+    ygc_relocation_set_reset(&ygc->relocation_set);
+}
+
+void ygc_select_relocation_set(struct ygc_core *ygc) {
+    struct relocation_set_selector selector;
+    relocation_set_selector_init(&selector, ygc->fragmentation_limit);
+
+    yalx_mutex_lock(&ygc->mutex);
+    for (struct ygc_page *page = ygc->pages.next; page != &ygc->pages; page = page->next) {
+        if (!ygc_page_is_relocatable(page)) {
+            continue;
+        }
+
+        if (ygc_page_is_marked(page)) {
+            relocation_set_selector_register_live_page(&selector, page);
+        } else {
+            relocation_set_selector_register_garbage_page(&selector, page);
+            ygc_page_free(ygc, page, 0/*dont should lock*/);
+        }
+    }
+    yalx_mutex_unlock(&ygc->mutex);
+
+    relocation_set_selector_select(&selector, &ygc->relocation_set);
+    // Setup forwarding table
+    for (size_t i = 0; i < ygc->relocation_set.size; i++) {
+        forwarding_table_insert(&ygc->forwarding_table, ygc->relocation_set.forwards[i]);
+    }
+
+    relocation_set_selector_final(&selector);
+}
+
+void ygc_relocate_start(struct heap *h) {
+    struct ygc_core *ygc = ygc_heap_of(h);
+
+    ygc_flip_to_remapped();
+
+    ygc_global_phase = YGC_PHASE_RELOCATE;
+
+    // Remap/Relocate roots
+    ygc_relocating_start(&ygc->relocate, h);
 }
 
 uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr) {
@@ -394,7 +474,22 @@ uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr) {
         // Not forwarding
         return ygc_good_address(addr);
     }
-    return ygc_relocate_forward_object(&ygc->relocate, fwd, addr);
+    return ygc_relocating_forward_object(&ygc->relocate, fwd, addr);
+}
+
+uintptr_t ygc_relocate_object(struct ygc_core *ygc, uintptr_t addr) {
+    struct forwarding *const fwd = forwarding_table_get(&ygc->forwarding_table, addr);
+    if (!fwd) {
+        return ygc_good_address(addr);
+    }
+
+    const int retained = forwarding_grab_page(fwd);
+    const uintptr_t new_addr = ygc_relocating_relocate_object(&ygc->relocate, fwd, addr);
+    if (retained) {
+        forwarding_drop_page(fwd, ygc);
+    }
+
+    return new_addr;
 }
 
 uintptr_t ygc_page_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes) {

@@ -70,8 +70,7 @@ static void visit_object_pointer(struct yalx_object_visitor *v, yalx_ref_t host,
     }
 
     struct ygc_core *ygc = (struct ygc_core *)v->ctx;
-    uintptr_t good = ygc_barrier_mark(ygc, (uintptr_t)*p);
-    *p = (yalx_ref_t)good;
+    ygc_barrier_mark_on_field(ygc, (_Atomic volatile yalx_ref_t *)p);
 }
 
 static void visit_object_pointers(struct yalx_object_visitor *v, yalx_ref_t host, yalx_ref_t *begin, yalx_ref_t *end) {
@@ -81,8 +80,7 @@ static void visit_object_pointers(struct yalx_object_visitor *v, yalx_ref_t host
         if (!*x || ygc_is_marked(*x)) {
             return;
         }
-        uintptr_t good = ygc_barrier_mark(ygc, (uintptr_t)*x);
-        *x = (yalx_ref_t)good;
+        ygc_barrier_mark_on_field(ygc, (_Atomic volatile yalx_ref_t *)x);
     }
 }
 

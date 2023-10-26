@@ -6,7 +6,7 @@
 class YGCTest : public ::testing::Test {
 public:
     void SetUp() override {
-        ASSERT_EQ(0, ygc_init(&ygc_, 512 * MB));
+        ASSERT_EQ(0, ygc_init(&ygc_, 512 * MB, 25));
     }
 
     void TearDown() override {
@@ -54,7 +54,7 @@ TEST_F(YGCTest, PageAllocate) {
 
     ASSERT_EQ(8, ygc_page_used_in_bytes(page));
 
-    ygc_page_free(&ygc_, page);
+    ygc_page_free(&ygc_, page, 1);
 }
 
 TEST_F(YGCTest, AllocateSmallObject) {

@@ -9,6 +9,7 @@
 extern "C" {
 #endif
 
+struct ygc_core;
 struct ygc_page;
 struct ygc_granule_map;
 
@@ -41,16 +42,24 @@ struct forwarding {
         uintptr_t addr;
         size_t size;
     } virtual_addr;
-    _Atomic struct forwarding_entry *entries;
+    volatile _Atomic struct forwarding_entry *entries;
     size_t n_entries;
     struct ygc_page *page;
-    _Atomic int refs;
-    _Atomic int pinned;
+    volatile _Atomic int refs;
+    volatile _Atomic int pinned;
 };
 
 
 struct forwarding *forwarding_new(struct ygc_page *page);
 void forwarding_free(struct forwarding *fwd);
+
+static inline int forwarding_contains_addr(struct forwarding const *fwd, uintptr_t offset) {
+    return offset >= fwd->virtual_addr.addr && offset < fwd->virtual_addr.addr + fwd->virtual_addr.size;
+}
+
+int forwarding_grab_page(struct forwarding *fwd);
+int forwarding_drop_page(struct forwarding *fwd, struct ygc_core *ygc);
+void forwarding_set_pinned(struct forwarding *fwd, int pinned);
 
 uintptr_t forwarding_insert(struct forwarding *fwd, uintptr_t from_index, uintptr_t to_offset, size_t *pos);
 struct forwarding_entry forwarding_find(struct forwarding *fwd, uintptr_t from_index, size_t *pos);

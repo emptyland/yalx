@@ -13,6 +13,7 @@ struct ygc_live_bucket {
 };
 
 void live_map_init(struct ygc_live_map *map, size_t shift_per_bucket) {
+    map->tick = 0;
     map->live_objs = 0;
     map->live_objs_in_bytes = 0;
     map->bucket_size = 0;
@@ -45,6 +46,11 @@ static void bucket_set(struct ygc_live_map *map, struct ygc_live_bucket *bucket,
 
 void live_map_set(struct ygc_live_map *map, int index) {
     DCHECK(index >= 0);
+    if (!live_map_is_marked(map)) {
+        // First object to be marked during this
+        // cycle, reset marking information.
+        live_map_reinit(map);
+    }
     //DLOG(INFO, "set index=%d", index);
     const size_t bucket = (size_t)index >> map->shift_per_bucket;
     if (bucket >= map->bucket_size) {
@@ -53,6 +59,49 @@ void live_map_set(struct ygc_live_map *map, int index) {
         map->bucket_size = bucket + 1;
     }
     bucket_set(map, &map->buckets[bucket], index & map->mask_per_bucket);
+}
+
+void live_map_reinit(struct ygc_live_map *map) {
+    static const uint32_t TICK_INITIALIZING = UINT32_MAX;
+
+    int feedback = 0;
+
+    // Multiple threads can enter here, make sure only one of them
+    // resets the marking information while the others busy wait.
+    for (uint32_t tick = atomic_load_explicit(&map->tick, memory_order_acquire);
+         tick != ygc_global_tick;
+         tick = atomic_load_explicit(&map->tick, memory_order_acquire)) {
+
+        uint32_t expected_tick = tick;
+        if (tick != TICK_INITIALIZING && atomic_compare_exchange_strong(&map->tick, &expected_tick, TICK_INITIALIZING)) {
+            // Reset marking information
+            map->live_objs = 0;
+            map->live_objs_in_bytes = 0;
+
+            // clear all buckets
+            for (size_t i = 0; i < map->bucket_size; i++) {
+                free(map->buckets[i].bits);
+            }
+            free(map->buckets);
+
+            DCHECK(map->tick == TICK_INITIALIZING);
+
+            // Make sure the newly reset marking information is ordered
+            // before the update of the page seqnum, such that when the
+            // up-to-date seqnum is load acquired, the bit maps will not
+            // contain stale information.
+            atomic_store_explicit(&map->tick, ygc_global_tick, memory_order_release);
+        }
+
+        if (!feedback) {
+            feedback = 1;
+            DLOG(INFO, "live map reinit");
+        }
+    }
+}
+
+int live_map_is_marked(struct ygc_live_map const *map) {
+    return atomic_load_explicit(&map->tick, memory_order_acquire) == ygc_global_tick;
 }
 
 static int bucket_get(struct ygc_live_map *map, struct ygc_live_bucket *bucket, int index) {

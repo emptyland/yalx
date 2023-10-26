@@ -7,7 +7,7 @@
 #include "runtime/heap/ygc-relocate.h"
 #include "runtime/locks.h"
 #include "runtime/runtime.h"
-#include "runtime/locks.h"
+#include "runtime/checking.h"
 #include <stdlib.h>
 
 #ifdef __cplusplus
@@ -29,6 +29,10 @@ extern "C" {
 #define YGC_ALLOCATION_ALIGNMENT_SIZE 8
 
 #define YGC_METADATA_SHIFT 44
+
+#define YGC_PAGE_TYPE_SMALL  0
+#define YGC_PAGE_TYPE_MEDIUM 1
+#define YGC_PAGE_TYPE_LARGE  2
 
 enum ygc_phase {
     YGC_PHASE_MARK,
@@ -200,18 +204,22 @@ struct ygc_core {
     struct virtual_memory_management vmm;
     struct per_cpu_storage *small_page;
     struct ygc_page *_Atomic medium_page;
-    _Atomic size_t rss;
+
     struct ygc_page pages;
     struct ygc_granule_map page_granules;
 
     struct ygc_granule_map forwarding_table;
     struct ygc_mark mark;
     struct ygc_relocate relocate;
+    struct ygc_relocation_set relocation_set;
     struct yalx_mutex mutex;
+
+    _Atomic size_t rss;
+    int fragmentation_limit; // Percent of compaction threshold, default: 25
 };
 
 
-int ygc_init(struct ygc_core *ygc, size_t capacity);
+int ygc_init(struct ygc_core *ygc, size_t capacity, int fragmentation_limit);
 void ygc_final(struct ygc_core *ygc);
 
 struct ygc_core *ygc_heap_of(struct heap *h);
@@ -222,7 +230,7 @@ struct ygc_tls_struct *ygc_tls_data();
 address_t ygc_allocate_object(struct ygc_core *ygc, size_t size, uintptr_t alignment_in_bytes);
 
 struct ygc_page *ygc_page_new(struct ygc_core *ygc, size_t size);
-void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page);
+void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page, int should_locking);
 
 // Allocate memory chunk from page
 uintptr_t ygc_page_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes);
@@ -240,13 +248,9 @@ static inline int ygc_is_large_page(const struct ygc_page *page) {
     return !ygc_is_small_page(page) && !ygc_is_medium_page(page);
 }
 
-static inline int ygc_page_is_allocating(const struct ygc_page *page) {
-    return page->tick == ygc_global_tick;
-}
-
-static inline int ygc_page_is_relocatable(const struct ygc_page *page) {
-    return page->tick < ygc_global_tick;
-}
+static inline int ygc_page_is_allocating(const struct ygc_page *page) { return page->tick == ygc_global_tick; }
+static inline int ygc_page_is_relocatable(const struct ygc_page *page) { return page->tick < ygc_global_tick; }
+static inline int ygc_page_is_marked(const struct ygc_page *page) { return live_map_is_marked(&page->live_map); }
 
 void ygc_page_mark_object(struct ygc_page *page, struct yalx_value_any *obj);
 
@@ -266,10 +270,74 @@ static inline size_t ygc_page_used_in_bytes(const struct ygc_page *page) {
     return (size_t)page->top - page->virtual_addr.addr;
 }
 
+uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr);
+
+static inline void ygc_mark_object(struct ygc_core *ygc, uintptr_t addr) {
+    struct ygc_page *page = ygc_addr_in_page(ygc, addr);
+    ygc_page_mark_object(page, (struct yalx_value_any *)addr);
+    ygc_marking_mark_object(&ygc->mark, addr);
+}
+
+uintptr_t ygc_relocate_object(struct ygc_core *ygc, uintptr_t addr);
+
 //----------------------------------------------------------------------------------------------------------------------
 // Barrier Ops:
 //----------------------------------------------------------------------------------------------------------------------
 uintptr_t ygc_barrier_mark(struct ygc_core *ygc, uintptr_t addr);
+
+struct yalx_value_any *ygc_barrier_load(struct yalx_value_any *_Atomic volatile *p);
+
+static inline void ygc_barrier_mark_on_root(struct ygc_core *ygc, struct yalx_value_any *o,
+                                            struct yalx_value_any **p) {
+    uintptr_t addr = (uintptr_t)o;
+    if (ygc_is_good(addr) || addr == 0) {
+        return;
+    }
+    uintptr_t good_addr = ygc_barrier_mark(ygc, addr);
+    *p = (struct yalx_value_any *)good_addr;
+}
+
+void ygc_barrier_self_heal_fast_on_good_or_null(struct yalx_value_any *_Atomic volatile *p, uintptr_t addr,
+                                                uintptr_t heal_addr);
+
+static inline struct yalx_value_any *ygc_barrier_mark_fast_on_good_or_null(struct ygc_core *ygc, struct yalx_value_any *o,
+                                                                           struct yalx_value_any **p) {
+    uintptr_t addr = (uintptr_t)o;
+    if (ygc_is_good(addr) || addr == 0) {
+        return (struct yalx_value_any *)addr;
+    }
+
+    uintptr_t good_addr = ygc_barrier_mark(ygc, addr);
+    if (p) {
+        ygc_barrier_self_heal_fast_on_good_or_null((struct yalx_value_any *_Atomic volatile *)p, addr, good_addr);
+    }
+    return (struct yalx_value_any *)good_addr;
+}
+
+static inline void ygc_barrier_mark_on_field(struct ygc_core *ygc, struct yalx_value_any *_Atomic volatile *p) {
+    struct yalx_value_any *o = ygc_barrier_load(p);
+
+    const uintptr_t addr = (uintptr_t)o;
+    if (ygc_is_good(addr)) {
+        // Mark through good ref
+        ygc_barrier_mark(ygc, addr);
+    } else {
+        // Mark through bad ref
+        ygc_barrier_mark_fast_on_good_or_null(ygc, o, (struct yalx_value_any **) p);
+    }
+}
+
+static inline void ygc_barrier_relocate_on_root(struct ygc_core *ygc, struct yalx_value_any *o,
+                                                struct yalx_value_any **p) {
+    uintptr_t addr = (uintptr_t)o;
+    if (ygc_is_good(addr) || addr == 0) {
+        return;
+    }
+    DCHECK(!ygc_is_good(addr));
+    DCHECK(!ygc_is_weak_good(addr));
+    uintptr_t good_addr = ygc_relocate_object(ygc, addr);
+    *p = (struct yalx_value_any *)good_addr;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 // GC phases:
@@ -281,13 +349,14 @@ void ygc_mark_start(struct heap *h);
 // Concurrent marking entry:
 void ygc_mark(struct heap *h, int initial);
 
-uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr);
+// Concurrent reset relocation set
+void ygc_reset_relocation_set(struct heap *h);
 
-static inline void ygc_mark_object(struct ygc_core *ygc, uintptr_t addr) {
-    struct ygc_page *page = ygc_addr_in_page(ygc, addr);
-    ygc_page_mark_object(page, (struct yalx_value_any *)addr);
-    ygc_marking_mark_object(&ygc->mark, addr);
-}
+// Concurrent select relocation sets
+void ygc_select_relocation_set(struct ygc_core *ygc);
+
+// Paused relocate start
+void ygc_relocate_start(struct heap *h);
 
 #ifdef __cplusplus
 }

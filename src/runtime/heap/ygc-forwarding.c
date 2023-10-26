@@ -62,15 +62,39 @@ struct forwarding *forwarding_new(struct ygc_page *page) {
     fwd->virtual_addr.size = page->virtual_addr.size;
     fwd->n_entries = round_up_power_of_2(page->live_map.live_objs * 2);
     fwd->entries = MALLOC_N(_Atomic struct forwarding_entry, fwd->n_entries);
-    memset(fwd->entries, 0, sizeof(struct forwarding_entry) * fwd->n_entries);
+    memset((void *)fwd->entries, 0, sizeof(struct forwarding_entry) * fwd->n_entries);
     fwd->refs = 1;
     fwd->pinned = 0;
     return fwd;
 }
 
 void forwarding_free(struct forwarding *fwd) {
-    free(fwd->entries);
+    free((void *)fwd->entries);
     free(fwd);
+}
+
+int forwarding_grab_page(struct forwarding *fwd) {
+    int refs = atomic_load(&fwd->refs);
+    while (refs > 0) {
+        if (atomic_compare_exchange_strong(&fwd->refs, &refs, refs + 1)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int forwarding_drop_page(struct forwarding *fwd, struct ygc_core *ygc) {
+    DCHECK(fwd->refs > 0);
+    if (atomic_fetch_sub(&fwd->refs, 1) == 1) {
+        ygc_page_free(ygc, fwd->page, 1);
+        fwd->page = NULL;
+        return 1;
+    }
+    return 0;
+}
+
+void forwarding_set_pinned(struct forwarding *fwd, int pinned) {
+    atomic_store(&fwd->pinned, pinned);
 }
 
 uintptr_t forwarding_insert(struct forwarding *fwd, uintptr_t from_index, uintptr_t to_offset, size_t *pos) {

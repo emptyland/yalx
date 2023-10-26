@@ -35,6 +35,9 @@ enum logging_level {
 #define UNREACHABLE() LOG(FATAL, "No Reachable")
 #endif
 
+#ifndef NOT_IMPL
+#define NOT_IMPL() LOG(FATAL, "TODO: Not implement yet")
+#endif
 
 void yalx_logging_printf(enum logging_level level, const char *file, int line, const char *fmt, ...);
 void yalx_logging_sys_error(const char *file, int line, const char *fmt, ...);
