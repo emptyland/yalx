@@ -8,9 +8,15 @@ class YGCHeapTest : public ::testing::Test {
 public:
     void SetUp() override {
         ASSERT_EQ(0, yalx_init_heap(GC_YGC, 512 * MB, &heap_));
+
+        //yalx_os_thread_attach_self(&thread_);
+        ygc_thread_enter(heap_, &thread_);
     }
 
     void TearDown() override {
+        //yalx_os_thread_detach_self();
+        ygc_thread_exit(heap_, &thread_);
+
         yalx_free_heap(heap_);
         heap_ = nullptr;
     }
@@ -21,6 +27,7 @@ public:
     }
 
     struct heap *heap_ = nullptr;
+    yalx_os_thread thread_{};
 };
 
 TEST_F(YGCHeapTest, Sanity) {
@@ -102,4 +109,17 @@ TEST_F(YGCHeapTest, MarkStartSanity) {
     ASSERT_TRUE(ygc_is_marked(hello2));
     ASSERT_TRUE(ygc_is_bad(hello1));
     ASSERT_TRUE(ygc_is_good(hello2));
+}
+
+TEST_F(YGCHeapTest, ConcurrentMarkSanity) {
+    auto ygc = ygc_heap_of(heap_);
+    auto hello1 = yalx_new_string(heap_, "hello", 5);
+
+    ygc_mark_start(heap_);
+    ygc_marking_tls_commit(&ygc->mark, yalx_os_thread_self());
+
+    ygc_mark(heap_, 0);
+
+    auto hello2 = yalx_new_string(heap_, "hello", 5);
+    ASSERT_EQ(ygc_offset(hello1), ygc_offset(hello2));
 }

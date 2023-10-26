@@ -66,3 +66,7 @@ struct yalx_os_thread *yalx_os_thread_attach_self(struct yalx_os_thread *thread)
     yalx_tls_set(self_thread, thread);
     return thread;
 }
+
+struct yalx_os_thread *yalx_os_thread_detach_self(struct yalx_os_thread *thread) {
+
+}

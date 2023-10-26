@@ -103,8 +103,17 @@ struct yalx_os_thread *yalx_os_thread_self(void) {
 struct yalx_os_thread *yalx_os_thread_attach_self(struct yalx_os_thread *thread) {
     DCHECK(yalx_tls_get(self_thread) == NULL);
     thread->native_handle = pthread_self();
-    //thread->native_id = GetThreadId(thread->native_handle);
+    thread->id = atomic_fetch_add(&global_next_thread_id, 1);
     yalx_tls_set(self_thread, thread);
+    if (heap) { heap->thread_enter(heap, thread); }
+    return thread;
+}
+
+struct yalx_os_thread *yalx_os_thread_detach_self() {
+    DCHECK(yalx_tls_get(self_thread) != NULL);
+    struct yalx_os_thread *thread = (struct yalx_os_thread *) yalx_tls_get(self_thread);
+    if (heap) { heap->thread_exit(heap, thread); }
+    yalx_tls_set(self_thread, NULL);
     return thread;
 }
 

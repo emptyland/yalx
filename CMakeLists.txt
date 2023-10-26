@@ -66,7 +66,10 @@ add_library(runtime STATIC
         src/runtime/jobs.h
         src/runtime/jobs.c
         src/runtime/heap/ygc-mark.h
-        src/runtime/heap/ygc-mark.c src/runtime/heap/ygc-relocate.h src/runtime/heap/ygc-relocate.c)
+        src/runtime/heap/ygc-mark.c
+        src/runtime/heap/ygc-relocate.h
+        src/runtime/heap/ygc-relocate.c
+        src/runtime/root-handles.c)
 
 add_library(compiler STATIC
         src/arch/label.h
@@ -241,7 +244,8 @@ add_executable(yalx-test
         src/runtime/mm-thread-test.cc
         src/runtime/heap/ygc-forwarding-test.cc
         src/runtime/jobs-test.cc
-        src/runtime/heap/ygc-mark-test.cc)
+        src/runtime/heap/ygc-mark-test.cc
+        src/runtime/collection-test.cc)
 
 
 target_link_libraries(yalx-test compiler runtime pthread unwind m)

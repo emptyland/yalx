@@ -523,9 +523,9 @@ void ygc_page_mark_object(struct ygc_page *page, struct yalx_value_any *obj) {
     DCHECK(offset >= page->virtual_addr.addr && offset < page->top);
     DCHECK(offset % YGC_ALLOCATION_ALIGNMENT_SIZE == 0);
 
-    live_map_increase_obj(&page->live_map, 1, yalx_object_size_in_bytes(obj));
     int index = (int)((offset - page->virtual_addr.addr) >> pointer_shift_in_bytes);
     live_map_set(&page->live_map, index);
+    live_map_increase_obj(&page->live_map, 1, yalx_object_size_in_bytes(obj));
 }
 
 void ygc_page_visit_objects(struct ygc_page *page, struct yalx_heap_visitor *visitor) {

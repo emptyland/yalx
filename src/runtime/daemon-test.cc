@@ -1,5 +1,5 @@
 #include "runtime/daemon.h"
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 #include <thread>
 
 class DaemonTest : public ::testing::Test {

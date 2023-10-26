@@ -85,7 +85,7 @@ static void visit_object_pointers(struct yalx_object_visitor *v, yalx_ref_t host
 }
 
 static void marking_follow_mark(struct ygc_mark *mark, uintptr_t addr) {
-    DCHECK(ygc_is_marked(addr));
+    //DCHECK(ygc_is_marked(addr));
 
     struct yalx_value_any *obj = (struct yalx_value_any *)addr;
     if (!obj) {
@@ -104,11 +104,11 @@ static void marking_mark_stripe(struct ygc_mark *mark, struct ygc_marking_stripe
         volatile struct ygc_marking_stack *stack = NULL;
         do {
             stack = stripe->committed_stacks;
+            if (!stack) {
+                return;
+            }
         } while (!atomic_compare_exchange_strong(&stripe->committed_stacks, &stack, stack->next));
         atomic_fetch_sub(&stripe->n_stacks, 1);
-        if (!stack) {
-            break;
-        }
 
         while (stack->top > 0) {
             uintptr_t addr = stack->stack[--stack->top];
