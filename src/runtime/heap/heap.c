@@ -295,6 +295,7 @@ int yalx_init_heap(gc_t gc, size_t max_heap_in_bytes, struct heap **receiver) {
             h->heap.finalize = finalize_for_ygc;
             h->heap.thread_enter = ygc_thread_enter;
             h->heap.thread_exit = ygc_thread_exit;
+            h->heap.barrier_ops = barrier_no_op;
             *receiver = (struct heap *) h;
         } break;
 

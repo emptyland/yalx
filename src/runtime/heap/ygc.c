@@ -3,6 +3,7 @@
 #include "runtime/heap/heap.h"
 #include "runtime/heap/object-visitor.h"
 #include "runtime/object/any.h"
+#include "runtime/root-handles.h"
 #include "runtime/thread.h"
 #include "runtime/checking.h"
 
@@ -403,6 +404,7 @@ void ygc_mark_start(struct heap *h) {
     };
     yalx_heap_visit_root(h, &visitor);
     yalx_global_visit_root(&visitor);
+    yalx_root_handles_visit(&visitor);
 
     DLOG(WARN, "Visit coroutines and others...");
 }

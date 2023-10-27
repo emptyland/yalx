@@ -4,6 +4,7 @@
 #include "runtime/heap/heap.h"
 #include "runtime/heap/object-visitor.h"
 #include "runtime/object/any.h"
+#include "runtime/root-handles.h"
 #include "runtime/runtime.h"
 #include "runtime/checking.h"
 #include <math.h>
@@ -347,6 +348,7 @@ void ygc_relocating_start(struct ygc_relocate *relocate, struct heap *h) {
     };
     yalx_heap_visit_root(h, &visitor);
     yalx_global_visit_root(&visitor);
+    yalx_root_handles_visit(&visitor); // For testing...
 
     DLOG(WARN, "Visit coroutines and others...");
 }

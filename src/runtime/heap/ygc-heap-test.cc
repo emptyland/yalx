@@ -2,6 +2,9 @@
 #include "runtime/heap/heap.h"
 #include "runtime/heap/object-visitor.h"
 #include "runtime/object/yalx-string.h"
+#include "runtime/object/arrays.h"
+#include "runtime/object/type.h"
+#include "runtime/root-handles.h"
 #include <gtest/gtest.h>
 
 class YGCHeapTest : public ::testing::Test {
@@ -115,9 +118,17 @@ TEST_F(YGCHeapTest, ConcurrentMarkSanity) {
     auto ygc = ygc_heap_of(heap_);
     auto hello1 = yalx_new_string(heap_, "hello", 5);
 
+    yalx_value_str *elems[3] = {
+            yalx_new_string_direct(heap_, "1", 1),
+            yalx_new_string_direct(heap_, "2", 1),
+            yalx_new_string_direct(heap_, "3", 1),
+    };
+    auto arr = yalx_new_refs_array_with_data(heap_, string_class, 1, nullptr,
+                                             reinterpret_cast<yalx_ref_t *>(elems), 3);
+    yalx_add_root_handle(reinterpret_cast<yalx_ref_t>(arr));
+
     ygc_mark_start(heap_);
     ygc_marking_tls_commit(&ygc->mark, yalx_os_thread_self());
-
     ygc_mark(heap_, 0);
 
     auto hello2 = yalx_new_string(heap_, "hello", 5);

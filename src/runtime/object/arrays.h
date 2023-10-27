@@ -33,7 +33,7 @@ struct yalx_value_array_header {
 }; // struct yalx_value_array_header
 
 struct yalx_value_array_header *
-yalx_new_refs_array_with_data(struct heap *heap,
+yalx_new_refs_array_with_data(struct heap *h,
                               const struct yalx_class *item,
                               u32_t dims,
                               const u32_t *caps,
@@ -41,14 +41,14 @@ yalx_new_refs_array_with_data(struct heap *heap,
                               size_t nitems);
 
 struct yalx_value_array_header *
-yalx_new_vals_array_with_data(struct heap *heap,
+yalx_new_vals_array_with_data(struct heap *h,
                               const struct yalx_class *item,
                               u32_t dims,
                               const u32_t *caps,
                               const void *data,
                               size_t nitems);
 
-struct yalx_value_array *yalx_new_array(struct heap *heap, const struct yalx_class *item, size_t nitems);
+struct yalx_value_array *yalx_new_array(struct heap *h, const struct yalx_class *item, size_t nitems);
 
 struct yalx_value_multi_dims_array *
 yalx_new_multi_dims_array(struct heap *h, const struct yalx_class *item, u32_t dims, const u32_t *caps);
