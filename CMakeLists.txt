@@ -69,7 +69,8 @@ add_library(runtime STATIC
         src/runtime/heap/ygc-mark.c
         src/runtime/heap/ygc-relocate.h
         src/runtime/heap/ygc-relocate.c
-        src/runtime/root-handles.c src/runtime/root-handles.h)
+        src/runtime/root-handles.c
+        src/runtime/root-handles.h)
 
 add_library(compiler STATIC
         src/arch/label.h

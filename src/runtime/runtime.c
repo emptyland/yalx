@@ -316,11 +316,13 @@ void yalx_global_visit_root(struct yalx_root_visitor *visitor) {
             span.value = &node->key[(ROUND_UP(node->key_size, 4))];
             span.size  = node->value_size;
 
+            if (span.size < PKG_RECORD_VAL_SIZE) {
+                continue; // No constants pool
+            }
+
             struct kstr_header *const_str = (struct kstr_header *)(((void **)span.value)[0]);
             struct pkg_global_slots *global_slots = (struct pkg_global_slots *)(((void **)span.value)[1]);
 
-            //continue;
-            DLOG(INFO, "Visit global string constant pool, [%p] (%d)", const_str->ks, const_str->number_of_strings);
             visitor->visit_pointers(visitor,
                                     (yalx_ref_t *) const_str->ks,
                                     (yalx_ref_t *) (const_str->ks + const_str->number_of_strings));
@@ -753,6 +755,7 @@ void pkg_init_once(void *init_fun, const char *const plain_name) {
     DCHECK(PKG_RECORD_VAL_SIZE == rs.size);
     ((void **)rs.value)[0] = kstr_addr;
     ((void **)rs.value)[1] = slots;
+
 done:
     yalx_mutex_unlock(&pkg_init_mutex);
     //printf("pkg init...%s\n", plain_name);

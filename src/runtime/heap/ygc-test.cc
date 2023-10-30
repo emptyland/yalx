@@ -127,7 +127,7 @@ TEST_F(YGCTest, ThreadingSafeSmallAllocation) {
                 auto ptr = reinterpret_cast<int *>(ygc_allocate_object(&ygc_, 32, 8));
                 *ptr = j;
                 ASSERT_EQ(j, *ptr);
-                ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % 8);
+                ASSERT_EQ(0, reinterpret_cast<uintptr_t>(ptr) % pointer_size_in_bytes);
                 ASSERT_TRUE(ygc_addr_in_heap(&ygc_, reinterpret_cast<uintptr_t>(ptr)));
             }
         });

@@ -12,8 +12,11 @@ class YGCHeapTest : public ::testing::Test {
 public:
     void SetUp() override {
         ASSERT_EQ(0, yalx_init_heap(GC_YGC, 512 * MB, &heap_));
+        thread_enter_ = heap->thread_enter;
+        thread_exit_ = heap->thread_exit;
 
-        //yalx_os_thread_attach_self(&thread_);
+        heap->thread_enter = ygc_thread_enter;
+        heap->thread_exit = ygc_thread_exit;
         ygc_thread_enter(heap_, &thread_);
     }
 
@@ -21,8 +24,12 @@ public:
         //yalx_os_thread_detach_self();
         ygc_thread_exit(heap_, &thread_);
 
+        heap->thread_enter = thread_enter_;
+        heap->thread_exit = thread_exit_;
         yalx_free_heap(heap_);
         heap_ = nullptr;
+
+        yalx_free_root_handles();
     }
 
     yalx_value_array *NewDummyArray(const int n) const {
@@ -42,6 +49,8 @@ public:
         obj_in_page->push_back(o);
     }
 
+    void (*thread_enter_)(struct heap *, struct yalx_os_thread *);
+    void (*thread_exit_)(struct heap *, struct yalx_os_thread *);
     struct heap *heap_ = nullptr;
     yalx_os_thread thread_{};
 };
@@ -223,4 +232,19 @@ TEST_F(YGCHeapTest, RelocateStartSanity) {
         snprintf(buf, arraysize(buf), "%d", i);
         EXPECT_STREQ(buf, elems[i]->bytes);
     }
+}
+
+TEST_F(YGCHeapTest, ConcurrentRelocateSanity) {
+    auto ygc = ygc_heap_of(heap_);
+    ygc->fragmentation_limit = -1;
+    auto arr = NewDummyArray(5);
+    yalx_add_root_handle(reinterpret_cast<yalx_ref_t>(arr));
+
+    ygc_mark_start(heap_);
+    ygc_marking_tls_commit(&ygc->mark, yalx_os_thread_self());
+    ygc_mark(heap_, 0);
+    ygc_reset_relocation_set(heap_);
+    ygc_select_relocation_set(ygc);
+    ygc_relocate_start(heap_);
+    ygc_relocate(heap_);
 }

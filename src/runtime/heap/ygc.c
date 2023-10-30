@@ -122,13 +122,14 @@ void ygc_final(struct ygc_core *ygc) {
 
 struct ygc_core *ygc_heap_of(struct heap *h) {
     DCHECK(h != NULL);
-    DCHECK(h->gc == GC_YGC);
+    //DCHECK(h->gc == GC_YGC);
+    GUARANTEE(h->gc == GC_YGC, "Heap mut be YGC, actual is %d", h->gc);
     return (struct ygc_core *)(h + 1);
 }
 
 void ygc_thread_enter(struct heap *h, struct yalx_os_thread *thread) {
     DCHECK(h != NULL);
-    DCHECK(h->gc == GC_YGC);
+    //DCHECK(h->gc == GC_YGC);
     DCHECK(sizeof(struct ygc_tls_struct) <= sizeof(thread->gc_data));
 
     struct ygc_tls_struct *tls = (struct ygc_tls_struct *)thread->gc_data;
@@ -142,6 +143,9 @@ void ygc_thread_enter(struct heap *h, struct yalx_os_thread *thread) {
 
 void ygc_thread_exit(struct heap *h, struct yalx_os_thread *thread) {
     // TODO:
+    if (h->gc != GC_YGC) {
+        return; // For testing: ignore non-ygc...
+    }
     struct ygc_core *ygc = ygc_heap_of(h);
     struct ygc_tls_struct *tls = (struct ygc_tls_struct *)thread->gc_data;
     for (int i = 0; i < YGC_MAX_MARKING_STRIPES; i++) {
@@ -494,8 +498,7 @@ void ygc_relocate_start(struct heap *h) {
 
 void ygc_relocate(struct heap *h) {
     struct ygc_core *ygc = ygc_heap_of(h);
-
-
+    ygc_relocating_relocate(&ygc->relocate);
 }
 
 uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr) {
