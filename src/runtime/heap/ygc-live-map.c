@@ -104,7 +104,8 @@ int live_map_is_marked(struct ygc_live_map const *map) {
     return atomic_load_explicit(&map->tick, memory_order_acquire) == ygc_global_tick;
 }
 
-static int bucket_get(struct ygc_live_map *map, struct ygc_live_bucket *bucket, int index) {
+static int bucket_get(struct ygc_live_map const *map, struct ygc_live_bucket const *bucket, int index) {
+    USE(map);
     DCHECK(sizeof(uintptr_t) == pointer_size_in_bytes);
     if (!bucket->bits) {
         return 0;
@@ -112,7 +113,7 @@ static int bucket_get(struct ygc_live_map *map, struct ygc_live_bucket *bucket, 
     return (bucket->bits[index >> pointer_shift_in_bits] & ((uintptr_t)1 << (index & pointer_mask_in_bits))) != 0;
 }
 
-int live_map_get(struct ygc_live_map *map, int index) {
+int live_map_get(struct ygc_live_map const *map, int index) {
     DCHECK(index >= 0);
     const size_t bucket = (size_t)index >> map->shift_per_bucket;
     if (bucket >= map->bucket_size) {

@@ -61,6 +61,8 @@ int forwarding_grab_page(struct forwarding *fwd);
 int forwarding_drop_page(struct forwarding *fwd, struct ygc_core *ygc);
 void forwarding_set_pinned(struct forwarding *fwd, int pinned);
 
+void forwarding_verify(struct forwarding const *fwd);
+
 uintptr_t forwarding_insert(struct forwarding *fwd, uintptr_t from_index, uintptr_t to_offset, size_t *pos);
 struct forwarding_entry forwarding_find(struct forwarding *fwd, uintptr_t from_index, size_t *pos);
 struct forwarding_entry forwarding_first(struct forwarding *fwd, uintptr_t from_index, size_t *pos);

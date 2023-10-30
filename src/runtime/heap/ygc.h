@@ -74,6 +74,8 @@ void ygc_flip_to_marked(void);
 #define ygc_is_marked(addr)    ((uintptr_t)(addr) & YGC_METADATA_MARKED)
 #define ygc_is_remapped(addr)  ((uintptr_t)(addr) & YGC_METADATA_REMAPPED)
 
+const char *ygc_desc_address(uintptr_t addr);
+
 struct per_cpu_storage;
 struct yalx_heap_visitor;
 struct heap;
@@ -184,6 +186,7 @@ static inline void granule_map_put(struct ygc_granule_map *map, uintptr_t key, u
 }
 
 struct ygc_tls_struct {
+    uintptr_t bad_mask;
     struct ygc_marking_stack *stacks[YGC_MAX_MARKING_STRIPES];
 };
 
@@ -236,37 +239,53 @@ void ygc_page_free(struct ygc_core *ygc, struct ygc_page *page, int should_locki
 uintptr_t ygc_page_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes);
 uintptr_t ygc_page_atomic_allocate(struct ygc_page *page, size_t size, uintptr_t alignment_in_bytes);
 
-static inline int ygc_is_small_page(const struct ygc_page *page) {
+static inline int ygc_is_small_page(struct ygc_page const *page) {
     return page->virtual_addr.size == SMALL_PAGE_SIZE;
 }
 
-static inline int ygc_is_medium_page(const struct ygc_page *page) {
+static inline int ygc_is_medium_page(struct ygc_page const *page) {
     return page->virtual_addr.size == MEDIUM_PAGE_SIZE;
 }
 
-static inline int ygc_is_large_page(const struct ygc_page *page) {
+static inline int ygc_is_large_page(struct ygc_page const *page) {
     return !ygc_is_small_page(page) && !ygc_is_medium_page(page);
 }
 
-static inline int ygc_page_is_allocating(const struct ygc_page *page) { return page->tick == ygc_global_tick; }
-static inline int ygc_page_is_relocatable(const struct ygc_page *page) { return page->tick < ygc_global_tick; }
-static inline int ygc_page_is_marked(const struct ygc_page *page) { return live_map_is_marked(&page->live_map); }
+static inline int ygc_page_is_allocating(struct ygc_page const *page) { return page->tick == ygc_global_tick; }
+static inline int ygc_page_is_relocatable(struct ygc_page const *page) { return page->tick < ygc_global_tick; }
+static inline int ygc_page_is_marked(struct ygc_page const *page) { return live_map_is_marked(&page->live_map); }
+
+static inline int ygc_page_is_object_marked(struct ygc_page const *page, uintptr_t addr) {
+    size_t offset = ygc_offset(addr);
+    int index = (int)((offset - page->virtual_addr.addr) >> pointer_shift_in_bytes);
+    return live_map_get(&page->live_map, index);
+}
+
+size_t ygc_page_object_max_count(struct ygc_page const *page);
 
 void ygc_page_mark_object(struct ygc_page *page, struct yalx_value_any *obj);
 
 void ygc_page_visit_objects(struct ygc_page *page, struct yalx_heap_visitor *visitor);
 
-static inline struct ygc_page *ygc_addr_in_page(const struct ygc_core *ygc, uintptr_t addr) {
+static inline struct ygc_page *ygc_addr_in_page(struct ygc_core const *ygc, uintptr_t addr) {
     return (struct ygc_page *)granule_map_get(&ygc->page_granules, ygc_offset(addr));
 }
 
-static inline int ygc_addr_in_heap(const struct ygc_core *ygc, uintptr_t addr) {
-    const struct ygc_page *page = ygc_addr_in_page(ygc, addr);
+static inline int ygc_addr_in_heap(struct ygc_core const *ygc, uintptr_t addr) {
+    struct ygc_page const *page = ygc_addr_in_page(ygc, addr);
     const uintptr_t offset = ygc_offset(addr);
     return page != NULL && offset >= page->virtual_addr.addr && offset < page->limit;
 }
 
-static inline size_t ygc_page_used_in_bytes(const struct ygc_page *page) {
+static inline int ygc_object_is_live(const struct ygc_core *ygc, uintptr_t addr) {
+    struct ygc_page const *page = ygc_addr_in_page(ygc, addr);
+    if (!page) {
+        return 0;
+    }
+    return ygc_page_is_allocating(page) || ygc_page_is_object_marked(page, addr);
+}
+
+static inline size_t ygc_page_used_in_bytes(struct ygc_page const *page) {
     return (size_t)page->top - page->virtual_addr.addr;
 }
 
@@ -343,20 +362,23 @@ static inline void ygc_barrier_relocate_on_root(struct ygc_core *ygc, struct yal
 // GC phases:
 //----------------------------------------------------------------------------------------------------------------------
 
-// Paused mark start
+// Stage:1 Paused mark start
 void ygc_mark_start(struct heap *h);
 
-// Concurrent marking entry:
+// Stage:2 Concurrent marking entry:
 void ygc_mark(struct heap *h, int initial);
 
-// Concurrent reset relocation set
+// Stage:3 Concurrent reset relocation set
 void ygc_reset_relocation_set(struct heap *h);
 
-// Concurrent select relocation sets
+// Stage:4: Concurrent select relocation sets
 void ygc_select_relocation_set(struct ygc_core *ygc);
 
 // Paused relocate start
 void ygc_relocate_start(struct heap *h);
+
+// Concurrent relocate
+void ygc_relocate(struct heap *h);
 
 #ifdef __cplusplus
 }

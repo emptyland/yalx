@@ -61,6 +61,15 @@ void ygc_relocation_set_populate(struct ygc_relocation_set *set, struct ygc_page
                                  struct ygc_page *const *group1, size_t size1);
 void ygc_relocation_set_reset(struct ygc_relocation_set *set);
 
+
+struct ygc_relocation_set_parallel_iter {
+    struct ygc_relocate *const relocate;
+    struct ygc_relocation_set const *const owns;
+    _Atomic volatile size_t next;
+};
+
+int ygc_relocation_set_parallel_iter_next(struct ygc_relocation_set_parallel_iter *iter, struct forwarding **fwd);
+
 struct ygc_relocate {
     struct ygc_core *owns;
     struct yalx_job job;
@@ -70,7 +79,9 @@ void ygc_relocate_init(struct ygc_relocate *relocate, struct ygc_core *owns);
 void ygc_relocate_final(struct ygc_relocate *relocate);
 uintptr_t ygc_relocating_forward_object(struct ygc_relocate *relocate, struct forwarding *fwd, uintptr_t from_addr);
 uintptr_t ygc_relocating_relocate_object(struct ygc_relocate *relocate, struct forwarding *fwd, uintptr_t from_addr);
+
 void ygc_relocating_start(struct ygc_relocate *relocate, struct heap *h);
+void ygc_relocating_relocate(struct ygc_relocate *relocate);
 
 #ifdef __cplusplus
 }

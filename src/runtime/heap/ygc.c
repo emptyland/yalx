@@ -43,6 +43,18 @@ void ygc_flip_to_remapped(void) {
     ygc_set_good_mask(YGC_METADATA_REMAPPED);
 }
 
+const char *ygc_desc_address(uintptr_t addr) {
+    if (addr & YGC_METADATA_REMAPPED) {
+        return "remapped";
+    } else if (addr & YGC_METADATA_MARKED0) {
+        return "marked0";
+    } else if (addr & YGC_METADATA_MARKED1) {
+        return "marked1";
+    } else {
+        return "unknown";
+    }
+}
+
 int ygc_init(struct ygc_core *ygc, size_t capacity, int fragmentation_limit) {
     if (memory_backing_init(&ygc->backing, capacity) < 0) {
         return -1;
@@ -82,8 +94,12 @@ void ygc_final(struct ygc_core *ygc) {
     // TODO:
 
     while (!QUEUE_EMPTY(&ygc->pages)) {
-        struct ygc_page *page = ygc->pages.next;
+        struct ygc_page *const page = ygc->pages.next;
         QUEUE_REMOVE(page);
+        DLOG(INFO, "<Free Page> Cause ygc heap final: [%p, %p) (%zd)",
+             page->virtual_addr.addr,
+             page->virtual_addr.addr + page->virtual_addr.size,
+             page->virtual_addr.size);
         ygc_page_free(ygc, page, 0/*dont should locking*/);
     }
     yalx_mutex_final(&ygc->mutex);
@@ -113,7 +129,10 @@ struct ygc_core *ygc_heap_of(struct heap *h) {
 void ygc_thread_enter(struct heap *h, struct yalx_os_thread *thread) {
     DCHECK(h != NULL);
     DCHECK(h->gc == GC_YGC);
+    DCHECK(sizeof(struct ygc_tls_struct) <= sizeof(thread->gc_data));
+
     struct ygc_tls_struct *tls = (struct ygc_tls_struct *)thread->gc_data;
+    tls->bad_mask = YGC_ADDRESS_BAD_MASK;
     for (int i = 0; i < YGC_MAX_MARKING_STRIPES; i++) {
         tls->stacks[i] = NULL;
     }
@@ -406,7 +425,7 @@ void ygc_mark_start(struct heap *h) {
     yalx_global_visit_root(&visitor);
     yalx_root_handles_visit(&visitor);
 
-    DLOG(WARN, "Visit coroutines and others...");
+    DLOG(WARN, "Visit coroutines and others for ygc_mark_start()...");
 }
 
 void ygc_mark(struct heap *h, int initial) {
@@ -443,6 +462,11 @@ void ygc_select_relocation_set(struct ygc_core *ygc) {
             relocation_set_selector_register_live_page(&selector, page);
         } else {
             relocation_set_selector_register_garbage_page(&selector, page);
+
+            DLOG(INFO, "Free page: [%p, %p) (%zd)",
+                 page->virtual_addr.addr,
+                 page->virtual_addr.addr + page->virtual_addr.size,
+                 page->virtual_addr.size);
             ygc_page_free(ygc, page, 0/*dont should lock*/);
         }
     }
@@ -466,6 +490,12 @@ void ygc_relocate_start(struct heap *h) {
 
     // Remap/Relocate roots
     ygc_relocating_start(&ygc->relocate, h);
+}
+
+void ygc_relocate(struct heap *h) {
+    struct ygc_core *ygc = ygc_heap_of(h);
+
+
 }
 
 uintptr_t ygc_remap_object(struct ygc_core *ygc, uintptr_t addr) {
@@ -518,6 +548,13 @@ uintptr_t ygc_page_atomic_allocate(struct ygc_page *page, size_t size, uintptr_t
     } while (!atomic_compare_exchange_strong(&page->top, &addr, new_top));
     uintptr_t chunk = ROUND_UP(addr, alignment_in_bytes);
     return chunk + size >= page->limit ? UINTPTR_MAX : chunk;
+}
+
+size_t ygc_page_object_max_count(struct ygc_page const *page) {
+    if (ygc_is_large_page(page)) {
+        return 1;
+    }
+    return page->virtual_addr.size >> pointer_shift_in_bytes;
 }
 
 void ygc_page_mark_object(struct ygc_page *page, struct yalx_value_any *obj) {

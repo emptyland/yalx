@@ -20,7 +20,7 @@ static const char *levels_text[] = {
 };
 
 void yalx_logging_printf(enum logging_level level, const char *file, int line, const char *fmt, ...) {
-    FILE *fp = level >= LOGGING_WARN ? stderr : stdout;
+    FILE *fp = level > LOGGING_WARN ? stderr : stdout;
     va_list ap;
     va_start(ap, fmt);
     fprintf(fp, "[%s:%d] %s ", file, line, levels_text[level]);
@@ -32,6 +32,18 @@ void yalx_logging_printf(enum logging_level level, const char *file, int line, c
     if (level == LOGGING_FATAL) {
         abort();
     }
+}
+
+void yalx_guarantee(const char *expr, const char *file, int line, const char *fmt, ...) {
+    FILE *fp = stderr;
+    va_list ap;
+    va_start(ap, fmt);
+    fprintf(fp, "[%s:%d] Guarantee fail! `%s' ", file, line, expr);
+    vfprintf(fp, fmt, ap);
+    fputc('\n', fp);
+    fflush(fp);
+    va_end(ap);
+    abort();
 }
 
 #if defined(YALX_OS_POSIX)

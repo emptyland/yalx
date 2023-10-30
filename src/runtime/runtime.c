@@ -319,14 +319,14 @@ void yalx_global_visit_root(struct yalx_root_visitor *visitor) {
             struct kstr_header *const_str = (struct kstr_header *)(((void **)span.value)[0]);
             struct pkg_global_slots *global_slots = (struct pkg_global_slots *)(((void **)span.value)[1]);
 
-            continue;
-//            DLOG(INFO, "Visit global string constant pool, [%p] (%d)", const_str->ks, const_str->number_of_strings);
-//            visitor->visit_pointers(visitor,
-//                                    (yalx_ref_t *) const_str->ks,
-//                                    (yalx_ref_t *) (const_str->ks + const_str->number_of_strings));
-//
-//            USE(global_slots);
-//            DLOG(INFO, "Visit global slots has not support yet");
+            //continue;
+            DLOG(INFO, "Visit global string constant pool, [%p] (%d)", const_str->ks, const_str->number_of_strings);
+            visitor->visit_pointers(visitor,
+                                    (yalx_ref_t *) const_str->ks,
+                                    (yalx_ref_t *) (const_str->ks + const_str->number_of_strings));
+
+            USE(global_slots);
+            DLOG(INFO, "Visit global slots has not support yet");
         }
     }
 

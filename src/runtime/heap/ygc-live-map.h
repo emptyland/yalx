@@ -28,7 +28,7 @@ void live_map_init(struct ygc_live_map *map, size_t shift_per_bucket);
 void live_map_final(struct ygc_live_map *map);
 
 void live_map_set(struct ygc_live_map *map, int index);
-int live_map_get(struct ygc_live_map *map, int index);
+int live_map_get(struct ygc_live_map const *map, int index);
 
 void live_map_reinit(struct ygc_live_map *map);
 int live_map_is_marked(struct ygc_live_map const *map);

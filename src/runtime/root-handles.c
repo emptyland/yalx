@@ -38,6 +38,11 @@ struct yalx_value_any **yalx_get_root_handles(size_t *n) {
 }
 
 void yalx_root_handles_visit(struct yalx_root_visitor *visitor) {
-    DLOG(INFO, "Visit root handles for testing, %p (%zd)", root_handles, n_root_handles);
+    DLOG(INFO, "Visit root handles for testing. (%zd)", n_root_handles);
     visitor->visit_pointers(visitor, root_handles, root_handles + n_root_handles);
+#if !defined(NDEBUG)
+    for (size_t i = 0; i < n_root_handles; i++) {
+        DLOG(INFO, "Root handle: <%p>", root_handles[i]);
+    }
+#endif
 }

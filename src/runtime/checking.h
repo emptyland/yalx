@@ -42,6 +42,10 @@ enum logging_level {
 void yalx_logging_printf(enum logging_level level, const char *file, int line, const char *fmt, ...);
 void yalx_logging_sys_error(const char *file, int line, const char *fmt, ...);
 
+#define GUARANTEE(expr, ...) ((expr) ? (void)0 : yalx_guarantee(#expr, __FILE__, __LINE__, __VA_ARGS__))
+
+void yalx_guarantee(const char *expr, const char *file, int line, const char *fmt, ...);
+
 #endif // YALX_RUNTIME_CHECKING_H_
 
 

@@ -8,6 +8,7 @@
 #include "runtime/runtime.h"
 #include "runtime/checking.h"
 #include <math.h>
+#include <stdatomic.h>
 
 static void group_init(struct relocation_set_selector_group *group, const char *name,
                        int page_type,
@@ -18,7 +19,7 @@ static void group_init(struct relocation_set_selector_group *group, const char *
     group->name = name;
     DCHECK(page_type == YGC_PAGE_TYPE_SMALL || page_type == YGC_PAGE_TYPE_MEDIUM || page_type == YGC_PAGE_TYPE_LARGE);
     group->page_type = page_type;
-    DCHECK(fragmentation_limit >= 0 && fragmentation_limit <= 100);
+    //DCHECK(fragmentation_limit >= 0 && fragmentation_limit <= 100);
     group->fragmentation_limit = fragmentation_limit;
     group->fragmentation_limit_in_bytes = page_size * (fragmentation_limit / 100);
     group->page_size_in_bytes = page_size;
@@ -85,6 +86,7 @@ static void group_semi_sort(struct relocation_set_selector_group *group) {
     // Allocate destination array
     DCHECK(group->ordered_pages == NULL);
     group->ordered_pages = MALLOC_N(struct ygc_page *, group->n_pages);
+    memset(group->ordered_pages, 0, sizeof(struct ygc_page *) * group->n_pages);
 
     // Calculate partition slots
     for (size_t i = 0; i < group->n_pages; i++) {
@@ -106,10 +108,9 @@ static void group_semi_sort(struct relocation_set_selector_group *group) {
     for (size_t i = 0; i < group->n_pages; i++) {
         const size_t index = group->pages[i]->live_map.live_objs_in_bytes >> partition_size_shift;
         const size_t finger = partitions[index]++;
-        DCHECK(group->ordered_pages[finger] == NULL);
+        GUARANTEE(group->ordered_pages[finger] == NULL, "in index(%zd) finger(%zd) is not null", index, finger);
         group->ordered_pages[finger] = group->pages[i];
     }
-    UNREACHABLE();
 }
 
 static inline double percent_of(size_t a, size_t b) {
@@ -145,6 +146,8 @@ static void group_select_detail(struct relocation_set_selector_group *group) {
         const size_t diff_from = from - selected_from;
         const size_t diff_to = to - selected_to;
         const double diff_reclaimable = 100 - percent_of(diff_to, diff_from);
+        DLOG(INFO, "Group: \"%s\" diff_reclaimable = %.2f, from: %zd bytes, to: %zd bytes", group->name, diff_reclaimable,
+             from_size_in_bytes, to);
         if (diff_reclaimable > group->fragmentation_limit) {
             selected_from = from;
             selected_to = to;
@@ -169,9 +172,12 @@ static void group_select(struct relocation_set_selector_group *group) {
 
 
 void relocation_set_selector_init(struct relocation_set_selector *self, int fragmentation_limit) {
-    group_init(&self->small, "Small", YGC_PAGE_TYPE_SMALL, SMALL_PAGE_SIZE, SMALL_OBJECT_SIZE_LIMIT, fragmentation_limit);
-    group_init(&self->medium, "Medium", YGC_PAGE_TYPE_MEDIUM, MEDIUM_PAGE_SIZE, MEDIUM_OBJECT_SIZE_LIMIT, fragmentation_limit);
-    group_init(&self->large, "Large", YGC_PAGE_TYPE_LARGE, 0, 0, fragmentation_limit);
+    group_init(&self->small, "Small", YGC_PAGE_TYPE_SMALL, SMALL_PAGE_SIZE,
+               SMALL_OBJECT_SIZE_LIMIT, fragmentation_limit);
+    group_init(&self->medium, "Medium", YGC_PAGE_TYPE_MEDIUM, MEDIUM_PAGE_SIZE,
+               MEDIUM_OBJECT_SIZE_LIMIT, fragmentation_limit);
+    group_init(&self->large, "Large", YGC_PAGE_TYPE_LARGE,
+               0, 0, fragmentation_limit);
 }
 
 void relocation_set_selector_final(struct relocation_set_selector *self) {
@@ -207,6 +213,9 @@ void relocation_set_selector_select(struct relocation_set_selector *self, struct
     group_select(&self->medium);
     group_select(&self->large);
 
+    DLOG(INFO, "Relocation set selected: medium pages: %zd, small pages: %zd",
+         self->medium.n_selected,
+         self->small.n_selected);
     ygc_relocation_set_populate(set, self->medium.ordered_pages, self->medium.n_selected,
                                 self->small.ordered_pages, self->small.n_selected);
 }
@@ -248,6 +257,17 @@ void ygc_relocation_set_reset(struct ygc_relocation_set *set) {
     }
 }
 
+int ygc_relocation_set_parallel_iter_next(struct ygc_relocation_set_parallel_iter *iter, struct forwarding **fwd) {
+    if (iter->next < iter->owns->size) {
+        const size_t next = atomic_fetch_add(&iter->next, 1);
+        if (next < iter->owns->size) {
+            *fwd = iter->owns->forwards[next];
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void ygc_relocate_init(struct ygc_relocate *relocate, struct ygc_core *owns) {
     relocate->owns = owns;
     yalx_job_init(&relocate->job, "yalx-relocating", ncpus / 2 < 4 ? 4 : ncpus / 2);
@@ -280,11 +300,11 @@ static uintptr_t relocate_object(const struct ygc_relocate *relocate, struct for
         return entry.to_offset;
     }
 
-    // TODO: check `from_offset' is live
+    GUARANTEE(ygc_object_is_live(relocate->owns, from_offset), "%p object must be live");
 
     if (atomic_load(&fwd->pinned)) {
         // In-place forward
-        forwarding_insert(fwd, from_index, from_offset, &pos);
+        return forwarding_insert(fwd, from_index, from_offset, &pos);
     }
 
     // Allocate object
@@ -294,7 +314,7 @@ static uintptr_t relocate_object(const struct ygc_relocate *relocate, struct for
                                                              pointer_size_in_bytes);
     if (!to_good) {
         // Failed, in-place forward
-        forwarding_insert(fwd, from_index, from_offset, &pos);
+        return forwarding_insert(fwd, from_index, from_offset, &pos);
     }
 
     memcpy((void *)to_good, (void *)from_good, size_in_bytes);
@@ -303,6 +323,7 @@ static uintptr_t relocate_object(const struct ygc_relocate *relocate, struct for
     const uintptr_t to_offset_final = forwarding_insert(fwd, from_index, to_offset, &pos);
     if (to_offset == to_offset_final) {
         // Ok
+        // DLOG(INFO, "Ok: %p -> %p", from_offset, to_offset);
         return to_offset;
     }
 
@@ -350,5 +371,49 @@ void ygc_relocating_start(struct ygc_relocate *relocate, struct heap *h) {
     yalx_global_visit_root(&visitor);
     yalx_root_handles_visit(&visitor); // For testing...
 
-    DLOG(WARN, "Visit coroutines and others...");
+    DLOG(WARN, "Visit coroutines and others for ygc_relocating_start()...");
+}
+
+static void visit_pointer(struct yalx_heap_visitor *v, yalx_ref_t o) {
+    struct ygc_relocate *const relocate = (struct ygc_relocate *)v->ctx;
+    struct forwarding *const fwd = (struct forwarding *)v->reserved1;
+
+    ygc_relocating_relocate_object(relocate, fwd, (uintptr_t)o);
+}
+
+static void relocating_entry(struct yalx_worker *worker) {
+    struct ygc_relocation_set_parallel_iter *const iter = (struct ygc_relocation_set_parallel_iter *)worker->ctx;
+    struct ygc_core *ygc = iter->relocate->owns;
+
+    struct yalx_heap_visitor visitor = {
+            iter->relocate,
+            0,
+            0,
+            visit_pointer,
+    };
+
+    int ok = 1;
+    struct forwarding *fwd = NULL;
+    while (ygc_relocation_set_parallel_iter_next(iter, &fwd)) {
+        visitor.reserved1 = (intptr_t)fwd;
+        live_map_visit_objects(&fwd->page->live_map, fwd->page, &visitor);
+
+        forwarding_verify(fwd);
+
+        if (atomic_load(&fwd->pinned)) {
+            // Relocation failed, page is now pinned
+            ok = 0;
+        } else {
+            // Relocation succeeded, release page
+            forwarding_drop_page(fwd, ygc);
+            ok = 1;
+        }
+    }
+
+    USE(ok);
+}
+
+void ygc_relocating_relocate(struct ygc_relocate *relocate) {
+    struct ygc_relocation_set_parallel_iter iter = {relocate,&relocate->owns->relocation_set,0 };
+    yalx_job_submit(&relocate->job, relocating_entry, &iter);
 }

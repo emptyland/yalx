@@ -1,4 +1,5 @@
 #include "runtime/heap/ygc.h"
+#include "runtime/heap/ygc-forwarding.h"
 #include "runtime/heap/heap.h"
 #include "runtime/heap/object-visitor.h"
 #include "runtime/object/yalx-string.h"
@@ -22,6 +23,18 @@ public:
 
         yalx_free_heap(heap_);
         heap_ = nullptr;
+    }
+
+    yalx_value_array *NewDummyArray(const int n) const {
+        std::unique_ptr<yalx_value_str *[]> elems(new yalx_value_str*[n]);
+        char buf[16];
+        for (int i = 0; i < n; i++) {
+            snprintf(buf, arraysize(buf), "%d", i);
+            elems[i] = yalx_new_string_direct(heap_, buf, strlen(buf));
+        }
+        auto arr = yalx_new_refs_array_with_data(heap_, string_class, 1, nullptr,
+                                                 reinterpret_cast<yalx_ref_t *>(elems.get()), n);
+        return reinterpret_cast<yalx_value_array *>(arr);
     }
 
     static void VisitObject1(yalx_heap_visitor *v, yalx_ref_t o) {
@@ -123,6 +136,9 @@ TEST_F(YGCHeapTest, ConcurrentMarkSanity) {
             yalx_new_string_direct(heap_, "2", 1),
             yalx_new_string_direct(heap_, "3", 1),
     };
+    ASSERT_FALSE(ygc_is_marked(elems[0]));
+    ASSERT_FALSE(ygc_is_marked(elems[1]));
+    ASSERT_FALSE(ygc_is_marked(elems[2]));
     auto arr = yalx_new_refs_array_with_data(heap_, string_class, 1, nullptr,
                                              reinterpret_cast<yalx_ref_t *>(elems), 3);
     yalx_add_root_handle(reinterpret_cast<yalx_ref_t>(arr));
@@ -133,4 +149,78 @@ TEST_F(YGCHeapTest, ConcurrentMarkSanity) {
 
     auto hello2 = yalx_new_string(heap_, "hello", 5);
     ASSERT_EQ(ygc_offset(hello1), ygc_offset(hello2));
+
+    auto vals = reinterpret_cast<yalx_value_str **>(reinterpret_cast<yalx_value_array *>(arr)->data);
+    ASSERT_TRUE(ygc_is_marked(vals[0]));
+    ASSERT_TRUE(ygc_is_marked(vals[1]));
+    ASSERT_TRUE(ygc_is_marked(vals[2]));
+}
+
+TEST_F(YGCHeapTest, SelectRelactionSetDefault) {
+    auto ygc = ygc_heap_of(heap_);
+    auto arr = NewDummyArray(5);
+    yalx_add_root_handle(reinterpret_cast<yalx_ref_t>(arr));
+
+    ygc_mark_start(heap_);
+    ygc_marking_tls_commit(&ygc->mark, yalx_os_thread_self());
+    ygc_mark(heap_, 0);
+    ygc_reset_relocation_set(heap_);
+    ygc_select_relocation_set(ygc);
+
+    EXPECT_EQ(0, ygc->relocation_set.size);
+}
+
+TEST_F(YGCHeapTest, SelectRelactionSetAll) {
+    auto ygc = ygc_heap_of(heap_);
+    ygc->fragmentation_limit = -1;
+    auto arr = NewDummyArray(5);
+    yalx_add_root_handle(reinterpret_cast<yalx_ref_t>(arr));
+
+    ygc_mark_start(heap_);
+    ygc_marking_tls_commit(&ygc->mark, yalx_os_thread_self());
+    ygc_mark(heap_, 0);
+    ygc_reset_relocation_set(heap_);
+    ygc_select_relocation_set(ygc);
+
+    EXPECT_EQ(1, ygc->relocation_set.size);
+
+    auto fwd = ygc->relocation_set.forwards[0];
+    ASSERT_TRUE(fwd != nullptr);
+
+    EXPECT_EQ(1, fwd->refs);
+    EXPECT_EQ(0, fwd->pinned);
+
+    EXPECT_TRUE(forwarding_grab_page(fwd));
+    EXPECT_FALSE(forwarding_drop_page(fwd, ygc));
+}
+
+TEST_F(YGCHeapTest, RelocateStartSanity) {
+    auto ygc = ygc_heap_of(heap_);
+    ygc->fragmentation_limit = -1;
+    auto arr = NewDummyArray(5);
+    yalx_add_root_handle(reinterpret_cast<yalx_ref_t>(arr));
+
+    ygc_mark_start(heap_);
+    ygc_marking_tls_commit(&ygc->mark, yalx_os_thread_self());
+    ygc_mark(heap_, 0);
+    ygc_reset_relocation_set(heap_);
+    ygc_select_relocation_set(ygc);
+    ygc_relocate_start(heap_);
+
+    ASSERT_EQ(YGC_METADATA_REMAPPED, YGC_ADDRESS_GOOD_MASK);
+    ASSERT_EQ(YGC_PHASE_RELOCATE, ygc_global_phase);
+
+    size_t n = 0;
+    auto handles = yalx_get_root_handles(&n);
+    ASSERT_EQ(1, n);
+    EXPECT_NE(ygc_offset(arr), ygc_offset(handles[0]));
+
+    arr = reinterpret_cast<yalx_value_array *>(handles[0]);
+    ASSERT_EQ(5, arr->len);
+    auto elems = reinterpret_cast<yalx_value_str **>(arr->data);
+    for (int i = 0; i < arr->len; i++) {
+        char buf[16];
+        snprintf(buf, arraysize(buf), "%d", i);
+        EXPECT_STREQ(buf, elems[i]->bytes);
+    }
 }

@@ -86,7 +86,12 @@ int forwarding_grab_page(struct forwarding *fwd) {
 int forwarding_drop_page(struct forwarding *fwd, struct ygc_core *ygc) {
     DCHECK(fwd->refs > 0);
     if (atomic_fetch_sub(&fwd->refs, 1) == 1) {
-        ygc_page_free(ygc, fwd->page, 1);
+        struct ygc_page *const page = fwd->page;
+        DLOG(INFO, "<Free Page> Cause forwarding drop page: [%p, %p) (%zd)",
+             page->virtual_addr.addr,
+             page->virtual_addr.addr + page->virtual_addr.size,
+             page->virtual_addr.size);
+        ygc_page_free(ygc, page, 1);
         fwd->page = NULL;
         return 1;
     }
@@ -95,6 +100,38 @@ int forwarding_drop_page(struct forwarding *fwd, struct ygc_core *ygc) {
 
 void forwarding_set_pinned(struct forwarding *fwd, int pinned) {
     atomic_store(&fwd->pinned, pinned);
+}
+
+void forwarding_verify(struct forwarding const *fwd) {
+    GUARANTEE(fwd->refs > 0, "Invalid refs count: %d", fwd->refs);
+    GUARANTEE(fwd->page != NULL, "Invalid page");
+
+    size_t live_objs_count = 0;
+    for (size_t i = 0; i < fwd->n_entries; i++) {
+        struct forwarding_entry const entry = atomic_load(&fwd->entries[i]);
+        if (!entry.populated) {
+            continue;
+        }
+
+        // Check from index:
+        GUARANTEE(entry.from_index < ygc_page_object_max_count(fwd->page), "Invalid from index: %zd", entry.from_index);
+
+        // Check duplicates:
+        for (size_t j = i + 1; j < fwd->n_entries; j++) {
+            struct forwarding_entry const other = atomic_load(&fwd->entries[j]);
+            if (!other.populated) {
+                continue;
+            }
+
+            GUARANTEE(entry.from_index != other.from_index, "Duplicated from index: %p", entry.from_index);
+            GUARANTEE(entry.to_offset != other.to_offset, "Duplicated to offset: %p", entry.to_offset);
+        }
+
+        live_objs_count++;
+    }
+
+    GUARANTEE(live_objs_count == fwd->page->live_map.live_objs, "Invalid number of entries, expected: %zd; actual is %zd",
+              fwd->page->live_map.live_objs, live_objs_count);
 }
 
 uintptr_t forwarding_insert(struct forwarding *fwd, uintptr_t from_index, uintptr_t to_offset, size_t *pos) {
