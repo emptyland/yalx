@@ -1,8 +1,6 @@
 #include "instruction-selector-test.h"
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 InstructionSelectorTest::InstructionSelectorTest()
 : linkage_(&arena_)
@@ -48,23 +46,21 @@ ir::StructureModel *InstructionSelectorTest::NewFooClass() {
     auto full_name = String::New(arena(), "testing:testing.test.Foo");
     auto klass = module_->NewClassModel(name, full_name, nullptr);
     klass->InsertField({
-        .name = String::New(arena(), "a"),
-        .access = ir::kPublic,
-        .offset = 0,
-        .type = ir::Types::Int32,
-        .enum_value = 0
+        String::New(arena(), "a"),
+        ir::kPublic,
+        0,
+        ir::Types::Int32,
+        0
     });
     klass->InsertField({
-        .name = String::New(arena(), "b"),
-        .access = ir::kPublic,
-        .offset = 0,
-        .type = ir::Types::Int32,
-        .enum_value = 0
+        String::New(arena(), "b"),
+        ir::kPublic,
+        0,
+        ir::Types::Int32,
+        0
     });
     klass->UpdatePlacementSizeInBytes();
     return klass;
 }
-
-} // namespace backend
 
 } // namespace yalx

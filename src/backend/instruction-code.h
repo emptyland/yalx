@@ -6,9 +6,7 @@
 #include "backend/arm64/instruction-codes-arm64.h"
 #include "base/bit-field.h"
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 #define ARCH_OPCODE_LIST(V) \
     V(ArchNop) \
@@ -62,8 +60,6 @@ enum CallDescriptor {
 using InstructionCodeField = base::BitField<InstructionCode, 0, 16>;
 using AddressingModeField  = InstructionCodeField::Next<AddressingMode, 8>;
 using CallDescriptorField  = InstructionCodeField::Next<CallDescriptor, 4>;
-
-} // namespace backend
 
 } // namespace yalx
 

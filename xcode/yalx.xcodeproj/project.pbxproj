@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -22,7 +22,7 @@
 		2313C4DC27A2421C00F6A34B /* constants-folding-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2313C4DB27A2421C00F6A34B /* constants-folding-test.cc */; };
 		2313C4DD27A2421C00F6A34B /* constants-folding-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2313C4DB27A2421C00F6A34B /* constants-folding-test.cc */; };
 		231C4B8C268DA7AD00D4AC62 /* boot-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8A268DA7AD00D4AC62 /* boot-posix-arm64.s */; };
-		231C4B8D268DA7AD00D4AC62 /* test-stub-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8B268DA7AD00D4AC62 /* test-stub-posix-arm64.s */; };
+		231C4B8D268DA7AD00D4AC62 /* test-stub-drawin-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8B268DA7AD00D4AC62 /* test-stub-drawin-arm64.s */; };
 		231C4B90268DA7D200D4AC62 /* yalx-string-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8E268DA7D200D4AC62 /* yalx-string-posix-arm64.s */; };
 		231C4B91268DA7D200D4AC62 /* any-posix-arm64.s in Sources */ = {isa = PBXBuildFile; fileRef = 231C4B8F268DA7D200D4AC62 /* any-posix-arm64.s */; };
 		2322269C27EEB04700B18B36 /* code-generate-arch-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2322269B27EEB04700B18B36 /* code-generate-arch-test.cc */; };
@@ -58,12 +58,6 @@
 		233AB98427EB4C6100E68B90 /* unwind-posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 233AB98227EB4C6100E68B90 /* unwind-posix.c */; };
 		233F67E6287D1E2E001982FF /* arena.cc in Sources */ = {isa = PBXBuildFile; fileRef = 233F67E5287D1E2E001982FF /* arena.cc */; };
 		233F67E7287D1E2E001982FF /* arena.cc in Sources */ = {isa = PBXBuildFile; fileRef = 233F67E5287D1E2E001982FF /* arena.cc */; };
-		23448B6428573B97007013EB /* immix-heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6328573B97007013EB /* immix-heap.c */; };
-		23448B6528573B97007013EB /* immix-heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6328573B97007013EB /* immix-heap.c */; };
-		23448B6828583024007013EB /* logging.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6728583024007013EB /* logging.c */; };
-		23448B6928583024007013EB /* logging.c in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6728583024007013EB /* logging.c */; };
-		23448B6B28586C93007013EB /* logging-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6A28586C92007013EB /* logging-test.cc */; };
-		23448B6C28586C93007013EB /* logging-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23448B6A28586C92007013EB /* logging-test.cc */; };
 		2348E619286AB26200E2C365 /* type.c in Sources */ = {isa = PBXBuildFile; fileRef = 2348E618286AB26200E2C365 /* type.c */; };
 		2348E61A286AB26200E2C365 /* type.c in Sources */ = {isa = PBXBuildFile; fileRef = 2348E618286AB26200E2C365 /* type.c */; };
 		2355560A278929C0003ADACE /* io-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23555609278929C0003ADACE /* io-test.cc */; };
@@ -88,11 +82,38 @@
 		236CC7B727BF383F00754BC0 /* hash-table.c in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B527BF383F00754BC0 /* hash-table.c */; };
 		236CC7B927BF754D00754BC0 /* hash-table-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B827BF754D00754BC0 /* hash-table-test.cc */; };
 		236CC7BA27BF754D00754BC0 /* hash-table-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236CC7B827BF754D00754BC0 /* hash-table-test.cc */; };
+		236DFD582ACD61FE00B97C55 /* thread-posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD552ACD61FE00B97C55 /* thread-posix.c */; };
+		236DFD632ACD627D00B97C55 /* ygc-live-map.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD5C2ACD627D00B97C55 /* ygc-live-map.c */; };
+		236DFD642ACD627D00B97C55 /* ygc-heap-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD5D2ACD627D00B97C55 /* ygc-heap-test.cc */; };
+		236DFD652ACD627D00B97C55 /* ygc-platform-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD5F2ACD627D00B97C55 /* ygc-platform-test.cc */; };
+		236DFD662ACD627D00B97C55 /* ygc-physical-memory.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD602ACD627D00B97C55 /* ygc-physical-memory.c */; };
+		236DFD672ACD627D00B97C55 /* ygc-live-map-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD612ACD627D00B97C55 /* ygc-live-map-test.cc */; };
+		236DFD692ACD8ACB00B97C55 /* env.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD682ACD8ACB00B97C55 /* env.cc */; };
+		236DFD6F2ACD8C1800B97C55 /* ygc-virtual-memory-posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD6A2ACD8C1800B97C55 /* ygc-virtual-memory-posix.c */; };
+		236DFD702ACD8C1800B97C55 /* ygc-virtual-memory.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD6C2ACD8C1800B97C55 /* ygc-virtual-memory.c */; };
+		236DFD712ACD8C1800B97C55 /* ygc-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD6D2ACD8C1800B97C55 /* ygc-test.cc */; };
+		236DFD722ACD8C1800B97C55 /* ygc.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD6E2ACD8C1800B97C55 /* ygc.c */; };
+		236DFD782ACD8CD100B97C55 /* checking.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD762ACD8CD100B97C55 /* checking.c */; };
+		236DFD7C2ACD8E4200B97C55 /* ygc-platform-darwin.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD7B2ACD8E4200B97C55 /* ygc-platform-darwin.c */; };
+		236DFD822ADA396A00B97C55 /* ygc-forwarding.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD7F2ADA396A00B97C55 /* ygc-forwarding.c */; };
+		236DFD832ADA396A00B97C55 /* ygc-forwarding.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD7F2ADA396A00B97C55 /* ygc-forwarding.c */; };
+		236DFD842ADA396A00B97C55 /* ygc-forwarding-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD802ADA396A00B97C55 /* ygc-forwarding-test.cc */; };
+		236DFD852ADA396A00B97C55 /* ygc-forwarding-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD802ADA396A00B97C55 /* ygc-forwarding-test.cc */; };
+		236DFD8E2ADA3EF300B97C55 /* jobs.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD862ADA3EF300B97C55 /* jobs.c */; };
+		236DFD8F2ADA3EF300B97C55 /* jobs.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD862ADA3EF300B97C55 /* jobs.c */; };
+		236DFD902ADA3EF300B97C55 /* mm-thread-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD872ADA3EF300B97C55 /* mm-thread-test.cc */; };
+		236DFD912ADA3EF300B97C55 /* mm-thread-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD872ADA3EF300B97C55 /* mm-thread-test.cc */; };
+		236DFD922ADA3EF300B97C55 /* mm-thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD882ADA3EF300B97C55 /* mm-thread.c */; };
+		236DFD932ADA3EF300B97C55 /* mm-thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD882ADA3EF300B97C55 /* mm-thread.c */; };
+		236DFD942ADA3EF300B97C55 /* daemon.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD892ADA3EF300B97C55 /* daemon.c */; };
+		236DFD952ADA3EF300B97C55 /* daemon.c in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD892ADA3EF300B97C55 /* daemon.c */; };
+		236DFD962ADA3EF300B97C55 /* daemon-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD8B2ADA3EF300B97C55 /* daemon-test.cc */; };
+		236DFD972ADA3EF300B97C55 /* daemon-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD8B2ADA3EF300B97C55 /* daemon-test.cc */; };
+		236DFD982ADA3EF300B97C55 /* jobs-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD8C2ADA3EF300B97C55 /* jobs-test.cc */; };
+		236DFD992ADA3EF300B97C55 /* jobs-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD8C2ADA3EF300B97C55 /* jobs-test.cc */; };
 		238358E52894D86F00F655B1 /* instruction-selector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238358E42894D86F00F655B1 /* instruction-selector.cc */; };
 		238358E62894D86F00F655B1 /* instruction-selector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238358E42894D86F00F655B1 /* instruction-selector.cc */; };
 		23863A8127EF65680089F9BA /* any.c in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68526676DFC00635ADB /* any.c */; };
-		2387D4B02859C0590088F1A6 /* immix-heap-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387D4AF2859C0590088F1A6 /* immix-heap-test.cc */; };
-		2387D4B12859C0590088F1A6 /* immix-heap-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387D4AF2859C0590088F1A6 /* immix-heap-test.cc */; };
 		2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EF9E2681C8D3002E6DCF /* compiler.cc */; };
 		2387EFA42684627B002E6DCF /* lexer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFA32684627B002E6DCF /* lexer.cc */; };
@@ -109,10 +130,6 @@
 		2387EFB82685BB99002E6DCF /* node-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFB62685BB99002E6DCF /* node-test.cc */; };
 		2387EFBB2685BEAD002E6DCF /* ast.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFBA2685BEAD002E6DCF /* ast.cc */; };
 		2387EFBC2685BEAD002E6DCF /* ast.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2387EFBA2685BEAD002E6DCF /* ast.cc */; };
-		23893F8028447368000FA9F7 /* block.c in Sources */ = {isa = PBXBuildFile; fileRef = 23893F7F28447368000FA9F7 /* block.c */; };
-		23893F8128447368000FA9F7 /* block.c in Sources */ = {isa = PBXBuildFile; fileRef = 23893F7F28447368000FA9F7 /* block.c */; };
-		23893F8328449CE4000FA9F7 /* block-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23893F8228449CE4000FA9F7 /* block-test.cc */; };
-		23893F8428449CE4000FA9F7 /* block-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23893F8228449CE4000FA9F7 /* block-test.cc */; };
 		239735CC27B54D2800FAD063 /* linkage-symbols.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735CB27B54D2800FAD063 /* linkage-symbols.cc */; };
 		239735CD27B54D2800FAD063 /* linkage-symbols.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735CB27B54D2800FAD063 /* linkage-symbols.cc */; };
 		239735CF27B551A500FAD063 /* linkage-symbols-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239735CE27B551A500FAD063 /* linkage-symbols-test.cc */; };
@@ -200,7 +217,6 @@
 		23D4A46E2680D17D0090C631 /* bit-ops.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7226439E9500A2FAC3 /* bit-ops.h */; };
 		23D4A46F2680D17D0090C631 /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6226439E9500A2FAC3 /* crc32.c */; };
 		23D4A4702680D17D0090C631 /* env-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2340E6B52648234A006B37F3 /* env-test.cc */; };
-		23D4A4712680D17D0090C631 /* env-posix.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47BA264A83D4003DCA4F /* env-posix.cc */; };
 		23D4A4722680D17D0090C631 /* env.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6526439E9500A2FAC3 /* env.h */; };
 		23D4A4732680D17D0090C631 /* hash.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6F26439E9500A2FAC3 /* hash.cc */; };
 		23D4A4742680D17D0090C631 /* hash.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6126439E9500A2FAC3 /* hash.h */; };
@@ -248,7 +264,6 @@
 		23D5A667266718F900635ADB /* bit-ops.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD7226439E9500A2FAC3 /* bit-ops.h */; };
 		23D5A668266718F900635ADB /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6226439E9500A2FAC3 /* crc32.c */; };
 		23D5A669266718F900635ADB /* env-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2340E6B52648234A006B37F3 /* env-test.cc */; };
-		23D5A66A266718F900635ADB /* env-posix.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232A47BA264A83D4003DCA4F /* env-posix.cc */; };
 		23D5A66B266718F900635ADB /* env.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6526439E9500A2FAC3 /* env.h */; };
 		23D5A66C266718F900635ADB /* hash.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6F26439E9500A2FAC3 /* hash.cc */; };
 		23D5A66D266718F900635ADB /* hash.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD6126439E9500A2FAC3 /* hash.h */; };
@@ -267,12 +282,10 @@
 		23D5A67A266718F900635ADB /* format.h in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD932644DCF200A2FAC3 /* format.h */; };
 		23D5A67B266718F900635ADB /* format.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2354CD942644DDA400A2FAC3 /* format.cc */; };
 		23D5A67C266718F900635ADB /* utils.h in Sources */ = {isa = PBXBuildFile; fileRef = 23EFD48C26467FB5007222D6 /* utils.h */; };
-		23D5A67E26672FE000635ADB /* test-stub-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A67D26672FE000635ADB /* test-stub-posix-x64.s */; };
 		23D5A68326676BDC00635ADB /* heap.c in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68226676BDC00635ADB /* heap.c */; };
 		23D5A68626676DFC00635ADB /* any.c in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68526676DFC00635ADB /* any.c */; };
 		23D5A6892667734A00635ADB /* builtin-types.c in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A6882667734A00635ADB /* builtin-types.c */; };
 		23D5A68B26677D4B00635ADB /* type-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68A26677D4B00635ADB /* type-test.cc */; };
-		23D5A68D2667861900635ADB /* boot-posix-x64.s in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68C2667861900635ADB /* boot-posix-x64.s */; };
 		23EDFA27269C45A400C8F1FE /* node.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EDFA26269C45A400C8F1FE /* node.cc */; };
 		23EDFA28269C45A400C8F1FE /* node.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23EDFA26269C45A400C8F1FE /* node.cc */; };
 		23F6C24B278FC85B00899C4F /* runtime.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F6C24A278FC85B00899C4F /* runtime.cc */; };
@@ -331,14 +344,13 @@
 		2313C4D527A23E8500F6A34B /* constants-folding.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "constants-folding.cc"; path = "../src/ir/pass/constants-folding.cc"; sourceTree = "<group>"; };
 		2313C4DB27A2421C00F6A34B /* constants-folding-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "constants-folding-test.cc"; path = "../src/ir/pass/constants-folding-test.cc"; sourceTree = "<group>"; };
 		231C4B8A268DA7AD00D4AC62 /* boot-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "boot-posix-arm64.s"; path = "../src/runtime/boot-posix-arm64.s"; sourceTree = "<group>"; };
-		231C4B8B268DA7AD00D4AC62 /* test-stub-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "test-stub-posix-arm64.s"; path = "../src/runtime/test-stub-posix-arm64.s"; sourceTree = "<group>"; };
+		231C4B8B268DA7AD00D4AC62 /* test-stub-drawin-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "test-stub-drawin-arm64.s"; path = "../src/runtime/test-stub-drawin-arm64.s"; sourceTree = "<group>"; };
 		231C4B8E268DA7D200D4AC62 /* yalx-string-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "yalx-string-posix-arm64.s"; path = "../src/runtime/object/yalx-string-posix-arm64.s"; sourceTree = "<group>"; };
 		231C4B8F268DA7D200D4AC62 /* any-posix-arm64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = "any-posix-arm64.s"; path = "../src/runtime/object/any-posix-arm64.s"; sourceTree = "<group>"; };
 		2322269A27EEAFDB00B18B36 /* code-generate-arch-test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "code-generate-arch-test.h"; path = "../src/backend/code-generate-arch-test.h"; sourceTree = "<group>"; };
 		2322269B27EEB04700B18B36 /* code-generate-arch-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "code-generate-arch-test.cc"; path = "../src/backend/code-generate-arch-test.cc"; sourceTree = "<group>"; };
 		23235B842797BA2000134DEB /* condition.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = condition.h; path = ../src/ir/condition.h; sourceTree = "<group>"; };
 		23235B852797C07600134DEB /* condition.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = condition.cc; path = ../src/ir/condition.cc; sourceTree = "<group>"; };
-		232A47BA264A83D4003DCA4F /* env-posix.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-posix.cc"; path = "../src/base/env-posix.cc"; sourceTree = "<group>"; };
 		232A47BE264A8BF1003DCA4F /* asm-x64-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-x64-test.cc"; path = "../src/x64/asm-x64-test.cc"; sourceTree = "<group>"; };
 		232A47C1264B6DFD003DCA4F /* label.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = label.h; path = ../src/arch/label.h; sourceTree = "<group>"; };
 		232A47C2264B7D28003DCA4F /* instr-arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "instr-arm64.h"; path = "../src/arm64/instr-arm64.h"; sourceTree = "<group>"; };
@@ -366,11 +378,6 @@
 		233AB98227EB4C6100E68B90 /* unwind-posix.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "unwind-posix.c"; path = "../src/runtime/heap/unwind-posix.c"; sourceTree = "<group>"; };
 		233F67E5287D1E2E001982FF /* arena.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = arena.cc; path = ../src/base/arena.cc; sourceTree = "<group>"; };
 		2340E6B52648234A006B37F3 /* env-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "env-test.cc"; path = "../src/base/env-test.cc"; sourceTree = "<group>"; };
-		23448B6228573B66007013EB /* immix-heap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "immix-heap.h"; path = "../src/runtime/lxr/immix-heap.h"; sourceTree = "<group>"; };
-		23448B6328573B97007013EB /* immix-heap.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "immix-heap.c"; path = "../src/runtime/lxr/immix-heap.c"; sourceTree = "<group>"; };
-		23448B6628582DE5007013EB /* logging.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = logging.h; path = ../src/runtime/lxr/logging.h; sourceTree = "<group>"; };
-		23448B6728583024007013EB /* logging.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = logging.c; path = ../src/runtime/lxr/logging.c; sourceTree = "<group>"; };
-		23448B6A28586C92007013EB /* logging-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "logging-test.cc"; path = "../src/runtime/lxr/logging-test.cc"; sourceTree = "<group>"; };
 		2348E618286AB26200E2C365 /* type.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = type.c; path = ../src/runtime/object/type.c; sourceTree = "<group>"; };
 		2351F80E26648CB200D337EA /* runtime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = runtime.h; path = ../src/runtime/runtime.h; sourceTree = "<group>"; };
 		2351F80F26648D4D00D337EA /* runtime.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = runtime.c; path = ../src/runtime/runtime.c; sourceTree = "<group>"; };
@@ -422,6 +429,36 @@
 		236CC7B427BF343C00754BC0 /* hash-table.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "hash-table.h"; path = "../src/runtime/hash-table.h"; sourceTree = "<group>"; };
 		236CC7B527BF383F00754BC0 /* hash-table.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "hash-table.c"; path = "../src/runtime/hash-table.c"; sourceTree = "<group>"; };
 		236CC7B827BF754D00754BC0 /* hash-table-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "hash-table-test.cc"; path = "../src/runtime/hash-table-test.cc"; sourceTree = "<group>"; };
+		236DFD542ACD61FE00B97C55 /* tls.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tls.h; path = ../src/runtime/tls.h; sourceTree = "<group>"; };
+		236DFD552ACD61FE00B97C55 /* thread-posix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "thread-posix.c"; path = "../src/runtime/thread-posix.c"; sourceTree = "<group>"; };
+		236DFD572ACD61FE00B97C55 /* thread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = thread.h; path = ../src/runtime/thread.h; sourceTree = "<group>"; };
+		236DFD5C2ACD627D00B97C55 /* ygc-live-map.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ygc-live-map.c"; path = "../src/runtime/heap/ygc-live-map.c"; sourceTree = "<group>"; };
+		236DFD5D2ACD627D00B97C55 /* ygc-heap-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "ygc-heap-test.cc"; path = "../src/runtime/heap/ygc-heap-test.cc"; sourceTree = "<group>"; };
+		236DFD5E2ACD627D00B97C55 /* ygc-live-map.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ygc-live-map.h"; path = "../src/runtime/heap/ygc-live-map.h"; sourceTree = "<group>"; };
+		236DFD5F2ACD627D00B97C55 /* ygc-platform-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "ygc-platform-test.cc"; path = "../src/runtime/heap/ygc-platform-test.cc"; sourceTree = "<group>"; };
+		236DFD602ACD627D00B97C55 /* ygc-physical-memory.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ygc-physical-memory.c"; path = "../src/runtime/heap/ygc-physical-memory.c"; sourceTree = "<group>"; };
+		236DFD612ACD627D00B97C55 /* ygc-live-map-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "ygc-live-map-test.cc"; path = "../src/runtime/heap/ygc-live-map-test.cc"; sourceTree = "<group>"; };
+		236DFD682ACD8ACB00B97C55 /* env.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = env.cc; path = ../src/base/env.cc; sourceTree = "<group>"; };
+		236DFD6A2ACD8C1800B97C55 /* ygc-virtual-memory-posix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ygc-virtual-memory-posix.c"; path = "../src/runtime/heap/ygc-virtual-memory-posix.c"; sourceTree = "<group>"; };
+		236DFD6B2ACD8C1800B97C55 /* ygc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ygc.h; path = ../src/runtime/heap/ygc.h; sourceTree = "<group>"; };
+		236DFD6C2ACD8C1800B97C55 /* ygc-virtual-memory.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ygc-virtual-memory.c"; path = "../src/runtime/heap/ygc-virtual-memory.c"; sourceTree = "<group>"; };
+		236DFD6D2ACD8C1800B97C55 /* ygc-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "ygc-test.cc"; path = "../src/runtime/heap/ygc-test.cc"; sourceTree = "<group>"; };
+		236DFD6E2ACD8C1800B97C55 /* ygc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ygc.c; path = ../src/runtime/heap/ygc.c; sourceTree = "<group>"; };
+		236DFD742ACD8CD000B97C55 /* daemon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = daemon.h; path = ../src/runtime/daemon.h; sourceTree = "<group>"; };
+		236DFD752ACD8CD000B97C55 /* platform.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = platform.h; path = ../src/runtime/platform.h; sourceTree = "<group>"; };
+		236DFD762ACD8CD100B97C55 /* checking.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = checking.c; path = ../src/runtime/checking.c; sourceTree = "<group>"; };
+		236DFD7B2ACD8E4200B97C55 /* ygc-platform-darwin.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "ygc-platform-darwin.c"; path = "../src/runtime/heap/ygc-platform-darwin.c"; sourceTree = "<group>"; };
+		236DFD7F2ADA396A00B97C55 /* ygc-forwarding.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ygc-forwarding.c"; path = "../src/runtime/heap/ygc-forwarding.c"; sourceTree = "<group>"; };
+		236DFD802ADA396A00B97C55 /* ygc-forwarding-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "ygc-forwarding-test.cc"; path = "../src/runtime/heap/ygc-forwarding-test.cc"; sourceTree = "<group>"; };
+		236DFD812ADA396A00B97C55 /* ygc-forwarding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ygc-forwarding.h"; path = "../src/runtime/heap/ygc-forwarding.h"; sourceTree = "<group>"; };
+		236DFD862ADA3EF300B97C55 /* jobs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = jobs.c; path = ../src/runtime/jobs.c; sourceTree = "<group>"; };
+		236DFD872ADA3EF300B97C55 /* mm-thread-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "mm-thread-test.cc"; path = "../src/runtime/mm-thread-test.cc"; sourceTree = "<group>"; };
+		236DFD882ADA3EF300B97C55 /* mm-thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "mm-thread.c"; path = "../src/runtime/mm-thread.c"; sourceTree = "<group>"; };
+		236DFD892ADA3EF300B97C55 /* daemon.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = daemon.c; path = ../src/runtime/daemon.c; sourceTree = "<group>"; };
+		236DFD8A2ADA3EF300B97C55 /* mm-thread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "mm-thread.h"; path = "../src/runtime/mm-thread.h"; sourceTree = "<group>"; };
+		236DFD8B2ADA3EF300B97C55 /* daemon-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "daemon-test.cc"; path = "../src/runtime/daemon-test.cc"; sourceTree = "<group>"; };
+		236DFD8C2ADA3EF300B97C55 /* jobs-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "jobs-test.cc"; path = "../src/runtime/jobs-test.cc"; sourceTree = "<group>"; };
+		236DFD8D2ADA3EF300B97C55 /* jobs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = jobs.h; path = ../src/runtime/jobs.h; sourceTree = "<group>"; };
 		23711300275F6889008919BE /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/compiler/constants.h; sourceTree = "<group>"; };
 		237A0DAB27731390002180FE /* global-symbol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "global-symbol.h"; path = "../src/compiler/global-symbol.h"; sourceTree = "<group>"; };
 		238358E02894CD0900F655B1 /* instruction-codes-x64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "instruction-codes-x64.h"; path = "../src/backend/x64/instruction-codes-x64.h"; sourceTree = "<group>"; };
@@ -429,7 +466,6 @@
 		238358E22894D78100F655B1 /* instruction-selector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "instruction-selector.h"; path = "../src/backend/instruction-selector.h"; sourceTree = "<group>"; };
 		238358E42894D86F00F655B1 /* instruction-selector.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "instruction-selector.cc"; path = "../src/backend/instruction-selector.cc"; sourceTree = "<group>"; };
 		238358E72894D8D500F655B1 /* instruction-code.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "instruction-code.h"; path = "../src/backend/instruction-code.h"; sourceTree = "<group>"; };
-		2387D4AF2859C0590088F1A6 /* immix-heap-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "immix-heap-test.cc"; path = "../src/runtime/lxr/immix-heap-test.cc"; sourceTree = "<group>"; };
 		2387EF9D2681C80D002E6DCF /* compiler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = compiler.h; path = ../src/compiler/compiler.h; sourceTree = "<group>"; };
 		2387EF9E2681C8D3002E6DCF /* compiler.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = compiler.cc; path = ../src/compiler/compiler.cc; sourceTree = "<group>"; };
 		2387EFA126842BFF002E6DCF /* object-visitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "object-visitor.h"; path = "../src/runtime/heap/object-visitor.h"; sourceTree = "<group>"; };
@@ -446,10 +482,6 @@
 		2387EFB62685BB99002E6DCF /* node-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "node-test.cc"; path = "../src/compiler/node-test.cc"; sourceTree = "<group>"; };
 		2387EFB92685BE66002E6DCF /* ast.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ast.h; path = ../src/compiler/ast.h; sourceTree = "<group>"; };
 		2387EFBA2685BEAD002E6DCF /* ast.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ast.cc; path = ../src/compiler/ast.cc; sourceTree = "<group>"; };
-		23893F7D28447317000FA9F7 /* lxr.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lxr.h; path = ../src/runtime/lxr/lxr.h; sourceTree = "<group>"; };
-		23893F7E28447351000FA9F7 /* block.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = block.h; path = ../src/runtime/lxr/block.h; sourceTree = "<group>"; };
-		23893F7F28447368000FA9F7 /* block.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = block.c; path = ../src/runtime/lxr/block.c; sourceTree = "<group>"; };
-		23893F8228449CE4000FA9F7 /* block-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "block-test.cc"; path = "../src/runtime/lxr/block-test.cc"; sourceTree = "<group>"; };
 		239735CA27B54CD500FAD063 /* linkage-symbols.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "linkage-symbols.h"; path = "../src/backend/linkage-symbols.h"; sourceTree = "<group>"; };
 		239735CB27B54D2800FAD063 /* linkage-symbols.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "linkage-symbols.cc"; path = "../src/backend/linkage-symbols.cc"; sourceTree = "<group>"; };
 		239735CE27B551A500FAD063 /* linkage-symbols-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "linkage-symbols-test.cc"; path = "../src/backend/linkage-symbols-test.cc"; sourceTree = "<group>"; };
@@ -501,7 +533,6 @@
 		23CF342427E037DC0095441B /* gnu-asm-generator.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "gnu-asm-generator.cc"; path = "../src/backend/gnu-asm-generator.cc"; sourceTree = "<group>"; };
 		23D4A43F2680D1440090C631 /* all-tests-arm64 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "all-tests-arm64"; sourceTree = BUILT_PRODUCTS_DIR; };
 		23D5A645266718B400635ADB /* all-tests-x64 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "all-tests-x64"; sourceTree = BUILT_PRODUCTS_DIR; };
-		23D5A67D26672FE000635ADB /* test-stub-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "test-stub-posix-x64.s"; path = "../src/runtime/test-stub-posix-x64.s"; sourceTree = "<group>"; };
 		23D5A68126676B4A00635ADB /* heap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = heap.h; path = ../src/runtime/heap/heap.h; sourceTree = "<group>"; };
 		23D5A68226676BDC00635ADB /* heap.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = heap.c; path = ../src/runtime/heap/heap.c; sourceTree = "<group>"; };
 		23D5A68426676DEF00635ADB /* any.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = any.h; path = ../src/runtime/object/any.h; sourceTree = "<group>"; };
@@ -509,7 +540,6 @@
 		23D5A6872667719200635ADB /* type.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = type.h; path = ../src/runtime/object/type.h; sourceTree = "<group>"; };
 		23D5A6882667734A00635ADB /* builtin-types.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "builtin-types.c"; path = "../src/runtime/object/builtin-types.c"; sourceTree = "<group>"; };
 		23D5A68A26677D4B00635ADB /* type-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "type-test.cc"; path = "../src/runtime/object/type-test.cc"; sourceTree = "<group>"; };
-		23D5A68C2667861900635ADB /* boot-posix-x64.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; name = "boot-posix-x64.s"; path = "../src/runtime/boot-posix-x64.s"; sourceTree = "<group>"; };
 		23ED3A95264D6BAD001FDE88 /* all-tests.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "all-tests.entitlements"; sourceTree = "<group>"; };
 		23EDFA25269C43F000C8F1FE /* node.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = node.h; path = ../src/ir/node.h; sourceTree = "<group>"; };
 		23EDFA26269C45A400C8F1FE /* node.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = node.cc; path = ../src/ir/node.cc; sourceTree = "<group>"; };
@@ -628,32 +658,42 @@
 		2351F80D26648C8200D337EA /* Runtime */ = {
 			isa = PBXGroup;
 			children = (
-				23893F7C284472ED000FA9F7 /* LXR */,
-				23D5A68026676B2600635ADB /* Object */,
-				23D5A67F26676B1F00635ADB /* Heap */,
-				2351F812266494AE00D337EA /* runtime-test.cc */,
-				2351F80F26648D4D00D337EA /* runtime.c */,
-				2351F80E26648CB200D337EA /* runtime.h */,
-				233AB98227EB4C6100E68B90 /* unwind-posix.c */,
-				2351F8112664939700D337EA /* macros.h */,
-				23A3AB5D2664DB9F00007658 /* stack-test.cc */,
-				23A3AB5A2664BAE800007658 /* stack.h */,
-				23A3AB5B2664C1DB00007658 /* stack.c */,
-				23A3AB5F2664DE4D00007658 /* process.h */,
-				23A3AB602664E32E00007658 /* process.c */,
-				23CAA1DD26667586000EF129 /* checking.h */,
-				23CAA1DE2666790B000EF129 /* scheduler.h */,
-				23CAA1DF2666799F000EF129 /* scheduler.cc */,
-				236CC7B827BF754D00754BC0 /* hash-table-test.cc */,
-				236CC7B427BF343C00754BC0 /* hash-table.h */,
+				236DFD8B2ADA3EF300B97C55 /* daemon-test.cc */,
+				236DFD892ADA3EF300B97C55 /* daemon.c */,
+				236DFD8C2ADA3EF300B97C55 /* jobs-test.cc */,
+				236DFD862ADA3EF300B97C55 /* jobs.c */,
+				236DFD8D2ADA3EF300B97C55 /* jobs.h */,
+				236DFD872ADA3EF300B97C55 /* mm-thread-test.cc */,
+				236DFD882ADA3EF300B97C55 /* mm-thread.c */,
+				236DFD8A2ADA3EF300B97C55 /* mm-thread.h */,
+				236DFD762ACD8CD100B97C55 /* checking.c */,
 				236CC7B527BF383F00754BC0 /* hash-table.c */,
-				231C4B8B268DA7AD00D4AC62 /* test-stub-posix-arm64.s */,
-				23D5A67D26672FE000635ADB /* test-stub-posix-x64.s */,
-				231C4B8A268DA7AD00D4AC62 /* boot-posix-arm64.s */,
-				23D5A68C2667861900635ADB /* boot-posix-x64.s */,
-				239E02C2285C864A002E6BA6 /* locks-test.cc */,
 				239E02BF285C82B3002E6BA6 /* locks.c */,
+				23A3AB602664E32E00007658 /* process.c */,
+				2351F80F26648D4D00D337EA /* runtime.c */,
+				23A3AB5B2664C1DB00007658 /* stack.c */,
+				236DFD552ACD61FE00B97C55 /* thread-posix.c */,
+				236CC7B827BF754D00754BC0 /* hash-table-test.cc */,
+				239E02C2285C864A002E6BA6 /* locks-test.cc */,
+				2351F812266494AE00D337EA /* runtime-test.cc */,
+				23CAA1DF2666799F000EF129 /* scheduler.cc */,
+				23A3AB5D2664DB9F00007658 /* stack-test.cc */,
+				23CAA1DD26667586000EF129 /* checking.h */,
+				236DFD742ACD8CD000B97C55 /* daemon.h */,
+				236CC7B427BF343C00754BC0 /* hash-table.h */,
 				239E02BE285C828B002E6BA6 /* locks.h */,
+				2351F8112664939700D337EA /* macros.h */,
+				236DFD752ACD8CD000B97C55 /* platform.h */,
+				23A3AB5F2664DE4D00007658 /* process.h */,
+				2351F80E26648CB200D337EA /* runtime.h */,
+				23CAA1DE2666790B000EF129 /* scheduler.h */,
+				23A3AB5A2664BAE800007658 /* stack.h */,
+				236DFD572ACD61FE00B97C55 /* thread.h */,
+				236DFD542ACD61FE00B97C55 /* tls.h */,
+				231C4B8A268DA7AD00D4AC62 /* boot-posix-arm64.s */,
+				231C4B8B268DA7AD00D4AC62 /* test-stub-drawin-arm64.s */,
+				23D5A67F26676B1F00635ADB /* Heap */,
+				23D5A68026676B2600635ADB /* Object */,
 			);
 			name = Runtime;
 			sourceTree = "<group>";
@@ -696,6 +736,7 @@
 		2354CD5F26439E8100A2FAC3 /* Base */ = {
 			isa = PBXGroup;
 			children = (
+				236DFD682ACD8ACB00B97C55 /* env.cc */,
 				23AE830828A20D3B0009E00E /* bit-field.h */,
 				2354CD6426439E9500A2FAC3 /* arena-utils.cc */,
 				2354CD6726439E9500A2FAC3 /* arena-utils.h */,
@@ -709,7 +750,6 @@
 				2354CD7226439E9500A2FAC3 /* bit-ops.h */,
 				2354CD6226439E9500A2FAC3 /* crc32.c */,
 				2340E6B52648234A006B37F3 /* env-test.cc */,
-				232A47BA264A83D4003DCA4F /* env-posix.cc */,
 				2354CD6526439E9500A2FAC3 /* env.h */,
 				2354CD6F26439E9500A2FAC3 /* hash.cc */,
 				2354CD6126439E9500A2FAC3 /* hash.h */,
@@ -845,10 +885,26 @@
 		23D5A67F26676B1F00635ADB /* Heap */ = {
 			isa = PBXGroup;
 			children = (
+				236DFD802ADA396A00B97C55 /* ygc-forwarding-test.cc */,
+				236DFD7F2ADA396A00B97C55 /* ygc-forwarding.c */,
+				236DFD812ADA396A00B97C55 /* ygc-forwarding.h */,
 				2301676A266A27CF007E8322 /* heap-test.cc */,
 				23D5A68226676BDC00635ADB /* heap.c */,
 				23D5A68126676B4A00635ADB /* heap.h */,
 				2387EFA126842BFF002E6DCF /* object-visitor.h */,
+				233AB98227EB4C6100E68B90 /* unwind-posix.c */,
+				236DFD5D2ACD627D00B97C55 /* ygc-heap-test.cc */,
+				236DFD612ACD627D00B97C55 /* ygc-live-map-test.cc */,
+				236DFD5C2ACD627D00B97C55 /* ygc-live-map.c */,
+				236DFD5E2ACD627D00B97C55 /* ygc-live-map.h */,
+				236DFD602ACD627D00B97C55 /* ygc-physical-memory.c */,
+				236DFD7B2ACD8E4200B97C55 /* ygc-platform-darwin.c */,
+				236DFD5F2ACD627D00B97C55 /* ygc-platform-test.cc */,
+				236DFD6D2ACD8C1800B97C55 /* ygc-test.cc */,
+				236DFD6A2ACD8C1800B97C55 /* ygc-virtual-memory-posix.c */,
+				236DFD6C2ACD8C1800B97C55 /* ygc-virtual-memory.c */,
+				236DFD6E2ACD8C1800B97C55 /* ygc.c */,
+				236DFD6B2ACD8C1800B97C55 /* ygc.h */,
 			);
 			name = Heap;
 			sourceTree = "<group>";
@@ -974,7 +1030,8 @@
 		2354CD2C2643994A00A2FAC3 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1310;
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					23D4A43E2680D1440090C631 = {
 						CreatedOnToolsVersion = 12.5;
@@ -1013,16 +1070,17 @@
 				23D4A4462680D17D0090C631 /* any.h in Sources */,
 				23D4A4472680D17D0090C631 /* number.c in Sources */,
 				2332DAF627EFFEC100EBB3E4 /* throwable.c in Sources */,
+				236DFD642ACD627D00B97C55 /* ygc-heap-test.cc in Sources */,
 				23B997DE26A468D500DD037B /* scope.cc in Sources */,
-				23448B6528573B97007013EB /* immix-heap.c in Sources */,
-				23448B6928583024007013EB /* logging.c in Sources */,
 				233AB98427EB4C6100E68B90 /* unwind-posix.c in Sources */,
 				23D4A4482680D17D0090C631 /* number.h in Sources */,
 				232FDB1126818CF900D52154 /* number-test.cc in Sources */,
 				23D4A4492680D17D0090C631 /* type.h in Sources */,
 				23AE8304289E09B90009E00E /* instruction-selector-arm64.cc in Sources */,
+				236DFD652ACD627D00B97C55 /* ygc-platform-test.cc in Sources */,
 				2387EFAD2684643A002E6DCF /* token.cc in Sources */,
 				23EDFA28269C45A400C8F1FE /* node.cc in Sources */,
+				236DFD992ADA3EF300B97C55 /* jobs-test.cc in Sources */,
 				23D4A44A2680D17D0090C631 /* builtin-types.c in Sources */,
 				23D4A44B2680D17D0090C631 /* type-test.cc in Sources */,
 				233AB98127EB46DE00E68B90 /* arrays.c in Sources */,
@@ -1032,11 +1090,12 @@
 				2336A2922774168E00346372 /* codegen-test.cc in Sources */,
 				233236E3269ECAFA0078406C /* node-test.cc in Sources */,
 				23D4A44E2680D17D0090C631 /* heap-test.cc in Sources */,
+				236DFD702ACD8C1800B97C55 /* ygc-virtual-memory.c in Sources */,
+				236DFD832ADA396A00B97C55 /* ygc-forwarding.c in Sources */,
 				23D4A44F2680D17D0090C631 /* heap.h in Sources */,
 				235BC038294CB53D002A8EA2 /* bytecode.cc in Sources */,
 				230C85FF27853E4D00298122 /* constants.cc in Sources */,
 				23A7F0E22699E22A0060BFB7 /* compiler-test.cc in Sources */,
-				23893F8428449CE4000FA9F7 /* block-test.cc in Sources */,
 				2313C4DD27A2421C00F6A34B /* constants-folding-test.cc in Sources */,
 				23D4A4502680D17D0090C631 /* heap.c in Sources */,
 				23D4A4512680D17D0090C631 /* runtime-test.cc in Sources */,
@@ -1055,13 +1114,15 @@
 				23028D46294D6B520054B695 /* isolate.cc in Sources */,
 				23D4A4572680D17D0090C631 /* stack.c in Sources */,
 				23D4A4582680D17D0090C631 /* process.h in Sources */,
+				236DFD932ADA3EF300B97C55 /* mm-thread.c in Sources */,
 				23FA86AE26A26CC9001CC777 /* scope-test.cc in Sources */,
+				236DFD672ACD627D00B97C55 /* ygc-live-map-test.cc in Sources */,
+				236DFD662ACD627D00B97C55 /* ygc-physical-memory.c in Sources */,
 				23D4A4592680D17D0090C631 /* process.c in Sources */,
 				23D4A45A2680D17D0090C631 /* checking.h in Sources */,
 				23D4A45B2680D17D0090C631 /* scheduler.h in Sources */,
 				23D4A45C2680D17D0090C631 /* scheduler.cc in Sources */,
 				23D4A45D2680D17D0090C631 /* label.h in Sources */,
-				23448B6C28586C93007013EB /* logging-test.cc in Sources */,
 				23D4A45E2680D17D0090C631 /* asm-arm64-test.cc in Sources */,
 				23D4A45F2680D17D0090C631 /* asm-arm64.h in Sources */,
 				2362A0EA26A67D1000A972B1 /* type-reducing-test.cc in Sources */,
@@ -1076,11 +1137,13 @@
 				23D4A4642680D17D0090C631 /* gtest-all.cc in Sources */,
 				23D4A4652680D17D0090C631 /* all-tests.cc in Sources */,
 				23235B872797C07600134DEB /* condition.cc in Sources */,
+				236DFD782ACD8CD100B97C55 /* checking.c in Sources */,
 				23D4A4662680D17D0090C631 /* arena-utils.cc in Sources */,
 				2387EFA52684627B002E6DCF /* lexer.cc in Sources */,
 				23AE82FD289A5A160009E00E /* frame.cc in Sources */,
 				23667C3227B2532E00612546 /* machine-type.cc in Sources */,
 				231C4B8C268DA7AD00D4AC62 /* boot-posix-arm64.s in Sources */,
+				236DFD8F2ADA3EF300B97C55 /* jobs.c in Sources */,
 				23D4A4672680D17D0090C631 /* arena-utils.h in Sources */,
 				23FA869D26A01091001CC777 /* type.cc in Sources */,
 				23FA86AB26A161DF001CC777 /* codegen.cc in Sources */,
@@ -1099,39 +1162,45 @@
 				23D4A46C2680D17D0090C631 /* base.h in Sources */,
 				233F67E7287D1E2E001982FF /* arena.cc in Sources */,
 				23D4A46D2680D17D0090C631 /* base.cc in Sources */,
+				236DFD852ADA396A00B97C55 /* ygc-forwarding-test.cc in Sources */,
 				23FA869A269FE4D4001CC777 /* metadata.cc in Sources */,
 				232AA00826861D5D0098E6A3 /* parser-test.cc in Sources */,
 				232AA00126861A060098E6A3 /* ast-test.cc in Sources */,
 				23AE830C28A248BD0009E00E /* register-allocator.cc in Sources */,
-				231C4B8D268DA7AD00D4AC62 /* test-stub-posix-arm64.s in Sources */,
+				231C4B8D268DA7AD00D4AC62 /* test-stub-drawin-arm64.s in Sources */,
 				23D4A46E2680D17D0090C631 /* bit-ops.h in Sources */,
 				23B997DA26A4680300DD037B /* type-reducing.cc in Sources */,
 				2387EFB1268581AD002E6DCF /* token-test.cc in Sources */,
 				23AE8301289A61D90009E00E /* registers-configuration.cc in Sources */,
 				23D4A46F2680D17D0090C631 /* crc32.c in Sources */,
+				236DFD972ADA3EF300B97C55 /* daemon-test.cc in Sources */,
 				23D4A4702680D17D0090C631 /* env-test.cc in Sources */,
 				23C1345B27A4DA0D00C0DEB4 /* constants.cc in Sources */,
+				236DFD692ACD8ACB00B97C55 /* env.cc in Sources */,
 				232AA00526861D4C0098E6A3 /* parser.cc in Sources */,
-				23D4A4712680D17D0090C631 /* env-posix.cc in Sources */,
 				23D4A4722680D17D0090C631 /* env.h in Sources */,
 				23D4A4732680D17D0090C631 /* hash.cc in Sources */,
 				23FA86A726A13DE4001CC777 /* source-position-test.cc in Sources */,
+				236DFD7C2ACD8E4200B97C55 /* ygc-platform-darwin.c in Sources */,
 				23D4A4742680D17D0090C631 /* hash.h in Sources */,
-				2387D4B12859C0590088F1A6 /* immix-heap-test.cc in Sources */,
 				23D4A4752680D17D0090C631 /* io.h in Sources */,
 				23D4A4762680D17D0090C631 /* io.cc in Sources */,
 				235BC03C294CB738002A8EA2 /* bytecode-array-builder.cc in Sources */,
+				236DFD722ACD8C1800B97C55 /* ygc.c in Sources */,
 				236466CD26F07E870066D168 /* checking.cc in Sources */,
 				2313C4D727A23E8500F6A34B /* constants-folding.cc in Sources */,
 				239E02C1285C82B3002E6BA6 /* locks.c in Sources */,
 				23D4A4772680D17D0090C631 /* lazy-instance.h in Sources */,
 				23AE831028A3A81F0009E00E /* instruction-selector-test.cc in Sources */,
 				23C1346227A4E30B00C0DEB4 /* instruction-test.cc in Sources */,
+				236DFD582ACD61FE00B97C55 /* thread-posix.c in Sources */,
 				2355560F278936EC003ADACE /* utils.cc in Sources */,
 				23D4A4782680D17D0090C631 /* reference-count-test.cc in Sources */,
 				2387EFA926846309002E6DCF /* source-position-test.cc in Sources */,
 				231C4B91268DA7D200D4AC62 /* any-posix-arm64.s in Sources */,
 				23D4A4792680D17D0090C631 /* reference-count.h in Sources */,
+				236DFD912ADA3EF300B97C55 /* mm-thread-test.cc in Sources */,
+				236DFD952ADA3EF300B97C55 /* daemon.c in Sources */,
 				23AE830728A0B3A10009E00E /* instruction-selector-arm64-test.cc in Sources */,
 				2348E61A286AB26200E2C365 /* type.c in Sources */,
 				23C1344B27A3CF0B00C0DEB4 /* instruction.cc in Sources */,
@@ -1140,8 +1209,10 @@
 				2313C4D327A238B000F6A34B /* pass.cc in Sources */,
 				23D4A47A2680D17D0090C631 /* sha256-test.cc in Sources */,
 				23F6C24C278FC85B00899C4F /* runtime.cc in Sources */,
+				236DFD712ACD8C1800B97C55 /* ygc-test.cc in Sources */,
 				23D4A47B2680D17D0090C631 /* sha256.c in Sources */,
 				23D4A47C2680D17D0090C631 /* sha256.h in Sources */,
+				236DFD6F2ACD8C1800B97C55 /* ygc-virtual-memory-posix.c in Sources */,
 				23863A8127EF65680089F9BA /* any.c in Sources */,
 				23D4A47D2680D17D0090C631 /* status-test.cc in Sources */,
 				23D4A47E2680D17D0090C631 /* status.h in Sources */,
@@ -1155,8 +1226,8 @@
 				233236E0269EC2EF0078406C /* operator-test.cc in Sources */,
 				23D4A4812680D17D0090C631 /* format.h in Sources */,
 				23D4A4822680D17D0090C631 /* format.cc in Sources */,
+				236DFD632ACD627D00B97C55 /* ygc-live-map.c in Sources */,
 				23D4A4832680D17D0090C631 /* utils.h in Sources */,
-				23893F8128447368000FA9F7 /* block.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1164,7 +1235,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				23893F8028447368000FA9F7 /* block.c in Sources */,
 				23D5A65F266718F900635ADB /* arena-utils.cc in Sources */,
 				23D5A660266718F900635ADB /* arena-utils.h in Sources */,
 				23D5A661266718F900635ADB /* arena-test.cc in Sources */,
@@ -1173,9 +1243,7 @@
 				232AA00426861D4C0098E6A3 /* parser.cc in Sources */,
 				23D5A663266718F900635ADB /* at-exit.cc in Sources */,
 				23AE82FC289A5A160009E00E /* frame.cc in Sources */,
-				23448B6828583024007013EB /* logging.c in Sources */,
 				2331FFA6268DC66B00F69508 /* ast-utils.cc in Sources */,
-				23448B6428573B97007013EB /* immix-heap.c in Sources */,
 				23D5A664266718F900635ADB /* at-exit.h in Sources */,
 				2387EFBB2685BEAD002E6DCF /* ast.cc in Sources */,
 				2387EFB0268581AD002E6DCF /* token-test.cc in Sources */,
@@ -1186,9 +1254,7 @@
 				23D5A668266718F900635ADB /* crc32.c in Sources */,
 				23AE830628A0B3A10009E00E /* instruction-selector-arm64-test.cc in Sources */,
 				23D5A669266718F900635ADB /* env-test.cc in Sources */,
-				23448B6B28586C93007013EB /* logging-test.cc in Sources */,
 				2387EFB3268586F5002E6DCF /* lexer-test.cc in Sources */,
-				23D5A66A266718F900635ADB /* env-posix.cc in Sources */,
 				232FDB1026818CF900D52154 /* number-test.cc in Sources */,
 				23D5A66B266718F900635ADB /* env.h in Sources */,
 				2387EFB72685BB99002E6DCF /* node-test.cc in Sources */,
@@ -1196,6 +1262,7 @@
 				232FDB0E2680775600D52154 /* any-posix-x64.s in Sources */,
 				2362A0E926A67D1000A972B1 /* type-reducing-test.cc in Sources */,
 				236CC7B627BF383F00754BC0 /* hash-table.c in Sources */,
+				236DFD962ADA3EF300B97C55 /* daemon-test.cc in Sources */,
 				239735CC27B54D2800FAD063 /* linkage-symbols.cc in Sources */,
 				232FDB0926802E4700D52154 /* yalx-string-posix-x64.s in Sources */,
 				23D5A6892667734A00635ADB /* builtin-types.c in Sources */,
@@ -1206,6 +1273,7 @@
 				23D5A68B26677D4B00635ADB /* type-test.cc in Sources */,
 				239E02C0285C82B3002E6BA6 /* locks.c in Sources */,
 				23D5A66D266718F900635ADB /* hash.h in Sources */,
+				236DFD922ADA3EF300B97C55 /* mm-thread.c in Sources */,
 				23D5A66E266718F900635ADB /* io.h in Sources */,
 				23FA869C26A01091001CC777 /* type.cc in Sources */,
 				23028D41294D63690054B695 /* bytecode-array-builder-test.cc in Sources */,
@@ -1215,6 +1283,7 @@
 				23D5A671266718F900635ADB /* reference-count-test.cc in Sources */,
 				23C1345A27A4DA0D00C0DEB4 /* constants.cc in Sources */,
 				23D5A672266718F900635ADB /* reference-count.h in Sources */,
+				236DFD982ADA3EF300B97C55 /* jobs-test.cc in Sources */,
 				23FA86A626A13DE4001CC777 /* source-position-test.cc in Sources */,
 				23FA8699269FE4D4001CC777 /* metadata.cc in Sources */,
 				23FA869F26A05022001CC777 /* metadata-test.cc in Sources */,
@@ -1225,7 +1294,6 @@
 				23667C3127B2532E00612546 /* machine-type.cc in Sources */,
 				238358E52894D86F00F655B1 /* instruction-selector.cc in Sources */,
 				23CF342527E037DC0095441B /* gnu-asm-generator.cc in Sources */,
-				2387D4B02859C0590088F1A6 /* immix-heap-test.cc in Sources */,
 				23C1346127A4E30B00C0DEB4 /* instruction-test.cc in Sources */,
 				2332DAF527EFFEC100EBB3E4 /* throwable.c in Sources */,
 				23D5A674266718F900635ADB /* sha256.c in Sources */,
@@ -1238,12 +1306,16 @@
 				23FA86AA26A161DF001CC777 /* codegen.cc in Sources */,
 				23D5A676266718F900635ADB /* status-test.cc in Sources */,
 				2362A0ED26A69EAF00A972B1 /* generics-instantiating.cc in Sources */,
+				236DFD8E2ADA3EF300B97C55 /* jobs.c in Sources */,
 				236466CC26F07E870066D168 /* checking.cc in Sources */,
 				23B997DD26A468D500DD037B /* scope.cc in Sources */,
 				232FDB0C26806D8B00D52154 /* number.c in Sources */,
+				236DFD822ADA396A00B97C55 /* ygc-forwarding.c in Sources */,
 				23D5A677266718F900635ADB /* status.h in Sources */,
+				236DFD842ADA396A00B97C55 /* ygc-forwarding-test.cc in Sources */,
 				23C1345327A3E8CE00C0DEB4 /* constants-pool.cc in Sources */,
 				2387EFA42684627B002E6DCF /* lexer.cc in Sources */,
+				236DFD942ADA3EF300B97C55 /* daemon.c in Sources */,
 				230167692669C5DB007E8322 /* yalx-string.c in Sources */,
 				23AE8300289A61D90009E00E /* registers-configuration.cc in Sources */,
 				23D5A678266718F900635ADB /* status.cc in Sources */,
@@ -1277,7 +1349,6 @@
 				23D5A654266718ED00635ADB /* process.h in Sources */,
 				2355560A278929C0003ADACE /* io-test.cc in Sources */,
 				239735CF27B551A500FAD063 /* linkage-symbols-test.cc in Sources */,
-				23893F8328449CE4000FA9F7 /* block-test.cc in Sources */,
 				2348E619286AB26200E2C365 /* type.c in Sources */,
 				2313C4D627A23E8500F6A34B /* constants-folding.cc in Sources */,
 				23A560732952B356002D3E4A /* dispatcher.cc in Sources */,
@@ -1290,6 +1361,7 @@
 				23D5A659266718ED00635ADB /* label.h in Sources */,
 				23FB5E5F28ADE29200D7D038 /* instruction-code.cc in Sources */,
 				23D5A65A266718ED00635ADB /* asm-x64-test.cc in Sources */,
+				236DFD902ADA3EF300B97C55 /* mm-thread-test.cc in Sources */,
 				2387EF9F2681C8D3002E6DCF /* compiler.cc in Sources */,
 				23D5A65B266718ED00635ADB /* asm-x64.cc in Sources */,
 				230C85FE27853E4D00298122 /* constants.cc in Sources */,
@@ -1300,7 +1372,6 @@
 				23FA86A326A121AC001CC777 /* source-position.cc in Sources */,
 				233236E2269ECAFA0078406C /* node-test.cc in Sources */,
 				23C1345627A3F23C00C0DEB4 /* constants-pool-test.cc in Sources */,
-				23D5A68D2667861900635ADB /* boot-posix-x64.s in Sources */,
 				23FA86AD26A26CC9001CC777 /* scope-test.cc in Sources */,
 				23D5A65E266718ED00635ADB /* all-tests.cc in Sources */,
 			);
@@ -1333,8 +1404,10 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ENTITLEMENTS = "all-tests.entitlements";
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = c11;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
@@ -1379,7 +1452,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ENTITLEMENTS = "all-tests.entitlements";
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = c11;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
@@ -1434,6 +1509,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1502,6 +1578,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1562,6 +1639,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 4K8H6RFHFM;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1632,6 +1710,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 4K8H6RFHFM;
 				ENABLE_HARDENED_RUNTIME = YES;

@@ -7,9 +7,7 @@
 #include "base/hash.h"
 #include "base/base.h"
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 using String = base::ArenaString;
 
@@ -24,13 +22,13 @@ public:
         template<class T> inline T value() const { return *location<T>(); }
     }; // struct Slot
     
-    struct SlotHash : public std::unary_function<Slot, size_t> {
+    struct SlotHash {
         size_t operator () (Slot value) const {
             return base::Hash::Js(reinterpret_cast<const char *>(&value), sizeof(value));
         }
     }; // struct SlotHash
     
-    struct SlotEqualTo : public std::binary_function<Slot, Slot, bool> {
+    struct SlotEqualTo {
         bool operator () (Slot lhs, Slot rhs) const {
             return lhs.kind == rhs.kind && ::memcmp(lhs.data, rhs.data, 8) == 0;
         }
@@ -79,8 +77,6 @@ private:
     StringPool string_pool_;
     int next_unique_id_ = 0;
 }; // class ConstantsPool
-
-} // namespace backend
 
 } // namespace yalx
 

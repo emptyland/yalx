@@ -6,20 +6,25 @@
 #include "base/checking.h"
 #include "base/base.h"
 
-#if defined(YALX_OS_DARWIN)
+#if defined(YALX_OS_POSIX)
 #include <sys/mman.h>
+#endif
+
+#if defined(YALX_OS_DARWIN)
 #include <libkern/OSCacheControl.h>
 #if defined(YALX_ARCH_ARM64)
 #include <pthread.h>
 #endif // defined(YALX_ARCH_ARM64)
-
 #endif // defined(YALX_OS_DARWIN)
+
+#if defined(YALX_OS_WINDOWS)
+#include <windows.h>
+#include <io.h>
+#endif
 
 #include <memory>
 
-namespace yalx {
-
-namespace base  {
+namespace yalx::base  {
 
 class SequentialFile;
 class WritableFile;
@@ -27,8 +32,7 @@ class Env;
 
 class OSPageMemory {
 public:
-    OSPageMemory(OSPageMemory &&other)
-        : OSPageMemory(other.chunk(), other.size()) {
+    OSPageMemory(OSPageMemory &&other) noexcept : OSPageMemory(other.chunk(), other.size()) {
         other.chunk_ = nullptr;
         other.size_ = 0;
     }
@@ -146,7 +150,19 @@ inline Status Env::OSPageFree(void *chunk, size_t n) {
 
 #endif // defined(YALX_OS_POSIX)
 
-} // namespace base
+#if defined(YALX_OS_WINDOWS)
+
+inline Status Env::OSPageAllocate(size_t n, int access, void **result) {
+    // TODO:
+    return Status::OK();
+}
+
+inline Status Env::OSPageFree(void *chunk, size_t n) {
+    // TODO:
+    return Status::OK();
+}
+
+#endif
 
 } // namespace yalx
 

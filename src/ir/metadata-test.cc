@@ -57,8 +57,8 @@ TEST_F(MetadataTest, Interface) {
     prototype->mutable_return_types()->push_back(Types::Int32);
     auto fun = module_->NewStandaloneFunction(Function::kAbstract, name, name, prototype);
     
-    fun->mutable_paramaters()->push_back(Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(0)));
-    fun->mutable_paramaters()->push_back(Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(1)));
+    fun->mutable_paramaters()->push_back(Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(0)));
+    fun->mutable_paramaters()->push_back(Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.Argument(1)));
     clazz->InsertMethod(fun);
     
     if (auto method = clazz->FindMethod("foo")) {

@@ -211,7 +211,8 @@ public:
         Value *phi;
         Value *dest;
     };
-    
+
+    inline Value *NewNode(SourcePosition source_position, Type type, Operator *op);
     template<class ...Nodes>
     inline Value *NewNode(SourcePosition source_position, Type type, Operator *op, Nodes... nodes);
     
@@ -295,11 +296,11 @@ private:
 
 class Value : public Node {
 public:
-    static Value *New0(base::Arena *arena, SourcePosition source_position, Type type, Operator *op) {
-        return New0(arena, nullptr, source_position, type, op);
+    static Value *New(base::Arena *arena, SourcePosition source_position, Type type, Operator *op) {
+        return New(arena, nullptr, source_position, type, op);
     }
     
-    static Value *New0(base::Arena *arena, const String *name, SourcePosition source_position, Type type, Operator *op) {
+    static Value *New(base::Arena *arena, const String *name, SourcePosition source_position, Type type, Operator *op) {
         auto chunk = arena->Allocate(RequiredSize(op));
         return new (chunk) Value(arena, name, source_position, type, op);
     }
@@ -475,6 +476,7 @@ private:
     Value(base::Arena *arena, const String *name, SourcePosition source_position, Type type, Operator *op);
     
     void *operator new (size_t /*n*/, void *chunk) { return chunk; }
+    void operator delete(void *, void *chunk) {}
     static Node *CheckNode(Node *node) { return DCHECK_NOTNULL(node); }
     
     static size_t RequiredSize(const Operator *op) {
@@ -526,6 +528,13 @@ inline void Function::UpdateIdsOfBlocks() {
 
 template<class T>
 inline T OperatorWith<T>::Data(const ir::Value *node) { return Cast(node->op())->data(); }
+
+inline Value *BasicBlock::NewNode(SourcePosition source_position, Type type, Operator *op) {
+    Node *inputs[1];
+    auto instr = Value::NewWithInputs(arena(), nullptr, source_position, type, op, inputs,0);
+    AddInstruction(instr);
+    return instr;
+}
 
 template<class ...Nodes>
 inline Value *BasicBlock::NewNode(SourcePosition source_position, Type type, Operator *op, Nodes... nodes) {

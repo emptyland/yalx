@@ -89,10 +89,10 @@ TEST_F(ScopeTest, Branchs) {
 TEST_F(ScopeTest, BranchsValueVersions) {
     auto block = fun_->NewBlock(String::New(&arena_, "l1"));
     
-    auto k100 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(100));
-    auto k200 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(200));
-    auto k1 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
-    auto k2 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
+    auto k100 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(100));
+    auto k200 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(200));
+    auto k1 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
+    auto k2 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
     
     BranchScope trunk(&scope_, nullptr);
     NamespaceScope::Keeper<BranchScope> trunk_holder(&trunk);
@@ -120,14 +120,14 @@ TEST_F(ScopeTest, BranchsConflicts) {
     
     BranchScope trunk(&scope_, nullptr);
     NamespaceScope::Keeper<BranchScope> trunk_holder(&trunk);
-    auto k100 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(100));
+    auto k100 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(100));
     trunk.PutSymbol("a", Symbol::Val(&trunk, k100, bk1));
     
-    auto k200 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(200));
+    auto k200 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(200));
     trunk.PutSymbol("b", Symbol::Val(&trunk, k200, bk1));
     
     auto bk2 = fun_->NewBlock(String::New(&arena_, "l2"));
-    auto k1v1 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
+    auto k1v1 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
     {
         NamespaceScope::Keeper<BranchScope> br1(trunk.Branch(nullptr));
         BranchScope br11_scope(&scope_, nullptr);
@@ -141,7 +141,7 @@ TEST_F(ScopeTest, BranchsConflicts) {
     }
     
     auto bk3 = fun_->NewBlock(String::New(&arena_, "l3"));
-    auto k1v2 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
+    auto k1v2 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
     {
         NamespaceScope::Keeper<BranchScope> br2(trunk.Branch(nullptr));
 
@@ -167,10 +167,10 @@ TEST_F(ScopeTest, BranchsConflicts) {
 //TEST_F(ScopeTest, NestedBranchs) {
 //    auto block = fun_->NewBlock(String::New(&arena_, "l1"));
 //    
-//    auto k100 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(100));
-//    auto k200 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(200));
-//    auto k1 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
-//    auto k2 = Value::New0(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
+//    auto k100 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(100));
+//    auto k200 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(200));
+//    auto k1 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(1));
+//    auto k2 = Value::New(&arena_, SourcePosition::Unknown(), Types::Int32, ops_.I32Constant(2));
 //    
 //    BranchScope trunk(&scope_, block, nullptr);
 //    trunk.PutValue("a", k100);

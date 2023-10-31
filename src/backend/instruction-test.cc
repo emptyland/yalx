@@ -1,9 +1,7 @@
 #include "backend/instruction.h"
 #include <gtest/gtest.h>
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 class InstructionTest : public ::testing::Test {
 public:
@@ -37,7 +35,5 @@ TEST_F(InstructionTest, BinOpTest) {
     ASSERT_TRUE(instr->InputAt(1)->IsUnallocated());
     ASSERT_TRUE(instr->OutputAt(0)->IsUnallocated());
 }
-
-} // namespace backend
 
 } // namespace yalx

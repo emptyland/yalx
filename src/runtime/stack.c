@@ -63,16 +63,16 @@ void yalx_delete_stack_to_pool(struct stack_pool *pool, struct stack *stack) {
 
 
 struct stack *yalx_new_stack(size_t size) {
-    pthread_mutex_lock(&stack_pool.mutex);
+    yalx_mutex_lock(&stack_pool.mutex);
     struct stack *stack = yalx_new_stack_from_pool(&stack_pool, size);
-    pthread_mutex_unlock(&stack_pool.mutex);
+    yalx_mutex_unlock(&stack_pool.mutex);
     return stack;
 }
 
 void yalx_delete_stack(struct stack *stack) {
-    pthread_mutex_lock(&stack_pool.mutex);
+    yalx_mutex_lock(&stack_pool.mutex);
     yalx_delete_stack_to_pool(&stack_pool, stack);
-    pthread_mutex_unlock(&stack_pool.mutex);
+    yalx_mutex_unlock(&stack_pool.mutex);
 }
 
 void yalx_init_stack_pool(struct stack_pool *pool, size_t limit) {
@@ -80,7 +80,7 @@ void yalx_init_stack_pool(struct stack_pool *pool, size_t limit) {
     pool->head.next = &pool->head;
     pool->head.prev = &pool->head;
     pool->limit = limit;
-    pthread_mutex_init(&pool->mutex, NULL);
+    yalx_mutex_init(&pool->mutex);
 }
 
 void yalx_free_stack_pool(struct stack_pool *pool) {
@@ -90,6 +90,6 @@ void yalx_free_stack_pool(struct stack_pool *pool) {
         yalx_free_stack(s);
         free(s);
     }
-    pthread_mutex_destroy(&pool->mutex);
+    yalx_mutex_final(&pool->mutex);
     memset(pool, 0, sizeof(*pool));
 }

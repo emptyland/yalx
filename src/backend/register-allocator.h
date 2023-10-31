@@ -9,6 +9,7 @@
 #include <numeric>
 #include <vector>
 #include <set>
+#include <functional>
 
 namespace yalx {
 namespace base {
@@ -317,6 +318,8 @@ public:
     RegisterAllocator(base::Arena *arena, const RegistersConfiguration *regconf, InstructionFunction *fun);
     ~RegisterAllocator();
     
+    void Run();
+    
     // step 0
     void Prepare();
     // step 1
@@ -355,7 +358,7 @@ public:
     LifetimeInterval *IntervalOf(ir::Value *value);
     LifetimeInterval *IntervalOf(int virtual_register);
 private:
-    struct LifetimeIntervalComparator : public std::binary_function<LifetimeInterval *, LifetimeInterval *, bool> {
+    struct LifetimeIntervalComparator {
         bool operator() (LifetimeInterval *a, LifetimeInterval *b) const {
             if (a->earliest_range().from == b->earliest_range().from) {
                 return a->latest_range().to >= b->latest_range().to;

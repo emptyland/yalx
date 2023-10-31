@@ -27,7 +27,9 @@ void yalx_spin_lock(struct yalx_spin_lock *lock) {
                 }
             }
         }
-        pthread_yield_np();
+        //pthread_yield_np();
+        sched_yield();
+        //thrd_yield();
     }
 }
 

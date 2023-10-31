@@ -4,8 +4,7 @@
 
 #include "base/arena-utils.h"
 
-namespace yalx {
-namespace backend {
+namespace yalx::backend {
 
 using String = base::ArenaString;
 
@@ -84,7 +83,6 @@ extern const String *const kRt_array_set_chunk3;
 extern const String *const kRt_closure;
 extern const String *const kRt_concat;
 
-} // namespace backend
 } // namespace yalx
 
 #endif // YALX_BACKEND_LINKAGE_SYMBOLS_H_

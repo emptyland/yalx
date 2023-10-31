@@ -1,9 +1,7 @@
 #include "base/io.h"
 #include <gtest/gtest.h>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 TEST(IoTest, Sanity) {
     std::string buf;
@@ -12,7 +10,5 @@ TEST(IoTest, Sanity) {
     p.Writeln("ok");
     ASSERT_EQ("i=100\nok\n", buf);
 }
-
-} // namespace base
 
 } // namespace yalx

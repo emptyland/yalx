@@ -3,11 +3,10 @@
 #define YALX_BASE_ARENA_H_
 
 #include <map>
+#include <functional>
 #include "base/base.h"
 
-namespace yalx {
-    
-namespace base {
+namespace yalx::base {
 
 class Arena;
 
@@ -30,26 +29,26 @@ public:
     //    // MSVS unfortunately requires the default constructor to be defined.
     //    ZoneAllocator() : ZoneAllocator(nullptr) { UNREACHABLE(); }
     //#endif
-    explicit ArenaAllocator(Arena* arena) throw() : arena_(arena) {}
-    explicit ArenaAllocator(const ArenaAllocator& other) throw()
+    explicit ArenaAllocator(Arena* arena) noexcept : arena_(arena) {}
+    ArenaAllocator(const ArenaAllocator& other) noexcept
         : ArenaAllocator<T>(other.arena_) {}
     template <typename U>
-    ArenaAllocator(const ArenaAllocator<U>& other) throw()
+    explicit ArenaAllocator(const ArenaAllocator<U>& other) noexcept
         : ArenaAllocator<T>(other.arena()) {}
     
     template <typename U>
     friend class ZoneAllocator;
     
     T* address(T& x) const { return &x; }
-    const T* address(const T& x) const { return &x; }
+    [[nodiscard]] const T* address(const T& x) const { return &x; }
     
-    inline T* allocate(size_t n, const void* hint = 0);
+    inline T* allocate(size_t n, const void* hint = nullptr);
     
     void deallocate(T* p, size_t) { /* noop for Zones */
     }
     
-    size_t max_size() const throw() {
-        return std::numeric_limits<int>::max() / sizeof(T);
+    [[nodiscard]] size_t max_size() const noexcept {
+        return INT32_MAX / sizeof(T);
     }
     template <typename U, typename... Args>
     void construct(U* p, Args&&... args) {
@@ -68,10 +67,10 @@ public:
         return arena_ != other.arena_;
     }
     
-    Arena* arena() const { return arena_; }
+    [[nodiscard]] Arena* arena() const { return arena_; }
     
 private:
-    Arena* arena_;
+    Arena* arena_{};
 }; // template <class T> class ArenaAllocator
     
 class Arena {
@@ -94,7 +93,7 @@ public:
     
     void *Allocate(size_t n);
     
-    int CountBlocks() const {
+    [[nodiscard]] int CountBlocks() const {
         int n = 0;
         for (auto i = block_; i != nullptr; i = i->next) {
             n++;
@@ -102,7 +101,7 @@ public:
         return n;
     }
     
-    int CountLargeBlocks() const {
+    [[nodiscard]] int CountLargeBlocks() const {
         int n = 0;
         for (auto i = large_blocks_; i != nullptr; i = i->next) {
             n++;
@@ -139,7 +138,7 @@ public:
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arena);
 private:
-    template<class T> struct Less : public std::binary_function<T, T, bool> {
+    template<class T> struct Less {
         bool operator ()(const T &lhs, const T &rhs) const { return lhs < rhs; }
     }; // struct ArenaLess
     
@@ -161,20 +160,20 @@ private:
         BlockHeader *next;
         int32_t      size;
         
-        size_t free_size() const { return (kBlockSize - sizeof(BlockHeader)) - size; }
+        [[nodiscard]] size_t free_size() const { return (kBlockSize - sizeof(BlockHeader)) - size; }
 
         Address free_address() { return reinterpret_cast<Address>(this + 1) + size; }
     };
     
     static constexpr size_t kUsefulSize = kBlockSize - sizeof(BlockHeader);
     
-    bool ShouldUseLargeBlock(size_t n) { return n >= kUsefulSize / 2; }
+    static bool ShouldUseLargeBlock(size_t n) { return n >= kUsefulSize / 2; }
     
     BlockHeader *NewLargeBlock(size_t n) {
         size_t block_size = n + sizeof(BlockHeader);
         void *memory = ::malloc(block_size);
         DbgInitZag(memory, block_size);
-        BlockHeader *block = static_cast<BlockHeader *>(memory);
+        auto *block = static_cast<BlockHeader *>(memory);
         block->next = large_blocks_;
         block->size = static_cast<uint32_t>(n);
         large_blocks_ = block;
@@ -182,7 +181,7 @@ private:
     }
     
     BlockHeader *NewBlock() {
-        BlockHeader *block = static_cast<BlockHeader *>(::malloc(kBlockSize));
+        auto *block = static_cast<BlockHeader *>(::malloc(kBlockSize));
         block->next = block_;
         block->size = 0;
         block_ = block;
@@ -204,9 +203,8 @@ inline T* ArenaAllocator<T>::allocate(size_t n, const void* hint) {
 class ArenaObject {
 public:
     void *operator new (size_t n, Arena *arena) { return arena->Allocate(n); }
+    void operator delete(void *, Arena *arena) {};
 }; // class ArenaObject
-    
-} // namespace base
     
 } // namespace yalx
 

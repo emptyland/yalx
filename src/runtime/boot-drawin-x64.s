@@ -1,6 +1,7 @@
 .section __TEXT,__text,regular,pure_instructions
 .p2align 2
 
+.text
 
 //----------------------------------------------------------------------------------------------------------------------
 // void trampoline()
@@ -16,7 +17,7 @@ _trampoline:
     pushq %r14
     pushq %r15
     pushq %r15
-    
+
     leaq _c0(%rip), %rdi
     movq %rsp, 48(%rdi) // RSP -> co->c_sp
     movq %rbp, 56(%rdi) // RBP -> co->c_fp
@@ -58,11 +59,11 @@ _call0_returning_vals:
     movq %rsp, %rbp
     addq $32, %rsi
     subq %rsi, %rsp
-    
+
     movq %rdi, -8(%rbp) // returnning_vals
     movq %rsi, -16(%rbp) // size_in_bytes
     movq %rdx, -24(%rbp) // yalx_fun
-    
+
     callq *%rdx
 
     movq -8(%rbp), %rdi // dest
@@ -128,7 +129,7 @@ _call1_returning_vals:
 //----------------------------------------------------------------------------------------------------------------------
 // void yield()
 //----------------------------------------------------------------------------------------------------------------------
-.global _yield,_yalx_schedule,_thread_local_mach
+.global _yield,_yalx_schedule //,_thread_local_mach
 _yield:
     pushq %rbp
     movq %rsp, %rbp;
@@ -168,10 +169,10 @@ _current_co:
     pushq %rbp
     movq %rsp, %rbp;
 
-    leaq _thread_local_mach(%rip), %rdi
-    callq *(%rdi) // get _thread_local_mach
-    movq (%rax), %rax
-    movq 40(%rax), %rax // _thread_local_mach->running
+    // leaq _thread_local_mach(%rip), %rdi
+    // callq *(%rdi) // get _thread_local_mach
+    // movq (%rax), %rax
+    // movq 40(%rax), %rax // _thread_local_mach->running
 
     popq %rbp
     ret
@@ -194,13 +195,13 @@ _current_co:
 _spawn_co:
     pushq %rbp
     movq %rsp, %rbp;
-    
+
     movq %rbp, %rdx
     addq $16, %rdx
     //addq %rsi, %rdx
     callq _yalx_install_coroutine
     // TODO: check and throw exception
-    
+
     callq _yield // run new coroutine first
 
     popq %rbp

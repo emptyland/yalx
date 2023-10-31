@@ -2,9 +2,7 @@
 #include "arm64/asm-arm64.h"
 
 
-namespace yalx {
-
-namespace arm64 {
+namespace yalx::arm64 {
 
 void Instruction::SetImmPCOffsetTarget(const Instruction* target) {
     if (IsPCRelAddressing()) {
@@ -141,8 +139,5 @@ int Instruction::ImmBranchRangeBitwidth(ImmBranchType branch_type) {
             UNREACHABLE();
     }
 }
-
-} // namespace arm64
-
 
 } // namespace yalx

@@ -1,8 +1,7 @@
 #include "backend/linkage-symbols.h"
 #include <gtest/gtest.h>
 
-namespace yalx {
-namespace backend {
+namespace yalx::backend {
 
 class LinkageSymbolsTest : public ::testing::Test {
 public:
@@ -15,7 +14,7 @@ protected:
 
 TEST_F(LinkageSymbolsTest, Sanity) {
     auto symbol = symbols_.Mangle("main:main.$init");
-    ASSERT_NE(nullptr, symbol);
+    ASSERT_TRUE(nullptr != symbol);
     ASSERT_STREQ("_main_Zomain_Zd_Z4init", symbol->data());
     
     symbol = symbols_.Mangle("yalx/lang:lang.Any.hashCode");
@@ -34,5 +33,4 @@ TEST_F(LinkageSymbolsTest, Sanity) {
 // _yalx_Zplang_Zolang_ZdAny_ZdisEmpty
 // _yalx_Zplang_Zolang_Zd_Z4init
 
-} // namespace backend
 } // namespace yalx

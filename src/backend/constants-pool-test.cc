@@ -1,9 +1,7 @@
 #include "backend/constants-pool.h"
 #include <gtest/gtest.h>
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 class ConstantsPoolTest : public ::testing::Test {
 public:
@@ -51,7 +49,5 @@ TEST_F(ConstantsPoolTest, StringPool) {
     EXPECT_EQ(id, pool_.FindOrInsertString(s2));
     EXPECT_EQ(s2, pool_.string_pool()[1]);
 }
-
-} // namespace backend
 
 } // namespace yalx

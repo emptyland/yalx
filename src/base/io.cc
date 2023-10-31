@@ -4,9 +4,7 @@
 #include <string.h>
 #include <string>
 
-namespace yalx {
-
-namespace base {
+namespace yalx::base {
 
 class MemorySequentialFile : public SequentialFile {
 public:
@@ -168,7 +166,5 @@ SequentialFile *NewMemorySequentialFile(const char *z, size_t n) {
 WritableFile *NewWritableFile(FILE *fp) { return new LibCWritableFile(fp); }
 
 WritableFile *NewMemoryWritableFile(std::string *buf) { return new MemoryWritableFile(buf); }
-
-} // namespace base
 
 } // namespace yalx

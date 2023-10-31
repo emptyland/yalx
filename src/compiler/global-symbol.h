@@ -4,22 +4,19 @@
 
 #include "compiler/node.h"
 
-namespace yalx {
+namespace yalx::cpl {
 
-namespace cpl {
+    struct GlobalSymbol {
+        String *symbol;
+        Statement *ast;
+        Package *owns;
 
-struct GlobalSymbol {
-    String    *symbol;
-    Statement *ast;
-    Package   *owns;
-    
-    bool IsFound() { return !IsNotFound(); }
-    bool IsNotFound() { return ast == nullptr; }
-    
-    static GlobalSymbol NotFound() { return {nullptr, nullptr, nullptr}; }
-}; // struct GlobalSymbol
+        bool IsFound() { return !IsNotFound(); }
 
-} // namespace cpl
+        bool IsNotFound() { return ast == nullptr; }
+
+        static GlobalSymbol NotFound() { return {nullptr, nullptr, nullptr}; }
+    }; // struct GlobalSymbol
 
 } // namespace yalx
 

@@ -273,7 +273,7 @@ public:
     bool In_itab(const Handle *) const;
     bool In_vtab(const Handle *) const;
     
-    int ConceptOffsetOf(const InterfaceModel *concept);
+    int ConceptOffsetOf(const InterfaceModel *ifa);
     
     bool IsNotCompactEnum() const { return !IsCompactEnum(); }
     bool IsCompactEnum() const;

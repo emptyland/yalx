@@ -1,5 +1,5 @@
 #include "runtime/hash-table.h"
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 
 class HashTableTest : public ::testing::Test {

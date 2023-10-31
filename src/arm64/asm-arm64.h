@@ -134,11 +134,11 @@ public:
     
     bool IsNone() const { return type() == kNoRegister; }
     
-    constexpr bool operator == (const CPURegister &other) const {
+    /*constexpr*/ bool operator == (const CPURegister &other) const {
         return code_ == other.code() && reg_size_ == other.size_in_bits() && type_ == other.type();
     }
     
-    constexpr bool operator != (const CPURegister &other) const { return !operator ==(other); }
+    /*constexpr*/ bool operator != (const CPURegister &other) const { return !operator ==(other); }
     
     bool IsZero() const { return IsRegister() && (code() == kZeroRegCode); }
     bool IsSP() const { return IsRegister() && (code() == kSPRegInternalCode); }

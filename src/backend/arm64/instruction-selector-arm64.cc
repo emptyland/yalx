@@ -1,15 +1,11 @@
 #include "backend/instruction-selector.h"
-#include "backend/arm64/instruction-codes-arm64.h"
 #include "backend/registers-configuration.h"
 #include "ir/condition.h"
 #include "ir/metadata.h"
 #include "ir/utils.h"
 #include "ir/node.h"
-#include "ir/type.h"
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 class Arm64InstructionSelector final : public InstructionSelector {
 public:
@@ -57,7 +53,7 @@ public:
     
     void VisitICmp(ir::Value *instr) override {
         if (MatchCmpOnlyUsedByBr(instr)) {
-            Emit(Arm64Cmp, NoOutput(), UseAsRegister(instr->InputValue(0)), UseAsRegister(instr->InputValue(1)));
+            VisitArithOperands(Arm64Cmp, NoOutput(), instr->InputValue(0), instr->InputValue(1));
             return;
         }
         
@@ -108,8 +104,6 @@ InstructionFunction *Arm64SelectFunctionInstructions(base::Arena *arena, Linkage
     Arm64InstructionSelector selector(arena, linkage, const_pool);
     return selector.VisitFunction(fun);
 }
-
-} // namespace backend
 
 } // namespace yalx
 

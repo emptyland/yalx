@@ -10,9 +10,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-namespace yalx {
-
-namespace arm64 {
+namespace yalx::arm64 {
 
 constexpr size_t kMaxPCRelativeCodeRangeInMB = 128;
 
@@ -373,7 +371,7 @@ enum SystemHint {
   BTI_jc = 38
 };
 
-// In a guarded page, only BTI and PACI[AB]SP instructions are allowed to be
+// In a guarded ygc_page, only BTI and PACI[AB]SP instructions are allowed to be
 // the target of indirect branches. Details on which kinds of branches each
 // instruction allows follow in the comments below:
 enum class BranchTargetIdentifier {
@@ -2099,8 +2097,6 @@ enum UnallocatedOp : uint32_t {
   UnallocatedFixed = 0x00000000,
   UnallocatedFMask = 0x00000000
 };
-
-} // namespace arm64
 
 } // namespace yalx
 

@@ -5,8 +5,7 @@
 #ifndef YAX_BACKEND_ARM64_INSTRUCTION_CODES_ARM64_H_
 #define YAX_BACKEND_ARM64_INSTRUCTION_CODES_ARM64_H_
 
-namespace yalx {
-namespace backend {
+namespace yalx::backend {
 
 // ARM64-specific opcodes that specify which assembly sequence to emit.
 // Most opcodes specify a single instruction.
@@ -507,7 +506,6 @@ namespace backend {
     V(Operand2_R_SXTW)  /* %r0 SXTW (signed extend word) */       \
     V(Root)             /* [%rr + K] */
 
-}  // namespace backend
 }  // namespace yalx
 
 #endif  // YAX_BACKEND_ARM64_INSTRUCTION_CODES_ARM64_H_
