@@ -111,6 +111,16 @@
 		236DFD972ADA3EF300B97C55 /* daemon-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD8B2ADA3EF300B97C55 /* daemon-test.cc */; };
 		236DFD982ADA3EF300B97C55 /* jobs-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD8C2ADA3EF300B97C55 /* jobs-test.cc */; };
 		236DFD992ADA3EF300B97C55 /* jobs-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236DFD8C2ADA3EF300B97C55 /* jobs-test.cc */; };
+		2375EC422AF0B1B400442399 /* ygc-relocate.c in Sources */ = {isa = PBXBuildFile; fileRef = 2375EC3E2AF0B1B400442399 /* ygc-relocate.c */; };
+		2375EC432AF0B1B400442399 /* ygc-relocate.c in Sources */ = {isa = PBXBuildFile; fileRef = 2375EC3E2AF0B1B400442399 /* ygc-relocate.c */; };
+		2375EC442AF0B1B400442399 /* ygc-mark-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2375EC3F2AF0B1B400442399 /* ygc-mark-test.cc */; };
+		2375EC452AF0B1B400442399 /* ygc-mark-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2375EC3F2AF0B1B400442399 /* ygc-mark-test.cc */; };
+		2375EC462AF0B1B400442399 /* ygc-mark.c in Sources */ = {isa = PBXBuildFile; fileRef = 2375EC412AF0B1B400442399 /* ygc-mark.c */; };
+		2375EC472AF0B1B400442399 /* ygc-mark.c in Sources */ = {isa = PBXBuildFile; fileRef = 2375EC412AF0B1B400442399 /* ygc-mark.c */; };
+		2375EC4B2AF0B1CC00442399 /* root-handles.c in Sources */ = {isa = PBXBuildFile; fileRef = 2375EC482AF0B1CC00442399 /* root-handles.c */; };
+		2375EC4C2AF0B1CC00442399 /* root-handles.c in Sources */ = {isa = PBXBuildFile; fileRef = 2375EC482AF0B1CC00442399 /* root-handles.c */; };
+		2375EC4D2AF0B1CC00442399 /* root-handles-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2375EC492AF0B1CC00442399 /* root-handles-test.cc */; };
+		2375EC4E2AF0B1CC00442399 /* root-handles-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2375EC492AF0B1CC00442399 /* root-handles-test.cc */; };
 		238358E52894D86F00F655B1 /* instruction-selector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238358E42894D86F00F655B1 /* instruction-selector.cc */; };
 		238358E62894D86F00F655B1 /* instruction-selector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238358E42894D86F00F655B1 /* instruction-selector.cc */; };
 		23863A8127EF65680089F9BA /* any.c in Sources */ = {isa = PBXBuildFile; fileRef = 23D5A68526676DFC00635ADB /* any.c */; };
@@ -460,6 +470,14 @@
 		236DFD8C2ADA3EF300B97C55 /* jobs-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "jobs-test.cc"; path = "../src/runtime/jobs-test.cc"; sourceTree = "<group>"; };
 		236DFD8D2ADA3EF300B97C55 /* jobs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = jobs.h; path = ../src/runtime/jobs.h; sourceTree = "<group>"; };
 		23711300275F6889008919BE /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/compiler/constants.h; sourceTree = "<group>"; };
+		2375EC3D2AF0B1B400442399 /* ygc-mark.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ygc-mark.h"; path = "../src/runtime/heap/ygc-mark.h"; sourceTree = "<group>"; };
+		2375EC3E2AF0B1B400442399 /* ygc-relocate.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ygc-relocate.c"; path = "../src/runtime/heap/ygc-relocate.c"; sourceTree = "<group>"; };
+		2375EC3F2AF0B1B400442399 /* ygc-mark-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "ygc-mark-test.cc"; path = "../src/runtime/heap/ygc-mark-test.cc"; sourceTree = "<group>"; };
+		2375EC402AF0B1B400442399 /* ygc-relocate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "ygc-relocate.h"; path = "../src/runtime/heap/ygc-relocate.h"; sourceTree = "<group>"; };
+		2375EC412AF0B1B400442399 /* ygc-mark.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "ygc-mark.c"; path = "../src/runtime/heap/ygc-mark.c"; sourceTree = "<group>"; };
+		2375EC482AF0B1CC00442399 /* root-handles.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "root-handles.c"; path = "../src/runtime/root-handles.c"; sourceTree = "<group>"; };
+		2375EC492AF0B1CC00442399 /* root-handles-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "root-handles-test.cc"; path = "../src/runtime/root-handles-test.cc"; sourceTree = "<group>"; };
+		2375EC4A2AF0B1CC00442399 /* root-handles.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "root-handles.h"; path = "../src/runtime/root-handles.h"; sourceTree = "<group>"; };
 		237A0DAB27731390002180FE /* global-symbol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "global-symbol.h"; path = "../src/compiler/global-symbol.h"; sourceTree = "<group>"; };
 		238358E02894CD0900F655B1 /* instruction-codes-x64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "instruction-codes-x64.h"; path = "../src/backend/x64/instruction-codes-x64.h"; sourceTree = "<group>"; };
 		238358E12894CD1C00F655B1 /* instruction-codes-arm64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "instruction-codes-arm64.h"; path = "../src/backend/arm64/instruction-codes-arm64.h"; sourceTree = "<group>"; };
@@ -658,6 +676,9 @@
 		2351F80D26648C8200D337EA /* Runtime */ = {
 			isa = PBXGroup;
 			children = (
+				2375EC492AF0B1CC00442399 /* root-handles-test.cc */,
+				2375EC482AF0B1CC00442399 /* root-handles.c */,
+				2375EC4A2AF0B1CC00442399 /* root-handles.h */,
 				236DFD8B2ADA3EF300B97C55 /* daemon-test.cc */,
 				236DFD892ADA3EF300B97C55 /* daemon.c */,
 				236DFD8C2ADA3EF300B97C55 /* jobs-test.cc */,
@@ -856,23 +877,6 @@
 			name = Compiler;
 			sourceTree = "<group>";
 		};
-		23893F7C284472ED000FA9F7 /* LXR */ = {
-			isa = PBXGroup;
-			children = (
-				23893F7D28447317000FA9F7 /* lxr.h */,
-				23893F8228449CE4000FA9F7 /* block-test.cc */,
-				23893F7F28447368000FA9F7 /* block.c */,
-				23893F7E28447351000FA9F7 /* block.h */,
-				2387D4AF2859C0590088F1A6 /* immix-heap-test.cc */,
-				23448B6328573B97007013EB /* immix-heap.c */,
-				23448B6228573B66007013EB /* immix-heap.h */,
-				23448B6A28586C92007013EB /* logging-test.cc */,
-				23448B6728583024007013EB /* logging.c */,
-				23448B6628582DE5007013EB /* logging.h */,
-			);
-			name = LXR;
-			sourceTree = "<group>";
-		};
 		23A560702952B254002D3E4A /* Interpreter */ = {
 			isa = PBXGroup;
 			children = (
@@ -885,6 +889,11 @@
 		23D5A67F26676B1F00635ADB /* Heap */ = {
 			isa = PBXGroup;
 			children = (
+				2375EC3F2AF0B1B400442399 /* ygc-mark-test.cc */,
+				2375EC412AF0B1B400442399 /* ygc-mark.c */,
+				2375EC3D2AF0B1B400442399 /* ygc-mark.h */,
+				2375EC3E2AF0B1B400442399 /* ygc-relocate.c */,
+				2375EC402AF0B1B400442399 /* ygc-relocate.h */,
 				236DFD802ADA396A00B97C55 /* ygc-forwarding-test.cc */,
 				236DFD7F2ADA396A00B97C55 /* ygc-forwarding.c */,
 				236DFD812ADA396A00B97C55 /* ygc-forwarding.h */,
@@ -1081,7 +1090,9 @@
 				2387EFAD2684643A002E6DCF /* token.cc in Sources */,
 				23EDFA28269C45A400C8F1FE /* node.cc in Sources */,
 				236DFD992ADA3EF300B97C55 /* jobs-test.cc in Sources */,
+				2375EC432AF0B1B400442399 /* ygc-relocate.c in Sources */,
 				23D4A44A2680D17D0090C631 /* builtin-types.c in Sources */,
+				2375EC4C2AF0B1CC00442399 /* root-handles.c in Sources */,
 				23D4A44B2680D17D0090C631 /* type-test.cc in Sources */,
 				233AB98127EB46DE00E68B90 /* arrays.c in Sources */,
 				23D4A44C2680D17D0090C631 /* yalx-string.h in Sources */,
@@ -1144,6 +1155,7 @@
 				23667C3227B2532E00612546 /* machine-type.cc in Sources */,
 				231C4B8C268DA7AD00D4AC62 /* boot-posix-arm64.s in Sources */,
 				236DFD8F2ADA3EF300B97C55 /* jobs.c in Sources */,
+				2375EC4E2AF0B1CC00442399 /* root-handles-test.cc in Sources */,
 				23D4A4672680D17D0090C631 /* arena-utils.h in Sources */,
 				23FA869D26A01091001CC777 /* type.cc in Sources */,
 				23FA86AB26A161DF001CC777 /* codegen.cc in Sources */,
@@ -1160,6 +1172,7 @@
 				23D4A46A2680D17D0090C631 /* at-exit.cc in Sources */,
 				23D4A46B2680D17D0090C631 /* at-exit.h in Sources */,
 				23D4A46C2680D17D0090C631 /* base.h in Sources */,
+				2375EC472AF0B1B400442399 /* ygc-mark.c in Sources */,
 				233F67E7287D1E2E001982FF /* arena.cc in Sources */,
 				23D4A46D2680D17D0090C631 /* base.cc in Sources */,
 				236DFD852ADA396A00B97C55 /* ygc-forwarding-test.cc in Sources */,
@@ -1171,6 +1184,7 @@
 				23D4A46E2680D17D0090C631 /* bit-ops.h in Sources */,
 				23B997DA26A4680300DD037B /* type-reducing.cc in Sources */,
 				2387EFB1268581AD002E6DCF /* token-test.cc in Sources */,
+				2375EC452AF0B1B400442399 /* ygc-mark-test.cc in Sources */,
 				23AE8301289A61D90009E00E /* registers-configuration.cc in Sources */,
 				23D4A46F2680D17D0090C631 /* crc32.c in Sources */,
 				236DFD972ADA3EF300B97C55 /* daemon-test.cc in Sources */,
@@ -1243,6 +1257,8 @@
 				232AA00426861D4C0098E6A3 /* parser.cc in Sources */,
 				23D5A663266718F900635ADB /* at-exit.cc in Sources */,
 				23AE82FC289A5A160009E00E /* frame.cc in Sources */,
+				2375EC4D2AF0B1CC00442399 /* root-handles-test.cc in Sources */,
+				2375EC442AF0B1B400442399 /* ygc-mark-test.cc in Sources */,
 				2331FFA6268DC66B00F69508 /* ast-utils.cc in Sources */,
 				23D5A664266718F900635ADB /* at-exit.h in Sources */,
 				2387EFBB2685BEAD002E6DCF /* ast.cc in Sources */,
@@ -1269,7 +1285,6 @@
 				23D5A66C266718F900635ADB /* hash.cc in Sources */,
 				235BC03B294CB738002A8EA2 /* bytecode-array-builder.cc in Sources */,
 				23028D45294D6B520054B695 /* isolate.cc in Sources */,
-				23D5A67E26672FE000635ADB /* test-stub-posix-x64.s in Sources */,
 				23D5A68B26677D4B00635ADB /* type-test.cc in Sources */,
 				239E02C0285C82B3002E6BA6 /* locks.c in Sources */,
 				23D5A66D266718F900635ADB /* hash.h in Sources */,
@@ -1278,6 +1293,7 @@
 				23FA869C26A01091001CC777 /* type.cc in Sources */,
 				23028D41294D63690054B695 /* bytecode-array-builder-test.cc in Sources */,
 				233AB98327EB4C6100E68B90 /* unwind-posix.c in Sources */,
+				2375EC4B2AF0B1CC00442399 /* root-handles.c in Sources */,
 				23D5A66F266718F900635ADB /* io.cc in Sources */,
 				23D5A670266718F900635ADB /* lazy-instance.h in Sources */,
 				23D5A671266718F900635ADB /* reference-count-test.cc in Sources */,
@@ -1321,9 +1337,11 @@
 				23D5A678266718F900635ADB /* status.cc in Sources */,
 				23D5A679266718F900635ADB /* checking.h in Sources */,
 				23C3543726A1B7E7006607D1 /* scope.cc in Sources */,
+				2375EC462AF0B1B400442399 /* ygc-mark.c in Sources */,
 				2362A0F026A6CB1700A972B1 /* generics-instantiating-test.cc in Sources */,
 				23D5A67A266718F900635ADB /* format.h in Sources */,
 				23D5A67B266718F900635ADB /* format.cc in Sources */,
+				2375EC422AF0B1B400442399 /* ygc-relocate.c in Sources */,
 				233AB98027EB46DE00E68B90 /* arrays.c in Sources */,
 				23EDFA27269C45A400C8F1FE /* node.cc in Sources */,
 				23D5A67C266718F900635ADB /* utils.h in Sources */,

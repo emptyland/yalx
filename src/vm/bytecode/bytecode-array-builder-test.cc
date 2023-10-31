@@ -36,11 +36,11 @@ TEST_F(BytecodeArrayBuilderTest, Opcode_Move) {
 }
 
 TEST_F(BytecodeArrayBuilderTest, FloatingOperands) {
-    auto bc = builder_.Emit<float, Bitwise::kFloat>(Bytecode::kLoadImm, 3.14f);
+    auto bc = builder_.Emit<float, Bitwise::kF32>(Bytecode::kLdaImm, 3.14f);
     
-    ASSERT_EQ(Bitwise::kFloat, bc->bitwise());
+    ASSERT_EQ(Bitwise::kF32, bc->bitwise());
     ASSERT_EQ(Bytecode::kWide32, bc->prefix());
-    ASSERT_EQ(Bytecode::kLoadImm, bc->opcode());
+    ASSERT_EQ(Bytecode::kLdaImm, bc->opcode());
     ASSERT_EQ(1, bc->OperandsCount());
     ASSERT_NEAR(3.14f, Operands<float>::At(bc, 0), 0.001f);
 }
