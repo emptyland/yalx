@@ -4,8 +4,8 @@ namespace yalx {
 
 namespace vm {
 
-int Bytecode::OperandsCount() const {
-    switch (opcode()) {
+int Bytecode::OperandsCount(Opcode opcode) {
+    switch (opcode) {
 #define DEFINE_OPERANDS_COUNT(name, acc, count, ...) case k##name: return count;
         DECL_BYTECODES(DEFINE_OPERANDS_COUNT)
 #undef DEFINE_OPERANDS_COUNT

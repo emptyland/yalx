@@ -16,7 +16,7 @@ enum class OperandKind {
     kConstPoolOffset,
     kFunTableOffset,
     kGlobalZoneOffset,
-    kImm,
+    kImmediate,
 };
 
 enum class AccumulatorAccessing {
@@ -26,22 +26,38 @@ enum class AccumulatorAccessing {
     kInOut
 };
 
+//#define DECL_BITWISE(V) \
+//    V(None) \
+//    V(Byte) \
+//    V(Word) \
+//    V(Long) \
+//    V(Quad) \
+//    V(Refs) \
+//    V(Float) \
+//    V(Double)
+
 enum class Bitwise: uint8_t {
     kNone,   // Ignore
     kByte,   // 8 bits
     kWord,   // 16 bits
     kLong,   // 32 bits
     kQuad,   // 64 bits
-    kFloat,  // 32 floating bits
-    kDouble, // 64 floating bits
+    kRefs,   // Object references, default = 64 bits
+    kF32,    // 32 floating bits
+    kF64,    // 64 floating bits
 };
 
+// +--------+----------------------+---------+----------------+----------+
+// |  Name  | Accumlator Accessing | Bitwise | Operands Count | Operands |
 #define DECL_BYTECODES(V) \
-    V(Wide16, Useless, 0) \
-    V(Wide32, Useless, 0) \
-    V(Wide64, Useless, 0) \
-    V(Lda,    Out,     1, StackSlot) \
-    V(Sta,    In,      1, StackSlot)
+    V(Wide16,  Useless, none,       0) \
+    V(Wide32,  Useless, none,       0) \
+    V(Wide64,  Useless, none,       0) \
+    V(Lda,     Out,     all,        1, StackSlot) \
+    V(Sta,     In,      all,        1, StackSlot) \
+    V(LdaImm,  Out,     all_number, 1, Immediate) \
+    V(LdaConst,Out,     all,        1, ConstPoolOffset) \
+    V(Move,    Useless, all,        2, StackSlot, StackSlot)
 
 template<class T> class BytecodeNode;
 
@@ -51,6 +67,7 @@ public:
 #define DEFINE_OPCODE(name, ...) k##name,
         DECL_BYTECODES(DEFINE_OPCODE)
 #undef DEFINE_OPCODE
+        kMax,
     };
     
     constexpr static int kMaxOperands = 4;
@@ -100,7 +117,8 @@ public:
         }
     }
     
-    int OperandsCount() const;
+    static int OperandsCount(Opcode opcode);
+    int OperandsCount() const { return OperandsCount(opcode()); }
     
     size_t Encode(uint8_t **buf) const;
     
@@ -120,6 +138,7 @@ private:
     const Opcode opcode_;
     const Bitwise bitwise_;
 }; // class Bytecode
+
 
 template<class T>
 struct BytecodeWideTraits {
@@ -229,6 +248,16 @@ inline constexpr const BytecodeNode<T> *Bytecode::Cast(const Bytecode *bc) {
     DCHECK(bc || BytecodeWideTraits<T>::Prefix(bc->opcode()) == bc->prefix());
     return static_cast<const BytecodeNode<T> *>(bc);
 }
+
+
+template<class T>
+struct Operands {
+    inline static T At(const Bytecode *bc, int i) {
+        DCHECK(i >= 0);
+        DCHECK(i < bc->OperandsCount());
+        return Bytecode::Cast<T>(bc)->operand(i);
+    }
+};
 
 } // namespace vm
 

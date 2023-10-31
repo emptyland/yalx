@@ -9,6 +9,10 @@
 /* Begin PBXBuildFile section */
 		230167692669C5DB007E8322 /* yalx-string.c in Sources */ = {isa = PBXBuildFile; fileRef = 230167682669C5DB007E8322 /* yalx-string.c */; };
 		2301676B266A27CF007E8322 /* heap-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2301676A266A27CF007E8322 /* heap-test.cc */; };
+		23028D41294D63690054B695 /* bytecode-array-builder-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23028D40294D63690054B695 /* bytecode-array-builder-test.cc */; };
+		23028D42294D63690054B695 /* bytecode-array-builder-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23028D40294D63690054B695 /* bytecode-array-builder-test.cc */; };
+		23028D45294D6B520054B695 /* isolate.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23028D44294D6B520054B695 /* isolate.cc */; };
+		23028D46294D6B520054B695 /* isolate.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23028D44294D6B520054B695 /* isolate.cc */; };
 		230C85FE27853E4D00298122 /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 230C85FD27853E4D00298122 /* constants.cc */; };
 		230C85FF27853E4D00298122 /* constants.cc in Sources */ = {isa = PBXBuildFile; fileRef = 230C85FD27853E4D00298122 /* constants.cc */; };
 		2313C4D227A238B000F6A34B /* pass.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2313C4D127A238B000F6A34B /* pass.cc */; };
@@ -117,6 +121,8 @@
 		239E02C1285C82B3002E6BA6 /* locks.c in Sources */ = {isa = PBXBuildFile; fileRef = 239E02BF285C82B3002E6BA6 /* locks.c */; };
 		239E02C3285C864A002E6BA6 /* locks-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239E02C2285C864A002E6BA6 /* locks-test.cc */; };
 		239E02C4285C864A002E6BA6 /* locks-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 239E02C2285C864A002E6BA6 /* locks-test.cc */; };
+		23A560732952B356002D3E4A /* dispatcher.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A560722952B356002D3E4A /* dispatcher.cc */; };
+		23A560742952B356002D3E4A /* dispatcher.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A560722952B356002D3E4A /* dispatcher.cc */; };
 		23A7F0E12699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
 		23A7F0E22699E22A0060BFB7 /* compiler-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23A7F0E02699E22A0060BFB7 /* compiler-test.cc */; };
 		23AE82FC289A5A160009E00E /* frame.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23AE82FB289A5A160009E00E /* frame.cc */; };
@@ -314,6 +320,9 @@
 		230167672669C575007E8322 /* yalx-string.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "yalx-string.h"; path = "../src/runtime/object/yalx-string.h"; sourceTree = "<group>"; };
 		230167682669C5DB007E8322 /* yalx-string.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "yalx-string.c"; path = "../src/runtime/object/yalx-string.c"; sourceTree = "<group>"; };
 		2301676A266A27CF007E8322 /* heap-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "heap-test.cc"; path = "../src/runtime/heap/heap-test.cc"; sourceTree = "<group>"; };
+		23028D40294D63690054B695 /* bytecode-array-builder-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "bytecode-array-builder-test.cc"; path = "../src/vm/bytecode/bytecode-array-builder-test.cc"; sourceTree = "<group>"; };
+		23028D43294D6B320054B695 /* isolate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = isolate.h; path = ../src/vm/isolate.h; sourceTree = "<group>"; };
+		23028D44294D6B520054B695 /* isolate.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = isolate.cc; path = ../src/vm/isolate.cc; sourceTree = "<group>"; };
 		230C85FC27853D6600298122 /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = constants.h; path = ../src/ir/constants.h; sourceTree = "<group>"; };
 		230C85FD27853E4D00298122 /* constants.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = constants.cc; path = ../src/ir/constants.cc; sourceTree = "<group>"; };
 		2313C4D027A2386700F6A34B /* pass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pass.h; path = ../src/ir/pass/pass.h; sourceTree = "<group>"; };
@@ -454,6 +463,9 @@
 		23A3AB5D2664DB9F00007658 /* stack-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "stack-test.cc"; path = "../src/runtime/stack-test.cc"; sourceTree = "<group>"; };
 		23A3AB5F2664DE4D00007658 /* process.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = process.h; path = ../src/runtime/process.h; sourceTree = "<group>"; };
 		23A3AB602664E32E00007658 /* process.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = process.c; path = ../src/runtime/process.c; sourceTree = "<group>"; };
+		23A5606F2952AC5F002D3E4A /* frame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = frame.h; path = ../src/vm/bytecode/frame.h; sourceTree = "<group>"; };
+		23A560712952B298002D3E4A /* dispatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = dispatcher.h; path = ../src/vm/interpreter/dispatcher.h; sourceTree = "<group>"; };
+		23A560722952B356002D3E4A /* dispatcher.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = dispatcher.cc; path = ../src/vm/interpreter/dispatcher.cc; sourceTree = "<group>"; };
 		23A7F0E02699E22A0060BFB7 /* compiler-test.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = "compiler-test.cc"; path = "../src/compiler/compiler-test.cc"; sourceTree = "<group>"; };
 		23AE82FA289A59540009E00E /* frame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = frame.h; path = ../src/backend/frame.h; sourceTree = "<group>"; };
 		23AE82FB289A5A160009E00E /* frame.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = frame.cc; path = ../src/backend/frame.cc; sourceTree = "<group>"; };
@@ -744,7 +756,10 @@
 		235BC02F294CA83A002A8EA2 /* VM */ = {
 			isa = PBXGroup;
 			children = (
+				23A560702952B254002D3E4A /* Interpreter */,
 				235BC034294CB521002A8EA2 /* Bytecode */,
+				23028D44294D6B520054B695 /* isolate.cc */,
+				23028D43294D6B320054B695 /* isolate.h */,
 			);
 			name = VM;
 			sourceTree = "<group>";
@@ -752,10 +767,12 @@
 		235BC034294CB521002A8EA2 /* Bytecode */ = {
 			isa = PBXGroup;
 			children = (
+				23028D40294D63690054B695 /* bytecode-array-builder-test.cc */,
 				235BC03A294CB738002A8EA2 /* bytecode-array-builder.cc */,
 				235BC039294CB698002A8EA2 /* bytecode-array-builder.h */,
 				235BC036294CB53D002A8EA2 /* bytecode.cc */,
 				235BC035294CB53D002A8EA2 /* bytecode.h */,
+				23A5606F2952AC5F002D3E4A /* frame.h */,
 			);
 			name = Bytecode;
 			sourceTree = "<group>";
@@ -814,6 +831,15 @@
 				23448B6628582DE5007013EB /* logging.h */,
 			);
 			name = LXR;
+			sourceTree = "<group>";
+		};
+		23A560702952B254002D3E4A /* Interpreter */ = {
+			isa = PBXGroup;
+			children = (
+				23A560722952B356002D3E4A /* dispatcher.cc */,
+				23A560712952B298002D3E4A /* dispatcher.h */,
+			);
+			name = Interpreter;
 			sourceTree = "<group>";
 		};
 		23D5A67F26676B1F00635ADB /* Heap */ = {
@@ -1017,6 +1043,7 @@
 				23D4A4522680D17D0090C631 /* runtime.h in Sources */,
 				2387EFA02681C8D3002E6DCF /* compiler.cc in Sources */,
 				239E02C4285C864A002E6BA6 /* locks-test.cc in Sources */,
+				23A560742952B356002D3E4A /* dispatcher.cc in Sources */,
 				23D4A4532680D17D0090C631 /* runtime.c in Sources */,
 				2387EFB82685BB99002E6DCF /* node-test.cc in Sources */,
 				238358E62894D86F00F655B1 /* instruction-selector.cc in Sources */,
@@ -1025,6 +1052,7 @@
 				23D4A4552680D17D0090C631 /* stack-test.cc in Sources */,
 				239735CD27B54D2800FAD063 /* linkage-symbols.cc in Sources */,
 				23D4A4562680D17D0090C631 /* stack.h in Sources */,
+				23028D46294D6B520054B695 /* isolate.cc in Sources */,
 				23D4A4572680D17D0090C631 /* stack.c in Sources */,
 				23D4A4582680D17D0090C631 /* process.h in Sources */,
 				23FA86AE26A26CC9001CC777 /* scope-test.cc in Sources */,
@@ -1108,6 +1136,7 @@
 				2348E61A286AB26200E2C365 /* type.c in Sources */,
 				23C1344B27A3CF0B00C0DEB4 /* instruction.cc in Sources */,
 				2362A0F126A6CB1700A972B1 /* generics-instantiating-test.cc in Sources */,
+				23028D42294D63690054B695 /* bytecode-array-builder-test.cc in Sources */,
 				2313C4D327A238B000F6A34B /* pass.cc in Sources */,
 				23D4A47A2680D17D0090C631 /* sha256-test.cc in Sources */,
 				23F6C24C278FC85B00899C4F /* runtime.cc in Sources */,
@@ -1172,12 +1201,14 @@
 				23D5A6892667734A00635ADB /* builtin-types.c in Sources */,
 				23D5A66C266718F900635ADB /* hash.cc in Sources */,
 				235BC03B294CB738002A8EA2 /* bytecode-array-builder.cc in Sources */,
+				23028D45294D6B520054B695 /* isolate.cc in Sources */,
 				23D5A67E26672FE000635ADB /* test-stub-posix-x64.s in Sources */,
 				23D5A68B26677D4B00635ADB /* type-test.cc in Sources */,
 				239E02C0285C82B3002E6BA6 /* locks.c in Sources */,
 				23D5A66D266718F900635ADB /* hash.h in Sources */,
 				23D5A66E266718F900635ADB /* io.h in Sources */,
 				23FA869C26A01091001CC777 /* type.cc in Sources */,
+				23028D41294D63690054B695 /* bytecode-array-builder-test.cc in Sources */,
 				233AB98327EB4C6100E68B90 /* unwind-posix.c in Sources */,
 				23D5A66F266718F900635ADB /* io.cc in Sources */,
 				23D5A670266718F900635ADB /* lazy-instance.h in Sources */,
@@ -1249,6 +1280,7 @@
 				23893F8328449CE4000FA9F7 /* block-test.cc in Sources */,
 				2348E619286AB26200E2C365 /* type.c in Sources */,
 				2313C4D627A23E8500F6A34B /* constants-folding.cc in Sources */,
+				23A560732952B356002D3E4A /* dispatcher.cc in Sources */,
 				23D5A655266718ED00635ADB /* process.c in Sources */,
 				23D5A656266718ED00635ADB /* checking.h in Sources */,
 				2322269C27EEB04700B18B36 /* code-generate-arch-test.cc in Sources */,

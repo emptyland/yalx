@@ -16,18 +16,22 @@ public:
     BytecodeArrayBuilder(base::Arena *arena);
     
     template<class T = uint8_t, Bitwise Bits = Bitwise::kNone>
-    inline void Emit(Bytecode::Opcode opcode, T a = 0, T b = 0, T c = 0, T d = 0) {
+    inline BytecodeNode<T> *Emit(Bytecode::Opcode opcode, T a = 0, T b = 0, T c = 0, T d = 0) {
         DCHECK(!Bytecode::IsWidePrefix(opcode));
-        bytecodes_.push_back(new (arena_) BytecodeNode<T>(opcode, Bits, a, b, c, d));
+        auto node = new (arena_) BytecodeNode<T>(opcode, Bits, a, b, c, d);
+        bytecodes_.push_back(node);
+        return node;
     }
     
     template<Bitwise Bits = Bitwise::kNone>
-    inline void EmitNoPrefix(Bytecode::Opcode opcode, uint8_t a = 0, uint8_t b = 0, uint8_t c = 0, uint8_t d = 0) {
+    BytecodeNode<uint8_t> *EmitNoPrefix(Bytecode::Opcode opcode, uint8_t a = 0, uint8_t b = 0, uint8_t c = 0,
+                                        uint8_t d = 0) {
         return Emit<decltype(a), Bits>(opcode, a, b, c, d);
     }
     
     template<Bitwise Bits = Bitwise::kNone>
-    inline void EmitWide16(Bytecode::Opcode opcode, uint16_t a = 0, uint16_t b = 0, uint16_t c = 0, uint16_t d = 0) {
+    BytecodeNode<uint16_t> *EmitWide16(Bytecode::Opcode opcode, uint16_t a = 0, uint16_t b = 0, uint16_t c = 0,
+                                       uint16_t d = 0) {
         return Emit<decltype(a), Bits>(opcode, a, b, c, d);
     }
 private:
