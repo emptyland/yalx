@@ -192,24 +192,24 @@ struct ygc_tls_struct {
 
 struct ygc_page {
     struct ygc_page *next;
-    struct ygc_page *prev;
-    uint32_t tick;
-    linear_address_t virtual_addr;
-    struct physical_memory physical_memory;
-    _Atomic uintptr_t top;
-    uintptr_t limit;
-    struct ygc_live_map live_map;
+    struct ygc_page *prev; // Linked list header.
+    uint32_t tick; // Global YGC tick snapshot.
+    linear_address_t virtual_addr; // Virtual address start and size.
+    struct physical_memory physical_memory; // Physical memory segments.
+    _Atomic volatile uintptr_t top; // Allocation memory top pointer.
+    uintptr_t limit; // Allocation memory limit address.
+    struct ygc_live_map live_map; // Object live mapping.
 };
 
 struct ygc_core {
     struct memory_backing backing;
-    struct physical_memory_management pmm;
-    struct virtual_memory_management vmm;
-    struct per_cpu_storage *small_page;
-    struct ygc_page *_Atomic medium_page;
+    struct physical_memory_management pmm; // Physical memory allocation.
+    struct virtual_memory_management vmm; // Virtual memory allocation.
+    struct per_cpu_storage *small_page; // Shared small pages.
+    struct ygc_page *_Atomic medium_page; // Shared medium pages.
 
-    struct ygc_page pages;
-    struct ygc_granule_map page_granules;
+    struct ygc_page pages; // All allocated pages.
+    struct ygc_granule_map page_granules; // Page map by address granule
 
     struct ygc_granule_map forwarding_table;
     struct ygc_mark mark;
@@ -217,7 +217,7 @@ struct ygc_core {
     struct ygc_relocation_set relocation_set;
     struct yalx_mutex mutex;
 
-    _Atomic size_t rss;
+    _Atomic size_t rss; // RSS memory size in bytes.
     int fragmentation_limit; // Percent of compaction threshold, default: 25
 };
 
