@@ -81,6 +81,7 @@ struct heap;
 struct yalx_os_thread;
 
 struct barrier_set {
+    struct yalx_value_any *(*prefix_load_barrier)(struct heap *, struct yalx_value_any *, struct yalx_value_any *_Atomic volatile *);
     void (*prefix_write_barrier)(struct heap *, struct yalx_value_any *, struct yalx_value_any *);
     void (*prefix_write_barrier_batch)(struct heap *, struct yalx_value_any *, struct yalx_value_any **, size_t);
     void (*post_write_barrier)(struct heap *, struct yalx_value_any **, struct yalx_value_any *);

@@ -318,6 +318,7 @@ static uintptr_t relocate_object(const struct ygc_relocate *relocate, struct for
     }
 
     memcpy((void *)to_good, (void *)from_good, size_in_bytes);
+    dbg_free_zag((void *)from_good, size_in_bytes);
 
     const uintptr_t to_offset = ygc_offset(to_good);
     const uintptr_t to_offset_final = forwarding_insert(fwd, from_index, to_offset, &pos);

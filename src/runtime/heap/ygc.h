@@ -303,6 +303,7 @@ uintptr_t ygc_relocate_object(struct ygc_core *ygc, uintptr_t addr);
 // Barrier Ops:
 //----------------------------------------------------------------------------------------------------------------------
 uintptr_t ygc_barrier_mark(struct ygc_core *ygc, uintptr_t addr);
+uintptr_t ygc_barrier_relocate_or_mark(struct ygc_core *ygc, uintptr_t addr);
 
 struct yalx_value_any *ygc_barrier_load(struct yalx_value_any *_Atomic volatile *p);
 
@@ -333,6 +334,20 @@ static inline struct yalx_value_any *ygc_barrier_mark_fast_on_good_or_null(struc
     return (struct yalx_value_any *)good_addr;
 }
 
+static inline struct yalx_value_any *ygc_barrier_load_fast_on_good_or_null(struct ygc_core *ygc, struct yalx_value_any *o,
+                                                                           struct yalx_value_any *_Atomic volatile *p) {
+    uintptr_t addr = (uintptr_t)o;
+    if (ygc_is_good(addr) || addr == 0) {
+        return (struct yalx_value_any *)addr;
+    }
+
+    uintptr_t good_addr = ygc_barrier_relocate_or_mark(ygc, addr);
+    if (p) {
+        ygc_barrier_self_heal_fast_on_good_or_null(p, addr, good_addr);
+    }
+    return (struct yalx_value_any *)good_addr;
+}
+
 static inline void ygc_barrier_mark_on_field(struct ygc_core *ygc, struct yalx_value_any *_Atomic volatile *p) {
     struct yalx_value_any *o = ygc_barrier_load(p);
 
@@ -357,6 +372,25 @@ static inline void ygc_barrier_relocate_on_root(struct ygc_core *ygc, struct yal
     uintptr_t good_addr = ygc_relocate_object(ygc, addr);
     *p = (struct yalx_value_any *)good_addr;
 }
+
+void ygc_barrier_load_on_fields(struct ygc_core *ygc, struct yalx_value_any *host);
+
+/*
+ * Runtime load barrier on field.
+ */
+#ifdef __cplusplus
+static inline
+struct yalx_value_any *ygc_barrier_load_on_field(struct ygc_core *ygc, struct yalx_value_any *volatile *p) {
+    struct yalx_value_any *o = ygc_barrier_load((struct yalx_value_any *_Atomic volatile *)p);
+    return ygc_barrier_load_fast_on_good_or_null(ygc, o, (struct yalx_value_any *_Atomic volatile *)p);
+}
+#else
+static inline
+struct yalx_value_any *ygc_barrier_load_on_field(struct ygc_core *ygc, struct yalx_value_any *_Atomic volatile *p) {
+    struct yalx_value_any *o = ygc_barrier_load(p);
+    return ygc_barrier_load_fast_on_good_or_null(ygc, o, p);
+}
+#endif
 
 //----------------------------------------------------------------------------------------------------------------------
 // GC phases:

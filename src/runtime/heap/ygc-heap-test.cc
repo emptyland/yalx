@@ -240,11 +240,39 @@ TEST_F(YGCHeapTest, ConcurrentRelocateSanity) {
     auto arr = NewDummyArray(5);
     yalx_add_root_handle(reinterpret_cast<yalx_ref_t>(arr));
 
+    volatile auto o = reinterpret_cast<yalx_ref_t>(yalx_new_string_direct(heap_, "doom", 4));
+    EXPECT_TRUE(ygc_is_good(o));
+
     ygc_mark_start(heap_);
     ygc_marking_tls_commit(&ygc->mark, yalx_os_thread_self());
+
+    EXPECT_TRUE(ygc_is_bad(o));
+    auto p = ygc_barrier_load_on_field(ygc, &o);
+    EXPECT_TRUE(ygc_is_good(p));
+    EXPECT_TRUE(ygc_is_good(o));
+    EXPECT_EQ(reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
+
+    o = reinterpret_cast<yalx_ref_t>(yalx_new_string_direct(heap_, "moon", 4));
+    EXPECT_TRUE(ygc_is_good(o));
+
     ygc_mark(heap_, 0);
+
+    EXPECT_TRUE(ygc_is_good(o));
+    p = ygc_barrier_load_on_field(ygc, &o);
+    EXPECT_TRUE(ygc_is_good(p));
+    EXPECT_TRUE(ygc_is_good(o));
+
+    o = reinterpret_cast<yalx_ref_t>(yalx_new_string_direct(heap_, "Ox", 2));
+    EXPECT_TRUE(ygc_is_good(o));
+
     ygc_reset_relocation_set(heap_);
     ygc_select_relocation_set(ygc);
     ygc_relocate_start(heap_);
+
+    EXPECT_TRUE(ygc_is_bad(o));
+    p = ygc_barrier_load_on_field(ygc, &o);
+    EXPECT_TRUE(ygc_is_good(p));
+    EXPECT_TRUE(ygc_is_good(o));
+
     ygc_relocate(heap_);
 }

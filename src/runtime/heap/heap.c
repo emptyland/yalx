@@ -22,6 +22,12 @@ struct ygc_heap {
     struct ygc_core ygc;
 };
 
+static struct yalx_value_any *prefix_load_barrier_no_op(struct heap *h, struct yalx_value_any *host,
+                                                        struct yalx_value_any *_Atomic volatile *field) {
+    USE(h);
+    USE(host);
+    return *field;
+}
 static void prefix_write_barrier_no_op(struct heap *h, struct yalx_value_any *host, struct yalx_value_any *mutator) {}
 static void prefix_write_barrier_batch_no_op(struct heap *h, struct yalx_value_any *host, struct yalx_value_any **mutators,
                                              size_t nitems) {}
@@ -33,12 +39,30 @@ static void init_write_barrier_no_op(struct heap *h, struct yalx_value_any **fie
 static void init_write_barrier_batch_no_op(struct heap *h, struct yalx_value_any **fields, size_t nitems) {}
 
 static struct barrier_set barrier_no_op = {
+    prefix_load_barrier_no_op,
     prefix_write_barrier_no_op,
     prefix_write_barrier_batch_no_op,
     post_write_barrier_no_op,
     post_write_barrier_batch_no_op,
     init_write_barrier_no_op,
     init_write_barrier_batch_no_op,
+};
+
+static struct yalx_value_any *prefix_load_barrier_ygc_op(struct heap *h, struct yalx_value_any *host,
+                                                         struct yalx_value_any *_Atomic volatile *field) {
+    struct ygc_core *ygc = ygc_heap_of(h);
+    USE(host);
+    return ygc_barrier_load_on_field(ygc, field);
+}
+
+static struct barrier_set barrier_ygc_op = {
+        prefix_load_barrier_ygc_op,
+        prefix_write_barrier_no_op,
+        prefix_write_barrier_batch_no_op,
+        post_write_barrier_no_op,
+        post_write_barrier_batch_no_op,
+        init_write_barrier_no_op,
+        init_write_barrier_batch_no_op,
 };
 
 static struct allocate_result allocate_from_pool(struct heap *h, size_t size, u32_t flags) {
@@ -295,13 +319,13 @@ int yalx_init_heap(gc_t gc, size_t max_heap_in_bytes, struct heap **receiver) {
             h->heap.finalize = finalize_for_ygc;
             h->heap.thread_enter = ygc_thread_enter;
             h->heap.thread_exit = ygc_thread_exit;
-            h->heap.barrier_ops = barrier_no_op;
+            h->heap.barrier_ops = barrier_ygc_op;
             *receiver = (struct heap *) h;
         } break;
 
         case GC_LXR:
         default:
-            assert(!"unreachable");
+            UNREACHABLE();
             break;
     }
 

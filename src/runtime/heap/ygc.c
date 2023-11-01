@@ -352,6 +352,16 @@ uintptr_t ygc_barrier_mark(struct ygc_core *ygc, uintptr_t addr) {
     return good_addr;
 }
 
+uintptr_t ygc_barrier_relocate_or_mark(struct ygc_core *ygc, uintptr_t addr) {
+    if (ygc_global_phase == YGC_PHASE_RELOCATE) {
+        DCHECK(!ygc_is_good(addr));
+        DCHECK(!ygc_is_weak_good(addr));
+        return ygc_relocate_object(ygc, addr);
+    } else {
+        return ygc_barrier_mark(ygc, addr);
+    }
+}
+
 struct yalx_value_any *ygc_barrier_load(struct yalx_value_any *_Atomic volatile *p) {
     return atomic_load_explicit(p, memory_order_relaxed);
 }
@@ -385,6 +395,31 @@ void ygc_barrier_self_heal_fast_on_good_or_null(struct yalx_value_any *_Atomic v
         // finalizable) metadata bits than what this barrier tried to apply.
         DCHECK(ygc_offset(addr) == ygc_offset(heal_addr));
     }
+}
+
+static void preload_visit_pointers(struct yalx_object_visitor *v, yalx_ref_t host, yalx_ref_t *begin, yalx_ref_t *end) {
+    struct ygc_core *ygc = (struct ygc_core *)v->ctx;
+    USE(host);
+    for (yalx_ref_t *x = begin; x < end; x++) {
+        ygc_barrier_load_on_field(ygc, (struct yalx_value_any *_Atomic volatile *)x);
+    }
+}
+
+static void preload_visit_pointer(struct yalx_object_visitor *v, yalx_ref_t host, yalx_ref_t *p) {
+    struct ygc_core *ygc = (struct ygc_core *)v->ctx;
+    USE(host);
+    ygc_barrier_load_on_field(ygc, (struct yalx_value_any *_Atomic volatile *)p);
+}
+
+void ygc_barrier_load_on_fields(struct ygc_core *ygc, struct yalx_value_any *host) {
+    struct yalx_object_visitor visitor = {
+        ygc,
+        0,
+        0,
+        preload_visit_pointers,
+        preload_visit_pointer,
+    };
+    yalx_object_shallow_visit(host, &visitor);
 }
 
 static void visit_root_pointer(struct yalx_root_visitor *v, yalx_ref_t *p) {
