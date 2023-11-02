@@ -109,6 +109,7 @@ struct heap {
 struct collected_statistics {
     double pause_mills;
     double total_mills;
+    int64_t changed_rss_in_bytes;
     size_t collected_rss_in_bytes;
     size_t collected_in_bytes;
 };

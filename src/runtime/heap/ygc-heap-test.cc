@@ -1,4 +1,5 @@
 #include "runtime/heap/ygc.h"
+#include "runtime/heap/ygc-driver.h"
 #include "runtime/heap/ygc-forwarding.h"
 #include "runtime/heap/heap.h"
 #include "runtime/heap/object-visitor.h"
@@ -275,4 +276,43 @@ TEST_F(YGCHeapTest, ConcurrentRelocateSanity) {
     EXPECT_TRUE(ygc_is_good(o));
 
     ygc_relocate(heap_);
+}
+
+TEST_F(YGCHeapTest, GCSyncSanity) {
+    auto ygc = ygc_heap_of(heap_);
+    ygc->fragmentation_limit = -1;
+    auto arr = NewDummyArray(5);
+    yalx_add_root_handle(reinterpret_cast<yalx_ref_t>(arr));
+
+    auto rootless = yalx_new_string_direct(heap_, "doom", 4);
+    EXPECT_TRUE(ygc_object_is_live(ygc, reinterpret_cast<uintptr_t>(rootless)));
+
+    collected_statistics stat{};
+    ygc_gc_sync(heap_, &stat);
+
+    printf("cost: %.2f mills, in paused: %.2f mills\n", stat.total_mills, stat.pause_mills);
+    EXPECT_FALSE(ygc_object_is_live(ygc, reinterpret_cast<uintptr_t>(rootless)));
+
+    rootless = yalx_new_string_direct(heap_, "demo", 4);
+    ASSERT_TRUE(rootless != nullptr);
+    EXPECT_STREQ("demo", rootless->bytes);
+}
+
+TEST_F(YGCHeapTest, GCTicks) {
+    static constexpr int N = 100;
+
+    auto ygc = ygc_heap_of(heap_);
+    ygc->fragmentation_limit = -1;
+    auto arr = NewDummyArray(5);
+    yalx_add_root_handle(reinterpret_cast<yalx_ref_t>(arr));
+
+    for (int i = 0; i < N; i++) {
+        auto rootless = yalx_new_string_direct(heap_, "doom", 4);
+        EXPECT_TRUE(ygc_object_is_live(ygc, reinterpret_cast<uintptr_t>(rootless)));
+
+        collected_statistics stat{};
+        ygc_gc_sync(heap_, &stat);
+
+        EXPECT_FALSE(ygc_object_is_live(ygc, reinterpret_cast<uintptr_t>(rootless)));
+    }
 }

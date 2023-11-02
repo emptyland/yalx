@@ -234,9 +234,6 @@ void ygc_relocation_set_final(struct ygc_relocation_set *set) {
 
 void ygc_relocation_set_populate(struct ygc_relocation_set *set, struct ygc_page *const *group0, size_t size0,
                                  struct ygc_page *const *group1, size_t size1) {
-    DCHECK(set->size == 0);
-    DCHECK(set->forwards == NULL);
-
     set->size = size0 + size1;
     set->forwards = realloc(set->forwards, set->size * sizeof(struct forwarding *));
 

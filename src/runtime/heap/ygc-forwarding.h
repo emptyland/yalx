@@ -41,12 +41,12 @@ struct forwarding {
     struct {
         uintptr_t addr;
         size_t size;
-    } virtual_addr;
-    volatile _Atomic struct forwarding_entry *entries;
-    size_t n_entries;
-    struct ygc_page *page;
-    volatile _Atomic int refs;
-    volatile _Atomic int pinned;
+    } virtual_addr; // Page of forwarding address and size
+    volatile _Atomic struct forwarding_entry *entries; // Forwarding [from_index, to_offset] pairs.
+    size_t n_entries; // Number of entries.
+    struct ygc_page *page; // Page for forwarding.
+    volatile _Atomic int refs; // Forwarding reference count. == 0 should be drop.
+    volatile _Atomic int pinned; // Is forwarding pinned?
 };
 
 

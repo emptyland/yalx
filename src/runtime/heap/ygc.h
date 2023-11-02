@@ -211,10 +211,10 @@ struct ygc_core {
     struct ygc_page pages; // All allocated pages.
     struct ygc_granule_map page_granules; // Page map by address granule
 
-    struct ygc_granule_map forwarding_table;
-    struct ygc_mark mark;
-    struct ygc_relocate relocate;
-    struct ygc_relocation_set relocation_set;
+    struct ygc_granule_map forwarding_table; // Forwarding table, key = page granule.
+    struct ygc_mark mark; // Marking
+    struct ygc_relocate relocate; // Relocating
+    struct ygc_relocation_set relocation_set; // Selected relocation set for relocating.
     struct yalx_mutex mutex;
 
     _Atomic size_t rss; // RSS memory size in bytes.

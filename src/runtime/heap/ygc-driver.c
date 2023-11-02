@@ -10,10 +10,13 @@ void ygc_gc_sync(struct heap *h, struct collected_statistics *stat) {
 
     struct ygc_core *ygc = ygc_heap_of(h);
     stat->collected_rss_in_bytes = ygc->rss;
+    stat->changed_rss_in_bytes = (int64_t)ygc->rss;
 
+    double jiffy = yalx_current_mills_in_precision();
     // Stage 1: Paused mark start
     ygc_mark_start(h);
     ygc_marking_tls_commit(&ygc->mark, yalx_os_thread_self());
+    stat->pause_mills += (yalx_current_mills_in_precision() - jiffy);
 
     // Stage 2: Concurrent mark
     ygc_mark(h, 1);
@@ -24,8 +27,10 @@ void ygc_gc_sync(struct heap *h, struct collected_statistics *stat) {
     // Stage 4: Concurrent select relocation set
     ygc_select_relocation_set(ygc);
 
+    jiffy = yalx_current_mills_in_precision();
     // Stage 5: Paused relocate start (relocate roots)
     ygc_relocate_start(h);
+    stat->pause_mills += (yalx_current_mills_in_precision() - jiffy);
 
     // Stage 6: Concurrent relocate
     ygc_relocate(h);
