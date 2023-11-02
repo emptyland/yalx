@@ -7,6 +7,7 @@
 #include "runtime/root-handles.h"
 #include "runtime/runtime.h"
 #include "runtime/checking.h"
+#include "runtime/utils.h"
 #include <math.h>
 #include <stdatomic.h>
 

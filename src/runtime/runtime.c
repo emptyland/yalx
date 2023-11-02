@@ -1,4 +1,5 @@
 #include "runtime/runtime.h"
+#include "runtime/utils.h"
 #include "runtime/thread.h"
 #include "runtime/locks.h"
 #include "runtime/scheduler.h"

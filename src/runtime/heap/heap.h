@@ -106,6 +106,13 @@ struct heap {
     gc_t gc;
 }; // struct heap
 
+struct collected_statistics {
+    double pause_mills;
+    double total_mills;
+    size_t collected_rss_in_bytes;
+    size_t collected_in_bytes;
+};
+
 extern struct heap *heap;
 
 int yalx_init_heap(gc_t gc, size_t max_heap_in_bytes, struct heap **receiver);

@@ -967,7 +967,7 @@ TEST_F(Arm64CodeGeneratorTest, StringTemplateCreating) {
     
     yalx_enter_returning_scope(&state, 16, nullptr);
     
-    issue08_Zoissue08_Zdissue2_had(reinterpret_cast<yalx_value_any *>(yalx_new_string(&heap, "Doom", 4)));
+    issue08_Zoissue08_Zdissue2_had(reinterpret_cast<yalx_value_any *>(yalx_new_string(heap, "Doom", 4)));
     
     {
         auto vals = reinterpret_cast<yalx_str_handle>(state.buf);

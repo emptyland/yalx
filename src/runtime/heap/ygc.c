@@ -6,6 +6,7 @@
 #include "runtime/root-handles.h"
 #include "runtime/thread.h"
 #include "runtime/checking.h"
+#include "runtime/utils.h"
 
 uintptr_t YGC_METADATA_MARKED0  = 1L << YGC_METADATA_SHIFT; // 0x0000100000000000;
 uintptr_t YGC_METADATA_MARKED1  = 1L << (YGC_METADATA_SHIFT + 1); // 0x0000200000000000;

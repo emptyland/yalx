@@ -1,4 +1,5 @@
 #include "runtime/heap/ygc-live-map.h"
+#include "runtime/utils.h"
 #include "runtime/runtime.h"
 #include "gtest/gtest.h"
 
