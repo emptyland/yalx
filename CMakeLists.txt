@@ -39,7 +39,7 @@ add_library(runtime STATIC
         src/runtime/process.h
         src/runtime/runtime.c
         src/runtime/runtime.h
-        src/runtime/scheduler.cc
+        src/runtime/scheduler.c
         src/runtime/scheduler.h
         src/runtime/stack.c
         src/runtime/stack.h

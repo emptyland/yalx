@@ -78,7 +78,7 @@ int yalx_install_coroutine(address_t entry, size_t params_bytes, address_t param
     co->stub = entry;
     
     pthread_mutex_lock(&scheduler.mutex);
-    QUEUE_INSERT_HEAD(&mach->waitting_head, co);
+    QUEUE_INSERT_HEAD(&mach->waiting_head, co);
     pthread_mutex_unlock(&scheduler.mutex);
     return 0;
 }
@@ -89,7 +89,7 @@ int yalx_schedule() {
     struct machine *mach = thread_local_mach;
     struct coroutine *old_co = mach->running;
     DCHECK(old_co != NULL);
-    
+
     pthread_mutex_lock(&scheduler.mutex);
     if (old_co->state == CO_DEAD) {
         yalx_delete_stack_to_pool(&mach->stack_pool, old_co->stack);
@@ -97,15 +97,15 @@ int yalx_schedule() {
         old_co = NULL;
     }
     
-    if (!QUEUE_EMPTY(&mach->waitting_head)) {
-        struct coroutine *co = mach->waitting_head.next;
+    if (!QUEUE_EMPTY(&mach->waiting_head)) {
+        struct coroutine *co = mach->waiting_head.next;
         QUEUE_REMOVE(co);
         co->state = CO_RUNNING;
         mach->running = co;
 
         if (old_co) {
             old_co->state = CO_WAITTING;
-            QUEUE_INSERT_TAIL(&mach->waitting_head, old_co);
+            QUEUE_INSERT_TAIL(&mach->waiting_head, old_co);
         }
         pthread_mutex_unlock(&scheduler.mutex);
         return 1; /* scheduled */

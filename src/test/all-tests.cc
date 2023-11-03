@@ -15,5 +15,7 @@ int main(int argc, char *argv[]) {
         GC_NONE,
     };
     ::yalx_runtime_init(&options);
-    return RUN_ALL_TESTS();
+    int rs = RUN_ALL_TESTS();
+    ::yalx_runtime_eixt();
+    return rs;
 }

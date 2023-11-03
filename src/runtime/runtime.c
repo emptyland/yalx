@@ -1,4 +1,5 @@
 #include "runtime/runtime.h"
+#include "runtime/mm-thread.h"
 #include "runtime/utils.h"
 #include "runtime/thread.h"
 #include "runtime/locks.h"
@@ -57,6 +58,10 @@ yalx_tls_t tls_mach;
 
 struct stack_pool stack_pool;
 
+struct yalx_mm_thread mm_thread;
+
+/** Polling memory page for safe point */
+uint8_t *mm_polling_page;
 
 // External symbol from generated code
 // 1347046214, 1465142347, 1195658056
@@ -215,8 +220,10 @@ int yalx_runtime_init(const struct yalx_runtime_options *options) {
     ncpus = get_nprocs();
 #endif // defined(YALX_OS_LINUX)
 
+    mm_polling_page = mm_new_polling_page();
     yalx_os_threading_env_enter();
     yalx_mutex_init(&pkg_init_mutex);
+    yalx_mutex_init(&mach_threads_mutex);
     yalx_tls_alloc(&tls_mach);
 
     yalx_init_hash_table(&pkg_init_records, 1.2f);
@@ -256,8 +263,8 @@ int yalx_runtime_init(const struct yalx_runtime_options *options) {
     yalx_add_machine_to_processor(&procs[0], &m0);
     
     yalx_init_scheduler(&scheduler);
-    
 
+    yalx_mm_thread_start(&mm_thread);
     // FIXME:
 #if 0
     const struct yalx_class *ty = yalx_find_class(ANY_CLASS_NAME);
@@ -289,18 +296,23 @@ error:
     yalx_tls_free(tls_mach);
     yalx_mutex_final(&pkg_init_mutex);
     yalx_os_threading_env_exit();
+    mm_free_polling_page(mm_polling_page);
     heap = NULL;
     return -1;
 }
 
 void yalx_runtime_eixt(void) {
+    yalx_mm_thread_shutdown(&mm_thread);
+
     yalx_free_hash_table(&pkg_init_records);
     yalx_free_scheduler(&scheduler);
     yalx_free_heap(heap);
 
     yalx_tls_free(tls_mach);
+    yalx_mutex_final(&mach_threads_mutex);
     yalx_mutex_final(&pkg_init_mutex);
     yalx_os_threading_env_exit();
+    mm_free_polling_page(mm_polling_page);
     heap = NULL;
     // TODO:
 

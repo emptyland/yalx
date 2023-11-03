@@ -1,7 +1,10 @@
 #include "runtime/mm-thread.h"
+#include "runtime/process.h"
 #include "runtime/checking.h"
 #include "runtime/runtime.h"
-
+#if defined(YALX_OS_POSIX)
+#include <sys/mman.h>
+#endif // defined(YALX_OS_POSIX)
 
 const char *const YALX_MM_THREAD_NAME = "yalx-mm-thread";
 
@@ -18,7 +21,7 @@ static int task_is_stop(struct task_entry *task) {
 }
 
 static void mm_thread_entry(struct yalx_mm_thread *mm) {
-
+    DLOG(INFO, "%s start ... %p", YALX_MM_THREAD_NAME, mm);
     for (;;) {
         struct task_entry *task = NULL;
         task_queue_take(&mm->worker_queue, &task);
@@ -39,6 +42,8 @@ static void mm_thread_entry(struct yalx_mm_thread *mm) {
 
 int yalx_mm_thread_start(struct yalx_mm_thread *mm) {
     mm->shutting_down = 0;
+    mm->state = NOT_SYNCHRONIZED;
+    mm->safepoint_count = 0;
 
     task_queue_init(&mm->worker_queue);
 
@@ -86,3 +91,93 @@ void yalx_mm_thread_shutdown(struct yalx_mm_thread *mm) {
 
     yalx_os_thread_join(&mm->thread, 0);
 }
+
+static size_t arm_safepoint(struct yalx_mm_thread *mm) {
+    size_t n_threads = 0;
+    for (int i = 0; i < nprocs; i++) {
+        struct processor *const proc = &procs[i];
+
+        yalx_mutex_lock(&proc->mutex);
+        for (struct machine *m = proc->machine_head.next; m != &proc->machine_head; m = m->next) {
+            m->polling_page = (address_t)mm_polling_page;
+            n_threads++;
+        }
+        yalx_mutex_unlock(&proc->mutex);
+    }
+    mm_arm_polling_page(mm_polling_page, 0/*disarm*/);
+    return n_threads;
+}
+
+static void wait_all_threads_synchronized(const size_t n_threads) {
+    for (;;) {
+        size_t still_running = n_threads;
+
+        for (int i = 0; i < nprocs; i++) {
+            struct processor *const proc = &procs[i];
+
+            yalx_mutex_lock(&proc->mutex);
+            for (struct machine *m = proc->machine_head.next; m != &proc->machine_head; m = m->next) {
+                atomic_thread_fence(memory_order_acquire);
+                if (m->state == MACH_SAFE_POINT) {
+                    still_running--;
+                }
+                sched_yield();
+            }
+            yalx_mutex_unlock(&proc->mutex);
+        }
+
+        if (!still_running) {
+            break;
+        }
+    }
+}
+
+void mm_synchronize_begin(struct yalx_mm_thread *mm) {
+    // TODO:
+    yalx_mutex_lock(&mach_threads_mutex);
+
+    atomic_fetch_add(&mm->safepoint_count, 1);
+
+    GUARANTEE(mm->state == NOT_SYNCHRONIZED, "Synchronize state error: %d", mm->state);
+
+    mm->state = SYNCHRONIZING;
+    atomic_thread_fence(memory_order_release);
+
+    size_t n_threads = arm_safepoint(mm);
+
+    wait_all_threads_synchronized(n_threads);
+
+    mm->state = SYNCHRONIZED;
+    atomic_thread_fence(memory_order_release);
+}
+
+void mm_synchronize_end(struct yalx_mm_thread *mm) {
+    // TODO:
+    NOT_IMPL();
+    yalx_mutex_unlock(&mach_threads_mutex);
+}
+
+enum synchronize_state mm_synchronize_state(struct yalx_mm_thread const *mm) {
+    atomic_thread_fence(memory_order_acquire);
+    return mm->state;
+}
+
+#if defined(YALX_OS_POSIX)
+void *mm_new_polling_page() {
+    void *page = mmap(NULL, os_page_size, PROT_READ, MAP_ANON|MAP_PRIVATE, -1, 0);
+    GUARANTEE(page != MAP_FAILED, "Polling page allocating fail!");
+    return page;
+}
+
+void mm_free_polling_page(void *page) {
+    if (!page) {
+        return;
+    }
+    munmap(page, os_page_size);
+}
+
+void mm_arm_polling_page(void *page, int armed) {
+    int rs = mprotect(page, os_page_size, armed ? PROT_READ : PROT_NONE);
+    GUARANTEE(rs == 0, "Arm polling page fail! %d", rs);
+}
+#endif

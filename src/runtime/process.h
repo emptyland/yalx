@@ -37,7 +37,8 @@ enum machine_state {
     MACH_INIT,
     MACH_IDLE,
     MACH_RUNNING,
-    MACH_SYSCALL
+    MACH_SYSCALL,
+    MACH_SAFE_POINT,
 }; // enum processor_state
 
 enum coroutine_state {
@@ -85,15 +86,19 @@ struct coroutine {
 #define ROOT_OFFSET_EXCEPTION offsetof(struct coroutine, exception)
 
 
+/*
+ * Yalx OS thread
+ */
 struct machine {
     QUEUE_HEADER(struct machine);
     struct processor *owns;
     struct yalx_os_thread thread;
-    enum machine_state state;
+    volatile enum machine_state state;
     struct coroutine *running;
     struct stack_pool stack_pool;
-    struct coroutine waitting_head;
+    struct coroutine waiting_head;
     struct coroutine parking_head;
+    volatile void *polling_page;
     // TODO:
 }; // struct machine
 
@@ -108,10 +113,15 @@ struct processor {
 // Implements in runtime.c
 extern struct processor *procs;
 extern int nprocs;
+
 extern struct machine m0;
 extern struct coroutine c0;
 
 extern yalx_tls_t tls_mach;
+
+/** Mutex for thread of machines start and ends */
+extern struct yalx_mutex mach_threads_mutex;
+
 
 #define thread_local_mach ((struct machine *)yalx_tls_get(tls_mach))
 

@@ -1,7 +1,11 @@
 #include "runtime/process.h"
+#include "runtime/mm-thread.h"
 #include "runtime/checking.h"
 #include "runtime/locks.h"
 #include <stdlib.h>
+
+/** Mutex for thread of machines start and ends */
+struct yalx_mutex mach_threads_mutex;
 
 int yalx_init_processor(const procid_t id, struct processor *proc) {
     // TODO:
@@ -39,8 +43,9 @@ int yalx_init_machine(struct machine *mach, struct processor *owns) {
     mach->owns = owns;
     mach->state = MACH_INIT;
     mach->running = NULL;
-    mach->waitting_head.next = &mach->waitting_head;
-    mach->waitting_head.prev = &mach->waitting_head;
+    mach->polling_page = mm_polling_page;
+    mach->waiting_head.next = &mach->waiting_head;
+    mach->waiting_head.prev = &mach->waiting_head;
     mach->parking_head.next = &mach->parking_head;
     mach->parking_head.prev = &mach->parking_head;
     yalx_init_stack_pool(&mach->stack_pool, 10 * MB);
