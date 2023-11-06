@@ -93,7 +93,7 @@ struct machine {
     QUEUE_HEADER(struct machine);
     struct processor *owns;
     struct yalx_os_thread thread;
-    volatile enum machine_state state;
+    volatile _Atomic enum machine_state state;
     struct coroutine *running;
     struct stack_pool stack_pool;
     struct coroutine waiting_head;

@@ -1,5 +1,8 @@
 #include "runtime/mm-thread.h"
-#include <gtest/gtest.h>
+#include "runtime/process.h"
+#include "runtime/runtime.h"
+#include "gtest/gtest.h"
+#include <thread>
 
 class MMThreadTest : public ::testing::Test {
 public:
@@ -22,6 +25,10 @@ public:
         ASSERT_EQ(yalx_os_thread_self(), &thread->thread);
     }
 
+    static void TestRun2(task_entry *task) {
+
+    }
+
     yalx_mm_thread thread_{};
 };
 
@@ -32,4 +39,8 @@ TEST_F(MMThreadTest, Sanity) {
     ASSERT_TRUE(value != nullptr);
     ASSERT_STREQ("Hello", value);
     free(value);
+}
+
+TEST_F(MMThreadTest, SafePointSynchronizePolling) {
+    ASSERT_EQ(0, mm_synchronize_poll(&thread_));
 }

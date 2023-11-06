@@ -1,8 +1,9 @@
 #include "runtime/scheduler.h"
 #include "runtime/checking.h"
-#include <pthread.h>
+#include "runtime/mm-thread.h"
 #if defined(YALX_OS_POSIX)
 #include <sys/mman.h>
+#include <pthread.h>
 #endif // defined(YALX_OS_POSIX)
 #include <stdio.h>
 #include <string.h>
@@ -85,7 +86,9 @@ int yalx_install_coroutine(address_t entry, size_t params_bytes, address_t param
 
 
 int yalx_schedule() {
-    puts("yalx_schedule");
+    DLOG(INFO, "yalx_schedule");
+    mm_synchronize_poll(&mm_thread); // Safe-point polling
+
     struct machine *mach = thread_local_mach;
     struct coroutine *old_co = mach->running;
     DCHECK(old_co != NULL);

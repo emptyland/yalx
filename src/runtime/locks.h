@@ -7,11 +7,11 @@
 
 #ifdef __cplusplus
 extern "C" {
-
 // #define _Atomic
 
 #if defined(YALX_OS_POSIX)
 #include <pthread.h>
+#include <semaphore.h>
 #endif
 
 #if defined(YALX_OS_WINDOWS)
@@ -23,17 +23,19 @@ extern "C" {
 
 #ifndef __STDC_NO_THREADS__
 #include <threads.h>
+#include <semaphore.h>
 #endif
 
 #if defined(YALX_OS_POSIX)
 #include <pthread.h>
+#include <semaphore.h>
 #endif
 
 #if defined(YALX_OS_WINDOWS)
 #include <Windows.h>
 #endif
 
-#endif
+#endif // __cplusplus
 
 #if !defined(__STDC_NO_THREADS__) && !defined(__cplusplus)
 struct yalx_mutex {
@@ -91,14 +93,28 @@ static inline int yalx_cond_wait(struct yalx_cond *self, struct yalx_mutex *mute
     return cnd_wait(&self->impl, &mutex->impl) == thrd_success ? 0 : -1;
 }
 
-#else
-#if defined(YALX_OS_POSIX)
-struct yalx_mutex {
-    pthread_mutex_t impl;
+struct yalx_sem {
+    sem_t impl;
 };
 
-struct yalx_cond {
-    pthread_cond_t impl;
+static inline int yalx_sem_init(struct yalx_sem *self, unsigned int n) {
+    return sem_init(&self->impl, 0, n);
+}
+
+static inline void yalx_sem_final(struct yalx_sem *self) {
+    sem_destroy(&self->impl);
+}
+
+void yalx_sem_signal(struct yalx_sem *self, unsigned int n);
+void yalx_sem_wait(struct yalx_sem *self);
+void yalx_sem_try_wait(struct yalx_sem *self);
+
+#else // !defined(__STDC_NO_THREADS__) && !defined(__cplusplus)
+
+#if defined(YALX_OS_POSIX)
+
+struct yalx_mutex {
+    pthread_mutex_t impl;
 };
 
 static inline int yalx_mutex_init(struct yalx_mutex *self) {
@@ -121,6 +137,10 @@ static inline void yalx_mutex_unlock(struct yalx_mutex *self) {
     pthread_mutex_unlock(&self->impl);
 }
 
+struct yalx_cond {
+    pthread_cond_t impl;
+};
+
 static inline int yalx_cond_init(struct yalx_cond *self) {
     return pthread_cond_init(&self->impl, NULL);
 }
@@ -140,6 +160,23 @@ static inline int yalx_cond_notify_all(struct yalx_cond *self) {
 static inline int yalx_cond_wait(struct yalx_cond *self, struct yalx_mutex *mutex) {
     return pthread_cond_wait(&self->impl, &mutex->impl);
 }
+
+struct yalx_sem {
+    sem_t impl;
+};
+
+static inline int yalx_sem_init(struct yalx_sem *self, unsigned int n) {
+    return sem_init(&self->impl, 0, n);
+}
+
+static inline void yalx_sem_final(struct yalx_sem *self) {
+    sem_destroy(&self->impl);
+}
+
+void yalx_sem_signal(struct yalx_sem *self, unsigned int n);
+void yalx_sem_wait(struct yalx_sem *self);
+void yalx_sem_try_wait(struct yalx_sem *self);
+
 #endif
 
 #if defined(YALX_OS_WINDOWS)
