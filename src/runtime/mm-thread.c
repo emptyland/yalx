@@ -104,8 +104,29 @@ static size_t arm_safepoint(struct yalx_mm_thread *mm) {
         }
         yalx_mutex_unlock(&proc->mutex);
     }
-    mm_arm_polling_page(mm_polling_page, 0/*disarm*/);
+    mm_arm_polling_page(mm_polling_page, 0/*armed*/);
     return n_threads;
+}
+
+static void disarm_safepoint(struct yalx_mm_thread *mm) {
+    atomic_thread_fence(memory_order_acq_rel);
+    DCHECK(mm->state == SYNCHRONIZED);
+    
+    mm->state = NOT_SYNCHRONIZED;
+    
+    atomic_thread_fence(memory_order_acq_rel);
+    
+    for (int i = 0; i < nprocs; i++) {
+        struct processor *const proc = &procs[i];
+
+        yalx_mutex_lock(&proc->mutex);
+        for (struct machine *m = proc->machine_head.next; m != &proc->machine_head; m = m->next) {
+            m->polling_page = (address_t)mm_polling_page;
+        }
+        yalx_mutex_unlock(&proc->mutex);
+    }
+    
+    mm_arm_polling_page(mm_polling_page, 1/*armed*/);
 }
 
 static void wait_all_threads_synchronized(const size_t n_threads) {
@@ -118,7 +139,7 @@ static void wait_all_threads_synchronized(const size_t n_threads) {
             yalx_mutex_lock(&proc->mutex);
             for (struct machine *m = proc->machine_head.next; m != &proc->machine_head; m = m->next) {
                 atomic_thread_fence(memory_order_acquire);
-                if (m->state == MACH_SAFE_POINT) {
+                if (m->state != MACH_RUNNING && m->state != MACH_INIT) {
                     still_running--;
                 }
                 sched_yield();
@@ -152,8 +173,8 @@ void mm_synchronize_begin(struct yalx_mm_thread *mm) {
 }
 
 void mm_synchronize_end(struct yalx_mm_thread *mm) {
-    // TODO:
-    NOT_IMPL();
+    disarm_safepoint(mm);
+    
     yalx_mutex_unlock(&mach_threads_mutex);
 }
 
@@ -163,7 +184,7 @@ enum synchronize_state mm_synchronize_state(struct yalx_mm_thread const *mm) {
 }
 
 #if defined(YALX_OS_POSIX)
-void *mm_new_polling_page() {
+void *mm_new_polling_page(void) {
     void *page = mmap(NULL, os_page_size, PROT_READ, MAP_ANON|MAP_PRIVATE, -1, 0);
     GUARANTEE(page != MAP_FAILED, "Polling page allocating fail!");
     return page;

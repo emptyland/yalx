@@ -10,7 +10,7 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 
-double yalx_current_mills_in_precision();
+double yalx_current_mills_in_precision(void);
 
 static inline int yalx_log2(uintptr_t n) {
     int x = 1, i = 0;

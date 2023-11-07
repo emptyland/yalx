@@ -44,7 +44,7 @@ int mm_thread_is_shutting_down(struct yalx_mm_thread *mm);
 
 void mm_thread_post_routine_to(struct yalx_mm_thread *mm, task_run_fn_t routine, void *params);
 
-void *mm_new_polling_page();
+void *mm_new_polling_page(void);
 void mm_free_polling_page(void *page);
 void mm_arm_polling_page(void *page, int armed);
 

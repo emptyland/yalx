@@ -37,8 +37,8 @@ enum machine_state {
     MACH_INIT,
     MACH_IDLE,
     MACH_RUNNING,
-    MACH_SYSCALL,
-    MACH_SAFE_POINT,
+    MACH_SYSCALL, // In sys calling
+    MACH_SAFE, // In Safepoint
 }; // enum processor_state
 
 enum coroutine_state {

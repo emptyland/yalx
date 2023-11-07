@@ -2,7 +2,7 @@
 #include "runtime/checking.h"
 #include <sys/time.h>
 
-double yalx_current_mills_in_precision() {
+double yalx_current_mills_in_precision(void) {
     struct timeval jiffy;
 
     int rs = gettimeofday(&jiffy, NULL);

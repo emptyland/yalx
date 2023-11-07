@@ -84,7 +84,7 @@ int yalx_install_coroutine(address_t entry, size_t params_bytes, address_t param
 }
 
 
-int yalx_schedule() {
+int yalx_schedule(void) {
     puts("yalx_schedule");
     struct machine *mach = thread_local_mach;
     struct coroutine *old_co = mach->running;
