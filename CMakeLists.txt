@@ -70,7 +70,7 @@ add_library(runtime STATIC
         src/runtime/heap/ygc-relocate.h
         src/runtime/heap/ygc-relocate.c
         src/runtime/root-handles.c
-        src/runtime/root-handles.h src/runtime/heap/ygc-driver.h src/runtime/heap/ygc-driver.c src/runtime/utils.h src/runtime/utils-posix.c src/runtime/utils.c)
+        src/runtime/root-handles.h src/runtime/heap/ygc-driver.h src/runtime/heap/ygc-driver.c src/runtime/utils.h src/runtime/utils-posix.c src/runtime/utils.c src/runtime/locks-posix.c)
 
 add_library(compiler STATIC
         src/arch/label.h

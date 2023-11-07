@@ -2,18 +2,82 @@
 #include "runtime/process.h"
 #include "runtime/checking.h"
 #include "runtime/runtime.h"
+#include "runtime/utils.h"
 #if defined(YALX_OS_POSIX)
 #include <sys/mman.h>
+#include <pthread.h>
 #endif // defined(YALX_OS_POSIX)
 
 const char *const YALX_MM_THREAD_NAME = "yalx-mm-thread";
 
 static const char STOP_BODY[4] = "STOP";
 
-struct mm_task {
-    struct task_entry task;
-    struct yalx_mm_thread *thread;
-};
+static void wait_barrier_init(struct mm_wait_barrier *barrier) {
+    barrier->barrier_tag = 0;
+    barrier->waiters = 0;
+    barrier->barrier_threads = 0;
+    yalx_sem_init(&barrier->sem, 0);
+}
+
+static void wait_barrier_final(struct mm_wait_barrier *barrier) {
+    yalx_sem_final(&barrier->sem);
+}
+
+static void wait_barrier_arm(struct mm_wait_barrier *barrier, int barrier_tag) {
+    DCHECK(barrier->barrier_tag == 0);
+    DCHECK(barrier->waiters == 0);
+    barrier->barrier_tag = barrier_tag;
+    barrier->waiters = 0;
+    atomic_thread_fence(memory_order_seq_cst);
+}
+
+static int wait_if_needed(struct mm_wait_barrier *barrier) {
+    DCHECK(barrier->barrier_tag == 0);
+    int w = barrier->waiters;
+    if (w == 0) {
+        atomic_thread_fence(memory_order_seq_cst);
+        return 0;
+    }
+
+    int expected = w;
+    if (atomic_compare_exchange_strong(&barrier->waiters, &expected, w - 1)) {
+        yalx_sem_signal(&barrier->sem, 1);
+        return w - 1;
+    }
+    return w;
+}
+
+static void wait_barrier_disarm(struct mm_wait_barrier *barrier) {
+    DCHECK(barrier->barrier_tag != 0);
+    barrier->barrier_tag = 0;
+    atomic_thread_fence(memory_order_seq_cst);
+
+    int left;
+    do {
+        left = wait_if_needed(barrier);
+        if (left == 0 && barrier->barrier_threads > 0) {
+            sched_yield();
+        }
+    } while (left > 0 || barrier->barrier_threads > 0);
+
+    atomic_thread_fence(memory_order_seq_cst);
+}
+
+static void wait_barrier_wait(struct mm_wait_barrier *barrier, int barrier_tag) {
+    DCHECK(barrier->barrier_tag != 0);
+    if (barrier->barrier_tag != barrier_tag) {
+        atomic_thread_fence(memory_order_seq_cst);
+        return;
+    }
+
+    atomic_fetch_add(&barrier->barrier_threads, 1);
+    if (barrier_tag != 0 && barrier_tag == barrier->barrier_tag) {
+        atomic_fetch_add(&barrier->waiters, 1);
+        yalx_sem_wait(&barrier->sem);
+        wait_if_needed(barrier);
+    }
+    atomic_fetch_sub(&barrier->barrier_threads, 1);
+}
 
 static int task_is_stop(struct task_entry *task) {
     const uint32_t stop_code = *(const int *)STOP_BODY;
@@ -43,7 +107,8 @@ static void mm_thread_entry(struct yalx_mm_thread *mm) {
 int yalx_mm_thread_start(struct yalx_mm_thread *mm) {
     mm->shutting_down = 0;
     mm->state = NOT_SYNCHRONIZED;
-    mm->safepoint_count = 0;
+    mm->safepoint_counter = 0;
+    wait_barrier_init(&mm->wait_barrier);
 
     task_queue_init(&mm->worker_queue);
 
@@ -90,9 +155,18 @@ void yalx_mm_thread_shutdown(struct yalx_mm_thread *mm) {
     task_queue_post(&mm->worker_queue, task);
 
     yalx_os_thread_join(&mm->thread, 0);
+    wait_barrier_final(&mm->wait_barrier);
 }
 
 static size_t arm_safepoint(struct yalx_mm_thread *mm) {
+    wait_barrier_arm(&mm->wait_barrier, mm->safepoint_counter + 1);
+
+    DCHECK((mm->safepoint_counter & 0x1) == 0 && "safepoint_counter must be even");
+    atomic_fetch_add(&mm->safepoint_counter, 1);
+
+    mm->state = SYNCHRONIZING;
+    atomic_thread_fence(memory_order_release);
+
     size_t n_threads = 0;
     for (int i = 0; i < nprocs; i++) {
         struct processor *const proc = &procs[i];
@@ -157,14 +231,10 @@ void mm_synchronize_begin(struct yalx_mm_thread *mm) {
     // TODO:
     yalx_mutex_lock(&mach_threads_mutex);
 
-    atomic_fetch_add(&mm->safepoint_count, 1);
-
     GUARANTEE(mm->state == NOT_SYNCHRONIZED, "Synchronize state error: %d", mm->state);
 
-    mm->state = SYNCHRONIZING;
-    atomic_thread_fence(memory_order_release);
-
     size_t n_threads = arm_safepoint(mm);
+    DLOG(INFO, "Arm safe-point threads: %zd", n_threads);
 
     wait_all_threads_synchronized(n_threads);
 
@@ -176,6 +246,48 @@ void mm_synchronize_end(struct yalx_mm_thread *mm) {
     disarm_safepoint(mm);
     
     yalx_mutex_unlock(&mach_threads_mutex);
+}
+
+#define SPIN_COUNT 4096
+#define PAUSE() (void)0
+
+double mm_synchronize_poll(struct yalx_mm_thread *mm) {
+    struct machine *mach = thread_local_mach;
+    enum machine_state old_state = !mach ? MACH_INIT : mach->state;
+    int safepoint_id = mm->safepoint_counter;
+
+    int retry = 0;
+    double jiffy = yalx_current_mills_in_precision();
+    while (mm_synchronize_state(mm) != NOT_SYNCHRONIZED) {
+        if (!retry && mach) {
+            int rs = atomic_compare_exchange_strong(&mach->state, &old_state, MACH_SAFE);
+            GUARANTEE(rs, "Mach state changed, new value: %d", old_state);
+        }
+
+        retry++;
+        for (int n = 1; n < SPIN_COUNT; n <<= 1) {
+
+            for (int i = 0; i < n; i++) {
+                PAUSE();
+            }
+            if (mm_synchronize_state(mm) == NOT_SYNCHRONIZED) {
+                goto end;
+            }
+            sched_yield();
+        }
+
+        DCHECK(mm->state == SYNCHRONIZED);
+        wait_barrier_wait(&mm->wait_barrier, safepoint_id);
+        DCHECK(mm->state != SYNCHRONIZED);
+
+    }
+end:
+    if (retry > 0 && mach) {
+        enum machine_state expected = MACH_SAFE;
+        int rs = atomic_compare_exchange_strong(&mach->state, &expected, old_state);
+        GUARANTEE(rs, "Mach state changed, actual value is: %d, should be \'MACH_SAFE_POINT\'", expected);
+    }
+    return !retry ? 0 : yalx_current_mills_in_precision() - jiffy;
 }
 
 enum synchronize_state mm_synchronize_state(struct yalx_mm_thread const *mm) {

@@ -15,6 +15,13 @@ enum synchronize_state {
     SYNCHRONIZED,
 };
 
+struct mm_wait_barrier {
+    volatile _Atomic int barrier_tag;
+    volatile _Atomic int waiters;
+    volatile _Atomic int barrier_threads;
+    struct yalx_sem sem;
+};
+
 // Memory Management Thread
 struct yalx_mm_thread {
     struct yalx_os_thread thread;
@@ -22,8 +29,14 @@ struct yalx_mm_thread {
     _Atomic int active;
     _Atomic int shutting_down;
 
+    struct mm_wait_barrier wait_barrier;
     volatile enum synchronize_state state;
-    volatile _Atomic int safepoint_count;
+    volatile _Atomic int safepoint_counter;
+};
+
+struct mm_task {
+    struct task_entry task;
+    struct yalx_mm_thread *thread;
 };
 
 extern const char *const YALX_MM_THREAD_NAME;
@@ -60,6 +73,12 @@ static inline void mm_pause_call(struct yalx_mm_thread *mm, void (*callback)(voi
     callback(params);
     mm_synchronize_end(mm);
 }
+
+/** Safe-point poll */
+// return values:
+//     0.0   : Not synchronized
+//     > 0.0 : Synchronize waiting times (ms)
+double mm_synchronize_poll(struct yalx_mm_thread *mm);
 
 enum synchronize_state mm_synchronize_state(struct yalx_mm_thread const *mm);
 
