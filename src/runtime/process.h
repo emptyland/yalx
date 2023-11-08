@@ -99,6 +99,10 @@ struct machine {
     struct coroutine waiting_head;
     struct coroutine parking_head;
     volatile void *polling_page;
+    struct {
+        void (*run)(void *);
+        void *params;
+    } dummy;
     // TODO:
 }; // struct machine
 
@@ -132,7 +136,9 @@ int yalx_add_machine_to_processor(struct processor *proc, struct machine *m);
 
 enum processor_state yalx_set_processor_state(struct processor *proc, enum processor_state state);
 
-int yalx_init_machine(struct machine *mach, struct processor *owns);
+int yalx_init_machine(struct machine *mach);
+
+int yalx_mach_run_dummy(struct machine *mach, void (*dummy)(void *), void *params);
 
 static inline int yalx_is_m0(struct machine *m) { return m == &m0; }
 

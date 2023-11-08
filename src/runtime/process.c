@@ -37,19 +37,40 @@ enum processor_state yalx_set_processor_state(struct processor *proc, enum proce
 }
 
 
-int yalx_init_machine(struct machine *mach, struct processor *owns) {
+int yalx_init_machine(struct machine *mach) {
     mach->next = mach;
     mach->prev = mach;
-    mach->owns = owns;
+    mach->owns = NULL;
     mach->state = MACH_INIT;
     mach->running = NULL;
     mach->polling_page = mm_polling_page;
+    mach->dummy.run = NULL;
+    mach->dummy.params = NULL;
     mach->waiting_head.next = &mach->waiting_head;
     mach->waiting_head.prev = &mach->waiting_head;
     mach->parking_head.next = &mach->parking_head;
     mach->parking_head.prev = &mach->parking_head;
     yalx_init_stack_pool(&mach->stack_pool, 10 * MB);
     return 0;
+}
+
+static void mach_dummy_entry(void *ctx) {
+    struct machine *const mach = (struct machine *)ctx;
+    yalx_tls_set(tls_mach, mach);
+    atomic_store_explicit(&mach->state, MACH_RUNNING, memory_order_release);
+    mach->dummy.run(mach->dummy.params);
+    yalx_tls_set(tls_mach, NULL);
+}
+
+int yalx_mach_run_dummy(struct machine *mach, void (*run)(void *), void *params) {
+    GUARANTEE(mach->owns != NULL, "No processor attach by machine");
+    GUARANTEE(mach->state == MACH_INIT, "Machine not ready, state is %d", mach->state);
+
+    mach->dummy.run = run;
+    mach->dummy.params = params;
+
+    return yalx_os_thread_start(&mach->thread, mach_dummy_entry, mach, "yalx-mach-dummy",
+                                __FILE__, __LINE__);
 }
 
 int yalx_init_coroutine(const coid_t id, struct coroutine *co, struct stack *stack, address_t entry) {

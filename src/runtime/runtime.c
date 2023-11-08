@@ -233,7 +233,7 @@ int yalx_runtime_init(const struct yalx_runtime_options *options) {
     
     yalx_init_stack_pool(&stack_pool, 4 * GB);
     
-    yalx_init_machine(&m0, &procs[0]);
+    yalx_init_machine(&m0);
     yalx_os_thread_attach_self(&m0.thread);
 
     yalx_tls_set(tls_mach, &m0);

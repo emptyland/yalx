@@ -28,7 +28,7 @@ static void wait_barrier_arm(struct mm_wait_barrier *barrier, int barrier_tag) {
     DCHECK(barrier->waiters == 0);
     barrier->barrier_tag = barrier_tag;
     barrier->waiters = 0;
-    atomic_thread_fence(memory_order_seq_cst);
+    atomic_thread_fence(memory_order_release);
 }
 
 static int wait_if_needed(struct mm_wait_barrier *barrier) {
@@ -162,7 +162,7 @@ static size_t arm_safepoint(struct yalx_mm_thread *mm) {
     wait_barrier_arm(&mm->wait_barrier, mm->safepoint_counter + 1);
 
     DCHECK((mm->safepoint_counter & 0x1) == 0 && "safepoint_counter must be even");
-    atomic_fetch_add(&mm->safepoint_counter, 1);
+    atomic_fetch_add_explicit(&mm->safepoint_counter, 1, memory_order_release);
 
     mm->state = SYNCHRONIZING;
     atomic_thread_fence(memory_order_release);
@@ -183,12 +183,15 @@ static size_t arm_safepoint(struct yalx_mm_thread *mm) {
 }
 
 static void disarm_safepoint(struct yalx_mm_thread *mm) {
-    atomic_thread_fence(memory_order_acq_rel);
+    atomic_thread_fence(memory_order_acquire);
     DCHECK(mm->state == SYNCHRONIZED);
     
     mm->state = NOT_SYNCHRONIZED;
+
+    DCHECK((mm->safepoint_counter & 0x1) == 1 && "safepoint_counter must be odd");
+    atomic_fetch_add_explicit(&mm->safepoint_counter, 1, memory_order_release);
     
-    atomic_thread_fence(memory_order_acq_rel);
+    atomic_thread_fence(memory_order_release);
     
     for (int i = 0; i < nprocs; i++) {
         struct processor *const proc = &procs[i];
@@ -201,6 +204,8 @@ static void disarm_safepoint(struct yalx_mm_thread *mm) {
     }
     
     mm_arm_polling_page(mm_polling_page, 1/*armed*/);
+
+    wait_barrier_disarm(&mm->wait_barrier);
 }
 
 static void wait_all_threads_synchronized(const size_t n_threads) {
