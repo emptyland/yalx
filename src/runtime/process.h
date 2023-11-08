@@ -133,12 +133,15 @@ extern struct yalx_mutex mach_threads_mutex;
 int yalx_init_processor(procid_t id, struct processor *proc);
 
 int yalx_add_machine_to_processor(struct processor *proc, struct machine *m);
+void yalx_remove_machine_from_processor(struct machine *mach);
 
 enum processor_state yalx_set_processor_state(struct processor *proc, enum processor_state state);
 
 int yalx_init_machine(struct machine *mach);
 
 int yalx_mach_run_dummy(struct machine *mach, void (*dummy)(void *), void *params);
+
+void yalx_mach_join(struct machine *mach);
 
 static inline int yalx_is_m0(struct machine *m) { return m == &m0; }
 

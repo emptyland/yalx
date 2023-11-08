@@ -107,6 +107,7 @@ TEST_F(MMThreadTest, SafePointSynchronizeWaiting2) {
     thread_local_mach->state = MACH_RUNNING;
 
     for (size_t i = 0; i < nprocs; i++) {
-        yalx_os_thread_join(&workers[i].thread, 0);
+        // yalx_os_thread_join(&workers[i].thread, 0);
+        yalx_mach_join(&workers[i]);
     }
 }

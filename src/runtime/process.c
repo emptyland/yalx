@@ -28,6 +28,16 @@ int yalx_add_machine_to_processor(struct processor *proc, struct machine *m) {
     return proc->n_threads;
 }
 
+void yalx_remove_machine_from_processor(struct machine *mach) {
+    DCHECK(mach->owns != NULL);
+    struct processor *proc = mach->owns;
+    yalx_mutex_lock(&proc->mutex);
+    QUEUE_REMOVE(mach);
+    proc->n_threads++;
+    mach->owns = NULL;
+    yalx_mutex_unlock(&proc->mutex);
+}
+
 enum processor_state yalx_set_processor_state(struct processor *proc, enum processor_state state) {
     yalx_mutex_lock(&proc->mutex);
     enum processor_state old = proc->state;
@@ -71,6 +81,12 @@ int yalx_mach_run_dummy(struct machine *mach, void (*run)(void *), void *params)
 
     return yalx_os_thread_start(&mach->thread, mach_dummy_entry, mach, "yalx-mach-dummy",
                                 __FILE__, __LINE__);
+}
+
+void yalx_mach_join(struct machine *mach) {
+    yalx_os_thread_join(&mach->thread, 0);
+    yalx_remove_machine_from_processor(mach);
+    yalx_free_stack_pool(&mach->stack_pool);
 }
 
 int yalx_init_coroutine(const coid_t id, struct coroutine *co, struct stack *stack, address_t entry) {
