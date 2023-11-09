@@ -9,6 +9,8 @@
 extern "C" {
 #endif
 
+struct machine;
+
 enum synchronize_state {
     NOT_SYNCHRONIZED,
     SYNCHRONIZING,
@@ -60,6 +62,7 @@ void mm_thread_post_routine_to(struct yalx_mm_thread *mm, task_run_fn_t routine,
 void *mm_new_polling_page(void);
 void mm_free_polling_page(void *page);
 void mm_arm_polling_page(void *page, int armed);
+int mm_is_polling_page(void *addr);
 
 /** Must call in MM thread */
 void mm_synchronize_begin(struct yalx_mm_thread *mm);
@@ -73,6 +76,8 @@ static inline void mm_pause_call(struct yalx_mm_thread *mm, void (*callback)(voi
     callback(params);
     mm_synchronize_end(mm);
 }
+
+void mm_synchronize_handle(struct yalx_mm_thread *mm, struct machine *mach);
 
 /** Safe-point poll */
 // return values:

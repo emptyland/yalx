@@ -295,6 +295,22 @@ end:
     return !retry ? 0 : yalx_current_mills_in_precision() - jiffy;
 }
 
+void mm_synchronize_handle(struct yalx_mm_thread *mm, struct machine *mach) {
+    DCHECK(mm->state == SYNCHRONIZING);
+    int safepoint_id = atomic_load_explicit(&mm->safepoint_counter, memory_order_acquire);
+
+    enum machine_state old_state = mach->state;
+
+    int rs = atomic_compare_exchange_strong(&mach->state, &old_state, MACH_SAFE);
+    GUARANTEE(rs, "Mach state changed, new value: %d", old_state);
+
+    wait_barrier_wait(&mm->wait_barrier, safepoint_id);
+
+    enum machine_state expected = MACH_SAFE;
+    rs = atomic_compare_exchange_strong(&mach->state, &expected, old_state);
+    GUARANTEE(rs, "Mach state changed, actual value is: %d, should be \'MACH_SAFE_POINT\'", expected);
+}
+
 enum synchronize_state mm_synchronize_state(struct yalx_mm_thread const *mm) {
     atomic_thread_fence(memory_order_acquire);
     return mm->state;
@@ -319,3 +335,8 @@ void mm_arm_polling_page(void *page, int armed) {
     GUARANTEE(rs == 0, "Arm polling page fail! %d", rs);
 }
 #endif
+
+int mm_is_polling_page(void *p) {
+    address_t addr = (address_t)p;
+    return addr >= mm_polling_page && addr < mm_polling_page + os_page_size;
+}

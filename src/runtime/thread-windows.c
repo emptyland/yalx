@@ -61,6 +61,10 @@ struct yalx_os_thread *yalx_os_thread_self() {
     return (struct yalx_os_thread *) val;
 }
 
+struct yalx_os_thread *yalx_os_thread_self_or_null(void) {
+    return (struct yalx_os_thread *) yalx_tls_get(self_thread);
+}
+
 struct yalx_os_thread *yalx_os_thread_attach_self(struct yalx_os_thread *thread) {
     DCHECK(yalx_tls_get(self_thread) == NULL);
     thread->native_handle = GetCurrentThread();

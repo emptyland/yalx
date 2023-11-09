@@ -1223,6 +1223,12 @@ void array_set_chunk(struct yalx_value_array_header *const array, const i32_t *c
 
 struct coroutine *current_root(void) { return CURRENT_COROUTINE; }
 
+struct machine *current_mach(void) { return thread_local_mach; }
+
+void handle_polling_page_exception(struct machine *mach) {
+    DCHECK(mach->state == MACH_RUNNING);
+    mm_synchronize_handle(&mm_thread, mach);
+}
 
 u8_t is_instance_of(struct yalx_value_any *const host, const struct yalx_class *const for_test) {
     DCHECK(host != NULL);

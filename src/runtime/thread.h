@@ -106,6 +106,7 @@ int yalx_os_thread_start(
 int yalx_os_thread_join(struct yalx_os_thread *thread, uint64_t timeout_in_mills);
 
 struct yalx_os_thread *yalx_os_thread_self(void);
+struct yalx_os_thread *yalx_os_thread_self_or_null(void);
 struct yalx_os_thread *yalx_os_thread_attach_self(struct yalx_os_thread *thread);
 struct yalx_os_thread *yalx_os_thread_detach_self();
 
