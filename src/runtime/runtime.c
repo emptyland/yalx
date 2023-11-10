@@ -1,11 +1,4 @@
 #include "runtime/runtime.h"
-#include "runtime/mm-thread.h"
-#include "runtime/utils.h"
-#include "runtime/thread.h"
-#include "runtime/locks.h"
-#include "runtime/scheduler.h"
-#include "runtime/process.h"
-#include "runtime/checking.h"
 #include "runtime/hash-table.h"
 #include "runtime/heap/heap.h"
 #include "runtime/heap/object-visitor.h"
@@ -14,6 +7,14 @@
 #include "runtime/object/throwable.h"
 #include "runtime/object/arrays.h"
 #include "runtime/object/type.h"
+#include "runtime/platform-signal.h"
+#include "runtime/mm-thread.h"
+#include "runtime/utils.h"
+#include "runtime/thread.h"
+#include "runtime/locks.h"
+#include "runtime/scheduler.h"
+#include "runtime/process.h"
+#include "runtime/checking.h"
 #include <unistd.h>
 #if defined(YALX_OS_DARWIN)
 #include <sys/sysctl.h>
@@ -265,6 +266,8 @@ int yalx_runtime_init(const struct yalx_runtime_options *options) {
     yalx_init_scheduler(&scheduler);
 
     yalx_mm_thread_start(&mm_thread);
+
+    yalx_install_signals_handler();
     // FIXME:
 #if 0
     const struct yalx_class *ty = yalx_find_class(ANY_CLASS_NAME);
@@ -302,6 +305,8 @@ error:
 }
 
 void yalx_runtime_eixt(void) {
+    yalx_uninstall_signals_handler();
+
     yalx_mm_thread_shutdown(&mm_thread);
 
     yalx_free_hash_table(&pkg_init_records);
@@ -1225,9 +1230,11 @@ struct coroutine *current_root(void) { return CURRENT_COROUTINE; }
 
 struct machine *current_mach(void) { return thread_local_mach; }
 
-void handle_polling_page_exception(struct machine *mach) {
+address_t handle_polling_page_exception(struct machine *mach) {
     DCHECK(mach->state == MACH_RUNNING);
     mm_synchronize_handle(&mm_thread, mach);
+    //DLOG(INFO, "saved_exception_pc=%p", mach->saved_exception_pc);
+    return mach->saved_exception_pc;
 }
 
 u8_t is_instance_of(struct yalx_value_any *const host, const struct yalx_class *const for_test) {

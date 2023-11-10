@@ -57,6 +57,9 @@ int yalx_handle_signal(int sig, siginfo_t *info, void *uv, int abort_if_unrecogn
     }
 
     if (stub) {
+        if (m) { // Save pc for restore
+            m->saved_exception_pc = pc;
+        }
         ucontext_set_pc(ucontext, stub);
         return 1;
     }
@@ -73,7 +76,12 @@ int yalx_handle_signal(int sig, siginfo_t *info, void *uv, int abort_if_unrecogn
     sigprocmask(SIG_UNBLOCK, &new_set, NULL);
 
     if (thread) {
-        LOG(FATAL, "Thread start point[%s:%d] signal handle: %d", thread->start_point.file, thread->start_point.line, sig);
+        LOG(FATAL, "\nThread start point[%s:%d] \nsignal handle: %d, \nis polling page: %d\nIn machine: %p",
+            thread->start_point.file,
+            thread->start_point.line,
+            sig,
+            mm_is_polling_page(info->si_addr),
+            m);
     } else {
         LOG(FATAL, "signal handle: %d", sig);
     }

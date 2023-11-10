@@ -97,6 +97,12 @@ int yalx_os_thread_join(struct yalx_os_thread *thread, uint64_t timeout_in_mills
 }
 
 struct yalx_os_thread *yalx_os_thread_self(void) {
+    struct yalx_os_thread *thread = yalx_os_thread_self_or_null();
+    DCHECK(thread != NULL);
+    return thread;
+}
+
+struct yalx_os_thread *yalx_os_thread_self_or_null(void) {
     return (struct yalx_os_thread *) yalx_tls_get(self_thread);
 }
 

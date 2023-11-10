@@ -4,6 +4,8 @@
 #include "gtest/gtest.h"
 #include <thread>
 
+extern "C" void fast_poll_page();
+
 class MMThreadTest : public ::testing::Test {
 public:
     void SetUp() override {
@@ -33,6 +35,11 @@ public:
             ASSERT_EQ(0, mm_synchronize_poll(mm));
         }
         printf("[Polling] processor end: %d\n", thread_local_mach->owns->id.value);
+    }
+
+    static void TestRun3(void */*ctx*/) {
+        fast_poll_page();
+        printf("[Polling]\n");
     }
 
     yalx_mm_thread thread_{};
@@ -108,6 +115,31 @@ TEST_F(MMThreadTest, SafePointSynchronizeWaiting2) {
 
     for (size_t i = 0; i < nprocs; i++) {
         // yalx_os_thread_join(&workers[i].thread, 0);
+        yalx_mach_join(&workers[i]);
+    }
+}
+
+TEST_F(MMThreadTest, SafePointSynchronizeRaisePollingPageException) {
+    printf("offset of machine::saved_exception_pc=%zd", offsetof(machine, saved_exception_pc));
+
+    thread_local_mach->state = MACH_IDLE;
+    mm_synchronize_begin(&mm_thread);
+
+    std::unique_ptr<machine[]> workers(new machine[nprocs]);
+    for (int i = 0; i < nprocs; i++) {
+        yalx_init_machine(&workers[i]);
+        yalx_add_machine_to_processor(&procs[i], &workers[i]);
+        yalx_mach_run_dummy(&workers[i], TestRun3, &mm_thread);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(11));
+
+    puts("mm_synchronize_end()...after");
+    mm_synchronize_end(&mm_thread);
+    thread_local_mach->state = MACH_RUNNING;
+    puts("mm_synchronize_end()...before");
+
+    for (size_t i = 0; i < nprocs; i++) {
         yalx_mach_join(&workers[i]);
     }
 }

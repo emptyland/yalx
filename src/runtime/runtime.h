@@ -257,7 +257,7 @@ struct coroutine *current_root(void);
 
 struct machine *current_mach(void);
 
-void handle_polling_page_exception(struct machine *mach);
+address_t handle_polling_page_exception(struct machine *mach);
 
 void throw_it(struct yalx_value_any *exception);
 

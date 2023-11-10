@@ -7,6 +7,7 @@ extern "C" {
 #endif
 
 void yalx_install_signals_handler();
+void yalx_uninstall_signals_handler();
 
 #ifdef __cplusplus
 }

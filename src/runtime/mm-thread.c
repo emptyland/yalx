@@ -296,7 +296,7 @@ end:
 }
 
 void mm_synchronize_handle(struct yalx_mm_thread *mm, struct machine *mach) {
-    DCHECK(mm->state == SYNCHRONIZING);
+    DCHECK(mm->state == SYNCHRONIZED);
     int safepoint_id = atomic_load_explicit(&mm->safepoint_counter, memory_order_acquire);
 
     enum machine_state old_state = mach->state;
@@ -309,6 +309,8 @@ void mm_synchronize_handle(struct yalx_mm_thread *mm, struct machine *mach) {
     enum machine_state expected = MACH_SAFE;
     rs = atomic_compare_exchange_strong(&mach->state, &expected, old_state);
     GUARANTEE(rs, "Mach state changed, actual value is: %d, should be \'MACH_SAFE_POINT\'", expected);
+
+    DLOG(INFO, "mm_synchronize_handle()...ok");
 }
 
 enum synchronize_state mm_synchronize_state(struct yalx_mm_thread const *mm) {

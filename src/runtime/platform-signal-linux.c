@@ -10,6 +10,7 @@ static void signal_handler(int sig, siginfo_t* info, void* uc) {
     int saved_err_no = errno;
     yalx_handle_signal(sig, info, uc, 1);
     errno = saved_err_no;
+    DLOG(INFO, "signal handler done: %d", sig);
 }
 
 static void set_signal_handler(int sig, int install) {
@@ -19,6 +20,7 @@ static void set_signal_handler(int sig, int install) {
     void *old_handler = old_act.sa_sigaction ? (void *)old_act.sa_sigaction : (void *)old_act.sa_handler;
     if (old_handler != SIG_DFL && old_handler != SIG_IGN && old_handler != signal_handler) {
         if (!install) {
+            DLOG(INFO, "IGNORE install signal handler: %d", sig);
             return;
         }
         LOG(FATAL, "Bad signal handler");
@@ -34,6 +36,7 @@ static void set_signal_handler(int sig, int install) {
 
     int rs = sigaction(sig, &sig_act, &old_act);
     GUARANTEE(rs == 0, "sigaction fail!");
+    //DLOG(INFO, "install signal handler: %d", sig);
 
     void *prev_handler = old_act.sa_sigaction ? (void *)old_act.sa_sigaction : (void *)old_act.sa_handler;
     DCHECK(prev_handler == old_handler);
@@ -46,4 +49,13 @@ void yalx_install_signals_handler() {
     set_signal_handler(SIGILL, 1);
     set_signal_handler(SIGFPE, 1);
     set_signal_handler(SIGXFSZ, 1);
+}
+
+void yalx_uninstall_signals_handler() {
+    set_signal_handler(SIGSEGV, 0);
+    set_signal_handler(SIGPIPE, 0);
+    set_signal_handler(SIGBUS, 0);
+    set_signal_handler(SIGILL, 0);
+    set_signal_handler(SIGFPE, 0);
+    set_signal_handler(SIGXFSZ, 0);
 }

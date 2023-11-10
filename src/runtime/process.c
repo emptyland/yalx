@@ -54,6 +54,7 @@ int yalx_init_machine(struct machine *mach) {
     mach->state = MACH_INIT;
     mach->running = NULL;
     mach->polling_page = mm_polling_page;
+    mach->saved_exception_pc = NULL;
     mach->dummy.run = NULL;
     mach->dummy.params = NULL;
     mach->waiting_head.next = &mach->waiting_head;

@@ -92,13 +92,14 @@ struct coroutine {
 struct machine {
     QUEUE_HEADER(struct machine);
     struct processor *owns;
-    struct yalx_os_thread thread;
-    volatile _Atomic enum machine_state state;
+    volatile void *polling_page;
     struct coroutine *running;
+    volatile _Atomic enum machine_state state;
     struct stack_pool stack_pool;
     struct coroutine waiting_head;
     struct coroutine parking_head;
-    volatile void *polling_page;
+    address_t saved_exception_pc;
+    struct yalx_os_thread thread;
     struct {
         void (*run)(void *);
         void *params;
