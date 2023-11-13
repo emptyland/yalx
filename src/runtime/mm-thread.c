@@ -296,7 +296,8 @@ end:
 }
 
 void mm_synchronize_handle(struct yalx_mm_thread *mm, struct machine *mach) {
-    DCHECK(mm->state == SYNCHRONIZED);
+    //DCHECK(mm->state == SYNCHRONIZED);
+    GUARANTEE(mm->state == SYNCHRONIZED, "state=%d", mm->state);
     int safepoint_id = atomic_load_explicit(&mm->safepoint_counter, memory_order_acquire);
 
     enum machine_state old_state = mach->state;

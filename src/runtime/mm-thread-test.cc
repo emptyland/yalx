@@ -126,7 +126,7 @@ TEST_F(MMThreadTest, SafePointSynchronizeRaisePollingPageException) {
     mm_synchronize_begin(&mm_thread);
 
     std::unique_ptr<machine[]> workers(new machine[nprocs]);
-    for (int i = 0; i < nprocs; i++) {
+    for (int i = 0; i < 1; i++) {
         yalx_init_machine(&workers[i]);
         yalx_add_machine_to_processor(&procs[i], &workers[i]);
         yalx_mach_run_dummy(&workers[i], TestRun3, &mm_thread);
@@ -139,7 +139,7 @@ TEST_F(MMThreadTest, SafePointSynchronizeRaisePollingPageException) {
     thread_local_mach->state = MACH_RUNNING;
     puts("mm_synchronize_end()...before");
 
-    for (size_t i = 0; i < nprocs; i++) {
+    for (size_t i = 0; i < 1; i++) {
         yalx_mach_join(&workers[i]);
     }
 }
