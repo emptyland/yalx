@@ -10,7 +10,7 @@ static void signal_handler(int sig, siginfo_t* info, void* uc) {
     int saved_err_no = errno;
     yalx_handle_signal(sig, info, uc, 1);
     errno = saved_err_no;
-    DLOG(INFO, "signal handler done: %d", sig);
+    //DLOG(INFO, "signal handler done: %d", sig);
 }
 
 static void set_signal_handler(int sig, int install) {

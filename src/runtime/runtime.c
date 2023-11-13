@@ -1233,9 +1233,9 @@ struct machine *current_mach(void) { return thread_local_mach; }
 address_t handle_polling_page_exception(struct machine *mach) {
     DCHECK(mach->state == MACH_RUNNING);
     mm_synchronize_handle(&mm_thread, mach);
-    DLOG(INFO, "saved_exception_pc=[0x%02x, 0x%02x]",
-         mach->saved_exception_pc[0],
-         mach->saved_exception_pc[1]);
+//    DLOG(INFO, "saved_exception_pc=[0x%02x, 0x%02x]",
+//         mach->saved_exception_pc[0],
+//         mach->saved_exception_pc[1]);
     return mach->saved_exception_pc;
 }
 

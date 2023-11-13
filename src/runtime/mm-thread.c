@@ -311,7 +311,7 @@ void mm_synchronize_handle(struct yalx_mm_thread *mm, struct machine *mach) {
     rs = atomic_compare_exchange_strong(&mach->state, &expected, old_state);
     GUARANTEE(rs, "Mach state changed, actual value is: %d, should be \'MACH_SAFE_POINT\'", expected);
 
-    DLOG(INFO, "mm_synchronize_handle()...ok");
+    //DLOG(INFO, "mm_synchronize_handle()...ok");
 }
 
 enum synchronize_state mm_synchronize_state(struct yalx_mm_thread const *mm) {

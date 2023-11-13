@@ -1,6 +1,7 @@
 #include "runtime/mm-thread.h"
 #include "runtime/process.h"
 #include "runtime/runtime.h"
+#include "runtime/utils.h"
 #include "gtest/gtest.h"
 #include <thread>
 
@@ -38,8 +39,14 @@ public:
     }
 
     static void TestRun3(void */*ctx*/) {
+        auto jiffy = yalx_current_mills_in_precision();
         fast_poll_page();
-        printf("[Polling]\n");
+        ASSERT_GT(yalx_current_mills_in_precision() - jiffy, 10);
+        //printf("[Polling]\n");
+
+        for (int i = 0; i < 1000; i++) {
+            fast_poll_page();
+        }
     }
 
     yalx_mm_thread thread_{};
@@ -126,7 +133,7 @@ TEST_F(MMThreadTest, SafePointSynchronizeRaisePollingPageException) {
     mm_synchronize_begin(&mm_thread);
 
     std::unique_ptr<machine[]> workers(new machine[nprocs]);
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < nprocs; i++) {
         yalx_init_machine(&workers[i]);
         yalx_add_machine_to_processor(&procs[i], &workers[i]);
         yalx_mach_run_dummy(&workers[i], TestRun3, &mm_thread);
@@ -134,12 +141,10 @@ TEST_F(MMThreadTest, SafePointSynchronizeRaisePollingPageException) {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(11));
 
-    puts("mm_synchronize_end()...after");
     mm_synchronize_end(&mm_thread);
     thread_local_mach->state = MACH_RUNNING;
-    puts("mm_synchronize_end()...before");
 
-    for (size_t i = 0; i < 1; i++) {
+    for (size_t i = 0; i < nprocs; i++) {
         yalx_mach_join(&workers[i]);
     }
 }
