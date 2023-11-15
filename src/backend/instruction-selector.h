@@ -106,8 +106,8 @@ public:
     static bool IsIntegralImmediate(ir::Value *value, int bits = 64);
     static bool IsAnyConstant(ir::Value *value);
 
-    static InstructionOperand Invalid() { return InstructionOperand(); }
-    static InstructionOperand NoOutput() { return InstructionOperand(); }
+    static InstructionOperand Invalid() { return {}; }
+    static InstructionOperand NoOutput() { return {}; }
     
     UnallocatedOperand Define(ir::Value *value, UnallocatedOperand operand);
     UnallocatedOperand Use(ir::Value *value, UnallocatedOperand operand);

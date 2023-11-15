@@ -120,7 +120,7 @@ private:
     
     base::PrintingWriter *Incoming() { return printer()->Indent(1); }
     base::PrintingWriter *printer() { return owns_->printer_; }
-    LinkageSymbols *symbols() { return owns_->symbols_; }
+    Linkage *symbols() { return owns_->symbols_; }
     
     X64CodeGenerator *const owns_;
     InstructionFunction *fun_;
@@ -169,14 +169,14 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
 
-            if (auto size = instr->InputAt(0)->AsImmediate()->word32(); size > 0) {
+            if (auto size = instr->InputAt(0)->AsImmediate()->word32_value(); size > 0) {
                 printer()->Indent(1)->Println("subq $%d, %%rsp", size);
             }
             break;
             
         case ArchFrameExit: {
             int has_adjust = 0;
-            if (auto size = instr->InputAt(0)->AsImmediate()->word32(); size > 0) {
+            if (auto size = instr->InputAt(0)->AsImmediate()->word32_value(); size > 0) {
                 printer()->Println("addq $%d, %%rsp", size);
                 has_adjust = 1;
             }
@@ -665,11 +665,17 @@ void X64CodeGenerator::FunctionGenerator::EmitOperands(InstructionOperand *io, I
 
 void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operand, X64RelocationStyle style) {
     switch (operand->kind()) {
-        case InstructionOperand::kRegister: {
-            auto opd = operand->AsRegister();
-            printer()->Print("%%%s", RegisterName(opd->rep(), opd->register_id()));
+        case InstructionOperand::kAllocated: {
+            auto rep = operand->AsAllocated();
+            if (rep->IsRegisterLocation()) {
+                printer()->Print("%%%s", RegisterName(rep->machine_representation(), rep->index()));
+            } else {
+                DCHECK(rep->IsSlotLocation());
+                printer()->Print("%d(%%rbp)", rep->index());
+            }
         } break;
-            
+
+#if 0
         case InstructionOperand::kLocation: {
             auto opd = operand->AsLocation();
             
@@ -760,31 +766,31 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
             }
             
         } break;
-            
+#endif
         case InstructionOperand::kConstant: {
             auto opd = operand->AsConstant();
             if (opd->type() == ConstantOperand::kString) {
                 printer()->Print("Kstr.%d(%%rip)", opd->symbol_id());
             } else {
-                assert(opd->type() == ConstantOperand::kNumber);
+                DCHECK(opd->type() == ConstantOperand::kNumber);
                 printer()->Print("Knnn.%d(%%rip)", opd->symbol_id());
             }
         } break;
             
         case InstructionOperand::kImmediate: {
             auto opd = operand->AsImmediate();
-            switch (opd->rep()) {
+            switch (opd->machine_representation()) {
                 case MachineRepresentation::kWord8:
-                    printer()->Print("$%" PRId8, opd->word8());
+                    printer()->Print("$%" PRId8, opd->word8_value());
                     break;
                 case MachineRepresentation::kWord16:
-                    printer()->Print("$%" PRId16, opd->word16());
+                    printer()->Print("$%" PRId16, opd->word16_value());
                     break;
                 case MachineRepresentation::kWord32:
-                    printer()->Print("$%" PRId32, opd->word32());
+                    printer()->Print("$%" PRId32, opd->word32_value());
                     break;
                 case MachineRepresentation::kWord64:
-                    printer()->Print("$%" PRId64, opd->word64());
+                    printer()->Print("$%" PRId64, opd->word64_value());
                     break;
                 default:
                     UNREACHABLE();
@@ -795,11 +801,6 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
         case InstructionOperand::kReloaction: {
             auto opd = operand->AsReloaction();
             if (opd->label()) {
-//                if (style == kIndirectly) {
-//                    printer()->Print("Lblk%d", opd->label()->label());
-//                } else {
-//                    printer()->Print("Lblk%d", opd->label()->label());
-//                }
                 printer()->Print("Lblk%d", opd->label()->label());
             } else {
                 assert(opd->symbol_name() != nullptr);
@@ -831,7 +832,7 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
 X64CodeGenerator::X64CodeGenerator(const base::ArenaMap<std::string_view, InstructionFunction *> &funs,
                                    ir::Module *module,
                                    ConstantsPool *const_pool,
-                                   LinkageSymbols *symbols,
+                                   Linkage *symbols,
                                    base::PrintingWriter *printer)
 : GnuAsmGenerator(funs, module, const_pool, symbols, printer) {
     set_comment("#");

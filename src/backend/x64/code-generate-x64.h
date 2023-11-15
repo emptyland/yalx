@@ -5,11 +5,10 @@
 #include "backend/gnu-asm-generator.h"
 #include "base/arena-utils.h"
 
-namespace yalx {
-namespace backend {
+namespace yalx::backend {
 
 class ConstantsPool;
-class LinkageSymbols;
+class Linkage;
 class InstructionFunction;
 
 class X64CodeGenerator final : public GnuAsmGenerator {
@@ -19,7 +18,7 @@ public:
     X64CodeGenerator(const base::ArenaMap<std::string_view, InstructionFunction *> &funs,
                      ir::Module *module,
                      ConstantsPool *const_pool,
-                     LinkageSymbols *symbols,
+                     Linkage *symbols,
                      base::PrintingWriter *printer);
     ~X64CodeGenerator() override;
     
@@ -28,7 +27,6 @@ private:
     void EmitFunction(InstructionFunction *fun) override;
 }; // class X64CodeGenerator
 
-} // namespace backend
 } // namespace yalx
 
 #endif // YALX_BACKEND_X64_CODE_GENERATE_X64_H_

@@ -238,19 +238,19 @@ static_assert(sizeof(UnallocatedOperand) == sizeof(InstructionOperand), "");
 
 class ImmediateOperand final : public InstructionOperand {
 public:
-    ImmediateOperand(int8_t value): ImmediateOperand(MachineRepresentation::kWord8) {
+    explicit ImmediateOperand(int8_t value): ImmediateOperand(MachineRepresentation::kWord8) {
         mutable_bundle()->word8_value = value;
     }
     
-    ImmediateOperand(int16_t value): ImmediateOperand(MachineRepresentation::kWord16) {
+    explicit ImmediateOperand(int16_t value): ImmediateOperand(MachineRepresentation::kWord16) {
         mutable_bundle()->word16_value = value;
     }
-    
-    ImmediateOperand(int32_t value): ImmediateOperand(MachineRepresentation::kWord32) {
+
+    explicit ImmediateOperand(int32_t value): ImmediateOperand(MachineRepresentation::kWord32) {
         mutable_bundle()->word32_value = value;
     }
-    
-    ImmediateOperand(int64_t value): ImmediateOperand(MachineRepresentation::kWord32) {
+
+    explicit ImmediateOperand(int64_t value): ImmediateOperand(MachineRepresentation::kWord32) {
         mutable_bundle()->word64_value = value;
     }
     
@@ -570,7 +570,7 @@ public:
         int src_virtual_register;
     };
     
-    explicit InstructionBlock(base::Arena *arena, InstructionFunction *owns, int id, int label);
+    InstructionBlock(base::Arena *arena, InstructionFunction *owns, int id, int label);
 
     DEF_PTR_GETTER(InstructionFunction, owns);
     DEF_VAL_GETTER(int, id);

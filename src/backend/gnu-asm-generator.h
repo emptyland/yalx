@@ -48,7 +48,7 @@ protected:
     void EmitStringConstants();
     void EmitMetadata();
     int EmitGlobalSlots(std::vector<int> *refs_offset);
-    void MarkRefsInClass(const ir::StructureModel *clazz, const int offset, std::vector<int> *refs_offset);
+    void MarkRefsInClass(const ir::StructureModel *clazz, int offset, std::vector<int> *refs_offset);
     void EmitTypeRelocation(const ir::Type &ty, base::PrintingWriter *printer);
     
     const char *comment_ = "#";

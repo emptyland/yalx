@@ -90,6 +90,8 @@ add_library(compiler STATIC
         src/backend/arm64/instruction-codes-arm64.h
         src/backend/arm64/instruction-selector-arm64.cc
         src/backend/x64/instruction-codes-x64.h
+        src/backend/x64/code-generate-x64.cc
+        src/backend/x64/code-generate-x64.h
         src/backend/constants-pool.cc
         src/backend/constants-pool.h
         src/backend/frame.cc
@@ -198,7 +200,7 @@ add_library(compiler STATIC
         src/x64/asm-x64.cc
         src/x64/asm-x64.h
         third-party/include/dbg/dbg.h
-)
+        src/backend/x64/lower-posix-x64.h src/backend/x64/lower-posix-x64.cc)
 
 add_executable(yalx-test
         src/arm64/asm-arm64-test.cc

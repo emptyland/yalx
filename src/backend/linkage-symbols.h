@@ -15,7 +15,7 @@ public:
         kNativeHandle,
     };
 
-    Linkage(base::Arena *arena);
+    explicit Linkage(base::Arena *arena);
     
     const String *Mangle(const String *name)  { return Mangle(name->ToSlice()); }
     const String *Mangle(const char *z, size_t n) { return Mangle(std::string_view(z, n)); }

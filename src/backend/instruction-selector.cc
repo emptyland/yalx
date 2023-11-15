@@ -221,8 +221,8 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
 
     ImmediateOperand tmp{-1};
     Emit(ArchFrameExit, 0, nullptr, static_cast<int>(inputs.size()), &inputs.front(), 1, &tmp);
-    
-    frame_->set_returning_val_size(static_cast<int>(returning_val_size));
+
+    DCHECK_NOTNULL(frame_)->set_returning_val_size(static_cast<int>(returning_val_size));
 }
 
 void InstructionSelector::VisitStackAlloc(ir::Value *value) {
