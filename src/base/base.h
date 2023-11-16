@@ -205,22 +205,22 @@ inline T *DbgFreeZag(T *chunk, size_t n) { return static_cast<T *>(Round32BytesF
     DEF_PTR_SETTER_NOTNULL(type, name)
 
 #define DEF_VAL_GETTER(type, name) \
-    inline const type &name() const { return name##_; }
+    [[nodiscard]] inline const type &name() const { return name##_; }
 
 #define DEF_VAL_MUTABLE_GETTER(type, name) \
-    inline type *mutable_##name() { return &name##_; }
+    [[nodiscard]] inline type *mutable_##name() { return &name##_; }
 
 #define DEF_VAL_SETTER(type, name) \
     inline void set_##name(const type &value) { name##_ = value; }
 
 #define DEF_PTR_GETTER(type, name) \
-    inline type *name() const { return name##_; }
+    [[nodiscard]] inline type *name() const { return name##_; }
 
 #define DEF_PTR_SETTER(type, name) \
     inline void set_##name(type *value) { name##_ = value; }
 
 #define DEF_PTR_GETTER_NOTNULL(type, name) \
-    inline type *name() const { return DCHECK_NOTNULL(name##_); }
+    [[nodiscard]] inline type *name() const { return DCHECK_NOTNULL(name##_); }
 
 #define DEF_PTR_SETTER_NOTNULL(type, name) \
     inline void set_##name(type *value) { name##_ = DCHECK_NOTNULL(value); }

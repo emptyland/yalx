@@ -10,134 +10,123 @@
 
 namespace yalx::cpl {
 
-    class AstVisitor;
+class AstVisitor;
 
-    class AstNode : public Node {
-    public:
-        AstNode(Node::Kind kind, SourcePosition source_position) : Node(kind, source_position) {}
+class AstNode : public Node {
+public:
+    AstNode(Node::Kind kind, SourcePosition source_position) : Node(kind, source_position) {}
 
-        virtual int Accept(AstVisitor *visitor) = 0;
-    }; // class AstNode
+    virtual int Accept(AstVisitor *visitor) = 0;
+}; // class AstNode
 
 
-    class AstVisitor {
-    public:
+class AstVisitor {
+public:
 #define DEFINE_METHOD(name) virtual int Visit##name(name *node) = 0;
-
-        DECLARE_AST_NODES(DEFINE_METHOD)
-
+    DECLARE_AST_NODES(DEFINE_METHOD)
 #undef DEFINE_METHOD
-    }; // class AstVisitor
+}; // class AstVisitor
 
 
 #define DECLARE_AST_NODE(name) \
     int Accept(AstVisitor *visitor) override { return visitor->Visit##name(this); }
 
-    class Statement;
-
-    class Declaration;
-
-    class Expression;
+class Statement;
+class Declaration;
+class Expression;
 
 
 //----------------------------------------------------------------------------------------------------------------------
 // Package
 //----------------------------------------------------------------------------------------------------------------------
-    class SymbolDepsNode : public base::ArenaObject {
-    public:
-        SymbolDepsNode(base::Arena *arena, std::string_view name, Statement *ast)
-                : name_(name), ast_(ast), backwards_(arena) {}
+class SymbolDepsNode : public base::ArenaObject {
+public:
+    SymbolDepsNode(base::Arena *arena, std::string_view name, Statement *ast)
+            : name_(name), ast_(ast), backwards_(arena) {}
 
-        DEF_VAL_GETTER(std::string_view, name);
+    DEF_VAL_GETTER(std::string_view, name);
 
-        DEF_PTR_GETTER(Statement, ast);
+    DEF_PTR_GETTER(Statement, ast);
 
-        DEF_ARENA_VECTOR_GETTER(SymbolDepsNode *, backward);
+    DEF_ARENA_VECTOR_GETTER(SymbolDepsNode *, backward);
 
-        void AddBackward(SymbolDepsNode *node) {
-            if (auto iter = std::find(backwards_.begin(), backwards_.end(), node); iter == backwards_.end()) {
-                backwards_.push_back(node);
-            }
+    void AddBackward(SymbolDepsNode *node) {
+        if (auto iter = std::find(backwards_.begin(), backwards_.end(), node); iter == backwards_.end()) {
+            backwards_.push_back(node);
         }
+    }
 
-    private:
-        std::string_view name_;
-        Statement *ast_;
-        base::ArenaVector<SymbolDepsNode *> backwards_;
-    }; // class SymbolDepsNode
+private:
+    std::string_view name_;
+    Statement *ast_;
+    base::ArenaVector<SymbolDepsNode *> backwards_;
+}; // class SymbolDepsNode
 
-    class Package : public AstNode {
-    public:
-        struct Import {
-            Package *pkg = nullptr;
-            FileUnit *file_unit = nullptr;
-            AstNode *entry = nullptr;
-        }; // struct Import
+class Package : public AstNode {
+public:
+    struct Import {
+        Package *pkg = nullptr;
+        FileUnit *file_unit = nullptr;
+        AstNode *entry = nullptr;
+    }; // struct Import
 
-        using ImportMap = base::ArenaMap<std::string_view, Import>;
+    using ImportMap = base::ArenaMap<std::string_view, Import>;
 
 
-        Package(base::Arena *arena, const String *id, const String *path, const String *full_path, const String *name);
+    Package(base::Arena *arena, const String *id, const String *path, const String *full_path, const String *name);
 
-        DEF_PTR_PROP_RW(const String, id);
+    DEF_PTR_PROP_RW(const String, id);
+    DEF_PTR_PROP_RW(const String, path);
+    DEF_PTR_PROP_RW(const String, full_path);
+    DEF_PTR_PROP_RW(const String, name);
+    DEF_ARENA_VECTOR_GETTER(FileUnit *, source_file);
+    DEF_ARENA_VECTOR_GETTER(Package *, reference);
+    DEF_ARENA_VECTOR_GETTER(Package *, dependence);
+    DEF_VAL_PROP_RW(ImportMap, imports);
 
-        DEF_PTR_PROP_RW(const String, path);
+    bool IsTerminator() const { return dependences_.empty(); }
 
-        DEF_PTR_PROP_RW(const String, full_path);
+    Import *import(std::string_view path) {
+        auto iter = imports_.find(path);
+        return iter == imports_.end() ? nullptr : &iter->second;
+    }
 
-        DEF_PTR_PROP_RW(const String, name);
-
-        DEF_ARENA_VECTOR_GETTER(FileUnit *, source_file);
-
-        DEF_ARENA_VECTOR_GETTER(Package *, reference);
-
-        DEF_ARENA_VECTOR_GETTER(Package *, dependence);
-
-        DEF_VAL_PROP_RW(ImportMap, imports);
-
-        bool IsTerminator() const { return dependences_.empty(); }
-
-        Import *import(std::string_view path) {
-            auto iter = imports_.find(path);
-            return iter == imports_.end() ? nullptr : &iter->second;
+    SymbolDepsNode *FindOrInsertDeps(base::Arena *arena, std::string_view name, Statement *ast) {
+        if (auto iter = symbols_deps_.find(name); iter != symbols_deps_.end()) {
+            return iter->second;
         }
+        auto node = new(arena) SymbolDepsNode(arena, name, ast);
+        symbols_deps_[name] = node;
+        return node;
+    }
 
-        SymbolDepsNode *FindOrInsertDeps(base::Arena *arena, std::string_view name, Statement *ast) {
-            if (auto iter = symbols_deps_.find(name); iter != symbols_deps_.end()) {
-                return iter->second;
-            }
-            auto node = new(arena) SymbolDepsNode(arena, name, ast);
-            symbols_deps_[name] = node;
-            return node;
+    SymbolDepsNode *FindDepsOrNull(std::string_view name) {
+        if (auto iter = symbols_deps_.find(name); iter != symbols_deps_.end()) {
+            return iter->second;
         }
+        return nullptr;
+    }
 
-        SymbolDepsNode *FindDepsOrNull(std::string_view name) {
-            if (auto iter = symbols_deps_.find(name); iter != symbols_deps_.end()) {
-                return iter->second;
-            }
-            return nullptr;
-        }
+    const base::ArenaMap<std::string_view, SymbolDepsNode *> &deps_of_symbols() const { return symbols_deps_; }
 
-        const base::ArenaMap<std::string_view, SymbolDepsNode *> &deps_of_symbols() const { return symbols_deps_; }
+    DECLARE_AST_NODE(Package);
 
-        DECLARE_AST_NODE(Package);
+    friend class Compiler;
 
-        friend class Compiler;
+private:
+    void Prepare();
 
-    private:
-        void Prepare();
-
-        const String *id_;
-        const String *path_;
-        const String *full_path_;
-        const String *name_;
-        //base::Arena *arena_;
-        base::ArenaMap<std::string_view, SymbolDepsNode *> symbols_deps_;
-        base::ArenaVector<FileUnit *> source_files_;
-        base::ArenaVector<Package *> references_;
-        base::ArenaVector<Package *> dependences_;
-        ImportMap imports_;
-    }; // class Package
+    const String *id_;
+    const String *path_;
+    const String *full_path_;
+    const String *name_;
+    //base::Arena *arena_;
+    base::ArenaMap<std::string_view, SymbolDepsNode *> symbols_deps_;
+    base::ArenaVector<FileUnit *> source_files_;
+    base::ArenaVector<Package *> references_;
+    base::ArenaVector<Package *> dependences_;
+    ImportMap imports_;
+}; // class Package
 
 //----------------------------------------------------------------------------------------------------------------------
 // FileUnit
@@ -147,96 +136,81 @@ namespace yalx::cpl {
 #undef interface
 #endif
 
-    class FileUnit : public AstNode {
+class FileUnit : public AstNode {
+public:
+    class ImportEntry : public AstNode {
     public:
-        class ImportEntry : public AstNode {
-        public:
-            ImportEntry(const String *original_package_name, const String *package_path, const String *alias,
-                        const SourcePosition &source_position);
+        ImportEntry(const String *original_package_name, const String *package_path, const String *alias,
+                    const SourcePosition &source_position);
 
-            int Accept(AstVisitor *visitor) override { return 0; }
+        int Accept(AstVisitor *visitor) override { return 0; }
 
-            DEF_PTR_PROP_RW(const String, original_package_name);
-
-            DEF_PTR_PROP_RW(const String, package_path);
-
-            DEF_PTR_PROP_RW(const String, alias);
-        private:
-            const String *original_package_name_;
-            const String *package_path_;
-            const String *alias_;
-        }; // class ImportEntry
-
-
-        FileUnit(base::Arena *arena, String *file_name, String *file_full_path, const SourcePosition &source_position);
-
-        DEF_PTR_PROP_RW(const String, file_name);
-
-        DEF_PTR_PROP_RW(const String, file_full_path);
-
-        DEF_PTR_PROP_RW(const String, package_name);
-
-        DEF_PTR_GETTER(base::Arena, arena);
-
-        DEF_ARENA_VECTOR_GETTER(ImportEntry *, import);
-
-        DEF_ARENA_VECTOR_GETTER(Statement *, statement);
-
-        DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, fun);
-
-        DEF_ARENA_VECTOR_GETTER(VariableDeclaration *, var);
-
-        DEF_ARENA_VECTOR_GETTER(ClassDefinition *, class_def);
-
-        DEF_ARENA_VECTOR_GETTER(StructDefinition *, struct_def);
-
-        DEF_ARENA_VECTOR_GETTER(EnumDefinition *, enum_def);
-
-        DEF_ARENA_VECTOR_GETTER(InterfaceDefinition *, interface);
-
-        DEF_ARENA_VECTOR_GETTER(ObjectDeclaration *, object);
-
-        DEF_ARENA_VECTOR_GETTER(AnnotationDefinition *, annotation);
-
-        void Add(Statement *stmt);
-
-        DECLARE_AST_NODE(FileUnit);
+        DEF_PTR_PROP_RW(const String, original_package_name);
+        DEF_PTR_PROP_RW(const String, package_path);
+        DEF_PTR_PROP_RW(const String, alias);
     private:
-        const String *file_name_;
-        const String *file_full_path_;
-        const String *package_name_ = nullptr;
-        base::ArenaVector<ImportEntry *> imports_;
-        base::ArenaVector<FunctionDeclaration *> funs_;
-        base::ArenaVector<VariableDeclaration *> vars_;
-        base::ArenaVector<ClassDefinition *> class_defs_;
-        base::ArenaVector<StructDefinition *> struct_defs_;
-        base::ArenaVector<EnumDefinition *> enum_defs_;
-        base::ArenaVector<ObjectDeclaration *> objects_;
-        base::ArenaVector<InterfaceDefinition *> interfaces_;
-        base::ArenaVector<AnnotationDefinition *> annotations_;
-        base::ArenaVector<Statement *> statements_;
-        base::Arena *arena_;
-    }; // class FileUnit
+        const String *original_package_name_;
+        const String *package_path_;
+        const String *alias_;
+    }; // class ImportEntry
+
+
+    FileUnit(base::Arena *arena, String *file_name, String *file_full_path, const SourcePosition &source_position);
+
+    DEF_PTR_PROP_RW(const String, file_name);
+    DEF_PTR_PROP_RW(const String, file_full_path);
+    DEF_PTR_PROP_RW(const String, package_name);
+    DEF_PTR_GETTER(base::Arena, arena);
+    DEF_ARENA_VECTOR_GETTER(ImportEntry *, import);
+    DEF_ARENA_VECTOR_GETTER(Statement *, statement);
+    DEF_ARENA_VECTOR_GETTER(FunctionDeclaration *, fun);
+    DEF_ARENA_VECTOR_GETTER(VariableDeclaration *, var);
+    DEF_ARENA_VECTOR_GETTER(ClassDefinition *, class_def);
+    DEF_ARENA_VECTOR_GETTER(StructDefinition *, struct_def);
+    DEF_ARENA_VECTOR_GETTER(EnumDefinition *, enum_def);
+    DEF_ARENA_VECTOR_GETTER(InterfaceDefinition *, interface);
+    DEF_ARENA_VECTOR_GETTER(ObjectDeclaration *, object);
+    DEF_ARENA_VECTOR_GETTER(AnnotationDefinition *, annotation);
+
+    void Add(Statement *stmt);
+
+    DECLARE_AST_NODE(FileUnit);
+private:
+    const String *file_name_;
+    const String *file_full_path_;
+    const String *package_name_ = nullptr;
+    base::ArenaVector<ImportEntry *> imports_;
+    base::ArenaVector<FunctionDeclaration *> funs_;
+    base::ArenaVector<VariableDeclaration *> vars_;
+    base::ArenaVector<ClassDefinition *> class_defs_;
+    base::ArenaVector<StructDefinition *> struct_defs_;
+    base::ArenaVector<EnumDefinition *> enum_defs_;
+    base::ArenaVector<ObjectDeclaration *> objects_;
+    base::ArenaVector<InterfaceDefinition *> interfaces_;
+    base::ArenaVector<AnnotationDefinition *> annotations_;
+    base::ArenaVector<Statement *> statements_;
+    base::Arena *arena_;
+}; // class FileUnit
 
 
 //----------------------------------------------------------------------------------------------------------------------
 // Statement
 //----------------------------------------------------------------------------------------------------------------------
-    class Statement : public AstNode {
-    public:
-        virtual bool IsExplicitExpression() const { return false; }
+class Statement : public AstNode {
+public:
+    virtual bool IsExplicitExpression() const { return false; }
 
-        std::tuple<AstNode *, Statement *> Owns(bool force);
+    std::tuple<AstNode *, Statement *> Owns(bool force);
 
-        Package *Pack(bool force);
+    Package *Pack(bool force);
 
-        bool IsNotTemplate() const;
+    bool IsNotTemplate() const;
 
-        bool IsTemplate() const { return !IsNotTemplate(); }
+    bool IsTemplate() const { return !IsNotTemplate(); }
 
-    protected:
-        Statement(Kind kind, const SourcePosition &source_position);
-    }; // class Statement
+protected:
+    Statement(Kind kind, const SourcePosition &source_position);
+}; // class Statement
 
 
     class Block : public Statement {
@@ -952,7 +926,6 @@ namespace yalx::cpl {
         Annotation(base::Arena *arena, Symbol *name, const SourcePosition &source_position);
 
         DEF_PTR_PROP_RW(Symbol, name);
-
         DEF_ARENA_VECTOR_GETTER(Field *, field);
 
         DECLARE_AST_NODE(Annotation);
@@ -967,7 +940,6 @@ namespace yalx::cpl {
     class Expression : public Statement {
     public:
         DEF_VAL_GETTER(bool, is_lval);
-
         DEF_VAL_GETTER(bool, is_rval);
 
         bool is_only_lval() const { return is_lval() && !is_rval(); }
@@ -1461,7 +1433,6 @@ namespace yalx::cpl {
         Calling(base::Arena *arena, Expression *callee, const SourcePosition &source_position);
 
         DEF_PTR_PROP_RW(Expression, callee);
-
         DEF_ARENA_VECTOR_GETTER(Expression *, arg);
 
         DECLARE_AST_NODE(Calling);
@@ -1483,181 +1454,166 @@ namespace yalx::cpl {
 //    base::ArenaVector<Expression *> args_;
 //};
 
-    class IfExpression : public Expression {
-    public:
-        IfExpression(base::Arena *arena, Statement *initializer, Expression *condition, Statement *then_clause,
-                     Statement *else_clause, const SourcePosition &source_position);
+class IfExpression : public Expression {
+public:
+    IfExpression(base::Arena *arena, Statement *initializer, Expression *condition, Statement *then_clause,
+                 Statement *else_clause, const SourcePosition &source_position);
 
-        DEF_PTR_PROP_RW(Statement, initializer);
+    DEF_PTR_PROP_RW(Statement, initializer);
+    DEF_PTR_PROP_RW(Expression, condition);
+    DEF_PTR_PROP_RW(Statement, then_clause);
+    DEF_PTR_PROP_RW(Statement, else_clause);
+    DEF_ARENA_VECTOR_GETTER(Type *, reduced_type);
 
-        DEF_PTR_PROP_RW(Expression, condition);
+    DECLARE_AST_NODE(IfExpression);
+private:
+    Statement *initializer_;
+    Expression *condition_;
+    Statement *then_clause_;
+    Statement *else_clause_;
+    base::ArenaVector<Type *> reduced_types_;
+}; // class IfExpression
 
-        DEF_PTR_PROP_RW(Statement, then_clause);
+class CaseWhenPattern : public Node {
+public:
+    enum Pattern {
+        kExpectValues,
+        kTypeTesting,
+        kBetweenTo,
+        kStructMatching,
+    };
 
-        DEF_PTR_PROP_RW(Statement, else_clause);
+    [[maybe_unused]]
+    CaseWhenPattern(Pattern pattern, Statement *then_clause, const SourcePosition &source_position);
 
-        DEF_ARENA_VECTOR_GETTER(Type *, reduced_type);
+    DEF_VAL_GETTER(Pattern, pattern);
+    DEF_PTR_PROP_RW(Statement, then_clause);
+private:
+    Pattern pattern_;
+    Statement *then_clause_;
+}; // class WhenCasePattern
 
-        DECLARE_AST_NODE(IfExpression);
-    private:
-        Statement *initializer_;
-        Expression *condition_;
-        Statement *then_clause_;
-        Statement *else_clause_;
-        base::ArenaVector<Type *> reduced_types_;
-    }; // class IfExpression
-
-    class CaseWhenPattern : public Node {
-    public:
-        enum Pattern {
-            kExpectValues,
-            kTypeTesting,
-            kBetweenTo,
-            kStructMatching,
-        };
-
-        CaseWhenPattern(Pattern pattern, Statement *then_clause, const SourcePosition &source_position);
-
-        DEF_VAL_GETTER(Pattern, pattern);
-
-        DEF_PTR_PROP_RW(Statement, then_clause);
-    private:
-        Pattern pattern_;
-        Statement *then_clause_;
-    }; // class WhenCasePattern
-
-    class WhenExpression : public Expression {
-    public:
-        using Case = CaseWhenPattern;
+class WhenExpression : public Expression {
+public:
+    using Case = CaseWhenPattern;
 
 #define DEFINE_CASE_METHODS(name) \
-        static name##Case *Cast(Case *from) { \
-            return from->pattern() == k##name ? static_cast<name##Case *>(from) : nullptr; \
-        } \
-        static const name##Case *Cast(const Case *from) { \
-            return from->pattern() == k##name ? static_cast<const name##Case *>(from) : nullptr; \
-        }
+    static name##Case *Cast(Case *from) { \
+        return from->pattern() == k##name ? static_cast<name##Case *>(from) : nullptr; \
+    } \
+    static const name##Case *Cast(const Case *from) { \
+        return from->pattern() == k##name ? static_cast<const name##Case *>(from) : nullptr; \
+    }
 
-        // value -> then_clause
-        class ExpectValuesCase : public Case {
-        public:
-            ExpectValuesCase(base::Arena *arena, Statement *then_clause, const SourcePosition &source_position);
+    // value -> then_clause
+    class ExpectValuesCase : public Case {
+    public:
+        ExpectValuesCase(base::Arena *arena, Statement *then_clause, const SourcePosition &source_position);
 
-            DEF_ARENA_VECTOR_GETTER(Expression *, match_value);
+        DEF_ARENA_VECTOR_GETTER(Expression *, match_value);
 
-            DEFINE_CASE_METHODS(ExpectValues);
-        private:
-            base::ArenaVector<Expression *> match_values_;
-        }; // class ExpectValueCase
+        DEFINE_CASE_METHODS(ExpectValues);
+    private:
+        base::ArenaVector<Expression *> match_values_;
+    }; // class ExpectValueCase
 
-        // variable: type -> then_clause
-        class TypeTestingCase : public Case {
-        public:
-            TypeTestingCase(Identifier *name, Type *match_type, Statement *then_clause,
-                            const SourcePosition &source_position);
+    // variable: type -> then_clause
+    class TypeTestingCase : public Case {
+    public:
+        TypeTestingCase(Identifier *name, Type *match_type, Statement *then_clause,
+                        const SourcePosition &source_position);
 
-            DEF_PTR_GETTER(Identifier, name);
+        DEF_PTR_GETTER(Identifier, name);
+        DEF_PTR_PROP_RW(Type, match_type);
 
-            DEF_PTR_PROP_RW(Type, match_type);
+        DEFINE_CASE_METHODS(TypeTesting);
+    private:
+        Identifier *name_;
+        Type *match_type_;
+    }; // class TypeTestingCase
 
-            DEFINE_CASE_METHODS(TypeTesting);
-        private:
-            Identifier *name_;
-            Type *match_type_;
-        }; // class TypeTestingCase
+    // `in' literal..literal
+    class BetweenToCase : public Case {
+    public:
+        BetweenToCase(Expression *lower, Expression *upper, Statement *then_clause, bool is_close,
+                      const SourcePosition &source_position);
 
-        // `in' literal..literal
-        class BetweenToCase : public Case {
-        public:
-            BetweenToCase(Expression *lower, Expression *upper, Statement *then_clause, bool is_close,
-                          const SourcePosition &source_position);
+        DEF_PTR_PROP_RW(Expression, lower);
+        DEF_PTR_PROP_RW(Expression, upper);
+        DEF_VAL_GETTER(bool, is_close);
 
-            DEF_PTR_PROP_RW(Expression, lower);
+        DEFINE_CASE_METHODS(BetweenTo);
+    private:
+        Expression *lower_;
+        Expression *upper_;
+        bool is_close_;
+    }; // class BetweenToCase
 
-            DEF_PTR_PROP_RW(Expression, upper);
+    // Foo { name, id } -> name, ... id, ...
+    class StructMatchingCase : public Case {
+    public:
+        StructMatchingCase(base::Arena *arena, Type *match_type, Statement *then_clause,
+                           const SourcePosition &source_position);
 
-            DEF_VAL_GETTER(bool, is_close);
+        DEF_PTR_PROP_RW(Type, match_type);
+        DEF_ARENA_VECTOR_GETTER(Identifier *, expected);
 
-            DEFINE_CASE_METHODS(BetweenTo);
-        private:
-            Expression *lower_;
-            Expression *upper_;
-            bool is_close_;
-        }; // class BetweenToCase
-
-        // Foo { name, id } -> name, ... id, ...
-        class StructMatchingCase : public Case {
-        public:
-            StructMatchingCase(base::Arena *arena, Type *match_type, Statement *then_clause,
-                               const SourcePosition &source_position);
-
-            DEF_PTR_PROP_RW(Type, match_type);
-
-            DEF_ARENA_VECTOR_GETTER(Identifier *, expected);
-
-            DEFINE_CASE_METHODS(StructMatching);
-        private:
-            Type *match_type_;
-            base::ArenaVector<Identifier *> expecteds_;
-        }; // case StructMatchingCase
+        DEFINE_CASE_METHODS(StructMatching);
+    private:
+        Type *match_type_;
+        base::ArenaVector<Identifier *> expecteds_;
+    }; // case StructMatchingCase
 
 #undef DEFINE_CASE_METHODS
 
-        WhenExpression(base::Arena *arena, Statement *initializer, Expression *destination,
+    WhenExpression(base::Arena *arena, Statement *initializer, Expression *destination,
+                   const SourcePosition &source_position);
+
+    DEF_PTR_PROP_RW(Statement, initializer);
+    DEF_PTR_PROP_RW(Expression, destination);
+    DEF_ARENA_VECTOR_GETTER(Case *, case_clause);
+    DEF_ARENA_VECTOR_GETTER(Type *, reduced_type);
+    DEF_PTR_PROP_RW(Statement, else_clause);
+
+    DECLARE_AST_NODE(WhenExpression);
+private:
+    Statement *initializer_;
+    Expression *destination_;
+    base::ArenaVector<Case *> case_clauses_;
+    Statement *else_clause_ = nullptr;
+    base::ArenaVector<Type *> reduced_types_;
+}; // class WhenExpression
+
+class TryCatchExpression : public Expression {
+public:
+    using CatchClause = WhenExpression::TypeTestingCase;
+
+    TryCatchExpression(base::Arena *arena, Block *try_block, Block *finally_block,
                        const SourcePosition &source_position);
 
-        DEF_PTR_PROP_RW(Statement, initializer);
+    DEF_PTR_PROP_RW(Block, try_block);
+    DEF_PTR_PROP_RW(Block, finally_block);
+    DEF_ARENA_VECTOR_GETTER(CatchClause *, catch_clause);
+    DEF_ARENA_VECTOR_GETTER(Type *, reduced_type);
 
-        DEF_PTR_PROP_RW(Expression, destination);
+    DECLARE_AST_NODE(TryCatchExpression);
+private:
+    Block *try_block_;
+    Block *finally_block_;
+    base::ArenaVector<CatchClause *> catch_clauses_;
+    base::ArenaVector<Type *> reduced_types_;
+}; // class TryCatchExpression
 
-        DEF_ARENA_VECTOR_GETTER(Case *, case_clause);
+class StringTemplate : public Expression {
+public:
+    StringTemplate(base::Arena *arena, const SourcePosition &source_position);
 
-        DEF_ARENA_VECTOR_GETTER(Type *, reduced_type);
+    DEF_ARENA_VECTOR_GETTER(Expression *, part);
 
-        DEF_PTR_PROP_RW(Statement, else_clause);
-
-        DECLARE_AST_NODE(WhenExpression);
-    private:
-        Statement *initializer_;
-        Expression *destination_;
-        base::ArenaVector<Case *> case_clauses_;
-        Statement *else_clause_ = nullptr;
-        base::ArenaVector<Type *> reduced_types_;
-    }; // class WhenExpression
-
-    class TryCatchExpression : public Expression {
-    public:
-        using CatchClause = WhenExpression::TypeTestingCase;
-
-        TryCatchExpression(base::Arena *arena, Block *try_block, Block *finally_block,
-                           const SourcePosition &source_position);
-
-        DEF_PTR_PROP_RW(Block, try_block);
-
-        DEF_PTR_PROP_RW(Block, finally_block);
-
-        DEF_ARENA_VECTOR_GETTER(CatchClause *, catch_clause);
-
-        DEF_ARENA_VECTOR_GETTER(Type *, reduced_type);
-
-        DECLARE_AST_NODE(TryCatchExpression);
-    private:
-        Block *try_block_;
-        Block *finally_block_;
-        base::ArenaVector<CatchClause *> catch_clauses_;
-        base::ArenaVector<Type *> reduced_types_;
-    }; // class TryCatchExpression
-
-    class StringTemplate : public Expression {
-    public:
-        StringTemplate(base::Arena *arena, const SourcePosition &source_position);
-
-        DEF_ARENA_VECTOR_GETTER(Expression *, part);
-
-        DECLARE_AST_NODE(StringTemplate);
-    private:
-        base::ArenaVector<Expression *> parts_;
-    }; // class StringTemplate
+    DECLARE_AST_NODE(StringTemplate);
+private:
+    base::ArenaVector<Expression *> parts_;
+}; // class StringTemplate
 
 //----------------------------------------------------------------------------------------------------------------------
 // Types
@@ -1699,310 +1655,301 @@ namespace yalx::cpl {
     V(none) \
     V(symbol)
 
-    class Type : public Node {
-    public:
-        enum Category {
+class Type : public Node {
+public:
+    enum Category {
 #define DEFINE_ENUM(name, node) k##name,
-            DECLARE_TYPE_CATEGORIES(DEFINE_ENUM)
+        DECLARE_TYPE_CATEGORIES(DEFINE_ENUM)
 #undef  DEFINE_ENUM
-            kMaxCategories,
-        };
+        kMaxCategories,
+    };
 
-        enum Primary {
+    enum Primary {
 #define DEFINE_ENUM(name) kType_##name,
-            DECLARE_PRIMARY_TYPE(DEFINE_ENUM)
+        DECLARE_PRIMARY_TYPE(DEFINE_ENUM)
 #undef  DEFINE_ENUM
-            kMaxTypes,
-        };
+        kMaxTypes,
+    };
 
-        using Linker = std::function<Type *(const Symbol *, Type *)>;
+    using Linker = std::function<Type *(const Symbol *, Type *)>;
 
-        Type(base::Arena *arena, Primary primary_type, const SourcePosition &source_position)
-                : Type(arena, kPrimary, primary_type, nullptr, source_position) {}
+    Type(base::Arena *arena, Primary primary_type, const SourcePosition &source_position)
+            : Type(arena, kPrimary, primary_type, nullptr, source_position) {}
 
-        Type(base::Arena *arena, const Symbol *identifier, const SourcePosition &source_position)
-                : Type(arena, kPrimary, kType_symbol, identifier, source_position) {}
+    Type(base::Arena *arena, const Symbol *identifier, const SourcePosition &source_position)
+            : Type(arena, kPrimary, kType_symbol, identifier, source_position) {}
 
-        DEF_VAL_GETTER(Category, category);
+    DEF_VAL_GETTER(Category, category);
+    DEF_VAL_PROP_RW(Primary, primary_type);
+    DEF_PTR_PROP_RW(const Symbol, identifier);
+    DEF_ARENA_VECTOR_GETTER(Type *, generic_arg);
 
-        DEF_VAL_PROP_RW(Primary, primary_type);
+    static bool IsNot(Node *node) { return !Is(node); }
 
-        DEF_PTR_PROP_RW(const Symbol, identifier);
-
-        DEF_ARENA_VECTOR_GETTER(Type *, generic_arg);
-
-        static bool IsNot(Node *node) { return !Is(node); }
-
-        static bool Is(Node *node);
+    static bool Is(Node *node);
 
 #define DEFINE_METHOD(name, node) \
-    bool Is##name##Type() const { return category_ == k##name; }
+bool Is##name##Type() const { return category_ == k##name; }
 
-        DECLARE_TYPE_CATEGORIES(DEFINE_METHOD)
+    DECLARE_TYPE_CATEGORIES(DEFINE_METHOD)
 
 #undef  DEFINE_METHOD
 
-        bool IsComparable() const;
+    bool IsComparable() const;
 
-        bool IsNumber() const { return IsIntegral() || IsFloating(); }
+    bool IsNumber() const { return IsIntegral() || IsFloating(); }
 
-        bool IsIntegral() const { return IsUnsignedIntegral() || IsSignedIntegral(); }
+    bool IsIntegral() const { return IsUnsignedIntegral() || IsSignedIntegral(); }
 
-        bool IsFloating() const;
+    bool IsFloating() const;
 
-        bool IsUnsignedIntegral() const;
+    bool IsUnsignedIntegral() const;
 
-        bool IsSignedIntegral() const;
+    bool IsSignedIntegral() const;
 
-        bool IsNotConditionVal() const { return !IsConditionVal(); }
+    bool IsNotConditionVal() const { return !IsConditionVal(); }
 
-        bool IsConditionVal() const { return primary_type() == kType_bool; }
+    bool IsConditionVal() const { return primary_type() == kType_bool; }
 
-        bool IsNotCharAndByte() const { return !IsCharOrByte(); }
+    bool IsNotCharAndByte() const { return !IsCharOrByte(); }
 
-        bool IsCharOrByte() const {
-            return primary_type() == kType_i8 || primary_type() == kType_u8 || primary_type() == kType_char;
-        }
+    bool IsCharOrByte() const {
+        return primary_type() == kType_i8 || primary_type() == kType_u8 || primary_type() == kType_char;
+    }
 
-        virtual bool Acceptable(const Type *rhs, bool *unlinked) const;
+    virtual bool Acceptable(const Type *rhs, bool *unlinked) const;
 
-        virtual Type *Link(Linker &&linker);
+    virtual Type *Link(Linker &&linker);
 
-        virtual std::string ToString() const;
+    [[nodiscard]] virtual std::string ToString() const;
 
-    protected:
-        Type(base::Arena *arena, Category category, Primary primary_type, const Symbol *identifier,
-             const SourcePosition &source_position)
-                : Node(CategoryToKind(category), source_position), category_(category), primary_type_(primary_type),
-                  identifier_(identifier), generic_args_(arena) {}
+protected:
+    Type(base::Arena *arena, Category category, Primary primary_type, const Symbol *identifier,
+         const SourcePosition &source_position)
+            : Node(CategoryToKind(category), source_position), category_(category), primary_type_(primary_type),
+              identifier_(identifier), generic_args_(arena) {}
 
-        static Kind CategoryToKind(Category category) {
-            switch (category) {
+    static Kind CategoryToKind(Category category) {
+        switch (category) {
 #define DEFINE_CASE(name, node) \
-            case k##name: return k##node;
-                DECLARE_TYPE_CATEGORIES(DEFINE_CASE)
+        case k##name: return k##node;
+            DECLARE_TYPE_CATEGORIES(DEFINE_CASE)
 #undef DEFINE_CASE
-                default:
-                    UNREACHABLE();
-                    break;
-                    return kMaxKinds;
-            }
+            default:
+                UNREACHABLE();
+                break;
+                return kMaxKinds;
         }
+    }
 
-    private:
-        Category category_;
-        Primary primary_type_;
-        const Symbol *identifier_;
-        base::ArenaVector<Type *> generic_args_;
-    }; // class Type
+private:
+    Category category_;
+    Primary primary_type_;
+    const Symbol *identifier_;
+    base::ArenaVector<Type *> generic_args_;
+}; // class Type
 
 
-    class ArrayType : public Type {
-    public:
-        ArrayType(base::Arena *arena, Type *element_type, int dimension_count, const SourcePosition &source_position);
+class ArrayType : public Type {
+public:
+    ArrayType(base::Arena *arena, Type *element_type, int dimension_count, const SourcePosition &source_position);
 
-        ArrayType(base::Arena *arena, Type *element_type, base::ArenaVector<Expression *> &&dimension_capacities,
-                  const SourcePosition &source_position);
+    ArrayType(base::Arena *arena, Type *element_type, base::ArenaVector<Expression *> &&dimension_capacities,
+              const SourcePosition &source_position);
 
-        // int[][] -> 2
-        // int[,] -> 2
-        // int[,][][,,] -> 2+1+3=6
-        int GetActualDimensionCount() const {
-            auto p = this;
-            int count = 0;
-            while (p) {
-                count += p->dimension_count();
-                p = !p->element_type() ? nullptr : p->element_type()->AsArrayType();
-            }
-            return count;
+    // int[][] -> 2
+    // int[,] -> 2
+    // int[,][][,,] -> 2+1+3=6
+    int GetActualDimensionCount() const {
+        auto p = this;
+        int count = 0;
+        while (p) {
+            count += p->dimension_count();
+            p = !p->element_type() ? nullptr : p->element_type()->AsArrayType();
         }
+        return count;
+    }
 
-        // int[][] -> int
-        // int[,]  -> int
-        // int[,][][,,] -> int
-        Type *GetActualElementType() const {
-            Type *p = element_type();
-            while (p->IsArrayType()) {
-                p = p->AsArrayType()->element_type();
-            }
-            return p;
+    // int[][] -> int
+    // int[,]  -> int
+    // int[,][][,,] -> int
+    Type *GetActualElementType() const {
+        Type *p = element_type();
+        while (p->IsArrayType()) {
+            p = p->AsArrayType()->element_type();
         }
+        return p;
+    }
 
-        int dimension_count() const { return static_cast<int>(dimension_capacitys_size()); }
+    int dimension_count() const { return static_cast<int>(dimension_capacitys_size()); }
 
-        Type *element_type() const { return generic_arg(0); }
+    Type *element_type() const { return generic_arg(0); }
 
-        DEF_ARENA_VECTOR_GETTER(Expression *, dimension_capacity);
+    DEF_ARENA_VECTOR_GETTER(Expression *, dimension_capacity);
 
-        bool HasNotCapacities() const {
-            return std::count(dimension_capacitys_.begin(), dimension_capacitys_.end(), nullptr) == dimension_count();
-        }
+    bool HasNotCapacities() const {
+        return std::count(dimension_capacitys_.begin(), dimension_capacitys_.end(), nullptr) == dimension_count();
+    }
 
-        bool HasCapacities() const {
-            return std::count_if(dimension_capacitys_.begin(),
-                                 dimension_capacitys_.end(),
-                                 [](auto expr) { return expr != nullptr; }) == dimension_count();
-        }
+    bool HasCapacities() const {
+        return std::count_if(dimension_capacitys_.begin(),
+                             dimension_capacitys_.end(),
+                             [](auto expr) { return expr != nullptr; }) == dimension_count();
+    }
 
-        bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
 
-        std::string ToString() const override;
+    std::string ToString() const override;
 
-    private:
-        base::ArenaVector<Expression *> dimension_capacitys_;
-    }; // class ArrayType
+private:
+    base::ArenaVector<Expression *> dimension_capacitys_;
+}; // class ArrayType
 
-    class ChannelType : public Type {
-    public:
-        static constexpr int kInbility = 1;
-        static constexpr int kOutbility = 2;
+class ChannelType : public Type {
+public:
+    static constexpr int kInbility = 1;
+    static constexpr int kOutbility = 2;
 
-        ChannelType(base::Arena *arena, int ability, Type *element_type, const SourcePosition &source_position)
-                : Type(arena, Type::kChannel, element_type->primary_type(), nullptr, source_position),
-                  ability_(ability) {
-            mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
-            assert(ability_ > 0);
-        }
+    ChannelType(base::Arena *arena, int ability, Type *element_type, const SourcePosition &source_position)
+            : Type(arena, Type::kChannel, element_type->primary_type(), nullptr, source_position),
+              ability_(ability) {
+        mutable_generic_args()->push_back(DCHECK_NOTNULL(element_type));
+        assert(ability_ > 0);
+    }
 
-        DEF_VAL_GETTER(int, ability);
+    DEF_VAL_GETTER(int, ability);
 
-        Type *element_type() const { return generic_arg(0); }
+    [[nodiscard]] Type *element_type() const { return generic_arg(0); }
 
-        bool CanRead() const { return ability_ & kInbility; }
+    [[nodiscard]] bool CanRead() const { return ability_ & kInbility; }
 
-        bool CanWrite() const { return ability_ & kOutbility; }
+    [[nodiscard]] bool CanWrite() const { return ability_ & kOutbility; }
 
-        bool CanIO() const { return ability_ & (kInbility | kOutbility); }
+    [[nodiscard]] bool CanIO() const { return ability_ & (kInbility | kOutbility); }
 
-        bool Readonly() const { return ability_ == kInbility; }
+    [[nodiscard]] bool Readonly() const { return ability_ == kInbility; }
 
-        bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
 
-        std::string ToString() const override;
+    [[nodiscard]] std::string ToString() const override;
 
-    private:
-        int ability_ = kInbility | kOutbility;
-    }; // class ChannelType
+private:
+    int ability_ = kInbility | kOutbility;
+}; // class ChannelType
 
-    template<class T>
-    struct UDTTraits {
-        static constexpr Type::Category category = Type::kMaxCategories;
-        static constexpr Type::Primary type = Type::kMaxTypes;
-    }; // struct UDTTraits
+template<class T>
+struct UDTTraits {
+    static constexpr Type::Category category = Type::kMaxCategories;
+    static constexpr Type::Primary type = Type::kMaxTypes;
+}; // struct UDTTraits
 
-    template<>
-    struct UDTTraits<ClassDefinition> {
-        static constexpr Type::Category category = Type::kClass;
-        static constexpr Type::Primary type = Type::kType_class;
-    }; // struct UDTTraits<ClassDefinition>
+template<>
+struct UDTTraits<ClassDefinition> {
+    static constexpr Type::Category category = Type::kClass;
+    static constexpr Type::Primary type = Type::kType_class;
+}; // struct UDTTraits<ClassDefinition>
 
-    template<>
-    struct UDTTraits<StructDefinition> {
-        static constexpr Type::Category category = Type::kStruct;
-        static constexpr Type::Primary type = Type::kType_struct;
-    }; // struct UDTTraits<StructDefinition>
+template<>
+struct UDTTraits<StructDefinition> {
+    static constexpr Type::Category category = Type::kStruct;
+    static constexpr Type::Primary type = Type::kType_struct;
+}; // struct UDTTraits<StructDefinition>
 
-    template<>
-    struct UDTTraits<EnumDefinition> {
-        static constexpr Type::Category category = Type::kEnum;
-        static constexpr Type::Primary type = Type::kType_enum;
-    }; // struct UDTTraits<EnumDefinition>
+template<>
+struct UDTTraits<EnumDefinition> {
+    static constexpr Type::Category category = Type::kEnum;
+    static constexpr Type::Primary type = Type::kType_enum;
+}; // struct UDTTraits<EnumDefinition>
 
-    template<>
-    struct UDTTraits<InterfaceDefinition> {
-        static constexpr Type::Category category = Type::kInterface;
-        static constexpr Type::Primary type = Type::kType_interface;
-    }; // struct UDTTraits<InterfaceDefinition>
+template<>
+struct UDTTraits<InterfaceDefinition> {
+    static constexpr Type::Category category = Type::kInterface;
+    static constexpr Type::Primary type = Type::kType_interface;
+}; // struct UDTTraits<InterfaceDefinition>
 
-    template<class D>
-    class UDTType : public Type {
-    public:
-        DEF_PTR_PROP_RW(D, definition);
+template<class D>
+class UDTType : public Type {
+public:
+    DEF_PTR_PROP_RW(D, definition);
 
-    protected:
-        UDTType(base::Arena *arena, D *definition, const SourcePosition &source_position)
-                : Type(arena, UDTTraits<D>::category, UDTTraits<D>::type, nullptr, source_position),
-                  definition_(DCHECK_NOTNULL(definition)) {}
+protected:
+    UDTType(base::Arena *arena, D *definition, const SourcePosition &source_position)
+            : Type(arena, UDTTraits<D>::category, UDTTraits<D>::type, nullptr, source_position),
+              definition_(DCHECK_NOTNULL(definition)) {}
 
-        D *definition_;
-    }; // class UDTType
+    D *definition_;
+}; // class UDTType
 
-    class ClassType : public UDTType<ClassDefinition> {
-    public:
-        ClassType(base::Arena *arena, ClassDefinition *definition, const SourcePosition &source_position)
-                : UDTType<ClassDefinition>(arena, definition, source_position) {}
+class ClassType : public UDTType<ClassDefinition> {
+public:
+    ClassType(base::Arena *arena, ClassDefinition *definition, const SourcePosition &source_position)
+            : UDTType<ClassDefinition>(arena, definition, source_position) {}
 
-        static bool DoNotClassBaseOf(const Type *type, ClassDefinition *base) {
-            return !DoesClassBaseOf(type, base);
-        }
+    static bool DoNotClassBaseOf(const Type *type, ClassDefinition *base) {
+        return !DoesClassBaseOf(type, base);
+    }
 
-        static bool DoesClassBaseOf(const Type *type, ClassDefinition *base) {
-            return !type->IsClassType() ? false : (type->AsClassType()->definition()->IsBaseOf(base));
-        }
+    static bool DoesClassBaseOf(const Type *type, ClassDefinition *base) {
+        return type->IsClassType() && (type->AsClassType()->definition()->IsBaseOf(base));
+    }
 
-        bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
 
-        std::string ToString() const override;
-    }; // class ClassType
+    std::string ToString() const override;
+}; // class ClassType
 
-    class StructType : public UDTType<StructDefinition> {
-    public:
-        StructType(base::Arena *arena, StructDefinition *definition, const SourcePosition &source_position)
-                : UDTType<StructDefinition>(arena, definition, source_position) {}
+class StructType : public UDTType<StructDefinition> {
+public:
+    StructType(base::Arena *arena, StructDefinition *definition, const SourcePosition &source_position)
+            : UDTType<StructDefinition>(arena, definition, source_position) {}
 
-        bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
 
-        std::string ToString() const override;
-    }; // class StructType
+    std::string ToString() const override;
+}; // class StructType
 
-    class EnumType : public UDTType<EnumDefinition> {
-    public:
-        EnumType(base::Arena *arena, EnumDefinition *definition, const SourcePosition &source_position)
-                : UDTType<EnumDefinition>(arena, definition, source_position) {}
+class EnumType : public UDTType<EnumDefinition> {
+public:
+    EnumType(base::Arena *arena, EnumDefinition *definition, const SourcePosition &source_position)
+            : UDTType<EnumDefinition>(arena, definition, source_position) {}
 
-        bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
 
-        std::string ToString() const override;
-    }; // class StructType
+    std::string ToString() const override;
+}; // class StructType
 
-    class InterfaceType : public UDTType<InterfaceDefinition> {
-    public:
-        InterfaceType(base::Arena *arena, InterfaceDefinition *definition, const SourcePosition &source_position)
-                : UDTType<InterfaceDefinition>(arena, definition, source_position) {}
+class InterfaceType : public UDTType<InterfaceDefinition> {
+public:
+    InterfaceType(base::Arena *arena, InterfaceDefinition *definition, const SourcePosition &source_position)
+            : UDTType<InterfaceDefinition>(arena, definition, source_position) {}
 
-        bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
 
-        std::string ToString() const override;
-    }; // class InterfaceType
+    std::string ToString() const override;
+}; // class InterfaceType
 
-    class FunctionPrototype : public Type {
-    public:
-        FunctionPrototype(base::Arena *arena, bool vargs, const SourcePosition &source_position)
-                : Type(arena, Type::kFunction, Type::kType_function, nullptr, source_position), params_(arena),
-                  return_types_(arena), vargs_(vargs) {}
+class FunctionPrototype : public Type {
+public:
+    FunctionPrototype(base::Arena *arena, bool vargs, const SourcePosition &source_position)
+            : Type(arena, Type::kFunction, Type::kType_function, nullptr, source_position), params_(arena),
+              return_types_(arena), vargs_(vargs) {}
 
-        DEF_VAL_PROP_RW(bool, vargs);
+    DEF_VAL_PROP_RW(bool, vargs);
+    DEF_PTR_PROP_RW(String, signature);
+    DEF_ARENA_VECTOR_GETTER(Node *, param);
+    DEF_ARENA_VECTOR_GETTER(Type *, return_type);
 
-        DEF_PTR_PROP_RW(String, signature);
+    std::string MakeSignature() const;
+    bool Acceptable(const Type *rhs, bool *unlinked) const override;
+    Type *Link(Linker &&linker) override;
+    std::string ToString() const override;
 
-        DEF_ARENA_VECTOR_GETTER(Node *, param);
-
-        DEF_ARENA_VECTOR_GETTER(Type *, return_type);
-
-        std::string MakeSignature() const;
-
-        bool Acceptable(const Type *rhs, bool *unlinked) const override;
-
-        Type *Link(Linker &&linker) override;
-
-        std::string ToString() const override;
-
-    private:
-        base::ArenaVector<Node *> params_; // <VariableDeclaration::Item | Type>
-        base::ArenaVector<Type *> return_types_;
-        bool vargs_;
-        String *signature_ = nullptr;
-    }; // class FunctionPrototype
+private:
+    base::ArenaVector<Node *> params_; // <VariableDeclaration::Item | Type>
+    base::ArenaVector<Type *> return_types_;
+    bool vargs_;
+    String *signature_ = nullptr;
+}; // class FunctionPrototype
 
 
 #define DEFINE_METHODS(name) \
@@ -2010,62 +1957,61 @@ inline name *Node::As##name() { return !Is##name() ? nullptr : static_cast<name 
     inline const name *Node::As##name() const { return !Is##name() ? nullptr : static_cast<const name *>(this); }
 
     DECLARE_AST_NODES(DEFINE_METHODS)
-
     DECLARE_TYPE_NODES(DEFINE_METHODS)
 
 #undef DEFINE_METHODS
 
-    inline Type *LiteralTraits<int8_t>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_i8, location);
-    }
+inline Type *LiteralTraits<int8_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_i8, location);
+}
 
-    inline Type *LiteralTraits<uint8_t>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_u8, location);
-    }
+inline Type *LiteralTraits<uint8_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_u8, location);
+}
 
-    inline Type *LiteralTraits<int16_t>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_i16, location);
-    }
+inline Type *LiteralTraits<int16_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_i16, location);
+}
 
-    inline Type *LiteralTraits<uint16_t>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_u16, location);
-    }
+inline Type *LiteralTraits<uint16_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_u16, location);
+}
 
-    inline Type *LiteralTraits<int>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_i32, location);
-    }
+inline Type *LiteralTraits<int>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_i32, location);
+}
 
-    inline Type *LiteralTraits<unsigned>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_u32, location);
-    }
+inline Type *LiteralTraits<unsigned>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_u32, location);
+}
 
-    inline Type *LiteralTraits<int64_t>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_i64, location);
-    }
+inline Type *LiteralTraits<int64_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_i64, location);
+}
 
-    inline Type *LiteralTraits<uint64_t>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_u64, location);
-    }
+inline Type *LiteralTraits<uint64_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_u64, location);
+}
 
-    inline Type *LiteralTraits<float>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_f32, location);
-    }
+inline Type *LiteralTraits<float>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_f32, location);
+}
 
-    inline Type *LiteralTraits<double>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_f64, location);
-    }
+inline Type *LiteralTraits<double>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_f64, location);
+}
 
-    inline Type *LiteralTraits<bool>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_bool, location);
-    }
+inline Type *LiteralTraits<bool>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_bool, location);
+}
 
-    inline Type *LiteralTraits<char32_t>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_char, location);
-    }
+inline Type *LiteralTraits<char32_t>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_char, location);
+}
 
-    inline Type *LiteralTraits<const String *>::Mold(base::Arena *arena, const SourcePosition &location) {
-        return new(arena) Type(arena, Type::kType_string, location);
-    }
+inline Type *LiteralTraits<const String *>::Mold(base::Arena *arena, const SourcePosition &location) {
+    return new(arena) Type(arena, Type::kType_string, location);
+}
 
 } // namespace yalx
 

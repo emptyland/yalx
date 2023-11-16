@@ -1,0 +1,6 @@
+package main
+
+fun main() {
+}
+
+fun issue01_returning_one() -> 1
