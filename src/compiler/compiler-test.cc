@@ -67,15 +67,15 @@ TEST_F(CompilerTest, FindAndParseMainPackage) {
     EXPECT_STREQ("tests/00-find-main-pkg/src/main/foo.yalx", file->file_full_path()->data());
 }
 
-TEST_F(CompilerTest, FindAndParseAllDependencesSourceFiles) {
+TEST_F(CompilerTest, FindAndParseAllDependenciesSourceFiles) {
     Package *pkg = nullptr;
     auto rs = Compiler::FindAndParseMainSourceFiles("tests/01-import-1-pkg", &arena_, &feedback_, &pkg);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
 
     base::ArenaMap<std::string_view, Package *> all(&arena_);
-    rs = Compiler::FindAndParseAllDependencesSourceFiles(MakeSearchPaths("01-import-1-pkg"), &arena_, &feedback_,
-                                                         pkg,
-                                                         &all);
+    rs = Compiler::FindAndParseAllDependenciesSourceFiles(MakeSearchPaths("01-import-1-pkg"), &arena_, &feedback_,
+                                                          pkg,
+                                                          &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     ASSERT_EQ(2, all.size());
     ASSERT_TRUE(all.find("tests/01-import-1-pkg/src/foo") != all.end());
@@ -98,9 +98,9 @@ TEST_F(CompilerTest, ImportsDependences2Pkgs) {
     ASSERT_TRUE(rs.ok()) << rs.ToString();
 
     base::ArenaMap<std::string_view, Package *> all(&arena_);
-    rs = Compiler::FindAndParseAllDependencesSourceFiles(MakeSearchPaths("02-import-2-pkg"), &arena_, &feedback_,
-                                                         pkg,
-                                                         &all);
+    rs = Compiler::FindAndParseAllDependenciesSourceFiles(MakeSearchPaths("02-import-2-pkg"), &arena_, &feedback_,
+                                                          pkg,
+                                                          &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     ASSERT_EQ(4, all.size());
 

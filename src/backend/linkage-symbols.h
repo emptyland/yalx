@@ -52,36 +52,40 @@ private:
 extern const String *const kLibc_memcpy;
 extern const String *const kLibc_memset;
 
-extern const String *const kRt_builtin_classes;
+#define DECLARE_RUNTIME_FUNS(V) \
+    V(builtin_classes) \
+    V(pkg_init_once) \
+    V(reserve_handle_returning_vals) \
+    V(current_root) \
+    V(yalx_exit_returning_scope) \
+    V(associate_stub_returning_vals) \
+    V(heap_alloc) \
+    V(raise) \
+    V(is_instance_of) \
+    V(ref_asserted_to) \
+    V(put_field) \
+    V(put_field_chunk) \
+    V(lazy_load_object) \
+    V(array_alloc) \
+    V(array_fill) \
+    V(array_location_at) \
+    V(array_location_at1) \
+    V(array_location_at2) \
+    V(array_location_at3) \
+    V(array_set_ref) \
+    V(array_set_ref1) \
+    V(array_set_ref2) \
+    V(array_set_ref3) \
+    V(array_set_chunk) \
+    V(array_set_chunk1) \
+    V(array_set_chunk2) \
+    V(array_set_chunk3) \
+    V(closure) \
+    V(concat)
 
-extern const String *const kRt_pkg_init_once;
-extern const String *const kRt_reserve_handle_returning_vals;
-extern const String *const kRt_current_root;
-extern const String *const kRt_yalx_exit_returning_scope;
-extern const String *const kRt_associate_stub_returning_vals;
-extern const String *const kRt_heap_alloc;
-extern const String *const kRt_raise;
-extern const String *const kRt_is_instance_of;
-extern const String *const kRt_ref_asserted_to;
-extern const String *const kRt_put_field;
-extern const String *const kRt_put_field_chunk;
-extern const String *const kRt_lazy_load_object;
-extern const String *const kRt_array_alloc;
-extern const String *const kRt_array_fill;
-extern const String *const kRt_array_location_at;
-extern const String *const kRt_array_location_at1;
-extern const String *const kRt_array_location_at2;
-extern const String *const kRt_array_location_at3;
-extern const String *const kRt_array_set_ref;
-extern const String *const kRt_array_set_ref1;
-extern const String *const kRt_array_set_ref2;
-extern const String *const kRt_array_set_ref3;
-extern const String *const kRt_array_set_chunk;
-extern const String *const kRt_array_set_chunk1;
-extern const String *const kRt_array_set_chunk2;
-extern const String *const kRt_array_set_chunk3;
-extern const String *const kRt_closure;
-extern const String *const kRt_concat;
+#define DECL_RUNTIME_FUN_SYMBOL(name) extern const String *const kRt_##name;
+    DECLARE_RUNTIME_FUNS(DECL_RUNTIME_FUN_SYMBOL)
+#undef DECL_RUNTIME_FUN_SYMBOL
 
 } // namespace yalx
 

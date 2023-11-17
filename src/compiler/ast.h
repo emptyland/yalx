@@ -569,17 +569,11 @@ protected:
                             bool is_reduce, const SourcePosition &source_position);
 
         DEF_PTR_PROP_RW(const String, name);
-
         DEF_VAL_GETTER(Decoration, decoration);
-
         DEF_VAL_GETTER(bool, is_reduce);
-
         DEF_PTR_PROP_RW(Definition, define_for);
-
         DEF_PTR_PROP_RW(FunctionPrototype, prototype);
-
         DEF_PTR_PROP_RW(Statement, body);
-
         DEF_ARENA_VECTOR_GETTER(GenericParameter *, generic_param);
 
         bool IsDefault() const { return decoration() == kDefault; }

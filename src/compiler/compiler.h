@@ -79,11 +79,11 @@ public:
                                                     SyntaxFeedback *error_feedback,
                                                     Package **receiver);
 
-    static base::Status FindAndParseAllDependencesSourceFiles(const std::vector<std::string> &search_paths,
-                                                              base::Arena *arena,
-                                                              SyntaxFeedback *error_feedback,
-                                                              Package *root,
-                                                              base::ArenaMap<std::string_view, Package *> *all);
+    static base::Status FindAndParseAllDependenciesSourceFiles(const std::vector<std::string> &search_paths,
+                                                               base::Arena *arena,
+                                                               SyntaxFeedback *error_feedback,
+                                                               Package *root,
+                                                               base::ArenaMap<std::string_view, Package *> *all);
 
     static base::Status ParsePackageSourceFiles(std::string_view pkg_dir,
                                                 std::string_view import_path,
@@ -91,10 +91,10 @@ public:
                                                 SyntaxFeedback *error_feedback,
                                                 Package **receiver);
 
-    static base::Status ReducePackageDependencesType(Package *entry,
-                                                     base::Arena *arena,
-                                                     SyntaxFeedback *error_feedback,
-                                                     std::unordered_map<std::string_view, GlobalSymbol> *symbols);
+    static base::Status ReducePackageDependenciesType(Package *entry,
+                                                      base::Arena *arena,
+                                                      SyntaxFeedback *error_feedback,
+                                              /*out*/ std::unordered_map<std::string_view, GlobalSymbol> *symbols);
 
     // intermediate representation
     static base::Status

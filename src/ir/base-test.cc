@@ -8,8 +8,7 @@
 #include "compiler/source-position.h"
 #include "base/io.h"
 
-namespace yalx {
-namespace ir {
+namespace yalx::ir {
 
 class BaseTest::MockErrorFeedback : public cpl::SyntaxFeedback {
 public:
@@ -24,7 +23,7 @@ public:
 }; // class MockErrorFeedback
 
 BaseTest::BaseTest()
-: ops_(new OperatorsFactory(&arean_))
+: ops_(new OperatorsFactory(&arena_))
 , feedback_(new MockErrorFeedback()) {
     
 }
@@ -35,21 +34,20 @@ BaseTest::~BaseTest() {
 }
 
 void BaseTest::IRGen(const char *project_dir, base::ArenaMap<std::string_view, Module *> *modules, bool *ok) {
-    base::ArenaMap<std::string_view, cpl::Package *> all(&ast_arean_);
-    base::ArenaVector<cpl::Package *> entries(&ast_arean_);
+    base::ArenaMap<std::string_view, cpl::Package *> all(&ast_arena_);
+    base::ArenaVector<cpl::Package *> entries(&ast_arena_);
     cpl::Package *main_pkg = nullptr;
-    auto rs = cpl::Compiler::FindAndParseProjectSourceFiles(project_dir, "libs", &ast_arean_, feedback_,
+    auto rs = cpl::Compiler::FindAndParseProjectSourceFiles(project_dir, "libs", &ast_arena_, feedback_,
                                                             &main_pkg, &entries, &all);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     std::unordered_map<std::string_view, cpl::GlobalSymbol> symbols;
-    rs = cpl::Compiler::ReducePackageDependencesType(main_pkg, &ast_arean_, feedback_, &symbols);
+    rs = cpl::Compiler::ReducePackageDependenciesType(main_pkg, &ast_arena_, feedback_, &symbols);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     
-    rs = cpl::Compiler::GenerateIntermediateRepresentationCode(symbols, &arean_, ops_, main_pkg, feedback_,
+    rs = cpl::Compiler::GenerateIntermediateRepresentationCode(symbols, &arena_, ops_, main_pkg, feedback_,
                                                                modules);
     ASSERT_TRUE(rs.ok()) << rs.ToString();
     *ok = true;
 }
 
-} // namespace ir
-} // namespace yalx
+} // namespace yalx::ir

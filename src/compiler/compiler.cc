@@ -290,7 +290,7 @@ namespace yalx::cpl {
         search_paths.push_back(path);
         search_paths.push_back(base_lib);
 
-        if (auto rs = FindAndParseAllDependencesSourceFiles(search_paths, arena, error_feedback, *main_pkg, all);
+        if (auto rs = FindAndParseAllDependenciesSourceFiles(search_paths, arena, error_feedback, *main_pkg, all);
                 rs.fail()) {
             return rs;
         }
@@ -325,11 +325,11 @@ namespace yalx::cpl {
         return "";
     }
 
-    base::Status Compiler::FindAndParseAllDependencesSourceFiles(const std::vector<std::string> &search_paths,
-                                                                 base::Arena *arena,
-                                                                 SyntaxFeedback *error_feedback,
-                                                                 Package *root,
-                                                                 base::ArenaMap<std::string_view, Package *> *all) {
+    base::Status Compiler::FindAndParseAllDependenciesSourceFiles(const std::vector<std::string> &search_paths,
+                                                                  base::Arena *arena,
+                                                                  SyntaxFeedback *error_feedback,
+                                                                  Package *root,
+                                                                  base::ArenaMap<std::string_view, Package *> *all) {
         for (auto [import_path, import]: root->imports()) {
             auto pkg_path = FindInSearchPaths(search_paths, import_path);
             if (pkg_path.empty()) {
@@ -347,7 +347,7 @@ namespace yalx::cpl {
                     return rs;
                 }
                 (*all)[pkg->full_path()->ToSlice()] = pkg;
-                if (auto rs = FindAndParseAllDependencesSourceFiles(search_paths, arena, error_feedback, pkg, all);
+                if (auto rs = FindAndParseAllDependenciesSourceFiles(search_paths, arena, error_feedback, pkg, all);
                         rs.fail()) {
                     return rs;
                 }

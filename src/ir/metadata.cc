@@ -395,7 +395,7 @@ void ArrayShadow::Init() {
     auto base_pkg = DCHECK_NOTNULL(arena()->Lazy<PackageContext>()->FindOrNull(cpl::kLangPackageFullName));
     auto fun = DCHECK_NOTNULL(base_pkg->FindFunOrNull("multiDimsArrayGetLength"));
     
-    //base_pkg->FindFunOrNull("");
+    //base_pkg->FindFunAstOrNull("");
     Put("getLength",
         Model::Method{
         .fun = fun,

@@ -15,7 +15,7 @@ public:
 
 TEST_F(IntermediateRepresentationGeneratorTest, Sanity) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/18-ir-gen-sanity", &modules, &ok);
     ASSERT_TRUE(ok);
     
@@ -33,7 +33,7 @@ TEST_F(IntermediateRepresentationGeneratorTest, Sanity) {
 
 TEST_F(IntermediateRepresentationGeneratorTest, IfExpr) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/19-ir-gen-if-expr", &modules, &ok);
     ASSERT_TRUE(ok);
     
@@ -159,7 +159,7 @@ functions:
 // 20-ir-gen-vtab
 TEST_F(IntermediateRepresentationGeneratorTest, Vtab) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/20-ir-gen-vtab", &modules, &ok);
     ASSERT_TRUE(ok);
     
@@ -338,7 +338,7 @@ functions:
 // 21-ir-gen-while-loop
 TEST_F(IntermediateRepresentationGeneratorTest, WhileLoop) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/21-ir-gen-while-loop", &modules, &ok);
     ASSERT_TRUE(ok);
     
@@ -521,7 +521,7 @@ functions:
 // 22-ir-gen-foreach-loop
 TEST_F(IntermediateRepresentationGeneratorTest, ForeachLoop) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/22-ir-gen-foreach-loop", &modules, &ok);
     ASSERT_TRUE(ok);
     
@@ -538,7 +538,7 @@ TEST_F(IntermediateRepresentationGeneratorTest, ForeachLoop) {
 // 23-ir-gen-when-expr
 TEST_F(IntermediateRepresentationGeneratorTest, WhenExpr) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/23-ir-gen-when-expr", &modules, &ok);
     ASSERT_TRUE(ok);
     
@@ -800,7 +800,7 @@ functions:
 // 25-ir-throw-catch-expr
 TEST_F(IntermediateRepresentationGeneratorTest, TryCatchExpression) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/25-ir-throw-catch-expr", &modules, &ok);
     ASSERT_TRUE(ok);
     
@@ -815,7 +815,7 @@ TEST_F(IntermediateRepresentationGeneratorTest, TryCatchExpression) {
 
 TEST_F(IntermediateRepresentationGeneratorTest, ArrayInitExpression) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/27-ir-array-init-expr2", &modules, &ok);
     ASSERT_TRUE(ok);
     
@@ -922,7 +922,7 @@ functions:
 
 TEST_F(IntermediateRepresentationGeneratorTest, PrimitiveProps) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/28-ir-primitive-props", &modules, &ok);
     ASSERT_TRUE(ok);
     
@@ -976,7 +976,7 @@ TEST_F(IntermediateRepresentationGeneratorTest, PrimitiveProps) {
 
 TEST_F(IntermediateRepresentationGeneratorTest, EnumValues) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/29-ir-enum-types", &modules, &ok);
     ASSERT_TRUE(ok);
     
@@ -1131,7 +1131,7 @@ functions:
 
 TEST_F(IntermediateRepresentationGeneratorTest, ClosureCreating) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/30-ir-gen-closure", &modules, &ok);
     ASSERT_TRUE(ok);
     
@@ -1221,7 +1221,7 @@ functions:
 
 TEST_F(IntermediateRepresentationGeneratorTest, StringTemplate) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/31-ir-gen-string-template", &modules, &ok);
     ASSERT_TRUE(ok);
     

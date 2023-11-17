@@ -3,6 +3,7 @@
 #define YALX_BASE_STATUS_H_
 
 #include "base/base.h"
+#include <functional>
 #include <string>
 #include <string_view>
 #include <string.h>
@@ -24,7 +25,7 @@ public:
 
     Status(const Status &other): Status(other.file_name_, other.line_, other.code(), other.message()) {}
 
-    Status(Status &&other)
+    Status(Status &&other) noexcept
         : file_name_(other.file_name_)
         , line_(other.line_)
         , state_(other.state_) {
@@ -38,50 +39,62 @@ public:
         state_ = nullptr;
     }
     
-    static Status OK() { return Status(); }
+    static Status OK() { return {}; }
     
-    static Status Eof() { return Status(nullptr, 0, kEOF, ""); }
+    static Status Eof() { return {nullptr, 0, kEOF, ""}; }
     
     static Status NotFound(const char *file_name, int line, std::string_view message = "") {
-        return Status(file_name, line, kNotFound, message);
+        return {file_name, line, kNotFound, message};
     }
     
     static Status Corruption(const char *file_name, int line, std::string_view message = "") {
-        return Status(file_name, line, kCorruption, message);
+        return {file_name, line, kCorruption, message};
     }
 
     static Status PError(const char *file_name, int line, std::string_view message = "");
 
     static Status NotSupported(const char *file_name, int line, std::string_view message = "") {
-        return Status(file_name, line, kNotSupported, message);
+        return {file_name, line, kNotSupported, message};
     }
 
     static Status InvalidArgument(const char *file_name, int line, std::string_view message = "") {
-        return Status(file_name, line, kInvalidArgument, message);
+        return {file_name, line, kInvalidArgument, message};
     }
 
-    std::string_view message() const {
+    [[nodiscard]] std::string_view message() const {
         return ok() ? "" : std::string_view(state_ + 8, *reinterpret_cast<const int *>(state_));
     }
 
     bool operator !() const { return fail(); }
     
-    bool ok() const { return code() == kOk; }
+    [[nodiscard]] bool ok() const { return code() == kOk; }
     
-    bool fail() const { return !ok(); }
+    [[nodiscard]] bool fail() const { return !ok(); }
     
-    bool IsNotFound() const { return code() == kNotFound; }
+    [[nodiscard]] bool IsNotFound() const { return code() == kNotFound; }
     
-    bool IsCorruption() const { return code() == kCorruption; }
+    [[nodiscard]] bool IsCorruption() const { return code() == kCorruption; }
     
-    bool IsNotSupported() const { return code() == kNotSupported; }
+    [[nodiscard]] bool IsNotSupported() const { return code() == kNotSupported; }
     
-    bool IsInvalidArgument() const { return code() == kInvalidArgument; }
+    [[nodiscard]] bool IsInvalidArgument() const { return code() == kInvalidArgument; }
     
-    bool IsEof() const { return code() == kEOF; }
+    [[nodiscard]] bool IsEof() const { return code() == kEOF; }
     
-    std::string ToString() const;
-    
+    [[nodiscard]] std::string ToString() const;
+
+    /**
+     * rs.then([]() { return DoThat(); })
+     *
+     * @param other
+     */
+    [[nodiscard]] Status Then(std::function<Status()> &&callback) {
+        if (fail()) {
+            return *this;
+        }
+        return callback();
+    }
+
     void operator = (const Status &other) {
         file_name_ = other.file_name_;
         line_ = other.line_;
@@ -108,7 +121,7 @@ private:
         , line_(line)
         , state_(MakeState(code, message)) {}
     
-    Code code() const {
+    [[nodiscard]] Code code() const {
         return state_ == nullptr ? kOk : *reinterpret_cast<const Code *>(state_ + 4);
     }
     

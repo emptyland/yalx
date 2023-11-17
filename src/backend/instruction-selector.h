@@ -31,7 +31,7 @@ class InstructionBlock;
 class InstructionSelector {
 public:
     InstructionSelector(base::Arena *arena,
-                        const RegistersConfiguration *regconf,
+                        const RegistersConfiguration *config,
                         Linkage *linkage,
                         ConstantsPool *const_pool);
     

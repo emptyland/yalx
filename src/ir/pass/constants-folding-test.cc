@@ -24,7 +24,7 @@ public:
 // 24-ir-constants-folding
 TEST_F(ConstantsFoldingPassTest, Sanity) {
     bool ok = false;
-    base::ArenaMap<std::string_view, Module *> modules(&arean_);
+    base::ArenaMap<std::string_view, Module *> modules(&arena_);
     IRGen("tests/24-ir-constants-folding", &modules, &ok);
     ASSERT_TRUE(ok);
     RunPass(&modules);

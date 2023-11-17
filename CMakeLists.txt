@@ -256,7 +256,7 @@ add_executable(yalx-test
         src/runtime/heap/ygc-forwarding-test.cc
         src/runtime/jobs-test.cc
         src/runtime/heap/ygc-mark-test.cc
-        src/runtime/root-handles-test.cc src/compiler/compiler-suit-test.h src/backend/x64/lower-posix-x64-test.cc)
+        src/runtime/root-handles-test.cc src/backend/x64/lower-posix-x64-test.cc)
 
 
 target_link_libraries(yalx-test compiler runtime pthread unwind m)

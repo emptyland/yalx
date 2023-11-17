@@ -152,12 +152,12 @@ public:
     DEF_VAL_GETTER(SourcePositionTable, source_position_table);
     DEF_VAL_MUTABLE_GETTER(SourcePositionTable, source_position_table);
 
-    Function *NewFunction(const Function::Decoration decoration, const String *name, StructureModel *owns,
+    Function *NewFunction(Function::Decoration decoration, const String *name, StructureModel *owns,
                           PrototypeModel *prototype);
-    Function *NewFunction(const Function::Decoration decoration, const String *name, const String *full_name,
+    Function *NewFunction(Function::Decoration decoration, const String *name, const String *full_name,
                           PrototypeModel *prototype);
     Function *NewFunction(PrototypeModel *prototype);
-    Function *NewStandaloneFunction(const Function::Decoration decoration, const String *name, const String *full_name,
+    Function *NewStandaloneFunction(Function::Decoration decoration, const String *name, const String *full_name,
                                     PrototypeModel *prototype);
     
     InterfaceModel *NewInterfaceModel(const String *name, const String *full_name);
@@ -171,10 +171,10 @@ public:
         values_.push_back(value);
     }
     
-    Function *FindFunOrNull(std::string_view name) const;
-    Value *FindValOrNull(std::string_view name) const;
+    [[nodiscard]] Function *FindFunOrNull(std::string_view name) const;
+    [[nodiscard]] Value *FindValOrNull(std::string_view name) const;
     
-    Model *FindModelOrNull(std::string_view name) const {
+    [[nodiscard]] Model *FindModelOrNull(std::string_view name) const {
         auto iter = named_models_.find(name);
         return iter == named_models_.end() ? nullptr : iter->second;
     }

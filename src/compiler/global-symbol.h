@@ -6,17 +6,17 @@
 
 namespace yalx::cpl {
 
-    struct GlobalSymbol {
-        String *symbol;
-        Statement *ast;
-        Package *owns;
+struct GlobalSymbol {
+    String *symbol;
+    Statement *ast;
+    Package *owns;
 
-        bool IsFound() { return !IsNotFound(); }
+    [[nodiscard]] bool IsFound() const { return !IsNotFound(); }
 
-        bool IsNotFound() { return ast == nullptr; }
+    [[nodiscard]] bool IsNotFound() const { return ast == nullptr; }
 
-        static GlobalSymbol NotFound() { return {nullptr, nullptr, nullptr}; }
-    }; // struct GlobalSymbol
+    static GlobalSymbol NotFound() { return {nullptr, nullptr, nullptr}; }
+}; // struct GlobalSymbol
 
 } // namespace yalx
 

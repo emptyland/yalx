@@ -12,6 +12,7 @@ protected:
     Linkage symbols_;
 }; // class LinkageSymbolsTest
 
+#ifdef YALX_OS_DARWIN
 TEST_F(LinkageSymbolsTest, Sanity) {
     auto symbol = symbols_.Mangle("main:main.$init");
     ASSERT_TRUE(nullptr != symbol);
@@ -25,6 +26,7 @@ TEST_F(LinkageSymbolsTest, Sanity) {
     
     ASSERT_STREQ("_memcpy", kLibc_memcpy->data());
 }
+#endif
 
 // _yalx_Zplang_Zolang_ZdAny_ZdAny_Z4constructor
 // _yalx_Zplang_Zolang_ZdAny_Zdfinalize

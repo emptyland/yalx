@@ -20,15 +20,15 @@ public:
     BaseTest();
     ~BaseTest() override;
     
-    base::Arena *arena() { return &arean_; }
+    base::Arena *arena() { return &arena_; }
     DEF_PTR_GETTER(OperatorsFactory, ops);
     DEF_PTR_GETTER(cpl::SyntaxFeedback, feedback);
     
     void IRGen(const char *project_dir, base::ArenaMap<std::string_view, Module *> *modules, bool *ok);
     
 protected:
-    base::Arena ast_arean_;
-    base::Arena arean_;
+    base::Arena ast_arena_;
+    base::Arena arena_;
     OperatorsFactory *ops_;
     cpl::SyntaxFeedback *feedback_;
 }; // class BaseTest
