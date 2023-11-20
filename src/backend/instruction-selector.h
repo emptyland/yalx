@@ -35,7 +35,7 @@ public:
                         Linkage *linkage,
                         ConstantsPool *const_pool);
     
-    DEF_PTR_GETTER(const RegistersConfiguration, regconf);
+    DEF_PTR_GETTER(const RegistersConfiguration, config);
     DEF_PTR_GETTER(Linkage, linkage);
     DEF_PTR_GETTER(Frame, frame);
     DEF_PTR_GETTER(base::Arena, arena);
@@ -55,6 +55,8 @@ public:
     virtual void VisitCondBr(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitAddOrSub(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitICmp(ir::Value *instr) {UNREACHABLE();}
+
+    virtual InstructionOperand Select(ir::Value *instr, InstructionOperand fixed = {});
 
     Instruction *Emit(InstructionCode opcode, InstructionOperand output,
                       int temps_count = 0, InstructionOperand *temps = nullptr);
@@ -131,7 +133,7 @@ public:
     //int NextBlockLabel() { return next_blocks_label_++; }
 private:
     base::Arena *const arena_;
-    const RegistersConfiguration *const regconf_;
+    const RegistersConfiguration *const config_;
     Linkage *const linkage_;
     ConstantsPool *const const_pool_;
     InstructionBlock *current_block_ = nullptr;

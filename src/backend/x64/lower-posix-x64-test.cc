@@ -63,7 +63,7 @@ TEST_F(X64PosixLowerTest, Sanity) {
     auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue01_returning_one");
     ASSERT_TRUE(ir_fun != nullptr);
 
-    //puts(PrintTo(ir_fun).c_str());
+    puts(PrintTo(ir_fun).c_str());
 
     auto lo_fun = IRLowing(ir_fun);
     ASSERT_TRUE(lo_fun != nullptr);
@@ -76,7 +76,7 @@ TEST_F(X64PosixLowerTest, Sanity) {
     ASSERT_STREQ("_main_Zomain_Zdissue01_returning_one", lo_fun->symbol()->data());
 #endif
 
-    //puts(PrintTo(lo_fun).c_str());
+    puts(PrintTo(lo_fun).c_str());
 }
 
 } // namespace yalx::backend

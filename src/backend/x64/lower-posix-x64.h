@@ -14,6 +14,7 @@ private:
     void VisitCondBr(ir::Value *instr) override;
     void VisitAddOrSub(ir::Value *instr) override;
     void VisitICmp(ir::Value *instr) override;
+    InstructionOperand Select(ir::Value *instr, InstructionOperand hint) override;
 }; // X64PosixLower
 
 } // namespace yalx::backend

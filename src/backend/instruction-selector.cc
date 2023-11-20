@@ -14,11 +14,11 @@
 namespace yalx::backend {
 
 InstructionSelector::InstructionSelector(base::Arena *arena,
-                                         const RegistersConfiguration *regconf,
+                                         const RegistersConfiguration *config,
                                          Linkage *linkage,
                                          ConstantsPool *const_pool)
 : arena_(arena)
-, regconf_(regconf)
+, config_(config)
 , linkage_(linkage)
 , const_pool_(const_pool)
 , defined_(arena)
@@ -150,8 +150,8 @@ void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<Instruc
     int fp_index = 0;
     for (auto param : fun->paramaters()) {
         if (param->type().IsFloating()) {
-            if (fp_index < regconf_->number_of_argument_fp_registers()) {
-                parameters->push_back(DefineAsFixedFPRegister(param, regconf_->argument_fp_register(fp_index)));
+            if (fp_index < config_->number_of_argument_fp_registers()) {
+                parameters->push_back(DefineAsFixedFPRegister(param, config_->argument_fp_register(fp_index)));
             } else {
                 // TODO:
                 UNREACHABLE();
@@ -173,8 +173,8 @@ void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<Instruc
                 case ir::Type::kReference:
                 default:
                 pass_gp_register:
-                    if (gp_index < regconf_->number_of_argument_gp_registers()) {
-                        parameters->push_back(DefineAsFixedRegister(param, regconf_->argument_gp_register(gp_index)));
+                    if (gp_index < config_->number_of_argument_gp_registers()) {
+                        parameters->push_back(DefineAsFixedRegister(param, config_->argument_gp_register(gp_index)));
                     } else {
                         // TODO:
                         UNREACHABLE();
@@ -210,17 +210,35 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
     auto returning_val_offset = Frame::kCalleeReservedSize + caller_padding_size + overflow_args_size;
 
     std::vector<InstructionOperand> inputs;
-    for (int i = 0; i < value->op()->value_in(); i++) {
+    for (int i = value->op()->value_in() - 1; i >= 0; i--) {
         auto ty = fun->prototype()->return_type(i);
         if (ty.kind() == ir::Type::kVoid) {
             continue;
         }
-        inputs.push_back(UseAsRegisterOrSlot(value->InputValue(i)));
+        auto mr = ToMachineRepresentation(ty);
+        auto hint = AllocatedOperand{AllocatedOperand::kSlot,mr,static_cast<int>(returning_val_offset)};
+        inputs.insert(inputs.begin(), Select(value->InputValue(i), hint));
         returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
     }
 
     ImmediateOperand tmp{-1};
-    Emit(ArchFrameExit, 0, nullptr, static_cast<int>(inputs.size()), &inputs.front(), 1, &tmp);
+    auto instr = Emit(ArchFrameExit, 0, nullptr,
+                      static_cast<int>(inputs.size()), &inputs.front(), 1, &tmp);
+    auto moving = instr->GetOrNewParallelMove(Instruction::kStart, arena());
+
+    returning_val_offset = Frame::kCalleeReservedSize + caller_padding_size + overflow_args_size;
+    for (int i = value->op()->value_in() - 1; i >= 0; i--) {
+        auto ty = fun->prototype()->return_type(i);
+        if (ty.kind() == ir::Type::kVoid) {
+            continue;
+        }
+        auto mr = ToMachineRepresentation(ty);
+        auto dest = AllocatedOperand{AllocatedOperand::kSlot,mr,static_cast<int>(returning_val_offset)};
+        if (!dest.Equals(&inputs[i])) {
+            moving->AddMove(dest, inputs[i], arena());
+        }
+        returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
+    }
 
     DCHECK_NOTNULL(frame_)->set_returning_val_size(static_cast<int>(returning_val_size));
 }
@@ -238,14 +256,18 @@ void InstructionSelector::VisitHeapAlloc(ir::Value *value) {
     
     ReloactionOperand klass = UseAsExternalClassName(model->full_name());
     UnallocatedOperand arg0(UnallocatedOperand::kFixedRegister,
-                            regconf()->argument_gp_register(0),
+                            config()->argument_gp_register(0),
                             frame()->NextVirtualRegister());
     Emit(AndBits(ArchLoadEffectAddress, CallDescriptorField::Encode(kCallNative)), arg0, klass);
     
     ReloactionOperand heap_alloc = UseAsExternalCFunction(kRt_heap_alloc);
-    Emit(ArchCallNative, DefineAsFixedRegister(value, regconf()->returning0_register()), heap_alloc, arg0);
+    Emit(ArchCallNative, DefineAsFixedRegister(value, config()->returning0_register()), heap_alloc, arg0);
     
     Emit(AndBits(ArchRestoreCallerRegisters, CallDescriptorField::Encode(kCallNative)), NoOutput());
+}
+
+/*virtual*/ InstructionOperand InstructionSelector::Select(ir::Value *instr, InstructionOperand fixed) {
+    UNREACHABLE();
 }
 
 Instruction *InstructionSelector::Emit(InstructionCode opcode, InstructionOperand output,
@@ -359,7 +381,8 @@ UnallocatedOperand InstructionSelector::UseAsRegisterOrSlot(ir::Value *value) {
 }
 
 UnallocatedOperand InstructionSelector::UseAsFixedSlot(ir::Value *value, int index) {
-    return Use(value, UnallocatedOperand{ UnallocatedOperand::FixedSlotTag(), index, frame_->GetVirtualRegister(value)});
+    return Use(value, UnallocatedOperand{ UnallocatedOperand::FixedSlotTag(), index,
+                                          frame_->GetVirtualRegister(value)});
 }
 
 UnallocatedOperand InstructionSelector::UseAsFixedRegister(ir::Value *value, int index) {
@@ -518,8 +541,8 @@ bool InstructionSelector::IsAnyConstant(ir::Value *value) {
 
 size_t InstructionSelector::OverflowParametersSizeInBytes(const ir::Function *fun) const {
     size_t size_in_bytes = 0;
-    int float_count = regconf()->number_of_argument_fp_registers();
-    int general_count = regconf()->number_of_argument_gp_registers();
+    int float_count = config()->number_of_argument_fp_registers();
+    int general_count = config()->number_of_argument_gp_registers();
 
     for (auto param : fun->paramaters()) {
         if (param->type().IsFloating()) {
