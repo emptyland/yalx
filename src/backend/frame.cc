@@ -13,6 +13,11 @@ Frame::Frame(base::Arena *arena, ir::Function *fun)
 
 const ir::Type &Frame::GetType(int vr) const { return GetValue(vr)->type(); }
 
+size_t Frame::parameters_size() const { return fun()->paramaters_size(); }
+
+ir::Value *Frame::parameter_value(size_t i) const { return fun()->paramater(i); }
+
+
 int Frame::GetVirtualRegister(ir::Value *value) {
     if (auto iter = std::find(virtual_registers_.begin(), virtual_registers_.end(), value);
         iter != virtual_registers_.end()) {

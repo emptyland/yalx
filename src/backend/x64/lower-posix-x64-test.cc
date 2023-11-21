@@ -2,6 +2,7 @@
 #include "backend/constants-pool.h"
 #include "backend/linkage-symbols.h"
 #include "backend/registers-configuration.h"
+#include "backend/zero-slot-allocator.h"
 #include "ir/node.h"
 #include "ir/type.h"
 #include "ir/operator.h"
@@ -25,6 +26,11 @@ public:
     InstructionFunction *IRLowing(ir::Function *fun) {
         X64PosixLower lower(&arena_, RegistersConfiguration::of_x64(), &linkage_, &const_pool_);
         return lower.VisitFunction(fun);
+    }
+
+    void CodeSlotAllocating(InstructionFunction *fun) {
+        ZeroSlotAllocator allocator{arena(), RegistersConfiguration::of_x64(), fun};
+        allocator.Run();
     }
 
     static std::string PrintTo(InstructionFunction *fun) {
@@ -76,6 +82,7 @@ TEST_F(X64PosixLowerTest, Sanity) {
     ASSERT_STREQ("_main_Zomain_Zdissue01_returning_one", lo_fun->symbol()->data());
 #endif
 
+    CodeSlotAllocating(lo_fun);
     puts(PrintTo(lo_fun).c_str());
 }
 

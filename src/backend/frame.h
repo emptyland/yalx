@@ -27,24 +27,27 @@ public:
     DEF_VAL_GETTER(int, stack_size);
     DEF_VAL_PROP_RW(int, returning_val_size);
     
-    size_t virtual_registers_size() const { return virtual_registers_.size(); }
-    
+    [[nodiscard]] size_t virtual_registers_size() const { return virtual_registers_.size(); }
+
+    [[nodiscard]] size_t parameters_size() const;
+    [[nodiscard]] ir::Value *parameter_value(size_t i) const;
+
     int AllocateSlot(size_t size_in_bytes, size_t padding_size) {
         //int origin = stack_size();
-        stack_size_ += (padding_size + RoundUp(size_in_bytes, kSlotAlignmentSize));
+        stack_size_ += static_cast<int>(padding_size + RoundUp(size_in_bytes, kSlotAlignmentSize));
         DCHECK(stack_size() % kSlotAlignmentSize == 0);
         return -stack_size();
     }
 
     int GetVirtualRegister(ir::Value *value);
     
-    ir::Value *GetValue(int vr) const {
+    [[nodiscard]] ir::Value *GetValue(int vr) const {
         DCHECK(vr >= 0);
         DCHECK(vr < virtual_registers_.size());
         return virtual_registers_[vr];
     }
     
-    const ir::Type &GetType(int vr) const;
+    [[nodiscard]] const ir::Type &GetType(int vr) const;
     
     void SetRename(ir::Value *value, ir::Value *rename) {
         auto vid = GetVirtualRegister(value);

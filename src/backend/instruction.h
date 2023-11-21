@@ -380,7 +380,7 @@ private:
     const AllocatedBundle *bundle() const { return &allocated_values_; }
 }; // class LocationOperand
 
-static_assert(sizeof(AllocatedOperand) == sizeof(InstructionOperand), "");
+static_assert(sizeof(AllocatedOperand) == sizeof(InstructionOperand));
 
 
 
@@ -639,9 +639,6 @@ inline InstructionBlock *InstructionFunction::NewBlock(int label) {
     blocks_.push_back(block);
     return block;
 }
-
-
-
 
 } // namespace backend
 
