@@ -45,6 +45,7 @@ private:
     };
 
     void AllocateSlot(Instruction *instr, UnallocatedOperand *unallocated);
+    int AllocateSlotIfNotExists(InstructionOperand *opd, int vr, const int *hint = nullptr);
     int AllocateSlot(InstructionOperand *opd, int vr, const int *hint = nullptr);
     int ReallocatedSlot(Instruction *instr, UnallocatedOperand *unallocated, Allocated allocated);
 

@@ -458,7 +458,7 @@ public:
         return parallel_moves_[pos];
     }
     
-    const ParallelMove *parallel_move(GapPosition pos) const {
+    [[nodiscard]] const ParallelMove *parallel_move(GapPosition pos) const {
         return parallel_moves_[pos];
     }
 

@@ -44,6 +44,7 @@ public:
     InstructionFunction *VisitFunction(ir::Function *fun);
     
     void VisitBasicBlock(ir::BasicBlock *block);
+    void Select(ir::Value *instr);
     void VisitParameters(ir::Function *fun, std::vector<InstructionOperand> *parameters);
     void VisitPhi(ir::Value *instr);
     void VisitCall(ir::Value *value);
@@ -55,8 +56,7 @@ public:
     virtual void VisitCondBr(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitAddOrSub(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitICmp(ir::Value *instr) {UNREACHABLE();}
-
-    virtual InstructionOperand Select(ir::Value *instr, InstructionOperand fixed = {});
+    virtual InstructionOperand TryUseAsConstantOrImmediate(ir::Value *value) {UNREACHABLE();}
 
     Instruction *Emit(InstructionCode opcode, InstructionOperand output,
                       int temps_count = 0, InstructionOperand *temps = nullptr);
@@ -98,12 +98,12 @@ public:
     UnallocatedOperand UseAsFixedSlot(ir::Value *value, int index);
     UnallocatedOperand UseAsFixedRegister(ir::Value *value, int index);
     UnallocatedOperand UseAsFixedFPRegister(ir::Value *value, int index);
-    ImmediateOperand UseAsImmediate(ir::Value *value);
+    ImmediateOperand UseAsImmediate(ir::Value *value) const;
     
-    ReloactionOperand UseAsExternalClassName(const String *name);
-    ReloactionOperand UseAsExternalCFunction(const String *symbol);
-    
-    InstructionOperand TryUseAsIntegralImmediate(ir::Value *value, int bits = 64);
+    ReloactionOperand UseAsExternalClassName(const String *name) const;
+    static ReloactionOperand UseAsExternalCFunction(const String *symbol);
+
+    static InstructionOperand TryUseAsIntegralImmediate(ir::Value *value, int bits = 63);
     
     static bool IsIntegralImmediate(ir::Value *value, int bits = 64);
     static bool IsAnyConstant(ir::Value *value);

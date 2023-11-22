@@ -73,63 +73,7 @@ InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
 void InstructionSelector::VisitBasicBlock(ir::BasicBlock *block) {
     
     for (auto instr : block->instructions()) {
-        
-        switch (instr->op()->value()) {
-            case ir::Operator::kHeapAlloc:
-                VisitHeapAlloc(instr);
-                break;
-            
-            case ir::Operator::kStackAlloc:
-                VisitStackAlloc(instr);
-                break;
-                
-            case ir::Operator::kCallHandle:
-            case ir::Operator::kCallVirtual:
-            case ir::Operator::kCallDirectly:
-            case ir::Operator::kCallAbstract:
-            case ir::Operator::kCallIndirectly:
-                VisitCall(instr);
-                break;
-                
-            case ir::Operator::kAdd:
-            case ir::Operator::kSub:
-                VisitAddOrSub(instr);
-                break;
-                
-            case ir::Operator::kICmp:
-                VisitICmp(instr);
-                break;
-                
-            case ir::Operator::kBr:
-                if (instr->op()->value_in() > 0) {
-                    VisitCondBr(instr);
-                } else {
-                    Emit(ArchJmp, NoOutput(), ReloactionOperand(GetBlock(instr->OutputControl(0))));
-                }
-                break;
-
-            case ir::Operator::kRet:
-                VisitReturn(instr);
-                break;
-                
-            case ir::Operator::kPhi:
-                VisitPhi(instr);
-                break; // Ignore phi nodes
-
-            debugging_info:
-            default: {
-            #ifndef NDEBUG
-                ir::PrintingContext ctx(0);
-                std::string buf;
-                auto file = base::NewMemoryWritableFile(&buf);
-                base::PrintingWriter printer(file, true);
-                instr->PrintTo(&ctx, &printer);
-                printd("%s", buf.c_str());
-            #endif
-                UNREACHABLE();
-            } break;
-                break;
-        }
+        Select(instr);
     }
     
     for (auto user : block->phi_node_users()) {
@@ -141,6 +85,81 @@ void InstructionSelector::VisitBasicBlock(ir::BasicBlock *block) {
             moves->AddMove(DefineAsRegisterOrSlot(user.phi), UseAsRegisterOrSlot(user.dest), arena_);
         }
         
+    }
+}
+
+void InstructionSelector::Select(ir::Value *instr) {
+    switch (instr->op()->value()) {
+        case ir::Operator::kHeapAlloc:
+            VisitHeapAlloc(instr);
+            break;
+
+        case ir::Operator::kStackAlloc:
+            VisitStackAlloc(instr);
+            break;
+
+        case ir::Operator::kCallHandle:
+        case ir::Operator::kCallVirtual:
+        case ir::Operator::kCallDirectly:
+        case ir::Operator::kCallAbstract:
+        case ir::Operator::kCallIndirectly:
+            VisitCall(instr);
+            break;
+
+        case ir::Operator::kAdd:
+        case ir::Operator::kSub:
+            VisitAddOrSub(instr);
+            break;
+
+        case ir::Operator::kICmp:
+            VisitICmp(instr);
+            break;
+
+        case ir::Operator::kBr:
+            if (instr->op()->value_in() > 0) {
+                VisitCondBr(instr);
+            } else {
+                Emit(ArchJmp, NoOutput(), ReloactionOperand(GetBlock(instr->OutputControl(0))));
+            }
+            break;
+
+        case ir::Operator::kRet:
+            VisitReturn(instr);
+            break;
+
+        case ir::Operator::kPhi:
+            VisitPhi(instr);
+            break; // Ignore phi nodes
+
+//        case ir::Operator::kWord8Constant:
+//        case ir::Operator::kWord16Constant:
+//        case ir::Operator::kWord32Constant:
+//        case ir::Operator::kWord64Constant:
+//        case ir::Operator::kU8Constant:
+//        case ir::Operator::kU16Constant:
+//        case ir::Operator::kU32Constant:
+//        case ir::Operator::kU64Constant:
+//        case ir::Operator::kI8Constant:
+//        case ir::Operator::kI16Constant:
+//        case ir::Operator::kI32Constant:
+//        case ir::Operator::kI64Constant:
+//        case ir::Operator::kF32Constant:
+//        case ir::Operator::kF64Constant:
+//        case ir::Operator::kStringConstant:
+//        case ir::Operator::kNilConstant:
+//            return VisitConst(instr, hint);
+
+        default: {
+#ifndef NDEBUG
+            ir::PrintingContext ctx(0);
+            std::string buf;
+            auto file = base::NewMemoryWritableFile(&buf);
+            base::PrintingWriter printer(file, true);
+            instr->PrintTo(&ctx, &printer);
+            printd("%s", buf.c_str());
+#endif
+            UNREACHABLE();
+        } break;
     }
 }
 
@@ -215,16 +234,13 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
         if (ty.kind() == ir::Type::kVoid) {
             continue;
         }
-        auto mr = ToMachineRepresentation(ty);
-        auto hint = AllocatedOperand{AllocatedOperand::kSlot,mr,static_cast<int>(returning_val_offset)};
-        inputs.insert(inputs.begin(), Select(value->InputValue(i), hint));
+        inputs.insert(inputs.begin(), DefineAsRegisterOrSlot(value->InputValue(i)));
         returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
     }
 
     ImmediateOperand tmp{-1};
     auto instr = Emit(ArchFrameExit, 0, nullptr,
                       static_cast<int>(inputs.size()), &inputs.front(), 1, &tmp);
-    auto moving = instr->GetOrNewParallelMove(Instruction::kStart, arena());
 
     returning_val_offset = Frame::kCalleeReservedSize + caller_padding_size + overflow_args_size;
     for (int i = value->op()->value_in() - 1; i >= 0; i--) {
@@ -235,7 +251,8 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
         auto mr = ToMachineRepresentation(ty);
         auto dest = AllocatedOperand{AllocatedOperand::kSlot,mr,static_cast<int>(returning_val_offset)};
         if (!dest.Equals(&inputs[i])) {
-            moving->AddMove(dest, inputs[i], arena());
+            instr->GetOrNewParallelMove(Instruction::kStart, arena())
+                 ->AddMove(dest, inputs[i], arena());
         }
         returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
     }
@@ -264,10 +281,6 @@ void InstructionSelector::VisitHeapAlloc(ir::Value *value) {
     Emit(ArchCallNative, DefineAsFixedRegister(value, config()->returning0_register()), heap_alloc, arg0);
     
     Emit(AndBits(ArchRestoreCallerRegisters, CallDescriptorField::Encode(kCallNative)), NoOutput());
-}
-
-/*virtual*/ InstructionOperand InstructionSelector::Select(ir::Value *instr, InstructionOperand fixed) {
-    UNREACHABLE();
 }
 
 Instruction *InstructionSelector::Emit(InstructionCode opcode, InstructionOperand output,
@@ -401,7 +414,7 @@ UnallocatedOperand InstructionSelector::UseAsFixedFPRegister(ir::Value *value, i
     });
 }
 
-ImmediateOperand InstructionSelector::UseAsImmediate(ir::Value *value) {
+ImmediateOperand InstructionSelector::UseAsImmediate(ir::Value *value) const {
     frame()->GetVirtualRegister(value);
     switch (value->op()->value()) {
         case ir::Operator::kI8Constant:
@@ -432,7 +445,7 @@ ImmediateOperand InstructionSelector::UseAsImmediate(ir::Value *value) {
     return ImmediateOperand{0};
 }
 
-ReloactionOperand InstructionSelector::UseAsExternalClassName(const String *name) {
+ReloactionOperand InstructionSelector::UseAsExternalClassName(const String *name) const {
     return ReloactionOperand {linkage()->MangleClassName(name)};
 }
 

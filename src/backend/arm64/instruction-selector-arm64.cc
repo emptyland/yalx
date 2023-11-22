@@ -39,7 +39,7 @@ public:
             UNREACHABLE();
         }
     }
-    
+
     void VisitAddOrSub(ir::Value *instr) override {
         InstructionCode op = ArchNop;
         if (instr->Is(ir::Operator::kAdd)) {
@@ -48,7 +48,8 @@ public:
             DCHECK(instr->Is(ir::Operator::kSub));
             op = Arm64Sub;
         }
-        VisitArithOperands(op, DefineAsRegister(instr), instr->InputValue(0), instr->InputValue(1));
+        VisitArithOperands(op, DefineAsRegister(instr), instr->InputValue(0),
+                           instr->InputValue(1));
     }
     
     void VisitICmp(ir::Value *instr) override {
@@ -62,7 +63,7 @@ public:
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arm64InstructionSelector);
 private:
-    
+
     void VisitArithOperands(InstructionCode op, InstructionOperand output, ir::Value *input0, ir::Value *input1) {
         std::vector<std::tuple<InstructionOperand, InstructionOperand>> moves;
 
@@ -84,7 +85,7 @@ private:
                 rhs = imm;
             } else if (auto imm = TryUseAsIntegralImmediate(input1, 16); !imm.IsInvalid()) {
                 rhs = UseAsRegister(input1);
-                moves.push_back({rhs, imm});
+                moves.emplace_back(rhs, imm);
             } else {
                 // TODO: Load constants
                 UNREACHABLE();

@@ -69,7 +69,7 @@ TEST_F(X64PosixLowerTest, Sanity) {
     auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue01_returning_one");
     ASSERT_TRUE(ir_fun != nullptr);
 
-    puts(PrintTo(ir_fun).c_str());
+    //puts(PrintTo(ir_fun).c_str());
 
     auto lo_fun = IRLowing(ir_fun);
     ASSERT_TRUE(lo_fun != nullptr);
@@ -83,6 +83,42 @@ TEST_F(X64PosixLowerTest, Sanity) {
 #endif
 
     CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue01_returning_one:
+L0:
+    ArchFrameEnter (#0)
+    {dword fp+28} = X64Movl #1
+    ArchFrameExit {dword fp+28}(#0)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
+TEST_F(X64PosixLowerTest, AddSubSanity) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue02_simple_add");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    puts(PrintTo(ir_fun).c_str());
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+
+    puts(PrintTo(lo_fun).c_str());
+}
+
+// issue03_returning_two
+TEST_F(X64PosixLowerTest, ReturningTwo) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue03_returning_two");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    puts(PrintTo(ir_fun).c_str());
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+
     puts(PrintTo(lo_fun).c_str());
 }
 

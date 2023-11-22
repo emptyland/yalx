@@ -64,13 +64,23 @@ void ZeroSlotAllocator::VisitBlock(InstructionBlock *block) {
             frame_enter_ = instr;
         } else if (instr->op() == ArchFrameExit) {
             frame_exit_.push_back(instr);
-        } else {
-            VisitInstruction(instr);
         }
+        VisitInstruction(instr);
     }
 }
 
 void ZeroSlotAllocator::VisitInstruction(Instruction *instr) {
+    if (auto moving = instr->parallel_move(Instruction::kStart)) {
+        for (auto opd : moving->moves()) {
+            if (auto src = opd->src().AsUnallocated()) {
+                AllocateSlotIfNotExists(opd->mutable_src(), src->virtual_register());
+            }
+            if (auto dest = opd->dest().AsUnallocated()) {
+                AllocateSlotIfNotExists(opd->mutable_dest(), dest->virtual_register());
+            }
+        }
+    }
+
     for (int i = 0; i < instr->outputs_count(); i++) {
         auto out = instr->OutputAt(i);
         if (!out->IsUnallocated()) {
@@ -93,6 +103,17 @@ void ZeroSlotAllocator::VisitInstruction(Instruction *instr) {
             ReallocatedSlot(instr, unallocated, iter->second);
         }
     }
+
+    if (auto moving = instr->parallel_move(Instruction::kEnd)) {
+        for (auto opd : moving->moves()) {
+            if (auto src = opd->src().AsUnallocated()) {
+                AllocateSlotIfNotExists(opd->mutable_src(), src->virtual_register());
+            }
+            if (auto dest = opd->dest().AsUnallocated()) {
+                AllocateSlotIfNotExists(opd->mutable_dest(), dest->virtual_register());
+            }
+        }
+    }
 }
 
 void ZeroSlotAllocator::AllocateSlot(Instruction *instr, UnallocatedOperand *unallocated) {
@@ -102,12 +123,12 @@ void ZeroSlotAllocator::AllocateSlot(Instruction *instr, UnallocatedOperand *una
         case UnallocatedOperand::kRegisterOrSlot:
         case UnallocatedOperand::kRegisterOrSlotOrConstant:
         case UnallocatedOperand::kMustHaveSlot:
-            AllocateSlot(unallocated, unallocated->virtual_register());
+            AllocateSlotIfNotExists(unallocated, unallocated->virtual_register());
             break;
         case UnallocatedOperand::kFixedRegister: {
             auto tmp = AllocatedOperand{AllocatedOperand::kRegister, mr, unallocated->fixed_register_id()};
             InstructionOperand slot;
-            AllocateSlot(&slot, unallocated->virtual_register());
+            AllocateSlotIfNotExists(&slot, unallocated->virtual_register());
             instr->GetOrNewParallelMove(Instruction::kEnd, arena_)
                  ->AddMove(slot, tmp, arena_);
             memcpy(unallocated, &tmp, sizeof(tmp));
@@ -115,21 +136,21 @@ void ZeroSlotAllocator::AllocateSlot(Instruction *instr, UnallocatedOperand *una
         case UnallocatedOperand::kFixedFPRegister: {
             auto tmp = AllocatedOperand{AllocatedOperand::kRegister, mr, unallocated->fixed_fp_register_id()};
             InstructionOperand slot;
-            AllocateSlot(&slot, unallocated->virtual_register());
+            AllocateSlotIfNotExists(&slot, unallocated->virtual_register());
             instr->GetOrNewParallelMove(Instruction::kEnd, arena_)
                  ->AddMove(slot, tmp, arena_);
             memcpy(unallocated, &tmp, sizeof(tmp));
         } break;
         case UnallocatedOperand::kFixedSlot: {
             int fixed_slot_offset = unallocated->fixed_slot_offset();
-            AllocateSlot(unallocated, unallocated->virtual_register(), &fixed_slot_offset);
+            AllocateSlotIfNotExists(unallocated, unallocated->virtual_register(), &fixed_slot_offset);
         } break;
         case UnallocatedOperand::kMustHaveRegister: {
             auto tmp = (mr == MachineRepresentation::kFloat32 || mr == MachineRepresentation::kFloat64)
                     ? AllocatedOperand{AllocatedOperand::kRegister, mr, profile_->allocatable_fp_register(0)}
                     : AllocatedOperand{AllocatedOperand::kRegister, mr, profile_->allocatable_gp_register(0)};
             InstructionOperand slot;
-            AllocateSlot(&slot, unallocated->virtual_register());
+            AllocateSlotIfNotExists(&slot, unallocated->virtual_register());
             instr->GetOrNewParallelMove(Instruction::kEnd, arena_)
                  ->AddMove(slot, tmp, arena_);
             memcpy(unallocated, &tmp, sizeof(tmp));
@@ -183,6 +204,15 @@ int ZeroSlotAllocator::ReallocatedSlot(Instruction *instr, UnallocatedOperand *u
             break;
     }
     return 0;
+}
+
+int ZeroSlotAllocator::AllocateSlotIfNotExists(InstructionOperand *opd, int vr, const int *hint) {
+    if (auto iter = virtual_allocated_.find(vr); iter != virtual_allocated_.end()) {
+        auto mr = ToMachineRepresentation(fun_->frame()->GetType(vr));
+        *opd = AllocatedOperand{AllocatedOperand::kSlot, mr, iter->second.value};
+        return iter->second.value;
+    }
+    return AllocateSlot(opd, vr, hint);
 }
 
 int ZeroSlotAllocator::AllocateSlot(InstructionOperand *opd, int vr, const int *hint) {

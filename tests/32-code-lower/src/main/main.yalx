@@ -4,3 +4,7 @@ fun main() {
 }
 
 fun issue01_returning_one() -> 1
+
+fun issue02_simple_add() -> 1 + 2
+
+fun issue03_returning_two() -> 1, 2
