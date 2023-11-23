@@ -170,12 +170,11 @@ void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<Instruc
     for (auto param : fun->paramaters()) {
         if (param->type().IsFloating()) {
             if (fp_index < config_->number_of_argument_fp_registers()) {
-                parameters->push_back(DefineAsFixedFPRegister(param, config_->argument_fp_register(fp_index)));
+                parameters->push_back(DefineAsFixedFPRegister(param, config_->argument_fp_register(fp_index++)));
             } else {
                 // TODO:
                 UNREACHABLE();
             }
-            fp_index++;
         } else {
             
             switch (param->type().kind()) {
@@ -183,9 +182,7 @@ void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<Instruc
                     if (param->type().IsCompactEnum()) {
                         goto pass_gp_register;
                     }
-                    // TODO:
-                    UNREACHABLE();
-                    break;
+                    goto pass_gp_register;
                     
                 
                 case ir::Type::kString:
@@ -193,15 +190,13 @@ void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<Instruc
                 default:
                 pass_gp_register:
                     if (gp_index < config_->number_of_argument_gp_registers()) {
-                        parameters->push_back(DefineAsFixedRegister(param, config_->argument_gp_register(gp_index)));
+                        parameters->push_back(DefineAsFixedRegister(param, config_->argument_gp_register(gp_index++)));
                     } else {
                         // TODO:
                         UNREACHABLE();
                     }
                     break;
             }
-            
-            gp_index++;
         }
     }
 }
@@ -234,7 +229,11 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
         if (ty.kind() == ir::Type::kVoid) {
             continue;
         }
-        inputs.insert(inputs.begin(), DefineAsRegisterOrSlot(value->InputValue(i)));
+        if (auto input = TryUseAsConstantOrImmediate(value->InputValue(i)); input.IsInvalid()) {
+            inputs.insert(inputs.begin(), DefineAsRegisterOrSlot(value->InputValue(i)));
+        } else {
+            inputs.insert(inputs.begin(), input);
+        }
         returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
     }
 
@@ -243,17 +242,21 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
                       static_cast<int>(inputs.size()), &inputs.front(), 1, &tmp);
 
     returning_val_offset = Frame::kCalleeReservedSize + caller_padding_size + overflow_args_size;
+
+    std::vector<InstructionOperand> outputs;
     for (int i = value->op()->value_in() - 1; i >= 0; i--) {
         auto ty = fun->prototype()->return_type(i);
         if (ty.kind() == ir::Type::kVoid) {
             continue;
         }
         auto mr = ToMachineRepresentation(ty);
-        auto dest = AllocatedOperand{AllocatedOperand::kSlot,mr,static_cast<int>(returning_val_offset)};
+        auto dest = AllocatedOperand::Slot(mr, config()->fp(),
+                                                    static_cast<int>(returning_val_offset));
         if (!dest.Equals(&inputs[i])) {
             instr->GetOrNewParallelMove(Instruction::kStart, arena())
                  ->AddMove(dest, inputs[i], arena());
         }
+        outputs.insert(outputs.begin(), dest);
         returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
     }
 
@@ -342,7 +345,7 @@ Instruction *InstructionSelector::Emit(InstructionCode opcode, int outputs_count
 UnallocatedOperand InstructionSelector::DefineAsFixedRegister(ir::Value *value, int index) {
     return Define(value, UnallocatedOperand{
         UnallocatedOperand::kFixedRegister,
-        UnallocatedOperand::kUsedAtStart,
+        index,
         frame_->GetVirtualRegister(value)
     });
 }
@@ -350,15 +353,15 @@ UnallocatedOperand InstructionSelector::DefineAsFixedRegister(ir::Value *value, 
 UnallocatedOperand InstructionSelector::DefineAsFixedFPRegister(ir::Value *value, int index) {
     return Define(value, UnallocatedOperand{
         UnallocatedOperand::kFixedFPRegister,
-        UnallocatedOperand::kUsedAtStart,
+        index,
         frame_->GetVirtualRegister(value)
     });
 }
 
 UnallocatedOperand InstructionSelector::DefineAsFixedSlot(ir::Value *value, int index) {
     return Define(value, UnallocatedOperand{
-        UnallocatedOperand::kFixedSlot,
-        UnallocatedOperand::kUsedAtStart,
+        UnallocatedOperand::FixedSlotTag{},
+        index,
         frame_->GetVirtualRegister(value)
     });
 }

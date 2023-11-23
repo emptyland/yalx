@@ -671,30 +671,24 @@ void RegisterAllocator::AssignOperand(int opid, InstructionOperand *receiver, Un
         case UnallocatedOperand::kRegisterOrSlot:
         case UnallocatedOperand::kRegisterOrSlotOrConstant: {
             DCHECK(interval->has_any_assinged());
-            *receiver = AllocatedOperand(interval->has_assigned_any_register()
-                                         ? AllocatedOperand::kRegister
-                                         : AllocatedOperand::kSlot,
-                                         interval->representation(),
-                                         interval->assigned_operand());
+            *receiver = interval->has_assigned_any_register()
+                    ? AllocatedOperand::Register(interval->representation(), interval->assigned_operand())
+                    : AllocatedOperand::Slot(interval->representation(), regconf_->fp(), interval->assigned_operand());
         } break;
         case UnallocatedOperand::kMustHaveRegister: {
             DCHECK(interval->has_assigned_any_register());
-            *receiver = AllocatedOperand(AllocatedOperand::kRegister, interval->representation(),
-                                         interval->assigned_operand());
+            *receiver = AllocatedOperand::Register(interval->representation(), interval->assigned_operand());
         } break;
         case UnallocatedOperand::kMustHaveSlot:
             break;
         case UnallocatedOperand::kFixedSlot:
-            *receiver = AllocatedOperand(AllocatedOperand::kSlot, interval->representation(),
-                                         unalloc->fixed_slot_offset());
+            *receiver = AllocatedOperand::Slot(interval->representation(), regconf_->fp(), unalloc->fixed_slot_offset());
             break;
         case UnallocatedOperand::kFixedRegister:
-            *receiver = AllocatedOperand(AllocatedOperand::kRegister, interval->representation(),
-                                         unalloc->fixed_register_id());
+            *receiver = AllocatedOperand::Register(interval->representation(),unalloc->fixed_register_id());
             break;
         case UnallocatedOperand::kFixedFPRegister:
-            *receiver = AllocatedOperand(AllocatedOperand::kRegister, interval->representation(),
-                                         unalloc->fixed_fp_register_id());
+            *receiver = AllocatedOperand::Register(interval->representation(), unalloc->fixed_fp_register_id());
             break;
             
         default:

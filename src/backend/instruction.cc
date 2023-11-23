@@ -26,7 +26,8 @@ bool InstructionOperand::Equals(const InstructionOperand *other) const {
             auto lhs = AsAllocated();
             auto rhs = other->AsAllocated();
             return lhs->location_kind() == rhs->location_kind() &&
-                lhs->machine_representation() == rhs->machine_representation() && lhs->index() == rhs->index();
+                   lhs->machine_representation() == rhs->machine_representation() &&
+                   lhs->index() == rhs->index();
         } break;
         case kImmediate: {
             auto lhs = AsImmediate();
@@ -122,14 +123,23 @@ void InstructionOperand::PrintTo(base::PrintingWriter *printer) const {
             printer->Print("{%s ", GetMachineRepresentationAlias(opd->machine_representation()));
             switch (opd->location_kind()) {
                 case AllocatedOperand::kRegister:
-                    printer->Print("$%d", opd->index());
+                    printer->Print("$%d", opd->register_id());
                     break;
-                case AllocatedOperand::kSlot:
-                    if (opd->index() >= 0) {
-                        printer->Print("fp+%d", opd->index());
+                case AllocatedOperand::kLocation:
+                    if (opd->IsSlot()) {
+                        if (opd->index() >= 0) {
+                            printer->Print("fp+%d", opd->index());
+                        } else {
+                            printer->Print("fp%d", opd->index());
+                        }
                     } else {
-                        printer->Print("fp%d", opd->index());
+                        if (opd->index() >= 0) {
+                            printer->Print("$%d+%d", opd->register_id(), opd->index());
+                        } else {
+                            printer->Print("$%d%d", opd->register_id(), opd->index());
+                        }
                     }
+
                     break;
                 default:
                     UNREACHABLE();
@@ -255,7 +265,11 @@ void Instruction::PrintTo(int ident, base::PrintingWriter *printer) const {
             opds->dest().PrintTo(printer);
             printer->Write(" <- ");
             opds->src().PrintTo(printer);
-            printer->Writeln("");
+            if (opds->comment()) {
+                printer->Println(" // %s", opds->comment());
+            } else {
+                printer->Writeln("");
+            }
         }
     }
     

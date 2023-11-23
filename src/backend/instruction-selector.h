@@ -58,6 +58,8 @@ public:
     virtual void VisitICmp(ir::Value *instr) {UNREACHABLE();}
     virtual InstructionOperand TryUseAsConstantOrImmediate(ir::Value *value) {UNREACHABLE();}
 
+    void AddParallelMove(const ir::Type &ty, ParallelMove *moving, AllocatedOperand dest, AllocatedOperand src);
+
     Instruction *Emit(InstructionCode opcode, InstructionOperand output,
                       int temps_count = 0, InstructionOperand *temps = nullptr);
     Instruction *Emit(InstructionCode opcode, InstructionOperand output,

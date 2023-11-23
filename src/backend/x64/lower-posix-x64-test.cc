@@ -97,19 +97,68 @@ TEST_F(X64PosixLowerTest, AddSubSanity) {
     auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue02_simple_add");
     ASSERT_TRUE(ir_fun != nullptr);
 
-    puts(PrintTo(ir_fun).c_str());
-
     auto lo_fun = IRLowing(ir_fun);
     ASSERT_TRUE(lo_fun != nullptr);
 
     CodeSlotAllocating(lo_fun);
-
-    puts(PrintTo(lo_fun).c_str());
+    static constexpr char z[] = R"(main_Zomain_Zdissue02_simple_add:
+L0:
+    ArchFrameEnter (#16)
+    Move {dword fp-4} <- #1
+    {dword $0} = X64Add32 #2
+    Move {dword fp-4} <- {dword $0}
+    Move {dword fp+28} <- {dword fp-4}
+    ArchFrameExit {dword fp-4}(#16)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
 }
 
 // issue03_returning_two
 TEST_F(X64PosixLowerTest, ReturningTwo) {
     auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue03_returning_two");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue03_returning_two:
+L0:
+    ArchFrameEnter (#0)
+    Move {dword fp+24} <- #2
+    Move {dword fp+28} <- #1
+    ArchFrameExit #1, #2(#0)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
+// issue04_simple_args
+TEST_F(X64PosixLowerTest, SimpleArgs2) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue04_simple_args");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue04_simple_args:
+L0:
+    {dword $7}, {dword $6} = ArchFrameEnter (#16)
+    Move {dword fp-4} <- {dword $7}
+    Move {dword fp-8} <- {dword $6}
+    Move {dword fp+24} <- {dword fp-4}
+    Move {dword fp+28} <- {dword fp-8}
+    ArchFrameExit {dword fp-8}, {dword fp-4}(#16)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
+// issue05_simple_args
+TEST_F(X64PosixLowerTest, SimpleArgs3) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue05_simple_args");
     ASSERT_TRUE(ir_fun != nullptr);
 
     puts(PrintTo(ir_fun).c_str());
@@ -118,7 +167,6 @@ TEST_F(X64PosixLowerTest, ReturningTwo) {
     ASSERT_TRUE(lo_fun != nullptr);
 
     CodeSlotAllocating(lo_fun);
-
     puts(PrintTo(lo_fun).c_str());
 }
 

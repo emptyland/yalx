@@ -65,6 +65,14 @@ size_t Type::PlacementSizeInBytes() const {
     return bytes();
 }
 
+size_t Type::AlignmentSizeInBytes() const {
+    if (kind() == kValue || kind() == kTuple) {
+        return kPointerSize; // Alignment of pointer size
+    } else {
+        return ReferenceSizeInBytes();
+    }
+}
+
 Type Type::Ref(Model *model, bool nullable) {
     return Type(model->full_name()->Equal(cpl::kStringClassFullName) ? kString : kReference,
                 static_cast<int>(DCHECK_NOTNULL(model)->ReferenceSizeInBytes() << 3),

@@ -670,8 +670,9 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
             if (rep->IsRegisterLocation()) {
                 printer()->Print("%%%s", RegisterName(rep->machine_representation(), rep->index()));
             } else {
-                DCHECK(rep->IsSlotLocation());
-                printer()->Print("%d(%%rbp)", rep->index());
+                DCHECK(rep->IsMemoryLocation());
+                printer()->Print("%d(%%%s)", rep->index(),
+                                 RegisterName(rep->machine_representation(), rep->register_id()));
             }
         } break;
 

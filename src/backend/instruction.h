@@ -32,10 +32,10 @@ class InstructionSelector;
 class InstructionBlock;
 
 #define DECLARE_INSTRUCTION_OPERANDS_KINDS(V) \
-    V(Unallocated) \
-    V(Constant)    \
-    V(Immediate)   \
-    V(Reloaction)  \
+    V(Unallocated)                            \
+    V(Constant)                               \
+    V(Immediate)                              \
+    V(Reloaction)                             \
     V(Allocated)
 
 class InstructionOperand : public base::ArenaObject {
@@ -101,9 +101,10 @@ protected:
         int symbol_id;
     };
     struct AllocatedBundle {
-        int location_kind;
-        int rep;
-        int index;
+        int32_t index;
+        uint8_t location_kind;
+        uint8_t rep;
+        uint16_t r0;
     };
     
     explicit InstructionOperand(Kind kind): kind_(kind) {}
@@ -295,7 +296,7 @@ private:
     const ConstantBundle *bundle() const { return &constant_values_; }
 }; // class ConstantOperand
 
-static_assert(sizeof(ConstantOperand) == sizeof(InstructionOperand), "");
+static_assert(sizeof(ConstantOperand) == sizeof(InstructionOperand));
 
 class ReloactionOperand final : public InstructionOperand {
 public:
@@ -358,26 +359,44 @@ class AllocatedOperand final : public InstructionOperand {
 public:
     enum LocationKind {
         kRegister,
-        kSlot,
+        kLocation,
     };
-    
-    AllocatedOperand(LocationKind kind, MachineRepresentation rep, int index)
-    : InstructionOperand(kAllocated) {
-        mutable_bundle()->location_kind = static_cast<int>(kind);
-        mutable_bundle()->rep = static_cast<int>(rep);
-        mutable_bundle()->index = index;
+
+    static constexpr uint16_t kSlotBit = 0x1000u;
+    static constexpr uint16_t kSlotMask = ~kSlotBit;
+
+    static AllocatedOperand Register(MachineRepresentation rep, int register_id) {
+        return AllocatedOperand{kRegister, rep,register_id,-1};
     }
-    
+
+    static AllocatedOperand Slot(MachineRepresentation rep, int register_id, int offset) {
+        return AllocatedOperand{kLocation, rep, register_id | kSlotBit,offset};
+    }
+
+    static AllocatedOperand Location(MachineRepresentation rep, int register_id, int offset) {
+        return AllocatedOperand{kLocation, rep,register_id,offset};
+    }
+
     LocationKind location_kind() const { return static_cast<LocationKind>(bundle()->location_kind); }
     MachineRepresentation machine_representation() const { return static_cast<MachineRepresentation>(bundle()->rep); }
     int index() const { return bundle()->index; }
+    int register_id() const { return static_cast<int>(bundle()->r0 & kSlotMask); }
     
     bool IsRegisterLocation() const { return location_kind() == kRegister; }
-    bool IsSlotLocation() const { return location_kind() == kSlot; }
+    bool IsMemoryLocation() const { return location_kind() == kLocation; }
+    bool IsSlot() const { return location_kind() == kLocation && (bundle()->r0 & kSlotBit); }
 
 private:
+    AllocatedOperand(LocationKind kind, MachineRepresentation rep, int r0, int index)
+            : InstructionOperand(kAllocated) {
+        mutable_bundle()->location_kind = static_cast<uint8_t>(kind);
+        mutable_bundle()->rep = static_cast<uint8_t>(rep);
+        mutable_bundle()->r0 = static_cast<uint16_t>(r0);
+        mutable_bundle()->index = index;
+    }
+
     AllocatedBundle *mutable_bundle() { return &allocated_values_; }
-    const AllocatedBundle *bundle() const { return &allocated_values_; }
+    [[nodiscard]] const AllocatedBundle *bundle() const { return &allocated_values_; }
 }; // class LocationOperand
 
 static_assert(sizeof(AllocatedOperand) == sizeof(InstructionOperand));
@@ -388,17 +407,20 @@ class ParallelMove final : public base::ArenaObject {
 public:
     class Operands : public base::ArenaObject {
     public:
-        Operands(const InstructionOperand &src, const InstructionOperand &dest)
+        Operands(const InstructionOperand &src, const InstructionOperand &dest, const char *comment)
         : src_(src)
-        , dest_(dest) {
+        , dest_(dest)
+        , comment_(comment) {
             DCHECK(!src.IsInvalid() && !dest.IsInvalid());
         }
         
         DEF_VAL_PROP_RM(InstructionOperand, src);
         DEF_VAL_PROP_RM(InstructionOperand, dest);
+        DEF_PTR_GETTER(const char, comment);
     private:
         InstructionOperand src_;
         InstructionOperand dest_;
+        const char *const comment_;
     }; // class Operands
     
     explicit ParallelMove(base::Arena *arena): moves_(arena) {}
@@ -406,7 +428,19 @@ public:
     DEF_ARENA_VECTOR_GETTER(Operands *, move);
     
     Operands *AddMove(const InstructionOperand &dest, const InstructionOperand &src, base::Arena *arena) {
-        auto operands = new (arena) Operands(src, dest);
+        if (dest.Equals(&src)) {
+            return nullptr;
+        }
+        auto operands = new (arena) Operands(src, dest, nullptr);
+        moves_.push_back(operands);
+        return operands;
+    }
+
+    Operands *AddMove(const InstructionOperand &dest, const InstructionOperand &src, const char *comment, base::Arena *arena) {
+        if (dest.Equals(&src)) {
+            return nullptr;
+        }
+        auto operands = new (arena) Operands(src, dest, arena->Duplicate(comment, ::strlen(comment)));
         moves_.push_back(operands);
         return operands;
     }

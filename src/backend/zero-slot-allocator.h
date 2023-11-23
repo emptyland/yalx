@@ -19,6 +19,8 @@ class InstructionOperand;
 class InstructionBlock;
 class Instruction;
 class UnallocatedOperand;
+class AllocatedOperand;
+class ParallelMove;
 
 class ZeroSlotAllocator {
 public:
@@ -48,6 +50,7 @@ private:
     int AllocateSlotIfNotExists(InstructionOperand *opd, int vr, const int *hint = nullptr);
     int AllocateSlot(InstructionOperand *opd, int vr, const int *hint = nullptr);
     int ReallocatedSlot(Instruction *instr, UnallocatedOperand *unallocated, Allocated allocated);
+    void AddParallelMove(const InstructionOperand &dest, const InstructionOperand &src, const ir::Type &ty, ParallelMove *moving);
 
     base::Arena *const arena_;
     const RegistersConfiguration *const profile_;

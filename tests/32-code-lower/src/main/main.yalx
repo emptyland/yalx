@@ -8,3 +8,10 @@ fun issue01_returning_one() -> 1
 fun issue02_simple_add() -> 1 + 2
 
 fun issue03_returning_two() -> 1, 2
+
+fun issue04_simple_args(a: i32, b: i32) -> b, a
+
+struct Vertx2(val x: i32, val y: i32)
+
+fun issue05_simple_args(a: i32, b: i32, c: Vertx2) -> a, b
+

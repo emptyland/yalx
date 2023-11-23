@@ -85,10 +85,11 @@ public:
     
     bool Equals(const Type &other) const { return kind() == other.kind() && model() == other.model(); }
     
-    size_t ReferenceSizeInBytes() const;
-    size_t PlacementSizeInBytes() const;
+    [[nodiscard]] size_t ReferenceSizeInBytes() const;
+    [[nodiscard]] size_t PlacementSizeInBytes() const;
+    [[nodiscard]] size_t AlignmentSizeInBytes() const;
     
-    std::string_view ToString() const;
+    [[nodiscard]] std::string_view ToString() const;
     void PrintTo(base::PrintingWriter *printer) const;
 
     static Type Ref(Model *model, bool _nullable = false);

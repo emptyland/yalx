@@ -29,49 +29,46 @@ void X64PosixLower::VisitCondBr(ir::Value *instr) {
 // mov v3, v1
 // sub v3, v2
 
-void X64PosixLower::VisitAddOrSub(ir::Value *instr) {
-    DCHECK(instr->op()->value_in() == 2);
-    auto rv = DefineAsRegister(instr->OutputValue(0));
-    InstructionOperand lhs = TryUseAsIntegralImmediate(instr->InputValue(0));
+void X64PosixLower::VisitAddOrSub(ir::Value *ir) {
+    DCHECK(ir->op()->value_in() == 2);
+    auto rv = DefineAsRegister(ir->OutputValue(0));
+    InstructionOperand lhs = TryUseAsIntegralImmediate(ir->InputValue(0));
     if (lhs.IsInvalid()) {
-        lhs = DefineAsRegisterOrSlot(instr->InputValue(0));
+        lhs = DefineAsRegisterOrSlot(ir->InputValue(0));
     }
-    InstructionOperand rhs = TryUseAsIntegralImmediate(instr->InputValue(1));
+    InstructionOperand rhs = TryUseAsIntegralImmediate(ir->InputValue(1));
     if (rhs.IsInvalid()) {
-        rhs = DefineAsRegisterOrSlot(instr->InputValue(1));
+        rhs = DefineAsRegisterOrSlot(ir->InputValue(1));
     }
-    auto mr = ToMachineRepresentation(instr->InputValue(0)->type());
+    Instruction *instr = nullptr;
+    auto mr = ToMachineRepresentation(ir->InputValue(0)->type());
     switch (mr) {
         case MachineRepresentation::kWord8:
-            Emit(X64Movb, rv, lhs);
-            if (instr->Is(ir::Operator::kAdd)) {
-                Emit(X64Add8, rv, rhs);
+            if (ir->Is(ir::Operator::kAdd)) {
+                instr = Emit(X64Add8, rv, rhs);
             } else {
-                Emit(X64Sub8, rv, rhs);
+                instr = Emit(X64Sub8, rv, rhs);
             }
             break;
         case MachineRepresentation::kWord16:
-            Emit(X64Movw, rv, lhs);
-            if (instr->Is(ir::Operator::kAdd)) {
-                Emit(X64Add16, rv, rhs);
+            if (ir->Is(ir::Operator::kAdd)) {
+                instr = Emit(X64Add16, rv, rhs);
             } else {
-                Emit(X64Sub16, rv, rhs);
+                instr = Emit(X64Sub16, rv, rhs);
             }
             break;
         case MachineRepresentation::kWord32:
-            Emit(X64Movl, rv, lhs);
-            if (instr->Is(ir::Operator::kAdd)) {
-                Emit(X64Add32, rv, rhs);
+            if (ir->Is(ir::Operator::kAdd)) {
+                instr = Emit(X64Add32, rv, rhs);
             } else {
-                Emit(X64Sub32, rv, rhs);
+                instr = Emit(X64Sub32, rv, rhs);
             }
             break;
         case MachineRepresentation::kWord64:
-            Emit(X64Movq, lhs, rhs);
-            if (instr->Is(ir::Operator::kAdd)) {
-                Emit(X64Add, rv, rhs);
+            if (ir->Is(ir::Operator::kAdd)) {
+                instr = Emit(X64Add, rv, rhs);
             } else {
-                Emit(X64Sub, rv, rhs);
+                instr = Emit(X64Sub, rv, rhs);
             }
             break;
         case MachineRepresentation::kFloat32:
@@ -86,6 +83,8 @@ void X64PosixLower::VisitAddOrSub(ir::Value *instr) {
             UNREACHABLE();
             break;
     }
+    instr->GetOrNewParallelMove(Instruction::kStart, arena())
+         ->AddMove(rv, lhs, arena());
 }
 
 void X64PosixLower::VisitICmp(ir::Value *instr) {
