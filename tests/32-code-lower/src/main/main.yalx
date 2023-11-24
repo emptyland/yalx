@@ -15,3 +15,5 @@ struct Vertx2(val x: i32, val y: i32)
 
 fun issue05_simple_args(a: i32, b: i32, c: Vertx2) -> a, b
 
+fun issue06_returning_val(a: Vertx2) -> a
+

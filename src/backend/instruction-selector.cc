@@ -222,6 +222,7 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
     auto caller_saving_size = RoundUp(overflow_args_size + returning_val_size, Frame::kStackAlignmentSize);
     auto caller_padding_size = caller_saving_size - returning_val_size - overflow_args_size;
     auto returning_val_offset = Frame::kCalleeReservedSize + caller_padding_size + overflow_args_size;
+    frame_->set_returning_val_offset(returning_val_offset);
 
     std::vector<InstructionOperand> inputs;
     for (int i = value->op()->value_in() - 1; i >= 0; i--) {
@@ -238,27 +239,26 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
     }
 
     ImmediateOperand tmp{-1};
-    auto instr = Emit(ArchFrameExit, 0, nullptr,
-                      static_cast<int>(inputs.size()), &inputs.front(), 1, &tmp);
+    Emit(ArchFrameExit, 0, nullptr,static_cast<int>(inputs.size()), &inputs.front(), 1, &tmp);
 
-    returning_val_offset = Frame::kCalleeReservedSize + caller_padding_size + overflow_args_size;
-
-    std::vector<InstructionOperand> outputs;
-    for (int i = value->op()->value_in() - 1; i >= 0; i--) {
-        auto ty = fun->prototype()->return_type(i);
-        if (ty.kind() == ir::Type::kVoid) {
-            continue;
-        }
-        auto mr = ToMachineRepresentation(ty);
-        auto dest = AllocatedOperand::Slot(mr, config()->fp(),
-                                                    static_cast<int>(returning_val_offset));
-        if (!dest.Equals(&inputs[i])) {
-            instr->GetOrNewParallelMove(Instruction::kStart, arena())
-                 ->AddMove(dest, inputs[i], arena());
-        }
-        outputs.insert(outputs.begin(), dest);
-        returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
-    }
+//    returning_val_offset = Frame::kCalleeReservedSize + caller_padding_size + overflow_args_size;
+//
+//    std::vector<InstructionOperand> outputs;
+//    for (int i = value->op()->value_in() - 1; i >= 0; i--) {
+//        auto ty = fun->prototype()->return_type(i);
+//        if (ty.kind() == ir::Type::kVoid) {
+//            continue;
+//        }
+//        auto mr = ToMachineRepresentation(ty);
+//        auto dest = AllocatedOperand::Slot(mr, config()->fp(),
+//                                                    static_cast<int>(returning_val_offset));
+//        if (!dest.Equals(&inputs[i])) {
+//            instr->GetOrNewParallelMove(Instruction::kStart, arena())
+//                 ->AddMove(dest, inputs[i], arena());
+//        }
+//        outputs.insert(outputs.begin(), dest);
+//        returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
+//    }
 
     DCHECK_NOTNULL(frame_)->set_returning_val_size(static_cast<int>(returning_val_size));
 }
@@ -563,12 +563,14 @@ size_t InstructionSelector::OverflowParametersSizeInBytes(const ir::Function *fu
     for (auto param : fun->paramaters()) {
         if (param->type().IsFloating()) {
             if (--float_count < 0) {
-                auto size = RoundUp(param->type().ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
+                auto size = RoundUp(param->type().ReferenceSizeInBytes(),
+                                    static_cast<intptr_t>(param->type().AlignmentSizeInBytes()));
                 size_in_bytes += size;
             }
         } else {
             if (--general_count < 0) {
-                auto size = RoundUp(param->type().ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
+                auto size = RoundUp(param->type().ReferenceSizeInBytes(),
+                                    static_cast<intptr_t>(param->type().AlignmentSizeInBytes()));
                 size_in_bytes += size;
             }
         }
@@ -582,7 +584,7 @@ size_t InstructionSelector::ReturningValSizeInBytes(const ir::PrototypeModel *pr
         if (ty.kind() == ir::Type::kVoid) {
             continue;
         }
-        size_in_bytes += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
+        size_in_bytes += RoundUp(ty.ReferenceSizeInBytes(),static_cast<intptr_t>(ty.AlignmentSizeInBytes()));
     }
     return size_in_bytes;
 }

@@ -3,8 +3,11 @@
 #include "backend/instruction-code.h"
 #include "backend/instruction.h"
 #include "backend/frame.h"
+#include "ir/metadata.h"
 #include "ir/type.h"
+#include "ir/node.h"
 #include "base/arena.h"
+#include "base/format.h"
 
 namespace yalx::backend {
 
@@ -68,6 +71,9 @@ void ZeroSlotAllocator::VisitBlock(InstructionBlock *block) {
             frame_exit_.push_back(instr);
         }
         VisitInstruction(instr);
+        if (instr->op() == ArchFrameExit) {
+            AddReturningForFrameExit(instr);
+        }
     }
 }
 
@@ -115,6 +121,26 @@ void ZeroSlotAllocator::VisitInstruction(Instruction *instr) {
                 AllocateSlotIfNotExists(opd->mutable_dest(), dest->virtual_register());
             }
         }
+    }
+}
+
+void ZeroSlotAllocator::AddReturningForFrameExit(Instruction *instr) {
+    auto frame = fun_->frame();
+    auto returning_val_offset = frame->returning_val_offset();
+    auto prototype = frame->fun()->prototype();
+    int input_at = instr->inputs_count() - 1;
+    for (int64_t i = static_cast<int64_t>(prototype->return_types_size()) - 1; i >= 0; i--) {
+        auto ty = prototype->return_type(i);
+        if (ty.kind() == ir::Type::kVoid) {
+            continue;
+        }
+        auto input = instr->InputAt(input_at--);
+
+        auto rep = ToMachineRepresentation(ty);
+        auto dest = AllocatedOperand::Slot(rep, profile_->fp(), returning_val_offset);
+        AddParallelMove(dest, *input, ty, instr->GetOrNewParallelMove(Instruction::kStart, arena_));
+
+        returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), static_cast<intptr_t>(ty.AlignmentSizeInBytes()));
     }
 }
 
@@ -254,18 +280,32 @@ void ZeroSlotAllocator::AddParallelMove(const InstructionOperand &dest, const In
 
     auto out = dest.AsAllocated();
     auto in = src.AsAllocated();
-    DCHECK(out->IsSlot());
-    DCHECK(in->IsRegisterLocation());
 
-    auto offset = out->index();
-    for (auto i = 0; i < ty.ReferenceSizeInBytes() / kPointerSize; i++) {
-        auto a = AllocatedOperand::Slot(MachineRepresentation::kWord64, out->register_id(), offset);
-        auto b = AllocatedOperand::Location(MachineRepresentation::kWord64, in->register_id(), i * kPointerSize);
-        moving->AddMove(a, b, arena_);
-        offset += kPointerSize;
+    if (out->IsSlot() && in->IsRegisterLocation()) {
+
+        auto offset = out->index();
+        for (auto i = 0; i < ty.ReferenceSizeInBytes() / kPointerSize; i++) {
+            auto a = AllocatedOperand::Slot(MachineRepresentation::kWord64, out->register_id(), offset);
+            auto b = AllocatedOperand::Location(MachineRepresentation::kWord64, in->register_id(), i * kPointerSize);
+            auto comment = base::Sprintf("move value: %s", ty.ToString().data());
+            moving->AddMove(a, b, comment.c_str(), arena_);
+            offset += kPointerSize;
+        }
+    } else if (out->IsSlot() && in->IsSlot()) {
+
+        auto out_offset = out->index();
+        auto in_offset = in->index();
+        for (auto i = 0; i < ty.ReferenceSizeInBytes() / kPointerSize; i++) {
+            auto a = AllocatedOperand::Slot(MachineRepresentation::kWord64, out->register_id(), out_offset);
+            auto b = AllocatedOperand::Slot(MachineRepresentation::kWord64, in->register_id(), in_offset);
+            auto comment = base::Sprintf("move value: %s", ty.ToString().data());
+            moving->AddMove(a, b, comment.c_str(), arena_);
+            out_offset += kPointerSize;
+            in_offset += kPointerSize;
+        }
+    } else {
+        UNREACHABLE();
     }
-
-    printf("move size= %zd\n", ty.ReferenceSizeInBytes());
 }
 
 

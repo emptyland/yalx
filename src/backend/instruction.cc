@@ -326,7 +326,11 @@ void Instruction::PrintTo(int ident, base::PrintingWriter *printer) const {
             opds->dest().PrintTo(printer);
             printer->Write(" <- ");
             opds->src().PrintTo(printer);
-            printer->Writeln("");
+            if (opds->comment()) {
+                printer->Println(" // %s", opds->comment());
+            } else {
+                printer->Writeln("");
+            }
         }
     }
 }

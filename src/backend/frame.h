@@ -24,8 +24,9 @@ public:
     Frame(base::Arena *arena, ir::Function *fun);
     
     DEF_PTR_GETTER(ir::Function, fun);
-    DEF_VAL_GETTER(int, stack_size);
-    DEF_VAL_PROP_RW(int, returning_val_size);
+    DEF_VAL_GETTER(size_t, stack_size);
+    DEF_VAL_PROP_RW(size_t, returning_val_offset);
+    DEF_VAL_PROP_RW(size_t, returning_val_size);
     
     [[nodiscard]] size_t virtual_registers_size() const { return virtual_registers_.size(); }
 
@@ -80,8 +81,9 @@ private:
     base::ArenaVector<int> virtual_register_rename_;
     ir::Function *fun_;
     int next_virtual_register_ = 0;
-    int returning_val_size_ = 0;
-    int stack_size_ = 0;
+    size_t returning_val_size_ = 0;
+    size_t returning_val_offset_ = 0;
+    size_t stack_size_ = 0;
 }; // class Frame
 
 } // namespace backend

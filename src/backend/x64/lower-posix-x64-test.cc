@@ -86,8 +86,8 @@ TEST_F(X64PosixLowerTest, Sanity) {
     static constexpr char z[] = R"(main_Zomain_Zdissue01_returning_one:
 L0:
     ArchFrameEnter (#0)
-    {dword fp+28} = X64Movl #1
-    ArchFrameExit {dword fp+28}(#0)
+    Move {dword fp+28} <- #1
+    ArchFrameExit #1(#0)
 )";
     auto expected = PrintTo(lo_fun);
     EXPECT_EQ(z, expected) << expected;
@@ -161,13 +161,47 @@ TEST_F(X64PosixLowerTest, SimpleArgs3) {
     auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue05_simple_args");
     ASSERT_TRUE(ir_fun != nullptr);
 
-    puts(PrintTo(ir_fun).c_str());
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue05_simple_args:
+L0:
+    {dword $7}, {dword $6}, {ptr $2} = ArchFrameEnter (#32)
+    Move {dword fp-4} <- {dword $7}
+    Move {dword fp-8} <- {dword $6}
+    Move {qword fp-32} <- {qword $2+0} // move value: main:main.Vertx2
+    Move {qword fp-24} <- {qword $2+8} // move value: main:main.Vertx2
+    Move {qword fp-16} <- {qword $2+16} // move value: main:main.Vertx2
+    Move {dword fp+24} <- {dword fp-8}
+    Move {dword fp+28} <- {dword fp-4}
+    ArchFrameExit {dword fp-4}, {dword fp-8}(#32)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
+TEST_F(X64PosixLowerTest, ReturnVal1) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue06_returning_val");
+    ASSERT_TRUE(ir_fun != nullptr);
 
     auto lo_fun = IRLowing(ir_fun);
     ASSERT_TRUE(lo_fun != nullptr);
 
     CodeSlotAllocating(lo_fun);
-    puts(PrintTo(lo_fun).c_str());
+    static constexpr char z[] = R"(main_Zomain_Zdissue06_returning_val:
+L0:
+    {ptr $7} = ArchFrameEnter (#32)
+    Move {qword fp-24} <- {qword $7+0} // move value: main:main.Vertx2
+    Move {qword fp-16} <- {qword $7+8} // move value: main:main.Vertx2
+    Move {qword fp-8} <- {qword $7+16} // move value: main:main.Vertx2
+    Move {qword fp+24} <- {qword fp-24} // move value: main:main.Vertx2
+    Move {qword fp+32} <- {qword fp-16} // move value: main:main.Vertx2
+    Move {qword fp+40} <- {qword fp-8} // move value: main:main.Vertx2
+    ArchFrameExit {none fp-24}(#32)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
 }
 
 } // namespace yalx::backend
