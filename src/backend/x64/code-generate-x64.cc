@@ -1,4 +1,5 @@
 #include "backend/x64/code-generate-x64.h"
+#include "backend/registers-configuration.h"
 #include "backend/linkage-symbols.h"
 #include "backend/constants-pool.h"
 #include "backend/instruction.h"
@@ -8,7 +9,6 @@
 #include "ir/operator.h"
 #include "base/io.h"
 #include <inttypes.h>
-#include <set>
 
 
 namespace yalx {
@@ -74,6 +74,7 @@ static const char *RegisterName(MachineRepresentation rep, int id) {
         case MachineRepresentation::kWord32:
             return kRegister32Names[id];
         case MachineRepresentation::kWord64:
+        case MachineRepresentation::kPointer:
             return kRegister64Names[id];
         case MachineRepresentation::kFloat32:
         case MachineRepresentation::kFloat64:
@@ -105,7 +106,9 @@ public:
         for (auto ib : fun_->blocks()) {
             printer()->Println("Lblk%d:", ib->label());
             for (auto instr : ib->instructions()) {
+                EmitParallelMove(instr->parallel_move(Instruction::kStart));
                 Emit(instr);
+                EmitParallelMove(instr->parallel_move(Instruction::kEnd));
                 position_++;
             }
         }
@@ -115,8 +118,15 @@ public:
 
 private:
     void Emit(Instruction *instr);
+    void EmitParallelMove(const ParallelMove *moving);
+    void EmitMove(InstructionOperand *dest, InstructionOperand *src);
     void EmitOperand(InstructionOperand *operand, X64RelocationStyle style = kDefault);
     void EmitOperands(InstructionOperand *io, InstructionOperand *input, X64RelocationStyle style = kDefault);
+
+    static const char *Scratch(MachineRepresentation rep) {
+        auto inst = RegistersConfiguration::of_x64();
+        return RegisterName(rep, inst->scratch0());
+    }
     
     base::PrintingWriter *Incoming() { return printer()->Indent(1); }
     base::PrintingWriter *printer() { return owns_->printer_; }
@@ -151,38 +161,25 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             break;
             
         case ArchFrameEnter:
-            printer()->Write("pushq ");
-            EmitOperand(instr->OutputAt(0));
-            printer()->Writeln("");
+            printer()->Println("pushq %rbp");
             
             printer()->Indent(1)->Writeln(".cfi_def_cfa_offset 16");
-            
-            printer()->Indent(1)->Write(".cfi_offset ");
-            EmitOperand(instr->OutputAt(0));
-            printer()->Writeln(", -16");
-            
-            printer()->Indent(1)->Write("movq %rsp, ");
-            EmitOperand(instr->OutputAt(0));
-            printer()->Writeln("");
-            
-            printer()->Indent(1)->Write(".cfi_def_cfa_register ");
-            EmitOperand(instr->OutputAt(0));
-            printer()->Writeln("");
+            printer()->Indent(1)->Writeln(".cfi_offset %rbp, -16");
+            printer()->Indent(1)->Writeln("movq %rsp, %rbp");
+            printer()->Indent(1)->Writeln(".cfi_def_cfa_register %rbp");
 
-            if (auto size = instr->InputAt(0)->AsImmediate()->word32_value(); size > 0) {
+            if (auto size = instr->TempAt(0)->AsImmediate()->word32_value(); size > 0) {
                 printer()->Indent(1)->Println("subq $%d, %%rsp", size);
             }
             break;
             
         case ArchFrameExit: {
             int has_adjust = 0;
-            if (auto size = instr->InputAt(0)->AsImmediate()->word32_value(); size > 0) {
+            if (auto size = instr->TempAt(0)->AsImmediate()->word32_value(); size > 0) {
                 printer()->Println("addq $%d, %%rsp", size);
                 has_adjust = 1;
             }
-            printer()->Indent(has_adjust)->Write("popq ");
-            EmitOperand(instr->OutputAt(0));
-            printer()->Writeln("");
+            printer()->Indent(has_adjust)->Writeln("popq %rbp");
 
             printer()->Indent(1)->Writeln("retq");
         } break;
@@ -655,12 +652,117 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
     }
 }
 
+static const char *SelectMoveInstr(MachineRepresentation rep) {
+    switch (rep) {
+        case MachineRepresentation::kWord8:
+            return "movb";
+        case MachineRepresentation::kWord16:
+            return "movw";
+        case MachineRepresentation::kWord32:
+            return "movl";
+        case MachineRepresentation::kWord64:
+        case MachineRepresentation::kPointer:
+        case MachineRepresentation::kReference:
+            return "movq";
+        case MachineRepresentation::kFloat32:
+            return "movss";
+        case MachineRepresentation::kFloat64:
+            return "movsd";
+        default:
+            UNREACHABLE();
+            return nullptr;
+    }
+}
+
+void X64CodeGenerator::FunctionGenerator::EmitParallelMove(const ParallelMove *moving) {
+    if (!moving) {
+        return; // Dont need emit moving
+    }
+
+    for (auto pair : moving->moves()) {
+        EmitMove(pair->mutable_dest(), pair->mutable_src());
+    }
+}
+
+void X64CodeGenerator::FunctionGenerator::EmitMove(InstructionOperand *dest, InstructionOperand *src) {
+
+    switch (dest->kind()) {
+        case InstructionOperand::kReloaction: {
+            switch (src->kind()) {
+                case InstructionOperand::kConstant: {
+                    printer()->Indent(1)->Write("movq ");
+                    EmitOperand(src);
+                    printer()->Println(", %%%s", Scratch(MachineRepresentation::kWord64));
+
+                    printer()->Indent(1)->Write("movq ");
+                    printer()->Print("%%%s, ", Scratch(MachineRepresentation::kWord64));
+                    EmitOperand(dest);
+                    printer()->Writeln();
+                } break;
+                case InstructionOperand::kImmediate: {
+                    auto in = src->AsImmediate();
+                    auto instr = SelectMoveInstr(in->machine_representation());
+                    printer()->Indent(1)->Print("%s ", instr);
+                    EmitOperands(dest, src);
+                } break;
+                case InstructionOperand::kReloaction:
+                case InstructionOperand::kAllocated:
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+        case InstructionOperand::kAllocated: {
+            auto out = dest->AsAllocated();
+            auto instr = SelectMoveInstr(out->machine_representation());
+
+            if (out->IsRegisterLocation()) {
+                printer()->Indent(1)->Print("%s ", instr);
+                EmitOperands(dest, src);
+                printer()->Writeln();
+                break;
+            }
+            DCHECK(out->IsMemoryLocation());
+            switch (src->kind()) {
+                case InstructionOperand::kImmediate: { // mem <- imm
+                    printer()->Indent(1)->Print("%s ", instr);
+                    EmitOperands(dest, src);
+                } break;
+                case InstructionOperand::kAllocated: {
+                    auto in = src->AsAllocated();
+                    if (in->IsRegisterLocation()) { // mem <- reg
+                        printer()->Indent(1)->Print("%s ", instr);
+                        EmitOperands(dest, src);
+                    } else { // mem <- mem
+                        printer()->Indent(1)->Print("%s ", instr);
+                        EmitOperand(src);
+                        printer()->Println(", %%%s", Scratch(MachineRepresentation::kWord64));
+
+                        printer()->Indent(1)->Print("%s ", instr);
+                        printer()->Print("%%%s, ", Scratch(MachineRepresentation::kWord64));
+                        EmitOperand(dest);
+                        printer()->Writeln();
+                    }
+                } break;
+                case InstructionOperand::kConstant:
+                case InstructionOperand::kReloaction:
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+        default:
+            UNREACHABLE();
+            break;
+    }
+}
+
 void X64CodeGenerator::FunctionGenerator::EmitOperands(InstructionOperand *io, InstructionOperand *input,
                                                        X64RelocationStyle style) {
     EmitOperand(input, style);
     printer()->Write(", ");
     EmitOperand(io, style);
-    printer()->Write("\n");
+    printer()->Writeln();
 }
 
 void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operand, X64RelocationStyle style) {
@@ -672,7 +774,7 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
             } else {
                 DCHECK(rep->IsMemoryLocation());
                 printer()->Print("%d(%%%s)", rep->index(),
-                                 RegisterName(rep->machine_representation(), rep->register_id()));
+                                 RegisterName(MachineRepresentation::kPointer, rep->register_id()));
             }
         } break;
 

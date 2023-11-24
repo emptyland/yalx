@@ -74,7 +74,7 @@ public:
         return this;
     }
     
-    PrintingWriter *Writeln(std::string_view str) {
+    PrintingWriter *Writeln(std::string_view str = "") {
         Write(str);
         Write("\n");
         return this;

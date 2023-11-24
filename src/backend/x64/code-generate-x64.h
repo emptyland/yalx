@@ -21,7 +21,8 @@ public:
                      Linkage *symbols,
                      base::PrintingWriter *printer);
     ~X64CodeGenerator() override;
-    
+
+    friend class X64CodeGeneratorTest;
     DISALLOW_IMPLICIT_CONSTRUCTORS(X64CodeGenerator);
 private:
     void EmitFunction(InstructionFunction *fun) override;

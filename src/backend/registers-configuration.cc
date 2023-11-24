@@ -246,7 +246,7 @@ const RegistersConfiguration *RegistersConfiguration::of_x64() {
                                                       x64::rax.code(), // returning0_register
                                                       x64::rbp.code(), // fp
                                                       x64::rsp.code(), // sp,
-                                                      x64::r14.code() /*root*/);
+                                                      x64::r15.code() /*root*/);
         }
         
         static void Delete(void *) {}

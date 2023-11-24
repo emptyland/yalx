@@ -17,7 +17,6 @@ public:
     X64PosixLowerTest(): const_pool_(&arena_), linkage_(&arena_), all_(&arena_) {}
 
     void SetUp() override {
-        //auto rs = GenIRAll("tests/32-code-lower");
         bool ok = true;
         IRGen("tests/32-code-lower", &all_, &ok);
         ASSERT_TRUE(ok);
