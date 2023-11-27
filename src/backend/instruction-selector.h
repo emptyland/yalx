@@ -47,7 +47,7 @@ public:
     void Select(ir::Value *instr);
     void VisitParameters(ir::Function *fun, std::vector<InstructionOperand> *parameters);
     void VisitPhi(ir::Value *instr);
-    void VisitCall(ir::Value *value);
+    void CallDirectly(ir::Value *ir);
     void VisitReturn(ir::Value *value);
     void VisitStackAlloc(ir::Value *value);
     void VisitHeapAlloc(ir::Value *value);
@@ -57,8 +57,6 @@ public:
     virtual void VisitAddOrSub(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitICmp(ir::Value *instr) {UNREACHABLE();}
     virtual InstructionOperand TryUseAsConstantOrImmediate(ir::Value *value) {UNREACHABLE();}
-
-    void AddParallelMove(const ir::Type &ty, ParallelMove *moving, AllocatedOperand dest, AllocatedOperand src);
 
     Instruction *Emit(InstructionCode opcode, InstructionOperand output,
                       int temps_count = 0, InstructionOperand *temps = nullptr);
@@ -93,9 +91,11 @@ public:
     UnallocatedOperand DefineAsFixedFPRegister(ir::Value *value, int index);
     UnallocatedOperand DefineAsFixedSlot(ir::Value *value, int index);
     UnallocatedOperand DefineAsRegisterOrSlot(ir::Value *value);
+    UnallocatedOperand DefineAsSlot(ir::Value *value);
     UnallocatedOperand DefineAsRegister(ir::Value *value);
     
     UnallocatedOperand UseAsRegister(ir::Value *value);
+    UnallocatedOperand UseAsSlot(ir::Value *value);
     UnallocatedOperand UseAsRegisterOrSlot(ir::Value *value);
     UnallocatedOperand UseAsFixedSlot(ir::Value *value, int index);
     UnallocatedOperand UseAsFixedRegister(ir::Value *value, int index);

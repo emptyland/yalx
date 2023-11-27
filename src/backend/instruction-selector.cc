@@ -99,11 +99,11 @@ void InstructionSelector::Select(ir::Value *instr) {
             break;
 
         case ir::Operator::kCallHandle:
-        case ir::Operator::kCallVirtual:
+//        case ir::Operator::kCallVirtual:
         case ir::Operator::kCallDirectly:
-        case ir::Operator::kCallAbstract:
-        case ir::Operator::kCallIndirectly:
-            VisitCall(instr);
+//        case ir::Operator::kCallAbstract:
+//        case ir::Operator::kCallIndirectly:
+            CallDirectly(instr);
             break;
 
         case ir::Operator::kAdd:
@@ -205,14 +205,104 @@ void InstructionSelector::VisitPhi(ir::Value *instr) {
     // Ignore
 }
 
-void InstructionSelector::VisitCall(ir::Value *value) {
-//    DCHECK(value->Is(ir::Operator::kCallHandle) ||
-//           value->Is(ir::Operator::kCallVirtual) ||
-//           value->Is(ir::Operator::kCallAbstract) ||
-//           value->Is(ir::Operator::kCallDirectly) ||
-//           value->Is(ir::Operator::kCallIndirectly));
-    
-    UNREACHABLE();
+void InstructionSelector::CallDirectly(ir::Value *ir) {
+    DCHECK(ir->Is(ir::Operator::kCallHandle) || ir->Is(ir::Operator::kCallDirectly));
+
+    ir::Function *callee = nullptr;
+    if (ir->Is(ir::Operator::kCallDirectly)) {
+        callee = ir::OperatorWith<ir::Function *>::Data(ir->op());
+    } else {
+        DCHECK(ir->Is(ir::Operator::kCallHandle));
+        auto handle = ir::OperatorWith<const ir::Handle *>::Data(ir->op());
+        auto method = std::get<const ir::Model::Method *>(handle->owns()->GetMember(handle));
+        callee = method->fun;
+    }
+    std::vector<ir::Value *> returning_vals;
+    returning_vals.push_back(ir);
+    if (ir->users().size() > 0) {
+        for (auto edge : ir->users()) {
+            if (edge.user->Is(ir::Operator::kReturningVal)) {
+                returning_vals.push_back(edge.user);
+            }
+        }
+    }
+    if (returning_vals.size() > 1) {
+        std::sort(returning_vals.begin() + 1, returning_vals.end(), [](ir::Value *v1, ir::Value *v2) {
+            return ir::OperatorWith<int>::Data(v1) < ir::OperatorWith<int>::Data(v2);
+        });
+    }
+
+    std::vector<std::pair<UnallocatedOperand, InstructionOperand>> moving;
+
+    std::vector<UnallocatedOperand> inputs;
+    std::vector<ir::Value *> overflow_args;
+    size_t overflow_args_size = 0;
+    int gp_index = 0, fp_index = 0;
+    for (int i = 0; i < ir->op()->value_in(); i++) {
+        auto arg = ir->InputValue(i);
+        const auto size = RoundUp(arg->type().ReferenceSizeInBytes(),
+                                               static_cast<intptr_t>(arg->type().AlignmentSizeInBytes()));
+        if (arg->type().IsFloating()) {
+            if (fp_index < config()->number_of_argument_fp_registers()) {
+                auto opd = UseAsFixedFPRegister(arg, config()->argument_fp_register(fp_index++));
+                if (auto imm = TryUseAsConstantOrImmediate(arg); !imm.IsInvalid()) {
+                    moving.emplace_back(opd, imm);
+                }
+                inputs.push_back(opd);
+
+            } else {
+                // overflow
+                overflow_args_size += size;
+                overflow_args.push_back(arg);
+                inputs.push_back(UseAsSlot(arg));
+            }
+        } else {
+            if (gp_index < config()->number_of_argument_gp_registers()) {
+                auto opd = UseAsFixedRegister(arg, config()->argument_gp_register(gp_index++));
+                if (auto imm = TryUseAsConstantOrImmediate(arg); !imm.IsInvalid()) {
+                    moving.emplace_back(opd, imm);
+                }
+                inputs.push_back(opd);
+            } else {
+                // overflow
+                overflow_args_size += size;
+                overflow_args.push_back(arg);
+                inputs.push_back(UseAsSlot(arg));
+            }
+        }
+    }
+
+    size_t returning_vals_size = 0;
+    std::vector<UnallocatedOperand> outputs;
+    for (auto rv : returning_vals) {
+        if (rv->type().kind() == ir::Type::kVoid) {
+            continue;
+        }
+        returning_vals_size += RoundUp(rv->type().ReferenceSizeInBytes(), rv->type().AlignmentSizeInBytes());
+        outputs.push_back(DefineAsSlot(rv));
+    }
+
+    ImmediateOperand hints[3] = {
+        ImmediateOperand{static_cast<int32_t>(ReturningValSizeInBytes(callee->prototype()))},
+        ImmediateOperand{static_cast<int32_t>(overflow_args_size)},
+        ImmediateOperand{-1},
+    };
+    Emit(ArchBeforeCall, NoOutput(), arraysize(hints), hints);
+
+    InstructionOperand symbol[2] = {
+        ReloactionOperand{linkage()->Mangle(callee->full_name())},
+        ImmediateOperand{static_cast<int32_t>(overflow_args_size + returning_vals_size)}
+    };
+    auto instr = Emit(AndBits(ArchCall, CallDescriptorField::Encode(kCallDirectly)),
+         static_cast<int>(outputs.size()), &outputs[0],
+         static_cast<int>(inputs.size()), &inputs[0],
+         2, symbol);
+
+    for (auto [dest, src] : moving) {
+        instr->GetOrNewParallelMove(Instruction::kStart, arena())->AddMove(dest, src, arena());
+    }
+
+    Emit(ArchAfterCall, NoOutput(), arraysize(hints), hints);
 }
 
 void InstructionSelector::VisitReturn(ir::Value *value) {
@@ -235,7 +325,7 @@ void InstructionSelector::VisitReturn(ir::Value *value) {
         } else {
             inputs.insert(inputs.begin(), input);
         }
-        returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), Frame::kSlotAlignmentSize);
+        returning_val_offset += RoundUp(ty.ReferenceSizeInBytes(), ty.AlignmentSizeInBytes());
     }
 
     ImmediateOperand tmp{-1};
@@ -272,7 +362,7 @@ void InstructionSelector::VisitStackAlloc(ir::Value *value) {
 void InstructionSelector::VisitHeapAlloc(ir::Value *value) {
     auto model = ir::OperatorWith<const ir::StructureModel *>::Data(value->op());
     
-    Emit(ArchSaveCallerRegisters, NoOutput());
+    Emit(ArchBeforeCall, NoOutput());
     
     ReloactionOperand klass = UseAsExternalClassName(model->full_name());
     UnallocatedOperand arg0(UnallocatedOperand::kFixedRegister,
@@ -283,7 +373,7 @@ void InstructionSelector::VisitHeapAlloc(ir::Value *value) {
     ReloactionOperand heap_alloc = UseAsExternalCFunction(kRt_heap_alloc);
     Emit(ArchCallNative, DefineAsFixedRegister(value, config()->returning0_register()), heap_alloc, arg0);
     
-    Emit(AndBits(ArchRestoreCallerRegisters, CallDescriptorField::Encode(kCallNative)), NoOutput());
+    Emit(AndBits(ArchAfterCall, CallDescriptorField::Encode(kCallNative)), NoOutput());
 }
 
 Instruction *InstructionSelector::Emit(InstructionCode opcode, InstructionOperand output,
@@ -374,6 +464,14 @@ UnallocatedOperand InstructionSelector::DefineAsRegisterOrSlot(ir::Value *value)
     });
 }
 
+UnallocatedOperand InstructionSelector::DefineAsSlot(ir::Value *value) {
+    return Define(value, UnallocatedOperand{
+            UnallocatedOperand::kMustHaveSlot,
+            UnallocatedOperand::kUsedAtStart,
+            frame_->GetVirtualRegister(value)
+    });
+}
+
 UnallocatedOperand InstructionSelector::DefineAsRegister(ir::Value *value) {
     return Define(value, UnallocatedOperand{
         UnallocatedOperand::kMustHaveRegister,
@@ -386,6 +484,13 @@ UnallocatedOperand InstructionSelector::UseAsRegister(ir::Value *value) {
     return Use(value, UnallocatedOperand{
         UnallocatedOperand::kMustHaveRegister,
         frame_->GetVirtualRegister(value)
+    });
+}
+
+UnallocatedOperand InstructionSelector::UseAsSlot(ir::Value *value) {
+    return Use(value, UnallocatedOperand{
+            UnallocatedOperand::kMustHaveSlot,
+            frame_->GetVirtualRegister(value)
     });
 }
 

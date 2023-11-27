@@ -60,6 +60,7 @@ private:
     InstructionFunction *const fun_;
     Instruction *frame_enter_ = nullptr;
     std::vector<Instruction *> frame_exit_;
+    std::vector<Instruction *> call_prepare_;
 
     InstrScope *current_ = nullptr;
 

@@ -158,7 +158,7 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
         case ArchCall:
             printer()->Write("callq ");
             EmitOperand(instr->InputAt(0), kIndirectly);
-            printer()->Writeln("");
+            printer()->Writeln();
             break;
             
         case ArchFrameEnter:

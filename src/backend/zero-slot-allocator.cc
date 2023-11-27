@@ -132,6 +132,26 @@ void ZeroSlotAllocator::ProcessFrame() {
         auto tmp = frame_exit->TempAt(0);
         *tmp = ImmediateOperand{stack_frame_size};
     }
+
+    DCHECK(call_prepare_.size() % 2 == 0);
+    for (size_t i = 0; i < call_prepare_.size(); i += 2) {
+        auto before_call = call_prepare_[i];
+        if (before_call->temps_count() < 3) {
+            continue;
+        }
+        auto after_call = call_prepare_[i + 1];
+
+        auto stack_top = before_call->TempAt(2)->AsImmediate()->word32_value();
+        auto overflow_args_size = before_call->TempAt(1)->AsImmediate()->word32_value();
+        auto returning_val_size = before_call->TempAt(0)->AsImmediate()->word32_value();
+
+        stack_top += returning_val_size;
+        stack_top += overflow_args_size;
+        stack_top = RoundUp(stack_top, Frame::kStackAlignmentSize);
+
+        *before_call->TempAt(0) = ImmediateOperand{stack_top};
+        *after_call->TempAt(0) = ImmediateOperand{stack_top};
+    }
 }
 
 void ZeroSlotAllocator::VisitParameters(InstructionBlock *entry) {
@@ -158,16 +178,50 @@ void ZeroSlotAllocator::VisitBlock(InstructionBlock *block) {
         InstrScope scope(this);
         USE(scope);
 
-        if (instr->op() == ArchFrameEnter) {
-            DCHECK(frame_enter_ == nullptr);
-            frame_enter_ = instr;
-            //continue;
-        } else if (instr->op() == ArchFrameExit) {
-            frame_exit_.push_back(instr);
+        switch (InstructionCodeField::Decode(instr->op())) {
+            case ArchFrameEnter:
+                DCHECK(frame_enter_ == nullptr);
+                frame_enter_ = instr;
+                break;
+
+            case ArchFrameExit:
+                frame_exit_.push_back(instr);
+                break;
+
+            case ArchBeforeCall:
+                DCHECK(call_prepare_.empty() || call_prepare_.back()->op() == ArchAfterCall);
+                if (instr->temps_count() >= 3) {
+                    *instr->TempAt(2) = ImmediateOperand{stack_top_};
+                }
+                call_prepare_.push_back(instr);
+                break;
+
+            case ArchAfterCall:
+                DCHECK(!call_prepare_.empty() && call_prepare_.back()->op() == ArchBeforeCall);
+                if (instr->temps_count() >= 3) {
+                    *instr->TempAt(2) = *call_prepare_.back()->TempAt(2);
+                }
+                call_prepare_.push_back(instr);
+                break;
+
+//            case ArchCall:
+//                if (instr->temps_count() >= 2) {
+//                    auto stack_size = instr->TempAt(1)->AsImmediate()->word32_value();
+//                    // Padding:
+//                    stack_top_ += (RoundUp(stack_size, Frame::kStackAlignmentSize) - stack_size);
+//                } break;
+
+            default:
+                break;
         }
+
         VisitInstruction(instr);
         if (instr->op() == ArchFrameExit) {
             AddReturningForFrameExit(instr);
+        } else if (instr->op() == ArchCall) {
+            if (instr->temps_count() >= 2) {
+                stack_top_ = RoundUp(stack_top_, Frame::kStackAlignmentSize);
+            }
         }
     }
 }

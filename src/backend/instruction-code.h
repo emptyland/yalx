@@ -15,8 +15,8 @@ namespace yalx::backend {
     V(ArchJmp) \
     V(ArchCall) \
     V(ArchCallNative) \
-    V(ArchSaveCallerRegisters) \
-    V(ArchRestoreCallerRegisters) \
+    V(ArchAfterCall) \
+    V(ArchBeforeCall) \
     V(ArchFrameEnter) \
     V(ArchFrameExit) \
     V(ArchUnreachable) \
@@ -52,6 +52,7 @@ enum AddressingMode {
 };
 
 enum CallDescriptor {
+    kNotCall,
     kCallNative,
     kCallDirectly,
     kMaxCalling,

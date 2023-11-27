@@ -204,4 +204,18 @@ L0:
     EXPECT_EQ(z, expected) << expected;
 }
 
+// issue07_call_non_args_fun
+TEST_F(X64PosixLowerTest, CallNonArgsFun) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue07_call_non_args_fun");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    puts(PrintTo(ir_fun).c_str());
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    puts(PrintTo(lo_fun).c_str());
+}
+
 } // namespace yalx::backend
