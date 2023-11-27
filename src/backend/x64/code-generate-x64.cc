@@ -736,10 +736,10 @@ void X64CodeGenerator::FunctionGenerator::EmitMove(InstructionOperand *dest, Ins
                     } else { // mem <- mem
                         printer()->Indent(1)->Print("%s ", instr);
                         EmitOperand(src);
-                        printer()->Println(", %%%s", Scratch(MachineRepresentation::kWord64));
+                        printer()->Println(", %%%s", Scratch(out->machine_representation()));
 
                         printer()->Indent(1)->Print("%s ", instr);
-                        printer()->Print("%%%s, ", Scratch(MachineRepresentation::kWord64));
+                        printer()->Print("%%%s, ", Scratch(out->machine_representation()));
                         EmitOperand(dest);
                         printer()->Writeln();
                     }

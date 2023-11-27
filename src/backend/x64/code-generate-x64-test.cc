@@ -110,14 +110,14 @@ Lblk0:
     movl $1, %eax
     addl $2, %eax
     movl %eax, -4(%rbp)
-    movl -4(%rbp), %r13
-    movl %r13, 28(%rbp)
+    movl -4(%rbp), %r13d
+    movl %r13d, 28(%rbp)
     addq $16, %rsp
     popq %rbp
     retq
 .cfi_endproc
 )";
-    ASSERT_EQ(z, expected);
+    ASSERT_EQ(z, expected) << expected;
 }
 
 } // namespace yalx::backend
