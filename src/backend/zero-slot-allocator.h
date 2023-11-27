@@ -46,9 +46,11 @@ private:
         int value;
     };
 
+    class InstrScope;
+
     void AddReturningForFrameExit(Instruction *instr);
     void AllocateSlot(Instruction *instr, UnallocatedOperand *unallocated);
-    int AllocateSlotIfNotExists(InstructionOperand *opd, int vr, const int *hint = nullptr);
+    bool AllocateSlotIfNotExists(InstructionOperand *opd, int vr, const int *hint = nullptr);
     int AllocateSlot(InstructionOperand *opd, int vr, const int *hint = nullptr);
     int ReallocatedSlot(Instruction *instr, UnallocatedOperand *unallocated, Allocated allocated);
     void AddParallelMove(const InstructionOperand &dest, const InstructionOperand &src, const ir::Type &ty, ParallelMove *moving);
@@ -58,6 +60,8 @@ private:
     InstructionFunction *const fun_;
     Instruction *frame_enter_ = nullptr;
     std::vector<Instruction *> frame_exit_;
+
+    InstrScope *current_ = nullptr;
 
     int stack_top_;
     std::unordered_map<int, Allocated> virtual_allocated_;

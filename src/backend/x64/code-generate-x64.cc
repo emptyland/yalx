@@ -125,6 +125,7 @@ private:
 
     static const char *Scratch(MachineRepresentation rep) {
         auto inst = RegistersConfiguration::of_x64();
+        DCHECK(inst->scratch0() >= 0);
         return RegisterName(rep, inst->scratch0());
     }
     
@@ -719,7 +720,6 @@ void X64CodeGenerator::FunctionGenerator::EmitMove(InstructionOperand *dest, Ins
             if (out->IsRegisterLocation()) {
                 printer()->Indent(1)->Print("%s ", instr);
                 EmitOperands(dest, src);
-                printer()->Writeln();
                 break;
             }
             DCHECK(out->IsMemoryLocation());
@@ -770,7 +770,7 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
         case InstructionOperand::kAllocated: {
             auto rep = operand->AsAllocated();
             if (rep->IsRegisterLocation()) {
-                printer()->Print("%%%s", RegisterName(rep->machine_representation(), rep->index()));
+                printer()->Print("%%%s", RegisterName(rep->machine_representation(), rep->register_id()));
             } else {
                 DCHECK(rep->IsMemoryLocation());
                 printer()->Print("%d(%%%s)", rep->index(),

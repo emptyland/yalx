@@ -61,6 +61,14 @@ public:
         }
     }
 
+    static std::string PrintTo(InstructionFunction *fun) {
+        std::string buf;
+        auto file = base::NewMemoryWritableFile(&buf);
+        base::PrintingWriter printer{file, true};
+        fun->PrintTo(&printer);
+        return buf;
+    }
+
 protected:
     Linkage linkage_;
     ConstantsPool const_pool_;
@@ -79,6 +87,32 @@ Lblk0:
     movq %rsp, %rbp
     .cfi_def_cfa_register %rbp
     movl $1, 28(%rbp)
+    popq %rbp
+    retq
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected);
+}
+
+// issue02_simple_add AddSubSanity
+TEST_F(X64CodeGeneratorTest, AddSubSanity) {
+    auto expected = GenTo("main:main", "issue02_simple_add");
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue02_simple_add
+main_Zomain_Zdissue02_simple_add:
+.cfi_startproc
+Lblk0:
+    pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
+    movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
+    subq $16, %rsp
+    movl $1, %eax
+    addl $2, %eax
+    movl %eax, -4(%rbp)
+    movl -4(%rbp), %r13
+    movl %r13, 28(%rbp)
+    addq $16, %rsp
     popq %rbp
     retq
 .cfi_endproc

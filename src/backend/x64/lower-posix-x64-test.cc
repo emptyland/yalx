@@ -100,10 +100,11 @@ TEST_F(X64PosixLowerTest, AddSubSanity) {
     ASSERT_TRUE(lo_fun != nullptr);
 
     CodeSlotAllocating(lo_fun);
+    //puts(PrintTo(lo_fun).c_str());
     static constexpr char z[] = R"(main_Zomain_Zdissue02_simple_add:
 L0:
     ArchFrameEnter (#16)
-    Move {dword fp-4} <- #1
+    Move {dword $0} <- #1
     {dword $0} = X64Add32 #2
     Move {dword fp-4} <- {dword $0}
     Move {dword fp+28} <- {dword fp-4}

@@ -32,6 +32,7 @@ void X64PosixLower::VisitCondBr(ir::Value *instr) {
 void X64PosixLower::VisitAddOrSub(ir::Value *ir) {
     DCHECK(ir->op()->value_in() == 2);
     auto rv = DefineAsRegister(ir->OutputValue(0));
+
     InstructionOperand lhs = TryUseAsIntegralImmediate(ir->InputValue(0));
     if (lhs.IsInvalid()) {
         lhs = DefineAsRegisterOrSlot(ir->InputValue(0));
@@ -58,6 +59,7 @@ void X64PosixLower::VisitAddOrSub(ir::Value *ir) {
             }
             break;
         case MachineRepresentation::kWord32:
+            //Emit(X64Movl, tmp, lhs);
             if (ir->Is(ir::Operator::kAdd)) {
                 instr = Emit(X64Add32, rv, rhs);
             } else {
@@ -83,6 +85,7 @@ void X64PosixLower::VisitAddOrSub(ir::Value *ir) {
             UNREACHABLE();
             break;
     }
+    USE(instr);
     instr->GetOrNewParallelMove(Instruction::kStart, arena())
          ->AddMove(rv, lhs, arena());
 }

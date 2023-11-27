@@ -170,9 +170,9 @@ const RegistersConfiguration *RegistersConfiguration::of_x64() {
         x64::kR10, // 10
         x64::kR11,
         x64::kR12,
-        //kR13, // r13 = scratch
-        //kR14, // r14 = root
-        x64::kR15,
+        // x64::kR13, // r13 = scratch
+        x64::kR14, // r14 = root
+        // x64::kR15, // r15 = root
     };
 
     static const int kCalleeSaveGPRegisters[] = {
