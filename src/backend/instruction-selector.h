@@ -47,7 +47,7 @@ public:
     void Select(ir::Value *instr);
     void VisitParameters(ir::Function *fun, std::vector<InstructionOperand> *parameters);
     void VisitPhi(ir::Value *instr);
-    void CallDirectly(ir::Value *ir);
+    void VisitCallDirectly(ir::Value *ir);
     void VisitReturn(ir::Value *value);
     void VisitStackAlloc(ir::Value *value);
     void VisitHeapAlloc(ir::Value *value);
@@ -56,6 +56,8 @@ public:
     virtual void VisitCondBr(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitAddOrSub(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitICmp(ir::Value *instr) {UNREACHABLE();}
+    virtual void VisitLoadAddress(ir::Value *instr) {UNREACHABLE();}
+    virtual Instruction *EmitLoadAddress(InstructionOperand output, InstructionOperand input) {return nullptr;}
     virtual InstructionOperand TryUseAsConstantOrImmediate(ir::Value *value) {UNREACHABLE();}
 
     Instruction *Emit(InstructionCode opcode, InstructionOperand output,

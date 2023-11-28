@@ -129,7 +129,7 @@ functions:
         %0 = CallDirectly u8 <fun foo:foo.foo>
         Br void u8 %0 out [L1:, L2:]
     L1:
-        %1 = CallDirectly u8 <fun foo:foo.bar>
+        %1 = VisitCallDirectly u8 <fun foo:foo.bar>
         Br void u8 %1 out [L3:, L4:]
     L2:
         Br void out [L6:]
@@ -407,7 +407,7 @@ functions:
     entry:
         Br void out [L2:]
     L1:
-        CallDirectly void string "do {} unless" <fun yalx/lang:lang.println>
+        VisitCallDirectly void string "do {} unless" <fun yalx/lang:lang.println>
         Br void out [L2:]
     L2:
         %0 = CallDirectly u8 <fun foo:foo.bar>
@@ -637,7 +637,7 @@ functions:
         %0 = CallDirectly i32 <fun foo:foo.gen>
         Br void out [L1:]
     L1:
-        %1 = CallDirectly u8 <fun foo:foo.bar>
+        %1 = VisitCallDirectly u8 <fun foo:foo.bar>
         Br void u8 %1 out [L2:, L3:]
     L2:
         Br void out [L4:]
@@ -1103,7 +1103,7 @@ functions:
         Br void u8 %3 out [L4:, L5:]
     L4:
         %4 = LoadInlineField string val[foo:foo.Foo] %e <foo:foo.Foo::B>
-        CallDirectly void string %4 <fun yalx/lang:lang.println>
+        VisitCallDirectly void string %4 <fun yalx/lang:lang.println>
         Br void out [L9:]
     L5:
         %5 = LoadInlineField u16 val[foo:foo.Foo] %e <foo:foo.Foo::$enum_code$>

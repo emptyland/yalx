@@ -84,6 +84,14 @@ public:
     bool IsCompactEnum() const;
     
     bool Equals(const Type &other) const { return kind() == other.kind() && model() == other.model(); }
+
+    [[nodiscard]] bool ShouldValuePassing() const {
+        return !IsCompactEnum() && !IsPointer() && (kind() == kValue || kind() == kTuple);
+    }
+
+    [[nodiscard]] bool ShouldReferencePassing() const {
+        return kind() != kVoid && !ShouldValuePassing();
+    }
     
     [[nodiscard]] size_t ReferenceSizeInBytes() const;
     [[nodiscard]] size_t PlacementSizeInBytes() const;

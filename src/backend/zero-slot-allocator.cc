@@ -71,6 +71,12 @@ public:
         DCHECK(allocated_.find(vr) != allocated_.end());
     }
 
+    void Ignore(int vr) { ignore_vr_.insert(vr); }
+
+    bool ShouldIgnore(int vr) const { return ignore_vr_.find(vr) != ignore_vr_.end(); }
+
+    void InvalidIgnore() { ignore_vr_.clear(); }
+
     bool FindAllocated(InstructionOperand *opd, int vid) const {
         if (auto iter = allocated_.find(vid); iter != allocated_.end()) {
             *opd = iter->second;
@@ -98,6 +104,7 @@ private:
     std::set<int> allocatable_gp_registers_;
     std::set<int> allocatable_fp_registers_;
     std::unordered_map<int, AllocatedOperand> allocated_;
+    std::set<int> ignore_vr_;
 }; // class ZeroSlotAllocator::InstrScope
 
 ZeroSlotAllocator::ZeroSlotAllocator(base::Arena *arena, const RegistersConfiguration *profile, InstructionFunction *fun)
@@ -141,16 +148,17 @@ void ZeroSlotAllocator::ProcessFrame() {
         }
         auto after_call = call_prepare_[i + 1];
 
-        auto stack_top = before_call->TempAt(2)->AsImmediate()->word32_value();
+        auto current_stack_top = before_call->TempAt(2)->AsImmediate()->word32_value();
         auto overflow_args_size = before_call->TempAt(1)->AsImmediate()->word32_value();
         auto returning_val_size = before_call->TempAt(0)->AsImmediate()->word32_value();
 
-        stack_top += returning_val_size;
-        stack_top += overflow_args_size;
-        stack_top = RoundUp(stack_top, Frame::kStackAlignmentSize);
+        current_stack_top += returning_val_size;
+        current_stack_top += overflow_args_size;
+        current_stack_top = RoundUp(current_stack_top, Frame::kStackAlignmentSize);
 
-        *before_call->TempAt(0) = ImmediateOperand{stack_top};
-        *after_call->TempAt(0) = ImmediateOperand{stack_top};
+        auto adjust_stack_size = stack_frame_size - current_stack_top;
+        *before_call->TempAt(0) = ImmediateOperand{adjust_stack_size};
+        *after_call->TempAt(0) = ImmediateOperand{adjust_stack_size};
     }
 }
 
@@ -178,7 +186,7 @@ void ZeroSlotAllocator::VisitBlock(InstructionBlock *block) {
         InstrScope scope(this);
         USE(scope);
 
-        switch (InstructionCodeField::Decode(instr->op())) {
+        switch (instr->op()) {
             case ArchFrameEnter:
                 DCHECK(frame_enter_ == nullptr);
                 frame_enter_ = instr;
@@ -189,6 +197,7 @@ void ZeroSlotAllocator::VisitBlock(InstructionBlock *block) {
                 break;
 
             case ArchBeforeCall:
+
                 DCHECK(call_prepare_.empty() || call_prepare_.back()->op() == ArchAfterCall);
                 if (instr->temps_count() >= 3) {
                     *instr->TempAt(2) = ImmediateOperand{stack_top_};
@@ -204,24 +213,30 @@ void ZeroSlotAllocator::VisitBlock(InstructionBlock *block) {
                 call_prepare_.push_back(instr);
                 break;
 
-//            case ArchCall:
-//                if (instr->temps_count() >= 2) {
-//                    auto stack_size = instr->TempAt(1)->AsImmediate()->word32_value();
-//                    // Padding:
-//                    stack_top_ += (RoundUp(stack_size, Frame::kStackAlignmentSize) - stack_size);
-//                } break;
+            case ArchCall:
+                stack_top_ = RoundUp(stack_top_, Frame::kStackAlignmentSize);
+                break;
 
             default:
                 break;
         }
 
         VisitInstruction(instr);
-        if (instr->op() == ArchFrameExit) {
-            AddReturningForFrameExit(instr);
-        } else if (instr->op() == ArchCall) {
-            if (instr->temps_count() >= 2) {
-                stack_top_ = RoundUp(stack_top_, Frame::kStackAlignmentSize);
-            }
+
+        switch (instr->op()) {
+            case ArchFrameExit:
+                AddReturningForFrameExit(instr);
+                break;
+            case ArchCall:
+                if (instr->temps_count() >= 2) {
+                    auto stack_size = instr->TempAt(1)->AsImmediate()->word32_value();
+                    auto padding = (RoundUp(stack_size, Frame::kStackAlignmentSize) - stack_size);
+                    //printf("padding = %d\n", padding);
+                    stack_top_ += padding;
+                }
+                break;
+            default:
+                break;
         }
     }
 }
@@ -234,6 +249,21 @@ void ZeroSlotAllocator::VisitInstruction(Instruction *instr) {
             break;
         }
         AllocateSlot(instr, out->AsUnallocated());
+    }
+
+    if (auto moving = instr->parallel_move(Instruction::kStart)) {
+        for (auto opd : moving->moves()) {
+            if (auto dest = opd->dest().AsUnallocated()) {
+                if ((dest->has_must_have_reigster_policy() ||
+                    dest->has_fixed_reigster_policy() ||
+                    dest->has_fixed_reigster_policy()) &&
+                    (opd->src().IsImmediate() ||
+                    opd->src().IsConstant() ||
+                    opd->src().IsReloaction())) {
+                    DCHECK_NOTNULL(current_)->Ignore(dest->virtual_register());
+                }
+            }
+        }
     }
 
     for (int i = 0; i < instr->inputs_count(); i++) {
@@ -250,6 +280,8 @@ void ZeroSlotAllocator::VisitInstruction(Instruction *instr) {
             ReallocatedSlot(instr, unallocated, iter->second);
         }
     }
+
+    DCHECK_NOTNULL(current_)->InvalidIgnore();
 
     if (auto moving = instr->parallel_move(Instruction::kStart)) {
         for (auto opd : moving->moves()) {
@@ -296,10 +328,9 @@ void ZeroSlotAllocator::AddReturningForFrameExit(Instruction *instr) {
 
 void ZeroSlotAllocator::AllocateSlot(Instruction *instr, UnallocatedOperand *unallocated) {
     auto ty = fun_->frame()->GetType(unallocated->virtual_register());
-    auto mr = ToMachineRepresentation(ty);
-    if (mr == MachineRepresentation::kNone) {
-        mr = MachineRepresentation::kPointer;
-    }
+    auto rep = ToMachineRepresentation(ty);
+
+    auto dont_ignore_moving = !DCHECK_NOTNULL(current_)->ShouldIgnore(unallocated->virtual_register());
 
     switch (unallocated->policy()) {
         case UnallocatedOperand::kRegisterOrSlot:
@@ -308,20 +339,23 @@ void ZeroSlotAllocator::AllocateSlot(Instruction *instr, UnallocatedOperand *una
             AllocateSlotIfNotExists(unallocated, unallocated->virtual_register());
             break;
         case UnallocatedOperand::kFixedRegister: {
-            auto tmp = DCHECK_NOTNULL(current_)->AllocateFixedRegister(mr, unallocated->fixed_register_id());
-            InstructionOperand slot;
-            AllocateSlotIfNotExists(&slot, unallocated->virtual_register());
-            AddParallelMove(slot, tmp, ty, instr->GetOrNewParallelMove(Instruction::kEnd, arena_));
-
+            auto tmp = DCHECK_NOTNULL(current_)->AllocateFixedRegister(rep, unallocated->fixed_register_id());
+            if (dont_ignore_moving) {
+                InstructionOperand slot;
+                AllocateSlotIfNotExists(&slot, unallocated->virtual_register());
+                AddParallelMove(slot, tmp, ty, instr->GetOrNewParallelMove(Instruction::kEnd, arena_));
+            }
             DCHECK_NOTNULL(current_)->Allocated(unallocated->virtual_register(), tmp);
             memcpy(unallocated, &tmp, sizeof(tmp));
         } break;
         case UnallocatedOperand::kFixedFPRegister: {
-            auto tmp = DCHECK_NOTNULL(current_)->AllocateFixedRegister(mr, unallocated->fixed_fp_register_id());
-            InstructionOperand slot;
-            AllocateSlotIfNotExists(&slot, unallocated->virtual_register());
-            instr->GetOrNewParallelMove(Instruction::kEnd, arena_)
-                 ->AddMove(slot, tmp, arena_);
+            auto tmp = DCHECK_NOTNULL(current_)->AllocateFixedRegister(rep, unallocated->fixed_fp_register_id());
+            if (dont_ignore_moving) {
+                InstructionOperand slot;
+                AllocateSlotIfNotExists(&slot, unallocated->virtual_register());
+                instr->GetOrNewParallelMove(Instruction::kEnd, arena_)
+                        ->AddMove(slot, tmp, arena_);
+            }
             DCHECK_NOTNULL(current_)->Allocated(unallocated->virtual_register(), tmp);
             memcpy(unallocated, &tmp, sizeof(tmp));
         } break;
@@ -330,11 +364,12 @@ void ZeroSlotAllocator::AllocateSlot(Instruction *instr, UnallocatedOperand *una
             AllocateSlotIfNotExists(unallocated, unallocated->virtual_register(), &fixed_slot_offset);
         } break;
         case UnallocatedOperand::kMustHaveRegister: {
-            auto tmp = DCHECK_NOTNULL(current_)->AllocateRegister(mr);
-            InstructionOperand slot;
-            AllocateSlotIfNotExists(&slot, unallocated->virtual_register());
-            AddParallelMove(slot, tmp, ty, instr->GetOrNewParallelMove(Instruction::kEnd, arena_));
-
+            auto tmp = DCHECK_NOTNULL(current_)->AllocateRegister(rep);
+            if (dont_ignore_moving) {
+                InstructionOperand slot;
+                AllocateSlotIfNotExists(&slot, unallocated->virtual_register());
+                AddParallelMove(slot, tmp, ty, instr->GetOrNewParallelMove(Instruction::kEnd, arena_));
+            }
             DCHECK_NOTNULL(current_)->Allocated(unallocated->virtual_register(), tmp);
             memcpy(unallocated, &tmp, sizeof(tmp));
         } break;
@@ -346,27 +381,30 @@ void ZeroSlotAllocator::AllocateSlot(Instruction *instr, UnallocatedOperand *una
 }
 
 int ZeroSlotAllocator::ReallocatedSlot(Instruction *instr, UnallocatedOperand *unallocated, Allocated allocated) {
-    const auto mr = ToMachineRepresentation(fun_->frame()->GetType(unallocated->virtual_register()));
+    const auto ty = fun_->frame()->GetType(unallocated->virtual_register());
+    const auto rep = ToMachineRepresentation(ty);
 
     switch (unallocated->policy()) {
         case UnallocatedOperand::kRegisterOrSlot:
         case UnallocatedOperand::kRegisterOrSlotOrConstant:
         case UnallocatedOperand::kMustHaveSlot: {
-            auto dest = AllocatedOperand::Slot(mr, profile_->fp(),allocated.value);
+            auto dest = AllocatedOperand::Slot(rep, profile_->fp(), allocated.value);
             memcpy(unallocated, &dest, sizeof(dest));
         } break;
         case UnallocatedOperand::kFixedRegister: {
-            auto dest = DCHECK_NOTNULL(current_)->AllocateFixedRegister(mr, unallocated->fixed_register_id());
-            auto src = AllocatedOperand::Slot(mr, profile_->fp(), allocated.value);
+            auto dest = DCHECK_NOTNULL(current_)->AllocateFixedRegister(rep, unallocated->fixed_register_id());
+            auto src = AllocatedOperand::Slot(rep, profile_->fp(), allocated.value);
+
             instr->GetOrNewParallelMove(Instruction::kStart, arena_)
-                 ->AddMove(dest, src, arena_);
+                    ->AddMove(dest, src, arena_)
+                    ->should_load_address(ty.ShouldValuePassing());
 
             DCHECK_NOTNULL(current_)->Allocated(unallocated->virtual_register(), dest);
             memcpy(unallocated, &dest, sizeof(dest));
         } break;
         case UnallocatedOperand::kFixedFPRegister: {
-            auto dest = DCHECK_NOTNULL(current_)->AllocateFixedRegister(mr, unallocated->fixed_fp_register_id());
-            auto src = AllocatedOperand::Slot(mr, profile_->fp(), allocated.value);
+            auto dest = DCHECK_NOTNULL(current_)->AllocateFixedRegister(rep, unallocated->fixed_fp_register_id());
+            auto src = AllocatedOperand::Slot(rep, profile_->fp(), allocated.value);
             instr->GetOrNewParallelMove(Instruction::kStart, arena_)
                  ->AddMove(dest, src, arena_);
 
@@ -377,8 +415,8 @@ int ZeroSlotAllocator::ReallocatedSlot(Instruction *instr, UnallocatedOperand *u
             if (unallocated->fixed_slot_offset() == allocated.value) {
                 break;
             }
-            auto dest = AllocatedOperand::Slot(mr, profile_->fp(), unallocated->fixed_slot_offset());
-            auto src = AllocatedOperand::Slot(mr, profile_->fp(), allocated.value);
+            auto dest = AllocatedOperand::Slot(rep, profile_->fp(), unallocated->fixed_slot_offset());
+            auto src = AllocatedOperand::Slot(rep, profile_->fp(), allocated.value);
             instr->GetOrNewParallelMove(Instruction::kStart, arena_)
                  ->AddMove(dest, src, arena_);
             memcpy(unallocated, &dest, sizeof(dest));

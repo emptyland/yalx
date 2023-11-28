@@ -14,6 +14,7 @@ private:
     void VisitCondBr(ir::Value *instr) override;
     void VisitAddOrSub(ir::Value *ir) override;
     void VisitICmp(ir::Value *instr) override;
+    void VisitLoadAddress(ir::Value *ir) override;
     InstructionOperand TryUseAsConstantOrImmediate(ir::Value *value) override;
 }; // X64PosixLower
 

@@ -167,7 +167,7 @@ TEST_F(X64PosixLowerTest, SimpleArgs3) {
     CodeSlotAllocating(lo_fun);
     static constexpr char z[] = R"(main_Zomain_Zdissue05_simple_args:
 L0:
-    {dword $7}, {dword $6}, {ptr $2} = ArchFrameEnter (#32)
+    {dword $7}, {dword $6}, {none $2} = ArchFrameEnter (#32)
     Move {dword fp-4} <- {dword $7}
     Move {dword fp-8} <- {dword $6}
     Move {qword fp-32} <- {qword $2+0} // move value: main:main.Vertx2
@@ -191,7 +191,7 @@ TEST_F(X64PosixLowerTest, ReturnVal1) {
     CodeSlotAllocating(lo_fun);
     static constexpr char z[] = R"(main_Zomain_Zdissue06_returning_val:
 L0:
-    {ptr $7} = ArchFrameEnter (#32)
+    {none $7} = ArchFrameEnter (#32)
     Move {qword fp-24} <- {qword $7+0} // move value: main:main.Vertx2
     Move {qword fp-16} <- {qword $7+8} // move value: main:main.Vertx2
     Move {qword fp-8} <- {qword $7+16} // move value: main:main.Vertx2
@@ -209,13 +209,81 @@ TEST_F(X64PosixLowerTest, CallNonArgsFun) {
     auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue07_call_non_args_fun");
     ASSERT_TRUE(ir_fun != nullptr);
 
-    puts(PrintTo(ir_fun).c_str());
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue07_call_non_args_fun:
+L0:
+    ArchFrameEnter (#32)
+    ArchBeforeCall (#16, #0, #0)
+    {dword fp-4} = ArchCall (<main_Zomain_Zdissue01_returning_one>, #4)
+    ArchAfterCall (#16, #0, #0)
+    Move {dword $0} <- #1
+    {dword $0} = X64Add32 {dword fp-4}
+    Move {dword fp-20} <- {dword $0}
+    Move {dword fp+28} <- {dword fp-20}
+    ArchFrameExit {dword fp-20}(#32)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
+// issue08_call_two_args_fun
+TEST_F(X64PosixLowerTest, CallTwoArgsFun) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue08_call_two_args_fun");
+    ASSERT_TRUE(ir_fun != nullptr);
 
     auto lo_fun = IRLowing(ir_fun);
     ASSERT_TRUE(lo_fun != nullptr);
 
     CodeSlotAllocating(lo_fun);
-    puts(PrintTo(lo_fun).c_str());
+    static constexpr char z[] = R"(main_Zomain_Zdissue08_call_two_args_fun:
+L0:
+    ArchFrameEnter (#32)
+    ArchBeforeCall (#16, #0, #0)
+    Move {dword $7} <- #1
+    Move {dword $6} <- #2
+    {dword fp-4}, {dword fp-8} = ArchCall {dword $7}, {dword $6}(<main_Zomain_Zdissue04_simple_args>, #8)
+    ArchAfterCall (#16, #0, #0)
+    Move {dword $0} <- {dword fp-4}
+    {dword $0} = X64Add32 {dword fp-8}
+    Move {dword fp-20} <- {dword $0}
+    Move {dword fp+28} <- {dword fp-20}
+    ArchFrameExit {dword fp-20}(#32)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
+// issue09_call_val_args_fun
+TEST_F(X64PosixLowerTest, CallValArgsFun) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue09_call_val_args_fun");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue09_call_val_args_fun:
+L0:
+    ArchFrameEnter (#64)
+    {ptr fp-24} = ArchStackAlloc #24
+    {ptr fp-32} = X64Lea {none fp-24}
+    ArchBeforeCall (#32, #0, #32)
+    Move {dword $6} <- #1
+    Move {dword $2} <- #2
+    Move {ptr $7} <- {ptr fp-32}
+    ArchCall {ptr $7}, {dword $6}, {dword $2}(<main_Zomain_ZdVertx2_ZdVertx2_Z4constructor>, #0)
+    ArchAfterCall (#32, #0, #32)
+    ArchBeforeCall (#0, #0, #32)
+    Move {none $7} <- &{none fp-24}
+    {ptr fp-56} = ArchCall {none $7}(<main_Zomain_Zdissue06_returning_val>, #24)
+    ArchAfterCall (#0, #0, #32)
+    ArchFrameExit (#64)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
 }
 
 } // namespace yalx::backend

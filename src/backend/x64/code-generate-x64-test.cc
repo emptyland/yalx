@@ -120,6 +120,11 @@ Lblk0:
     ASSERT_EQ(z, expected) << expected;
 }
 
+TEST_F(X64CodeGeneratorTest, CallValArgsFun) {
+    auto expected = GenTo("main:main", "issue09_call_val_args_fun");
+    puts(expected.c_str());
+}
+
 } // namespace yalx::backend
 
 

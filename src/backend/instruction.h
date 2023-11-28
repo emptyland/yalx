@@ -410,17 +410,28 @@ public:
         Operands(const InstructionOperand &src, const InstructionOperand &dest, const char *comment)
         : src_(src)
         , dest_(dest)
-        , comment_(comment) {
+        , tag_(reinterpret_cast<uintptr_t>(comment)) {
             DCHECK(!src.IsInvalid() && !dest.IsInvalid());
         }
         
         DEF_VAL_PROP_RM(InstructionOperand, src);
         DEF_VAL_PROP_RM(InstructionOperand, dest);
-        DEF_PTR_GETTER(const char, comment);
+
+        [[nodiscard]] bool should_load_address() const { return tag_ & kFlag; }
+
+        void should_load_address(bool lea) {
+            tag_ &= kFlagMask;
+            tag_ |= static_cast<uintptr_t>(lea);
+        }
+
+        const char *comment() const { return reinterpret_cast<const char *>(tag_ & kFlagMask); }
     private:
+        static constexpr uintptr_t kFlag = 0x1;
+        static constexpr uintptr_t kFlagMask = ~kFlag;
+
         InstructionOperand src_;
         InstructionOperand dest_;
-        const char *const comment_;
+        uintptr_t tag_;
     }; // class Operands
     
     explicit ParallelMove(base::Arena *arena): moves_(arena) {}
@@ -453,7 +464,9 @@ public:
     using Code = InstructionCode;
     using Operand = InstructionOperand;
     
-    DEF_VAL_GETTER(Code, op);
+    //DEF_VAL_GETTER(Code, op);
+    [[nodiscard]] Code op() const { return InstructionCodeField::Decode(op_); }
+
     DEF_VAL_PROP_RW(int, id);
     int inputs_count() const { return inputs_count_; }
     int outputs_count() const { return outputs_count_; }
@@ -674,7 +687,14 @@ inline InstructionBlock *InstructionFunction::NewBlock(int label) {
     return block;
 }
 
-} // namespace backend
+struct PrepareCallHint {
+    static int GetAdjustStackSize(Instruction *instr) {
+        DCHECK(instr->op() == ArchAfterCall || instr->op() == ArchBeforeCall);
+        return instr->TempAt(0)->AsImmediate()->word32_value();
+    }
+}; // struct PrepareCallHint
+
+}; // namespace backend
 
 } // namespace yalx
 

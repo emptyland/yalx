@@ -18,3 +18,13 @@ fun issue05_simple_args(a: i32, b: i32, c: Vertx2) -> a, b
 fun issue06_returning_val(a: Vertx2) -> a
 
 fun issue07_call_non_args_fun() -> 1 + issue01_returning_one()
+
+fun issue08_call_two_args_fun(): i32 {
+    val a, b = issue04_simple_args(1, 2)
+    return a + b
+}
+
+fun issue09_call_val_args_fun() {
+    val a = Vertx2(1, 2)
+    issue06_returning_val(a)
+}

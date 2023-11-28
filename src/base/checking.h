@@ -35,7 +35,7 @@ using OSChar = char;
 #endif
 }
 
-#define UNREACHABLE() ::yalx::base::Fatal(OS_LITERAL("Noreachable"), OS_LITERAL(__FILE__), __LINE__)
+#define UNREACHABLE() ::yalx::base::Fatal(OS_LITERAL("Unreachable"), OS_LITERAL(__FILE__), __LINE__)
 
 #if defined(NDEBUG)
 
@@ -74,6 +74,7 @@ public:
         vprintf(fmt, ap);
         va_end(ap);
         putc('\n', stdout);
+        fflush(stdout);
     }
     
 private:

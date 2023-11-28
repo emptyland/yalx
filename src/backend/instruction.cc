@@ -17,6 +17,11 @@ bool InstructionOperand::Equals(const InstructionOperand *other) const {
     switch (kind()) {
         case kInvalid:
             return other->IsInvalid();
+        case kUnallocated: {
+            auto lhs = AsUnallocated();
+            auto rhs = other->AsUnallocated();
+            return lhs->policy() == rhs->policy() && lhs->virtual_register() == rhs->virtual_register();
+        } break;
         case kConstant: {
             auto lhs = AsConstant();
             auto rhs = other->AsConstant();
@@ -66,6 +71,7 @@ bool InstructionOperand::Equals(const InstructionOperand *other) const {
             }
         } break;
         default:
+            printd("Unknown kind: %d", kind());
             UNREACHABLE();
             break;
     }
@@ -264,6 +270,9 @@ void Instruction::PrintTo(int ident, base::PrintingWriter *printer) const {
             }
             opds->dest().PrintTo(printer);
             printer->Write(" <- ");
+            if (opds->should_load_address()) {
+                printer->Write("&");
+            }
             opds->src().PrintTo(printer);
             if (opds->comment()) {
                 printer->Println(" // %s", opds->comment());
@@ -325,6 +334,9 @@ void Instruction::PrintTo(int ident, base::PrintingWriter *printer) const {
             }
             opds->dest().PrintTo(printer);
             printer->Write(" <- ");
+            if (opds->should_load_address()) {
+                printer->Write("&");
+            }
             opds->src().PrintTo(printer);
             if (opds->comment()) {
                 printer->Println(" // %s", opds->comment());

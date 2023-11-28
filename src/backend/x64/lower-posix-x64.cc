@@ -94,6 +94,12 @@ void X64PosixLower::VisitICmp(ir::Value *instr) {
     UNREACHABLE();
 }
 
+void X64PosixLower::VisitLoadAddress(ir::Value *ir) {
+    auto input = UseAsSlot(ir->InputValue(0));
+    auto output = UseAsRegisterOrSlot(ir);
+    Emit(X64Lea, output, input);
+}
+
 InstructionOperand X64PosixLower::TryUseAsConstantOrImmediate(ir::Value *value) {
     if (auto imm = TryUseAsIntegralImmediate(value); !imm.IsInvalid()) {
         return imm;

@@ -103,7 +103,7 @@ void InstructionSelector::Select(ir::Value *instr) {
         case ir::Operator::kCallDirectly:
 //        case ir::Operator::kCallAbstract:
 //        case ir::Operator::kCallIndirectly:
-            CallDirectly(instr);
+            VisitCallDirectly(instr);
             break;
 
         case ir::Operator::kAdd:
@@ -130,6 +130,14 @@ void InstructionSelector::Select(ir::Value *instr) {
         case ir::Operator::kPhi:
             VisitPhi(instr);
             break; // Ignore phi nodes
+
+        case ir::Operator::kReturningVal:
+            // Ignore returning-val nodes.
+            break;
+
+        case ir::Operator::kLoadAddress:
+            VisitLoadAddress(instr);
+            break;
 
 //        case ir::Operator::kWord8Constant:
 //        case ir::Operator::kWord16Constant:
@@ -205,7 +213,7 @@ void InstructionSelector::VisitPhi(ir::Value *instr) {
     // Ignore
 }
 
-void InstructionSelector::CallDirectly(ir::Value *ir) {
+void InstructionSelector::VisitCallDirectly(ir::Value *ir) {
     DCHECK(ir->Is(ir::Operator::kCallHandle) || ir->Is(ir::Operator::kCallDirectly));
 
     ir::Function *callee = nullptr;
@@ -509,7 +517,7 @@ UnallocatedOperand InstructionSelector::UseAsFixedSlot(ir::Value *value, int ind
 UnallocatedOperand InstructionSelector::UseAsFixedRegister(ir::Value *value, int index) {
     return Use(value, UnallocatedOperand{
         UnallocatedOperand::kFixedRegister,
-        UnallocatedOperand::kUsedAtEnd,
+        index,
         frame_->GetVirtualRegister(value)
     });
 }
@@ -517,7 +525,7 @@ UnallocatedOperand InstructionSelector::UseAsFixedRegister(ir::Value *value, int
 UnallocatedOperand InstructionSelector::UseAsFixedFPRegister(ir::Value *value, int index) {
     return Use(value, UnallocatedOperand{
         UnallocatedOperand::kFixedFPRegister,
-        UnallocatedOperand::kUsedAtEnd,
+        index,
         frame_->GetVirtualRegister(value)
     });
 }
