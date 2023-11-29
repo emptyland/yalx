@@ -81,11 +81,14 @@ extern const String *const kLibc_memset;
     V(array_set_chunk2) \
     V(array_set_chunk3) \
     V(closure) \
-    V(concat)
+    V(concat)                   \
+    V(ygc_barrier_load_on_field)
 
 #define DECL_RUNTIME_FUN_SYMBOL(name) extern const String *const kRt_##name;
     DECLARE_RUNTIME_FUNS(DECL_RUNTIME_FUN_SYMBOL)
 #undef DECL_RUNTIME_FUN_SYMBOL
+
+extern const String *const kRt_YGC_ADDRESS_BAD_MASK;
 
 } // namespace yalx
 

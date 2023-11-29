@@ -57,7 +57,7 @@ RegistersConfiguration::RegistersConfiguration(int number_of_argument_gp_registe
     }
 }
 
-const RegistersConfiguration *RegistersConfiguration::of_arm64() {
+const RegistersConfiguration *RegistersConfiguration::OfPosixArm64() {
     // SP The Stack Pointer.
     // r30 LR The Link Register.
     // r29 FP The Frame Pointer
@@ -149,7 +149,7 @@ const RegistersConfiguration *RegistersConfiguration::of_arm64() {
     return inst.Get();
 }
 
-const RegistersConfiguration *RegistersConfiguration::of_x64() {
+const RegistersConfiguration *RegistersConfiguration::OfPosixX64() {
     //RAX, RCX,
     //RDX, RSI,
     //RDI,

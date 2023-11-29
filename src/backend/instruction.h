@@ -7,6 +7,7 @@
 #include "base/arena-utils.h"
 #include "base/checking.h"
 #include "base/base.h"
+#include <optional>
 
 namespace yalx {
 namespace ir {
@@ -629,8 +630,8 @@ public:
     DEF_ARENA_VECTOR_GETTER(InstructionBlock *, loop_end_node);
     DEF_ARENA_VECTOR_GETTER(Instruction *, instruction);
     
-    int GetLowerId() const;
-    int GetUpperId() const;
+    [[nodiscard]] int GetLowerId() const;
+    [[nodiscard]] int GetUpperId() const;
     
     void Add(Instruction *instr) { instructions_.push_back(instr); }
 
@@ -638,11 +639,24 @@ public:
     void AddPredecessors(InstructionBlock *predecessor) { AddLinkedNode(&predecessors_, predecessor); }
     void AddLoopEnd(InstructionBlock *node) { loop_end_nodes_.push_back(node); }
     void MovableAssign(base::ArenaVector<Instruction *> &&others) { instructions_ = std::move(others); }
+
+    void PutJumpingPosition(int id) {
+        DCHECK(!instructions().empty());
+        jumping_table_.emplace(instructions().back(), id);
+    }
+
+    std::optional<int> JumpingPosition(Instruction *instr) const {
+        if (auto iter = jumping_table_.find(instr); iter != jumping_table_.end()) {
+            return {iter->second};
+        } else {
+            return std::nullopt;
+        }
+    }
     
     void PrintTo(base::PrintingWriter *printer) const;
     DISALLOW_IMPLICIT_CONSTRUCTORS(InstructionBlock);
 private:
-    void AddLinkedNode(base::ArenaVector<InstructionBlock *> *nodes, InstructionBlock *node) {
+    static void AddLinkedNode(base::ArenaVector<InstructionBlock *> *nodes, InstructionBlock *node) {
         if (auto iter = std::find(nodes->begin(), nodes->end(), node); iter == nodes->end()) {
             nodes->push_back(node);
         }
@@ -654,6 +668,7 @@ private:
     base::ArenaVector<InstructionBlock *> predecessors_;
     base::ArenaVector<InstructionBlock *> loop_end_nodes_;
     base::ArenaVector<Instruction *> instructions_;
+    base::ArenaMap<Instruction *, int> jumping_table_;
     int id_;
     int label_;
     int loop_index_ = 0;
@@ -664,7 +679,7 @@ class InstructionBlockLabelGenerator final {
 public:
     InstructionBlockLabelGenerator() = default;
     
-    int NextLable() { return next_label_id_++; }
+    int NextLabel() { return next_label_id_++; }
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(InstructionBlockLabelGenerator);
 private:
@@ -688,9 +703,29 @@ inline InstructionBlock *InstructionFunction::NewBlock(int label) {
 }
 
 struct PrepareCallHint {
-    static int GetAdjustStackSize(Instruction *instr) {
+    static inline int GetAdjustStackSize(Instruction *instr) {
         DCHECK(instr->op() == ArchAfterCall || instr->op() == ArchBeforeCall);
         return instr->TempAt(0)->AsImmediate()->word32_value();
+    }
+
+    static inline void SetAdjustStackSize(Instruction *instr, int adjust_stack_size) {
+        DCHECK(instr->op() == ArchAfterCall || instr->op() == ArchBeforeCall);
+        *instr->TempAt(0) = ImmediateOperand{adjust_stack_size};
+    }
+
+    static inline int GetReturningValSize(Instruction *instr) {
+        DCHECK(instr->op() == ArchAfterCall || instr->op() == ArchBeforeCall);
+        return instr->TempAt(0)->AsImmediate()->word32_value();
+    }
+
+    static inline int GetOverflowArgsSize(Instruction *instr) {
+        DCHECK(instr->op() == ArchAfterCall || instr->op() == ArchBeforeCall);
+        return instr->TempAt(1)->AsImmediate()->word32_value();
+    }
+
+    static inline int GetCurrentStackTop(Instruction *instr) {
+        DCHECK(instr->op() == ArchAfterCall || instr->op() == ArchBeforeCall);
+        return instr->TempAt(2)->AsImmediate()->word32_value();
     }
 }; // struct PrepareCallHint
 

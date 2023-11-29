@@ -82,8 +82,10 @@ public:
     bool IsNullable() const { return flags_ & kNullableBit; }
     
     bool IsCompactEnum() const;
+
+    [[nodiscard]] bool IsGeneralizedReference() const { return IsCompactEnum() || IsReference(); }
     
-    bool Equals(const Type &other) const { return kind() == other.kind() && model() == other.model(); }
+    [[nodiscard]] bool Equals(const Type &other) const { return kind() == other.kind() && model() == other.model(); }
 
     [[nodiscard]] bool ShouldValuePassing() const {
         return !IsCompactEnum() && !IsPointer() && (kind() == kValue || kind() == kTuple);

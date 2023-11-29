@@ -494,6 +494,7 @@ InstructionBlock::InstructionBlock(base::Arena *arena, InstructionFunction *owns
 , predecessors_(arena)
 , instructions_(arena)
 , loop_end_nodes_(arena)
+, jumping_table_(arena)
 , id_(id)
 , label_(label) {
     

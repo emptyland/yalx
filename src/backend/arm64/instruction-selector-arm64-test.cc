@@ -11,7 +11,7 @@ namespace yalx::backend {
 class Arm64InstructionSelectorTest : public InstructionSelectorTest {
 public:
     
-    const RegistersConfiguration *regconf_ = RegistersConfiguration::of_arm64();
+    const RegistersConfiguration *regconf_ = RegistersConfiguration::OfPosixArm64();
 }; // class Arm64InstructionSelectorTest
 
 TEST_F(Arm64InstructionSelectorTest, Sanity) {

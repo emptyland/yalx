@@ -148,17 +148,17 @@ void ZeroSlotAllocator::ProcessFrame() {
         }
         auto after_call = call_prepare_[i + 1];
 
-        auto current_stack_top = before_call->TempAt(2)->AsImmediate()->word32_value();
-        auto overflow_args_size = before_call->TempAt(1)->AsImmediate()->word32_value();
-        auto returning_val_size = before_call->TempAt(0)->AsImmediate()->word32_value();
+        auto current_stack_top = PrepareCallHint::GetCurrentStackTop(before_call);
+        auto overflow_args_size = PrepareCallHint::GetOverflowArgsSize(before_call);
+        auto returning_val_size = PrepareCallHint::GetReturningValSize(before_call);
 
         current_stack_top += returning_val_size;
         current_stack_top += overflow_args_size;
         current_stack_top = RoundUp(current_stack_top, Frame::kStackAlignmentSize);
 
         auto adjust_stack_size = stack_frame_size - current_stack_top;
-        *before_call->TempAt(0) = ImmediateOperand{adjust_stack_size};
-        *after_call->TempAt(0) = ImmediateOperand{adjust_stack_size};
+        PrepareCallHint::SetAdjustStackSize(before_call, adjust_stack_size);
+        PrepareCallHint::SetAdjustStackSize(after_call, adjust_stack_size);
     }
 }
 

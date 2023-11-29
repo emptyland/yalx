@@ -16,19 +16,17 @@
 #include <stack>
 #include <set>
 
-namespace yalx {
-
-namespace ir {
+namespace yalx::ir {
 
 #define REDUCE(stmt) \
-if (auto rs = Reduce(stmt); rs < 0) { \
-return -1; \
-} (void)0
+    if (auto rs = Reduce(stmt); rs < 0) { \
+        return -1; \
+    } (void)0
 
 #define CURRENT_SOUCE_POSITION(ast) \
-CurrentFileName()->ToSlice(), \
-(ast)->source_position(), \
-module_->mutable_source_position_table()
+    CurrentFileName()->ToSlice(), \
+    (ast)->source_position(), \
+    module_->mutable_source_position_table()
 
 //DECLARE_STATIC_STRING(k, <#literal#>)
 
@@ -3496,7 +3494,5 @@ const String *IntermediateRepresentationGenerator::NextAnonymousFunName() {
     std::string buf = base::Sprintf("anonymous.fun%" PRId64 "", NextAnonymousFunId());
     return String::New(arena_, buf);
 }
-
-} // namespace ir
 
 } // namespace yalx

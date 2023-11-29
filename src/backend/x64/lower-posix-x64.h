@@ -8,13 +8,15 @@ namespace yalx::backend {
 
 class X64PosixLower final : public InstructionSelector {
 public:
-    X64PosixLower(base::Arena *arena, const RegistersConfiguration *profile, Linkage *linkage, ConstantsPool *const_pool);
+    X64PosixLower(base::Arena *arena, const RegistersConfiguration *profile, Linkage *linkage,
+                  ConstantsPool *const_pool, BarrierSet *barrier_set);
 
 private:
     void VisitCondBr(ir::Value *instr) override;
     void VisitAddOrSub(ir::Value *ir) override;
     void VisitICmp(ir::Value *instr) override;
     void VisitLoadAddress(ir::Value *ir) override;
+    void VisitLoadInlineField(ir::Value *instr) override;
     InstructionOperand TryUseAsConstantOrImmediate(ir::Value *value) override;
 }; // X64PosixLower
 

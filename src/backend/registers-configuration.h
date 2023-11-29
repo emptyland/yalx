@@ -62,8 +62,8 @@ public:
     DEF_VAL_GETTER(std::vector<bool>, allocatable_gp_bitmap);
     DEF_VAL_GETTER(std::vector<bool>, allocatable_fp_bitmap);
     
-    static const RegistersConfiguration *of_arm64();
-    static const RegistersConfiguration *of_x64();
+    static const RegistersConfiguration *OfPosixArm64();
+    static const RegistersConfiguration *OfPosixX64();
     
     DISALLOW_IMPLICIT_CONSTRUCTORS(RegistersConfiguration);
 private:

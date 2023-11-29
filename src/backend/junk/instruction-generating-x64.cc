@@ -213,7 +213,7 @@ public:
         bundle_ = new (arena_) InstructionFunction(arena_, symbols_->Mangle(fun_->full_name()));
         for (auto bb : fun_->blocks()) {
             bb->RemoveDeads(); // Remove deads again for phi_node_users
-            auto ib = bundle_->NewBlock(labels_->NextLable());
+            auto ib = bundle_->NewBlock(labels_->NextLabel());
             blocks_[bb] = ib;
         }
         operands_.Prepare(fun_);
@@ -359,7 +359,7 @@ void X64FunctionInstructionSelector::BuildNativeHandle() {
     std::string buf;
     LinkageSymbols::BuildNativeHandle(&buf, fun_->full_name()->ToSlice());
     bundle_ = new (arena_) InstructionFunction(arena_, String::New(arena_, buf));
-    current_block_ = bundle()->NewBlock(labels_->NextLable());
+    current_block_ = bundle()->NewBlock(labels_->NextLabel());
     auto sp = operands_.registers()->stack_pointer();
     auto fp = operands_.registers()->frame_pointer();
     auto saved = SetUpHandleFrame(sp, fp);
@@ -441,7 +441,7 @@ void X64FunctionInstructionSelector::CallOriginalFun() {
 
 void X64FunctionInstructionSelector::BuildNativeStub() {
     bundle_ = new (arena_) InstructionFunction(arena_, symbols_->Mangle(fun_->full_name()));
-    current_block_ = bundle()->NewBlock(labels_->NextLable());
+    current_block_ = bundle()->NewBlock(labels_->NextLabel());
     auto sp = operands_.registers()->stack_pointer();
     auto fp = operands_.registers()->frame_pointer();
     SetUpStubFrame(sp, fp);

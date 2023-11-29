@@ -1,5 +1,6 @@
 #include "backend/x64/code-generate-x64.h"
 #include "backend/x64/lower-posix-x64.h"
+#include "backend/barrier-set.h"
 #include "backend/constants-pool.h"
 #include "backend/linkage-symbols.h"
 #include "backend/registers-configuration.h"
@@ -44,12 +45,13 @@ public:
     }
 
     InstructionFunction *IRLowing(ir::Function *fun) {
-        X64PosixLower lower(&arena_, RegistersConfiguration::of_x64(), &linkage_, &const_pool_);
+        X64PosixLower lower(&arena_, RegistersConfiguration::OfPosixX64(), &linkage_,
+                            &const_pool_, BarrierSet::OfYGCPosixX64());
         return lower.VisitFunction(fun);
     }
 
     void CodeSlotAllocating(InstructionFunction *fun) {
-        ZeroSlotAllocator allocator{arena(), RegistersConfiguration::of_x64(), fun};
+        ZeroSlotAllocator allocator{arena(), RegistersConfiguration::OfPosixX64(), fun};
         allocator.Run();
     }
 

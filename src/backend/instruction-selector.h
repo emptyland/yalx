@@ -19,6 +19,7 @@ class BasicBlock;
 namespace backend {
 
 class RegistersConfiguration;
+class BarrierSet;
 class ConstantsPool;
 class InstructionOperand;
 class Instruction;
@@ -33,7 +34,8 @@ public:
     InstructionSelector(base::Arena *arena,
                         const RegistersConfiguration *config,
                         Linkage *linkage,
-                        ConstantsPool *const_pool);
+                        ConstantsPool *const_pool,
+                        BarrierSet *const barrier_set);
     
     DEF_PTR_GETTER(const RegistersConfiguration, config);
     DEF_PTR_GETTER(Linkage, linkage);
@@ -57,6 +59,7 @@ public:
     virtual void VisitAddOrSub(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitICmp(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitLoadAddress(ir::Value *instr) {UNREACHABLE();}
+    virtual void VisitLoadInlineField(ir::Value *instr) {UNREACHABLE();}
     virtual Instruction *EmitLoadAddress(InstructionOperand output, InstructionOperand input) {return nullptr;}
     virtual InstructionOperand TryUseAsConstantOrImmediate(ir::Value *value) {UNREACHABLE();}
 
@@ -134,12 +137,17 @@ public:
     int GetLabel(ir::BasicBlock *key) const;
     InstructionBlock *GetBlock(ir::BasicBlock *key) const;
     
-    //int NextBlockLabel() { return next_blocks_label_++; }
+    int PutJumpingPositionToCurrentBlock(int id) {
+        current_block_->PutJumpingPosition(id);
+        return id;
+    }
+    friend class BarrierSet;
 private:
     base::Arena *const arena_;
     const RegistersConfiguration *const config_;
     Linkage *const linkage_;
     ConstantsPool *const const_pool_;
+    BarrierSet *const barrier_set_;
     InstructionBlock *current_block_ = nullptr;
     Frame *frame_ = nullptr;
     base::ArenaVector<char> defined_;

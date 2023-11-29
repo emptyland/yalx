@@ -127,7 +127,7 @@ private:
     void EmitOperands(InstructionOperand *io, InstructionOperand *input, X64RelocationStyle style = kDefault);
 
     static const char *Scratch(MachineRepresentation rep) {
-        auto inst = RegistersConfiguration::of_x64();
+        auto inst = RegistersConfiguration::OfPosixX64();
         DCHECK(inst->scratch0() >= 0);
         return RegisterName(rep, inst->scratch0());
     }

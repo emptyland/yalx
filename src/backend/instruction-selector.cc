@@ -1,4 +1,5 @@
 #include "backend/instruction-selector.h"
+#include "backend/barrier-set.h"
 #include "backend/registers-configuration.h"
 #include "backend/linkage-symbols.h"
 #include "backend/instruction.h"
@@ -16,11 +17,13 @@ namespace yalx::backend {
 InstructionSelector::InstructionSelector(base::Arena *arena,
                                          const RegistersConfiguration *config,
                                          Linkage *linkage,
-                                         ConstantsPool *const_pool)
+                                         ConstantsPool *const_pool,
+                                         BarrierSet *barrier_set)
 : arena_(arena)
 , config_(config)
 , linkage_(linkage)
 , const_pool_(const_pool)
+, barrier_set_(barrier_set)
 , defined_(arena)
 , used_(arena) {
     
@@ -137,6 +140,13 @@ void InstructionSelector::Select(ir::Value *instr) {
 
         case ir::Operator::kLoadAddress:
             VisitLoadAddress(instr);
+            break;
+
+        case ir::Operator::kLoadInlineField:
+            VisitLoadInlineField(instr);
+            if (instr->InputValue(0)->type().IsGeneralizedReference()) {
+                barrier_set_->PostLoad(this, instr);
+            }
             break;
 
 //        case ir::Operator::kWord8Constant:

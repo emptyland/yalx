@@ -28,3 +28,8 @@ fun issue09_call_val_args_fun() {
     val a = Vertx2(1, 2)
     issue06_returning_val(a)
 }
+
+fun issue10_get_fields(): i32 {
+    val a = Vertx2(2, 3)
+    return a.x + a.y
+}

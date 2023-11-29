@@ -200,7 +200,7 @@ add_library(compiler STATIC
         src/x64/asm-x64.cc
         src/x64/asm-x64.h
         third-party/include/dbg/dbg.h
-        src/backend/x64/lower-posix-x64.h src/backend/x64/lower-posix-x64.cc src/backend/zero-slot-allocator.h src/backend/zero-slot-allocator.cc)
+        src/backend/x64/lower-posix-x64.h src/backend/x64/lower-posix-x64.cc src/backend/zero-slot-allocator.h src/backend/zero-slot-allocator.cc src/backend/barrier-set.h src/backend/barrier_set.cc)
 
 add_executable(yalx-test
         src/arm64/asm-arm64-test.cc

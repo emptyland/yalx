@@ -1,5 +1,6 @@
 #include "backend/instruction-selector.h"
 #include "backend/registers-configuration.h"
+#include "backend/barrier-set.h"
 #include "ir/condition.h"
 #include "ir/metadata.h"
 #include "ir/utils.h"
@@ -10,7 +11,7 @@ namespace yalx::backend {
 class Arm64InstructionSelector final : public InstructionSelector {
 public:
     Arm64InstructionSelector(base::Arena *arena, Linkage *linkage, ConstantsPool *const_pool)
-    : InstructionSelector(arena, RegistersConfiguration::of_arm64(), linkage, const_pool) {}
+    : InstructionSelector(arena, RegistersConfiguration::OfPosixArm64(), linkage, const_pool, BarrierSet::OfNoGC()) {}
     
     void VisitCondBr(ir::Value *instr) override {
         DCHECK(instr->op()->value_in() == 1);

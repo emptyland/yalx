@@ -1,6 +1,7 @@
 #include "backend/x64/lower-posix-x64.h"
 #include "backend/constants-pool.h"
 #include "backend/linkage-symbols.h"
+#include "backend/barrier-set.h"
 #include "backend/registers-configuration.h"
 #include "backend/zero-slot-allocator.h"
 #include "ir/node.h"
@@ -23,12 +24,13 @@ public:
     }
 
     InstructionFunction *IRLowing(ir::Function *fun) {
-        X64PosixLower lower(&arena_, RegistersConfiguration::of_x64(), &linkage_, &const_pool_);
+        X64PosixLower lower(&arena_, RegistersConfiguration::OfPosixX64(), &linkage_, &const_pool_,
+                            BarrierSet::OfYGCPosixX64());
         return lower.VisitFunction(fun);
     }
 
     void CodeSlotAllocating(InstructionFunction *fun) {
-        ZeroSlotAllocator allocator{arena(), RegistersConfiguration::of_x64(), fun};
+        ZeroSlotAllocator allocator{arena(), RegistersConfiguration::OfPosixX64(), fun};
         allocator.Run();
     }
 
@@ -284,6 +286,20 @@ L0:
 )";
     auto expected = PrintTo(lo_fun);
     EXPECT_EQ(z, expected) << expected;
+}
+
+// issue10_get_fields
+TEST_F(X64PosixLowerTest, GetValFields) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue10_get_fields");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    puts(PrintTo(ir_fun).c_str());
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    puts(PrintTo(lo_fun).c_str());
 }
 
 } // namespace yalx::backend
