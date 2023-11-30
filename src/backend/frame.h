@@ -37,7 +37,7 @@ public:
         //int origin = stack_size();
         stack_size_ += static_cast<int>(padding_size + RoundUp(size_in_bytes, kSlotAlignmentSize));
         DCHECK(stack_size() % kSlotAlignmentSize == 0);
-        return -stack_size();
+        return -static_cast<int>(stack_size());
     }
 
     int GetVirtualRegister(ir::Value *value);

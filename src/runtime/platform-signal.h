@@ -6,8 +6,8 @@
 extern "C" {
 #endif
 
-void yalx_install_signals_handler();
-void yalx_uninstall_signals_handler();
+void yalx_install_signals_handler(void);
+void yalx_uninstall_signals_handler(void);
 
 #ifdef __cplusplus
 }

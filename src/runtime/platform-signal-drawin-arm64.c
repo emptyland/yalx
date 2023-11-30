@@ -2,18 +2,33 @@
 #include "runtime/mm-thread.h"
 #include "runtime/thread.h"
 #include "runtime/checking.h"
-#define __USE_GNU
-#include <ucontext.h>
+#include <errno.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/sysctl.h>
 
-extern void handle_c_polling_page_entry(void);
+#if __DARWIN_UNIX03 && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+  // 10.5 UNIX03 member name prefixes
+  #define DU3_PREFIX(s, m) __ ## s.__ ## m
+#else
+  #define DU3_PREFIX(s, m) s ## . ## m
+#endif
+
+// TODO: Use arm64 asm
+void handle_c_polling_page_entry(void) {
+    NOT_IMPL();
+}
+
+void fast_poll_page(void) {
+    NOT_IMPL();
+}
 
 static address_t ucontext_get_pc(ucontext_t *uv) {
-    return (address_t)uv->uc_mcontext.gregs[REG_RIP];
+    return (address_t)uv->uc_mcontext->DU3_PREFIX(ss, pc);
 }
 
 static void ucontext_set_pc(ucontext_t *uv, address_t pc) {
-    uv->uc_mcontext.gregs[REG_RIP] = (register_t)pc;
+    uv->uc_mcontext->DU3_PREFIX(ss, pc) = (register_t)pc;
 }
 
 int yalx_handle_signal(int sig, siginfo_t *info, void *uv, int abort_if_unrecognized) {

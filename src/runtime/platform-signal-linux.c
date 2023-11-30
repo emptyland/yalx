@@ -42,7 +42,7 @@ static void set_signal_handler(int sig, int install) {
     DCHECK(prev_handler == old_handler);
 }
 
-void yalx_install_signals_handler() {
+void yalx_install_signals_handler(void) {
     set_signal_handler(SIGSEGV, 1);
     set_signal_handler(SIGPIPE, 1);
     set_signal_handler(SIGBUS, 1);
@@ -51,7 +51,7 @@ void yalx_install_signals_handler() {
     set_signal_handler(SIGXFSZ, 1);
 }
 
-void yalx_uninstall_signals_handler() {
+void yalx_uninstall_signals_handler(void) {
     set_signal_handler(SIGSEGV, 0);
     set_signal_handler(SIGPIPE, 0);
     set_signal_handler(SIGBUS, 0);

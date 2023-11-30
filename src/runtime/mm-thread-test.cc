@@ -5,7 +5,7 @@
 #include "gtest/gtest.h"
 #include <thread>
 
-extern "C" void fast_poll_page();
+extern "C" void fast_poll_page(void);
 
 class MMThreadTest : public ::testing::Test {
 public:
