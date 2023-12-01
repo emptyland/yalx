@@ -200,7 +200,12 @@ add_library(compiler STATIC
         src/x64/asm-x64.cc
         src/x64/asm-x64.h
         third-party/include/dbg/dbg.h
-        src/backend/x64/lower-posix-x64.h src/backend/x64/lower-posix-x64.cc src/backend/zero-slot-allocator.h src/backend/zero-slot-allocator.cc src/backend/barrier-set.h src/backend/barrier_set.cc)
+        src/backend/x64/lower-posix-x64.h
+        src/backend/x64/lower-posix-x64.cc
+        src/backend/zero-slot-allocator.h
+        src/backend/zero-slot-allocator.cc
+        src/backend/barrier-set.h
+        src/backend/barrier-set.cc)
 
 add_executable(yalx-test
         src/arm64/asm-arm64-test.cc
@@ -256,7 +261,9 @@ add_executable(yalx-test
         src/runtime/heap/ygc-forwarding-test.cc
         src/runtime/jobs-test.cc
         src/runtime/heap/ygc-mark-test.cc
-        src/runtime/root-handles-test.cc src/backend/x64/lower-posix-x64-test.cc src/backend/x64/code-generate-x64-test.cc)
+        src/runtime/root-handles-test.cc
+        src/backend/x64/lower-posix-x64-test.cc
+        src/backend/x64/code-generate-x64-test.cc)
 
 
 target_link_libraries(yalx-test compiler runtime pthread unwind m)

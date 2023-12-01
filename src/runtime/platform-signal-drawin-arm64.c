@@ -14,14 +14,8 @@
   #define DU3_PREFIX(s, m) s ## . ## m
 #endif
 
-// TODO: Use arm64 asm
-void handle_c_polling_page_entry(void) {
-    NOT_IMPL();
-}
-
-void fast_poll_page(void) {
-    NOT_IMPL();
-}
+// Implement in file: stubs-drawin-arm64.s
+extern void handle_c_polling_page_entry(void);
 
 static address_t ucontext_get_pc(ucontext_t *uv) {
     return (address_t)uv->uc_mcontext->DU3_PREFIX(ss, pc);
