@@ -9,20 +9,21 @@
 namespace yalx::backend {
 
 #define ARCH_OPCODE_LIST(V) \
-    V(ArchNop) \
-    V(ArchDebugBreak) \
-    V(ArchRet) \
-    V(ArchJmp) \
-    V(ArchCall) \
-    V(ArchCallNative) \
-    V(ArchAfterCall) \
-    V(ArchBeforeCall) \
-    V(ArchFrameEnter) \
-    V(ArchFrameExit) \
-    V(ArchUnreachable) \
-    V(ArchSafepoint) \
-    V(ArchStackAlloc) \
-    V(ArchLoadRelocation) \
+    V(ArchNop)              \
+    V(ArchDebugBreak)       \
+    V(ArchRet)              \
+    V(ArchJmp)              \
+    V(ArchCall)             \
+    V(ArchCallNative)       \
+    V(ArchAfterCall)        \
+    V(ArchBeforeCall)       \
+    V(ArchFrameEnter)       \
+    V(ArchFrameExit)        \
+    V(ArchUnreachable)      \
+    V(ArchSafepoint)        \
+    V(ArchStackAlloc)       \
+    V(ArchStackLoad)        \
+    V(ArchLoadRelocation)   \
     V(ArchLoadEffectAddress)
 
 enum InstructionCode {

@@ -271,7 +271,8 @@ TEST_F(X64PosixLowerTest, CallValArgsFun) {
 L0:
     ArchFrameEnter (#64)
     {ptr fp-24} = ArchStackAlloc #24
-    {ptr fp-32} = X64Lea {none fp-24}
+    {ptr $0} = X64Lea {none fp-24}
+    Move {ptr fp-32} <- {ptr $0}
     ArchBeforeCall (#32, #0, #32)
     Move {dword $6} <- #1
     Move {dword $2} <- #2
@@ -293,7 +294,42 @@ TEST_F(X64PosixLowerTest, GetValFields) {
     auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue10_get_fields");
     ASSERT_TRUE(ir_fun != nullptr);
 
-    puts(PrintTo(ir_fun).c_str());
+    //puts(PrintTo(ir_fun).c_str());
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue10_get_fields:
+L0:
+    ArchFrameEnter (#48)
+    {ptr fp-24} = ArchStackAlloc #24
+    {ptr $0} = X64Lea {none fp-24}
+    Move {ptr fp-32} <- {ptr $0}
+    ArchBeforeCall (#16, #0, #32)
+    Move {dword $6} <- #2
+    Move {dword $2} <- #3
+    Move {ptr $7} <- {ptr fp-32}
+    ArchCall {ptr $7}, {dword $6}, {dword $2}(<main_Zomain_ZdVertx2_ZdVertx2_Z4constructor>, #0)
+    ArchAfterCall (#16, #0, #32)
+    {dword $0} = ArchStackLoad {none fp-24}, #16
+    Move {dword fp-36} <- {dword $0}
+    {dword $0} = ArchStackLoad {none fp-24}, #20
+    Move {dword fp-40} <- {dword $0}
+    Move {dword $0} <- {dword fp-36}
+    {dword $0} = X64Add32 {dword fp-40}
+    Move {dword fp-44} <- {dword $0}
+    Move {dword fp+28} <- {dword fp-44}
+    ArchFrameExit {dword fp-44}(#48)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
+// issue11_overflow_args
+TEST_F(X64PosixLowerTest, OverflowArgsFun) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue11_overflow_args");
+    ASSERT_TRUE(ir_fun != nullptr);
 
     auto lo_fun = IRLowing(ir_fun);
     ASSERT_TRUE(lo_fun != nullptr);

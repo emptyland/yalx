@@ -14,7 +14,7 @@ namespace yalx::backend {
 
 class ZeroSlotAllocator::InstrScope {
 public:
-    InstrScope(ZeroSlotAllocator *owns): owns_(owns) {
+    explicit InstrScope(ZeroSlotAllocator *owns): owns_(owns) {
         DCHECK(owns->current_ == nullptr);
         owns_->current_ = this;
 
@@ -421,8 +421,13 @@ int ZeroSlotAllocator::ReallocatedSlot(Instruction *instr, UnallocatedOperand *u
                  ->AddMove(dest, src, arena_);
             memcpy(unallocated, &dest, sizeof(dest));
         } break;
-        case UnallocatedOperand::kMustHaveRegister:
-            // TODO:
+        case UnallocatedOperand::kMustHaveRegister: {
+            auto dest = DCHECK_NOTNULL(current_)->AllocateRegister(rep);
+            auto src = AllocatedOperand::Slot(rep, profile_->fp(), allocated.value);
+            instr->GetOrNewParallelMove(Instruction::kStart, arena_)
+                 ->AddMove(dest, src, arena_);
+            memcpy(unallocated, &dest, sizeof(dest));
+        } break;
         case UnallocatedOperand::kSameAsInput:
         default:
             UNREACHABLE();

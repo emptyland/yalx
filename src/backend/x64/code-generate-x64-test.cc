@@ -124,7 +124,70 @@ Lblk0:
 
 TEST_F(X64CodeGeneratorTest, CallValArgsFun) {
     auto expected = GenTo("main:main", "issue09_call_val_args_fun");
-    puts(expected.c_str());
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue09_call_val_args_fun
+main_Zomain_Zdissue09_call_val_args_fun:
+.cfi_startproc
+Lblk0:
+    pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
+    movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
+    subq $64, %rsp
+    leaq -24(%rbp), %rax
+    movq %rax, -32(%rbp)
+    addq $32, %rsp
+    movl $1, %esi
+    movl $2, %edx
+    movq -32(%rbp), %rdi
+    callq main_Zomain_ZdVertx2_ZdVertx2_Z4constructor
+    subq $32, %rsp
+    leaq -24(%rbp), %rdi
+    callq main_Zomain_Zdissue06_returning_val
+    addq $64, %rsp
+    popq %rbp
+    retq
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
+}
+
+// auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue10_get_fields");
+TEST_F(X64CodeGeneratorTest, GetValFields) {
+    auto expected = GenTo("main:main", "issue10_get_fields");
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue10_get_fields
+main_Zomain_Zdissue10_get_fields:
+.cfi_startproc
+Lblk0:
+    pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
+    movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
+    subq $48, %rsp
+    leaq -24(%rbp), %rax
+    movq %rax, -32(%rbp)
+    addq $16, %rsp
+    movl $2, %esi
+    movl $3, %edx
+    movq -32(%rbp), %rdi
+    callq main_Zomain_ZdVertx2_ZdVertx2_Z4constructor
+    subq $16, %rsp
+    movl -8(%rbp), %eax
+    movl %eax, -36(%rbp)
+    movl -4(%rbp), %eax
+    movl %eax, -40(%rbp)
+    movl -36(%rbp), %eax
+    addl -40(%rbp), %eax
+    movl %eax, -44(%rbp)
+    movl -44(%rbp), %r13d
+    movl %r13d, 28(%rbp)
+    addq $48, %rsp
+    popq %rbp
+    retq
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
 }
 
 } // namespace yalx::backend

@@ -219,6 +219,14 @@ void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<Instruc
     }
 }
 
+void InstructionSelector::VisitLoadInlineField(ir::Value *ir) {
+    auto output = DefineAsRegister(ir);
+    auto handle = ir::OperatorWith<const ir::Handle *>::Data(ir);
+    auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+    auto input = UseAsSlot(ir->InputValue(0));
+    Emit(ArchStackLoad, output, input, ImmediateOperand{static_cast<int>(field->offset)});
+}
+
 void InstructionSelector::VisitPhi(ir::Value *instr) {
     // Ignore
 }

@@ -16,7 +16,7 @@ private:
     void VisitAddOrSub(ir::Value *ir) override;
     void VisitICmp(ir::Value *instr) override;
     void VisitLoadAddress(ir::Value *ir) override;
-    void VisitLoadInlineField(ir::Value *instr) override;
+    //void VisitLoadInlineField(ir::Value *instr) override;
     InstructionOperand TryUseAsConstantOrImmediate(ir::Value *value) override;
 }; // X64PosixLower
 

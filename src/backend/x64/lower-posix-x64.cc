@@ -97,48 +97,48 @@ void X64PosixLower::VisitICmp(ir::Value *instr) {
 
 void X64PosixLower::VisitLoadAddress(ir::Value *ir) {
     auto input = UseAsSlot(ir->InputValue(0));
-    auto output = UseAsRegisterOrSlot(ir);
+    auto output = DefineAsRegister(ir);
     Emit(X64Lea, output, input);
 }
 
-void X64PosixLower::VisitLoadInlineField(ir::Value *ir) {
-    auto address = AllocatedOperand::Register(MachineRepresentation::kPointer, config()->scratch0());
-    Emit(X64Lea, address, UseAsSlot(ir->InputValue(0)));
-
-    auto handle = ir::OperatorWith<const ir::Handle *>::Data(ir);
-    DCHECK(handle->IsField());
-    auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
-
-    auto rep = ToMachineRepresentation(ir->type());
-    auto src = AllocatedOperand::Location(rep, config()->scratch0(), field->offset);
-
-    auto output = DefineAsRegister(ir);
-    switch (rep) {
-        case MachineRepresentation::kWord8:
-            Emit(X64Movb, output, src);
-            break;
-        case MachineRepresentation::kWord16:
-            Emit(X64Movw, output, src);
-            break;
-        case MachineRepresentation::kWord32:
-            Emit(X64Movl, output, src);
-            break;
-        case MachineRepresentation::kWord64:
-        case MachineRepresentation::kPointer:
-        case MachineRepresentation::kReference:
-            Emit(X64Movq, output, src);
-            break;
-        case MachineRepresentation::kFloat32:
-            Emit(X64Movss, output, src);
-            break;
-        case MachineRepresentation::kFloat64:
-            Emit(X64Movsd, output, src);
-            break;
-        default:
-            UNREACHABLE();
-            break;
-    }
-}
+//void X64PosixLower::VisitLoadInlineField(ir::Value *ir) {
+//    auto address = AllocatedOperand::Register(MachineRepresentation::kPointer, config()->scratch0());
+//    Emit(X64Lea, address, UseAsSlot(ir->InputValue(0)));
+//
+//    auto handle = ir::OperatorWith<const ir::Handle *>::Data(ir);
+//    DCHECK(handle->IsField());
+//    auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+//
+//    auto rep = ToMachineRepresentation(ir->type());
+//    auto src = AllocatedOperand::Location(rep, config()->scratch0(), field->offset);
+//
+//    auto output = DefineAsRegister(ir);
+//    switch (rep) {
+//        case MachineRepresentation::kWord8:
+//            Emit(X64Movb, output, src);
+//            break;
+//        case MachineRepresentation::kWord16:
+//            Emit(X64Movw, output, src);
+//            break;
+//        case MachineRepresentation::kWord32:
+//            Emit(X64Movl, output, src);
+//            break;
+//        case MachineRepresentation::kWord64:
+//        case MachineRepresentation::kPointer:
+//        case MachineRepresentation::kReference:
+//            Emit(X64Movq, output, src);
+//            break;
+//        case MachineRepresentation::kFloat32:
+//            Emit(X64Movss, output, src);
+//            break;
+//        case MachineRepresentation::kFloat64:
+//            Emit(X64Movsd, output, src);
+//            break;
+//        default:
+//            UNREACHABLE();
+//            break;
+//    }
+//}
 
 InstructionOperand X64PosixLower::TryUseAsConstantOrImmediate(ir::Value *value) {
     if (auto imm = TryUseAsIntegralImmediate(value); !imm.IsInvalid()) {

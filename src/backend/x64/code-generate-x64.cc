@@ -11,8 +11,9 @@
 #include <inttypes.h>
 
 
-namespace yalx {
-namespace backend {
+namespace yalx::backend {
+
+static const char *SelectMoveInstr(MachineRepresentation rep);
 
 // Byte Registers:
 // Without REX : AL, BL, CL, DL, AH, BH, CH, DH
@@ -213,6 +214,16 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperand(instr->OutputAt(0), kIndirectly);
             printer()->Writeln("");
             break;
+
+        case ArchStackLoad: {
+            auto field_offset = instr->InputAt(1)->AsImmediate()->word32_value();
+            auto slot = instr->InputAt(0)->AsAllocated();
+            auto offset = slot->index() + field_offset;
+            auto rep = instr->OutputAt(0)->AsAllocated()->machine_representation();
+            printer()->Indent(1)->Print("%s %d(%rbp), ", SelectMoveInstr(rep), offset);
+            EmitOperand(instr->OutputAt(0));
+            printer()->Writeln();
+        } break;
             
         case X64Add8:
             printer()->Indent(1)->Write("addb ");
@@ -982,5 +993,4 @@ void X64CodeGenerator::EmitFunction(InstructionFunction *fun) {
     }
 }
 
-} // namespace backend
 } // namespace yalx
