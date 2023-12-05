@@ -335,6 +335,74 @@ TEST_F(X64PosixLowerTest, OverflowArgsFun) {
     ASSERT_TRUE(lo_fun != nullptr);
 
     CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue11_overflow_args:
+L0:
+    {dword $7}, {dword $6}, {dword $2}, {dword $1}, {dword $8}, {dword $9}, {dword $10}, {dword $11}, {dword fp+20} = ArchFrameEnter (#48)
+    Move {dword fp-4} <- {dword $7}
+    Move {dword fp-8} <- {dword $6}
+    Move {dword fp-12} <- {dword $2}
+    Move {dword fp-16} <- {dword $1}
+    Move {dword fp-20} <- {dword $8}
+    Move {dword fp-24} <- {dword $9}
+    Move {dword fp-28} <- {dword $10}
+    Move {dword fp-32} <- {dword $11}
+    Move {dword $0} <- {dword fp-4}
+    {dword $0} = X64Add32 {dword fp-8}
+    Move {dword fp-36} <- {dword $0}
+    Move {dword $0} <- {dword fp-32}
+    {dword $0} = X64Add32 {dword fp+20}
+    Move {dword fp-40} <- {dword $0}
+    Move {dword fp+24} <- {dword fp-40}
+    Move {dword fp+28} <- {dword fp-36}
+    ArchFrameExit {dword fp-36}, {dword fp-40}(#48)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
+// issue12_call_overflow_args_fun
+TEST_F(X64PosixLowerTest, CallOverflowArgsFun) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue12_call_overflow_args_fun");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue12_call_overflow_args_fun:
+L0:
+    ArchFrameEnter (#32)
+    ArchBeforeCall (#16, #4, #0)
+    Move {dword $7} <- #1
+    Move {dword $6} <- #2
+    Move {dword $2} <- #3
+    Move {dword $1} <- #4
+    Move {dword $8} <- #5
+    Move {dword $9} <- #6
+    Move {dword $10} <- #7
+    Move {dword $11} <- #8
+    Move {dword fp-12} <- #9
+    {dword fp-4}, {dword fp-8} = ArchCall {dword $7}, {dword $6}, {dword $2}, {dword $1}, {dword $8}, {dword $9}, {dword $10}, {dword $11}, {dword fp-12}(<main_Zomain_Zdissue11_overflow_args>, #12)
+    ArchAfterCall (#16, #4, #0)
+    Move {dword $0} <- {dword fp-4}
+    {dword $0} = X64Add32 {dword fp-8}
+    Move {dword fp-20} <- {dword $0}
+    Move {dword fp+28} <- {dword fp-20}
+    ArchFrameExit {dword fp-20}(#32)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
+// issue13_simple_load_barrier
+TEST_F(X64PosixLowerTest, SimpleLoadBarrier) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue13_simple_load_barrier");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
     puts(PrintTo(lo_fun).c_str());
 }
 

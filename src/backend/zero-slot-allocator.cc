@@ -173,11 +173,9 @@ void ZeroSlotAllocator::VisitParameters(InstructionBlock *entry) {
     USE(scope);
 
     for (int i = 0; i < fun_->frame()->parameters_size(); i++) {
-        auto val = fun_->frame()->parameter_value(i);
-        auto vr = fun_->frame()->GetVirtualRegister(val);
+        auto opd = frame_enter->OutputAt(i);
 
-        InstructionOperand dest{};
-        AllocateSlot(&dest, vr);
+        AllocateSlot(frame_enter, opd->AsUnallocated());
     }
 }
 

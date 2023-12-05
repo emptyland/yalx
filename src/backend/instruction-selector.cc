@@ -144,7 +144,7 @@ void InstructionSelector::Select(ir::Value *instr) {
 
         case ir::Operator::kLoadInlineField:
             VisitLoadInlineField(instr);
-            if (instr->InputValue(0)->type().IsGeneralizedReference()) {
+            if (instr->type().IsGeneralizedReference()) {
                 barrier_set_->PostLoad(this, instr);
             }
             break;
@@ -182,16 +182,25 @@ void InstructionSelector::Select(ir::Value *instr) {
 }
 
 void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<InstructionOperand> *parameters) {
-    //fun->paramaters()
+    const auto overflow_args_size = OverflowParametersSizeInBytes(fun);
+    const auto returning_val_size = ReturningValSizeInBytes(fun->prototype());
+    const auto caller_saving_size = RoundUp(overflow_args_size + returning_val_size, Frame::kStackAlignmentSize);
+    const auto caller_padding_size = caller_saving_size - returning_val_size - overflow_args_size;
+    auto overflow_args_offset = Frame::kCalleeReservedSize + caller_padding_size + overflow_args_size;
+
     int gp_index = 0;
     int fp_index = 0;
     for (auto param : fun->paramaters()) {
+        auto param_placement_in_bytes = RoundUp(param->type().ReferenceSizeInBytes(),
+                                                static_cast<intptr_t>(param->type().AlignmentSizeInBytes()));
+
         if (param->type().IsFloating()) {
             if (fp_index < config_->number_of_argument_fp_registers()) {
                 parameters->push_back(DefineAsFixedFPRegister(param, config_->argument_fp_register(fp_index++)));
             } else {
-                // TODO:
-                UNREACHABLE();
+                DCHECK(param_placement_in_bytes < overflow_args_offset);
+                overflow_args_offset -= param_placement_in_bytes;
+                parameters->push_back(DefineAsFixedSlot(param, static_cast<int>(overflow_args_offset)));
             }
         } else {
             
@@ -210,8 +219,9 @@ void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<Instruc
                     if (gp_index < config_->number_of_argument_gp_registers()) {
                         parameters->push_back(DefineAsFixedRegister(param, config_->argument_gp_register(gp_index++)));
                     } else {
-                        // TODO:
-                        UNREACHABLE();
+                        DCHECK(param_placement_in_bytes < overflow_args_offset);
+                        overflow_args_offset -= param_placement_in_bytes;
+                        parameters->push_back(DefineAsFixedSlot(param, static_cast<int>(overflow_args_offset)));
                     }
                     break;
             }
@@ -280,7 +290,11 @@ void InstructionSelector::VisitCallDirectly(ir::Value *ir) {
                 // overflow
                 overflow_args_size += size;
                 overflow_args.push_back(arg);
-                inputs.push_back(UseAsSlot(arg));
+                auto opd = UseAsSlot(arg);
+                if (auto imm = TryUseAsConstantOrImmediate(arg); !imm.IsInvalid()) {
+                    moving.emplace_back(opd, imm);
+                }
+                inputs.push_back(opd);
             }
         } else {
             if (gp_index < config()->number_of_argument_gp_registers()) {
@@ -293,7 +307,11 @@ void InstructionSelector::VisitCallDirectly(ir::Value *ir) {
                 // overflow
                 overflow_args_size += size;
                 overflow_args.push_back(arg);
-                inputs.push_back(UseAsSlot(arg));
+                auto opd = UseAsSlot(arg);
+                if (auto imm = TryUseAsConstantOrImmediate(arg); !imm.IsInvalid()) {
+                    moving.emplace_back(opd, imm);
+                }
+                inputs.push_back(opd);
             }
         }
     }
