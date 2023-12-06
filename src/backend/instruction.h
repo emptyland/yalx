@@ -467,12 +467,17 @@ public:
     
     //DEF_VAL_GETTER(Code, op);
     [[nodiscard]] Code op() const { return InstructionCodeField::Decode(op_); }
+    [[nodiscard]] AddressingMode addressing_mode() const { return AddressingModeField::Decode(op_); }
+    [[nodiscard]] CallDescriptor call_descriptor() const { return CallDescriptorField::Decode(op_); }
 
     DEF_VAL_PROP_RW(int, id);
     int inputs_count() const { return inputs_count_; }
     int outputs_count() const { return outputs_count_; }
     int temps_count() const { return temps_count_; }
     size_t operands_size() const { return inputs_count() + outputs_count() + temps_count(); }
+
+    bool is_jumping_dest() const { return is_jumping_dest_; }
+    bool is_call() const { return is_call_; }
     
     Operand *InputAt(size_t i) {
         DCHECK(i < inputs_count());
@@ -514,7 +519,8 @@ public:
         return parallel_moves_[pos];
     }
     
-    static Instruction *New(base::Arena *arena, Code op,
+    static Instruction *New(base::Arena *arena,
+                            Code op,
                             size_t inputs_count,
                             Operand inputs[],
                             size_t outputs_count,
@@ -548,7 +554,8 @@ private:
     uint8_t inputs_count_;
     uint8_t outputs_count_;
     uint8_t temps_count_;
-    uint8_t is_call_;
+    uint8_t is_call_: 1;
+    uint8_t is_jumping_dest_: 1;
     ParallelMove *parallel_moves_[2];
     Operand operands_[1];
 }; // class Instruction
@@ -642,6 +649,8 @@ public:
 
     void PutJumpingPosition(int id) {
         DCHECK(!instructions().empty());
+        DCHECK(!instructions().back()->is_jumping_dest());
+        instructions().back()->is_jumping_dest_ = 1;
         jumping_table_.emplace(instructions().back(), id);
     }
 

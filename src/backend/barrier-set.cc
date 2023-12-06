@@ -2,6 +2,8 @@
 #include "backend/linkage-symbols.h"
 #include "backend/instruction-selector.h"
 #include "backend/registers-configuration.h"
+#include "ir/node.h"
+#include "ir/metadata.h"
 #include "base/format.h"
 
 namespace yalx::backend {
@@ -26,7 +28,7 @@ public:
         auto bad_mask = AllocatedOperand::Register(MachineRepresentation::kWord64, profile->scratch0());
         auto bad_mask_symbol = ReloactionOperand{kRt_YGC_ADDRESS_BAD_MASK};
         selector->Emit(X64Movq, bad_mask, bad_mask_symbol);
-        selector->Emit(X64Test, bad_mask, selector->UseAsRegisterOrSlot(ir));
+        selector->Emit(X64Test, {}, bad_mask, selector->UseAsRegisterOrSlot(ir));
         auto label = selector->Emit(X64Jz, InstructionSelector::NoOutput(),
                                                InstructionSelector::NoOutput()); // Good if ZF = 0
 
@@ -40,10 +42,24 @@ public:
         selector->Emit(ArchBeforeCall, 0, nullptr, arraysize(saved_regs),
                        saved_regs, 0, nullptr);
 
+        auto arg0 = AllocatedOperand::Register(MachineRepresentation::kPointer,
+                                               profile->argument_gp_register(0));
+        switch (ir->op()->value()) {
+            case ir::Operator::kLoadInlineField: {
+                auto handle = ir::OperatorWith<const ir::Handle *>::Data(ir);
+                auto field = std::get<const ir::Model::Field *>(handle->owns()->GetMember(handle));
+                selector->Emit(X64Lea, arg0, selector->UseAsSlot(ir->InputValue(0)));
+                selector->Emit(X64Add, arg0, ImmediateOperand{field->offset});
+            } break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+
         selector->Emit(ArchCallNative,
                        selector->UseAsFixedRegister(ir, profile->returning0_register()),
                        InstructionSelector::UseAsExternalCFunction(kRt_ygc_barrier_load_on_field),
-                       selector->UseAsFixedRegister(ir, profile->argument_gp_register(0)));
+                       arg0);
 
         selector->Emit(ArchAfterCall, 0, nullptr, arraysize(saved_regs),
                        saved_regs, 0, nullptr);

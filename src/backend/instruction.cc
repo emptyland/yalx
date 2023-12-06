@@ -226,7 +226,17 @@ Instruction::Instruction(Code op,
 : op_(op)
 , inputs_count_(inputs_count)
 , outputs_count_(outputs_count)
-, temps_count_(temps_count) {
+, temps_count_(temps_count)
+, is_jumping_dest_(0) {
+    switch (this->op()) {
+        case ArchCallNative:
+        case ArchCall:
+            is_call_ = 1;
+            break;
+        default:
+            is_call_ = 0;
+            break;
+    }
     parallel_moves_[0] = nullptr;
     parallel_moves_[1] = nullptr;
     ::memcpy(operands_ + input_offset(), inputs, inputs_count * sizeof(Operand));
@@ -514,6 +524,9 @@ void InstructionBlock::PrintTo(base::PrintingWriter *printer) const {
     printer->Println("L%d:", label());
     for (auto instr : instructions()) {
         instr->PrintTo(1, printer);
+        if (instr->is_jumping_dest()) {
+            printer->Println("Jpt_%d:", JumpingPosition(instr).value());
+        }
     }
 }
 

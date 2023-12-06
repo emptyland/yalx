@@ -403,7 +403,36 @@ TEST_F(X64PosixLowerTest, SimpleLoadBarrier) {
     ASSERT_TRUE(lo_fun != nullptr);
 
     CodeSlotAllocating(lo_fun);
-    puts(PrintTo(lo_fun).c_str());
+    static constexpr char z[] = R"(main_Zomain_Zdissue13_simple_load_barrier:
+L0:
+    ArchFrameEnter (#64)
+    {ptr fp-32} = ArchStackAlloc #32
+    {ptr $0} = X64Lea {none fp-32}
+    Move {ptr fp-40} <- {ptr $0}
+    ArchBeforeCall (#16, #0, #40)
+    Move {ref $6} <- <literals:0>
+    Move {ref $2} <- <literals:1>
+    Move {dword $1} <- #0
+    Move {ptr $7} <- {ptr fp-40}
+    ArchCall {ptr $7}, {ref $6}, {ref $2}, {dword $1}(<main_Zomain_ZdIdent2_ZdIdent2_Z4constructor>, #0)
+    ArchAfterCall (#16, #0, #40)
+    {ref $0} = ArchStackLoad {none fp-32}, #16
+    Move {ref fp-56} <- {ref $0}
+    {qword $13} = X64Movq <YGC_ADDRESS_BAD_MASK>
+    X64Test {qword $13}, {ref fp-56}
+    X64Jz <Jpt_0>
+    ArchBeforeCall {qword $0}, {qword $7}, {qword $6}, {qword $15}
+    {ptr $7} = X64Lea {none fp-32}
+    {ptr $7} = X64Add #16
+    {ref $0} = ArchCallNative <ygc_barrier_load_on_field>, {ptr $7}
+    Move {ref fp-56} <- {ref $0}
+    ArchAfterCall {qword $0}, {qword $7}, {qword $6}, {qword $15}
+Jpt_0:
+    Move {ref fp+24} <- {ref fp-56}
+    ArchFrameExit {ref fp-56}(#64)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
 }
 
 } // namespace yalx::backend

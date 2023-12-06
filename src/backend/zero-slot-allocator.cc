@@ -244,7 +244,7 @@ void ZeroSlotAllocator::VisitInstruction(Instruction *instr) {
     for (int i = 0; i < instr->outputs_count(); i++) {
         auto out = instr->OutputAt(i);
         if (!out->IsUnallocated()) {
-            break;
+            continue;
         }
         AllocateSlot(instr, out->AsUnallocated());
     }
@@ -267,7 +267,7 @@ void ZeroSlotAllocator::VisitInstruction(Instruction *instr) {
     for (int i = 0; i < instr->inputs_count(); i++) {
         auto in = instr->InputAt(i);
         if (!in->IsUnallocated()) {
-            break;
+            continue;
         }
 
         auto unallocated = in->AsUnallocated();
@@ -410,9 +410,6 @@ int ZeroSlotAllocator::ReallocatedSlot(Instruction *instr, UnallocatedOperand *u
             memcpy(unallocated, &dest, sizeof(dest));
         } break;
         case UnallocatedOperand::kFixedSlot: {
-            if (unallocated->fixed_slot_offset() == allocated.value) {
-                break;
-            }
             auto dest = AllocatedOperand::Slot(rep, profile_->fp(), unallocated->fixed_slot_offset());
             auto src = AllocatedOperand::Slot(rep, profile_->fp(), allocated.value);
             instr->GetOrNewParallelMove(Instruction::kStart, arena_)

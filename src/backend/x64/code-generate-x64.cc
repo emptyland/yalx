@@ -165,19 +165,35 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             printer()->Writeln();
             break;
 
-        case ArchBeforeCall:
+        case ArchCallNative:
+            printer()->Indent(1)->Write("callq ");
+            EmitOperand(instr->InputAt(0), kIndirectly);
+            printer()->Writeln();
+            break;
+
+        case ArchBeforeCall: {
+            for (int i = 0; i < instr->inputs_count(); i++) {
+                printer()->Indent(1)->Write("pushq ");
+                EmitOperand(instr->InputAt(i));
+                printer()->Writeln();
+            }
             if (PrepareCallHint::GetAdjustStackSize(instr) > 0) {
                 printer()->Indent(1)->Write("addq ");
                 EmitOperand(instr->TempAt(0));
                 printer()->Writeln(", %rsp");
             }
-            break;
+        } break;
 
         case ArchAfterCall:
             if (PrepareCallHint::GetAdjustStackSize(instr) > 0) {
                 printer()->Indent(1)->Write("subq ");
                 EmitOperand(instr->TempAt(0));
                 printer()->Writeln(", %rsp");
+            }
+            for (int i = instr->inputs_count() - 1; i >= 0; i--) {
+                printer()->Indent(1)->Write("pushq ");
+                EmitOperand(instr->InputAt(i));
+                printer()->Writeln();
             }
             break;
 
@@ -204,7 +220,7 @@ void X64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
                 printer()->Indent(1)->Println("addq $%d, %%rsp", size);
                 has_adjust = 1;
             }
-            printer()->Indent(has_adjust)->Writeln("popq %rbp");
+            printer()->Indent(1)->Writeln("popq %rbp");
 
             printer()->Indent(1)->Writeln("retq");
         } break;

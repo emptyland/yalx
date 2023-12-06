@@ -93,7 +93,7 @@ Lblk0:
     retq
 .cfi_endproc
 )";
-    ASSERT_EQ(z, expected);
+    ASSERT_EQ(z, expected) << expected;
 }
 
 // issue02_simple_add AddSubSanity
@@ -188,6 +188,12 @@ Lblk0:
 .cfi_endproc
 )";
     ASSERT_EQ(z, expected) << expected;
+}
+
+// FindModuleOrNull("main:main")->FindFunOrNull("issue13_simple_load_barrier");
+TEST_F(X64CodeGeneratorTest, SimpleLoadBarrier) {
+    auto expected = GenTo("main:main", "issue13_simple_load_barrier");
+    puts(expected.c_str());
 }
 
 } // namespace yalx::backend
