@@ -51,7 +51,7 @@ using OSChar = char;
 #define DCHECK_NOTNULL(p) (::yalx::base::CheckNotNull(p, OS_LITERAL(__FILE__), __LINE__))
 
 #ifndef DCHECK
-#define DCHECK(x) assert(x)
+#define DCHECK(x) ::yalx::base::CheckOutput(__FILE__, __LINE__, __func__).Assert((x), #x)
 #endif
 
 #define printd(...) ::yalx::base::DebugOutput(__FILE__, __LINE__, __func__).Print(__VA_ARGS__)
@@ -75,8 +75,8 @@ public:
 private:
     const char *const file_;
     const char *const func_;
-    const char *hint_ = nullptr;
     const char *literal_ = nullptr;
+    char *hint_ = nullptr;
     const int line_;
     bool ok_ = true;
 }; // class CheckOutput
