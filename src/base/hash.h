@@ -24,6 +24,6 @@ struct Hash {
     
 }; // struct Hash
 
-} // namespace yalx
+} // namespace yalx::base
 
 #endif // YALX_BASE_HASH_H_

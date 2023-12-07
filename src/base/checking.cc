@@ -26,6 +26,7 @@ static void PrintBacktracePosix(FILE *fp) {
         unw_word_t offset = 0, pc = 0;
         unw_get_reg(&cursor, UNW_REG_IP, &pc);
 
+
         char demangle[256];
         if (unw_get_proc_name(&cursor, demangle, 256, &offset) == 0) {
             char name[512];

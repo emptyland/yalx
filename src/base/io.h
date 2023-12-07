@@ -28,7 +28,7 @@ public:
     virtual Status Append(std::string_view data) = 0;
     virtual Status PositionedAppend(std::string_view data, uint64_t offset) = 0;
     virtual Status Truncate(uint64_t size) = 0;
-    virtual std::string ToString() const = 0;
+    [[nodiscard]] virtual std::string ToString() const = 0;
 }; // class WritableFile
 
 class RandomAccessFile {
@@ -44,7 +44,7 @@ class PrintingWriter final {
 public:
     static constexpr int kMaxInlineIndents = 6;
     
-    PrintingWriter(WritableFile *file, bool ownership = false)
+    explicit PrintingWriter(WritableFile *file, bool ownership = false)
         : file_(file)
         , ownership_(ownership) {}
     ~PrintingWriter() {
@@ -92,7 +92,7 @@ SequentialFile *NewMemorySequentialFile(const char *z, size_t n);
 WritableFile *NewWritableFile(FILE *fp);
 WritableFile *NewMemoryWritableFile(std::string *buf);
 
-} // namespace yalx
+} // namespace yalx::base
 
 
 #endif // YALX_BASE_IO_H_

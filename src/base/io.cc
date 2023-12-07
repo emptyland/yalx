@@ -8,7 +8,7 @@ namespace yalx::base {
 
 class MemorySequentialFile : public SequentialFile {
 public:
-    MemorySequentialFile(const std::string buf): MemorySequentialFile(buf.data(), buf.size()) {}
+    explicit MemorySequentialFile(const std::string buf): MemorySequentialFile(buf.data(), buf.size()) {}
     MemorySequentialFile(const char *buf, size_t n)
         : buf_(new char[n])
         , end_(buf_ + n)
@@ -44,7 +44,7 @@ private:
 
 class LibCWritableFile final : public WritableFile {
 public:
-    LibCWritableFile(FILE *fp) : file_(fp) {}
+    explicit LibCWritableFile(FILE *fp) : file_(fp) {}
     ~LibCWritableFile() override { if (file_) { ::fclose(file_); } }
     
     Status Append(std::string_view data) override {
@@ -74,8 +74,8 @@ private:
 
 class MemoryWritableFile final : public WritableFile {
 public:
-    MemoryWritableFile(std::string *buf): buf_(buf) {}
-    ~MemoryWritableFile() override {}
+    explicit MemoryWritableFile(std::string *buf): buf_(buf) {}
+    ~MemoryWritableFile() override = default;
     
     Status Append(std::string_view data) override {
         buf_->append(data.data(), data.size());
