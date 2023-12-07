@@ -64,6 +64,23 @@ inline T *CheckNotNull(T *p, const OSChar *file, int line) {
     return p;
 }
 
+class CheckOutput {
+public:
+    CheckOutput(const char *file, int line, const char *func);
+    ~CheckOutput();
+
+    CheckOutput &Assert(bool ok, const char *literal);
+
+    CheckOutput &Hint(const char *fmt, ...);
+private:
+    const char *const file_;
+    const char *const func_;
+    const char *hint_ = nullptr;
+    const char *literal_ = nullptr;
+    const int line_;
+    bool ok_ = true;
+}; // class CheckOutput
+
 class DebugOutput {
 public:
     DebugOutput(const char *file, int line, const char *func);
