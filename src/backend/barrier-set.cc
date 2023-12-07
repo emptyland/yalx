@@ -30,7 +30,7 @@ public:
         selector->Emit(X64Movq, bad_mask, bad_mask_symbol);
         selector->Emit(X64Test, {}, bad_mask, selector->UseAsRegisterOrSlot(ir));
         auto label = selector->Emit(X64Jz, InstructionSelector::NoOutput(),
-                                               InstructionSelector::NoOutput()); // Good if ZF = 0
+                                    InstructionSelector::NoOutput()); // Good if ZF = 0
 
         InstructionOperand saved_regs[] = {
             AllocatedOperand::Register(MachineRepresentation::kWord64, profile->returning0_register()),

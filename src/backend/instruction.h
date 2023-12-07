@@ -490,6 +490,9 @@ public:
     }
     
     Operand *TempAt(size_t i) {
+//        if (i >= temps_count()) {
+//            printd("%s", kInstrCodeNames[op()]);
+//        }
         DCHECK(i < temps_count());
         return &operands_[temp_offset() + i];
     }

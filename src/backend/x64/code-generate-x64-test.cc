@@ -193,7 +193,51 @@ Lblk0:
 // FindModuleOrNull("main:main")->FindFunOrNull("issue13_simple_load_barrier");
 TEST_F(X64CodeGeneratorTest, SimpleLoadBarrier) {
     auto expected = GenTo("main:main", "issue13_simple_load_barrier");
-    puts(expected.c_str());
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue13_simple_load_barrier
+main_Zomain_Zdissue13_simple_load_barrier:
+.cfi_startproc
+Lblk0:
+    pushq %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset %rbp, -16
+    movq %rsp, %rbp
+    .cfi_def_cfa_register %rbp
+    subq $64, %rsp
+    leaq -32(%rbp), %rax
+    movq %rax, -40(%rbp)
+    addq $16, %rsp
+    movq Kstr.0(%rip), %rsi
+    movq Kstr.1(%rip), %rdx
+    movl $0, %ecx
+    movq -40(%rbp), %rdi
+    callq main_Zomain_ZdIdent2_ZdIdent2_Z4constructor
+    subq $16, %rsp
+    movq -16(%rbp), %rax
+    movq %rax, -56(%rbp)
+    movq YGC_ADDRESS_BAD_MASK(%rip), %r13
+    testq -56(%rbp), %r13
+    jz Jpt_0
+    pushq %rax
+    pushq %rdi
+    pushq %rsi
+    pushq %r15
+    leaq -32(%rbp), %rdi
+    addq $16, %rdi
+    callq ygc_barrier_load_on_field
+    movq %rax, -56(%rbp)
+    pushq %r15
+    pushq %rsi
+    pushq %rdi
+    pushq %rax
+Jpt_0:
+    movq -56(%rbp), %r13
+    movq %r13, 24(%rbp)
+    addq $64, %rsp
+    popq %rbp
+    retq
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
 }
 
 } // namespace yalx::backend

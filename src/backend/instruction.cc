@@ -305,7 +305,7 @@ void Instruction::PrintTo(int ident, base::PrintingWriter *printer) const {
     }
     
     //printd("%08x %08x\n", InstructionCodeField::kMask, InstructionCodeField::kBits);
-    auto code = InstructionCodeField::Decode(op());
+    auto code = op();
     if (outputs_count() > 0) {
         printer->Print(" = %s", kInstrCodeNames[code]);
     } else {
