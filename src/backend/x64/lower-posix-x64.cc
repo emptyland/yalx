@@ -4,7 +4,6 @@
 #include "ir/metadata.h"
 #include "ir/utils.h"
 #include "ir/node.h"
-#include "ir/type.h"
 #include "base/utils.h"
 #include "base/io.h"
 

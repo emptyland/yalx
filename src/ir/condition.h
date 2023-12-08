@@ -4,9 +4,7 @@
 
 #include "base/base.h"
 
-namespace yalx {
-
-namespace ir {
+namespace yalx::ir {
 
 // integral
 #define DECL_INTEGRAL_CONDITIONS(V) \
@@ -66,7 +64,7 @@ struct IConditionId {
         return {code};
     }
     
-    const char *ToString() const;
+    [[nodiscard]] const char *ToString() const;
     
     const Value value;
 }; // struct IntegralConditionId
@@ -104,8 +102,6 @@ struct FCondition {
     DISALLOW_ALL_CONSTRUCTORS(FCondition);
 };
 
-} // namespace ir
-
-} // namespace yalx
+} // namespace yalx::ir
 
 #endif // YALX_IR_CONDITION_H_

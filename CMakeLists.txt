@@ -78,7 +78,9 @@ add_library(runtime STATIC
         src/runtime/utils.c
         src/runtime/locks-posix.c
         src/runtime/platform-signal-linux-x64.c
-        src/runtime/stubs-linux-x64.s src/runtime/platform-signal.h src/runtime/platform-signal-linux.c)
+        src/runtime/stubs-linux-x64.s
+        src/runtime/platform-signal.h
+        src/runtime/platform-signal-linux.c)
 
 add_library(compiler STATIC
         src/arch/label.h
@@ -88,7 +90,7 @@ add_library(compiler STATIC
         src/arm64/instr-arm64.cc
         src/arm64/instr-arm64.h
         src/backend/arm64/instruction-codes-arm64.h
-        src/backend/arm64/instruction-selector-arm64.cc
+        src/backend/arm64/lower-posix-arm64.cc
         src/backend/x64/instruction-codes-x64.h
         src/backend/x64/code-generate-x64.cc
         src/backend/x64/code-generate-x64.h
@@ -205,7 +207,8 @@ add_library(compiler STATIC
         src/backend/zero-slot-allocator.h
         src/backend/zero-slot-allocator.cc
         src/backend/barrier-set.h
-        src/backend/barrier-set.cc)
+        src/backend/barrier-set.cc
+        src/backend/arm64/lower-posix-arm64.h)
 
 add_executable(yalx-test
         src/arm64/asm-arm64-test.cc

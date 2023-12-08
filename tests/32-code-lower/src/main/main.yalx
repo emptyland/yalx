@@ -47,3 +47,10 @@ fun issue13_simple_load_barrier(): string {
     val a = Ident2("hello", "world", 0)
     return a.name
 }
+
+class Ident3(val name: string, val nick: string, id: i32)
+
+fun issue14_new_obj_and_simple_load_barrier(): string {
+    val a = Ident3("hello", "world", 0)
+    return a.name
+}

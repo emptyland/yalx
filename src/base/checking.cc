@@ -78,13 +78,13 @@ CheckOutput::CheckOutput(const char *file, int line, const char *func)
 CheckOutput::~CheckOutput() {
     if (!ok_) {
         fprintf(stderr, "[%s:%d (%s)] Assertion `%s` fail. %s\n",
-                file_, line_, func_, literal_, !hint_ ? "" : hint_);
+                file_, line_, func_, message_, !hint_ ? "" : hint_);
     #if defined(YALX_OS_POSIX)
         PrintBacktracePosix(stderr);
     #endif // defined(YALX_OS_POSIX)
     }
     ::free(const_cast<char *>(hint_));
-    ::free(const_cast<char *>(literal_));
+    ::free(const_cast<char *>(message_));
     if (!ok_) {
         abort();
     }
@@ -93,7 +93,7 @@ CheckOutput::~CheckOutput() {
 CheckOutput &CheckOutput::Assert(bool ok, const char *literal) {
     ok_ = ok;
     if (!ok_) {
-        literal_ = ::strdup(literal);
+        message_ = ::strdup(literal);
     }
     return *this;
 }

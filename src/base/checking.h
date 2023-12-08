@@ -43,8 +43,14 @@ using OSChar = char;
 #define printd(...)
 
 #ifndef DCHECK
-#define DCHECK(x)
+#define DCHECK(x) ::yalx::base::CheckOutput()
 #endif
+
+class CheckOutput {
+public:
+    inline CheckOutput() = default;
+    inline CheckOutput &Hint(const char */*fmt*/, ...) { return *this; }
+}; // class CheckOutput
 
 #else
 
@@ -75,7 +81,7 @@ public:
 private:
     const char *const file_;
     const char *const func_;
-    const char *literal_ = nullptr;
+    char *message_ = nullptr;
     char *hint_ = nullptr;
     const int line_;
     bool ok_ = true;
