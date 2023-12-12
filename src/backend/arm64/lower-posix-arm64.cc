@@ -70,7 +70,33 @@ void Arm64PosixLower::VisitLoadAddress(ir::Value *ir) {
 }
 
 InstructionOperand Arm64PosixLower::TryUseAsConstantOrImmediate(ir::Value *value) {
-    return InstructionSelector::TryUseAsConstantOrImmediate(value);
+    if (auto imm = TryUseAsIntegralImmediate(value); !imm.IsInvalid()) {
+        return imm;
+    }
+
+    switch (value->op()->value()) {
+        case ir::Operator::kStringConstant: {
+            auto kz = ir::OperatorWith<String const *>::Data(value);
+            auto index = const_pool()->FindOrInsertString(kz);
+            return ConstantOperand{ConstantOperand::kString, index};
+        }
+        case ir::Operator::kNilConstant:
+            return ImmediateOperand{static_cast<int64_t>(0)};
+        case ir::Operator::kF32Constant: {
+            auto kf = ir::OperatorWith<float>::Data(value);
+            auto index = const_pool()->FindOrInsertFloat32(kf);
+            return ConstantOperand{ConstantOperand::kNumber, index};
+        }
+        case ir::Operator::kF64Constant: {
+            auto kf = ir::OperatorWith<double>::Data(value);
+            auto index = const_pool()->FindOrInsertFloat64(kf);
+            return ConstantOperand{ConstantOperand::kNumber, index};
+        }
+        default:
+            break;
+    }
+
+    return {};
 }
 
 void Arm64PosixLower::VisitArithOperands(InstructionCode op, InstructionOperand output, ir::Value *input0, ir::Value *input1) {

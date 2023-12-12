@@ -714,6 +714,18 @@ inline InstructionBlock *InstructionFunction::NewBlock(int label) {
     return block;
 }
 
+struct AllocatedOpdOperator {
+    static inline bool IsRegister(InstructionOperand *opd) {
+        auto all = opd->AsAllocated();
+        return all && all->IsRegisterLocation();
+    }
+
+    static inline AllocatedOperand *AsLocation(InstructionOperand *opd) {
+        auto all = opd->AsAllocated();
+        return (all && all->IsMemoryLocation()) ? all : nullptr;
+    }
+};
+
 struct PrepareCallHint {
     static inline int GetAdjustStackSize(Instruction *instr) {
         DCHECK(instr->op() == ArchAfterCall || instr->op() == ArchBeforeCall);

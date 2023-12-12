@@ -91,6 +91,8 @@ add_library(compiler STATIC
         src/arm64/instr-arm64.h
         src/backend/arm64/instruction-codes-arm64.h
         src/backend/arm64/lower-posix-arm64.cc
+        src/backend/arm64/code-generate-arm64.cc
+        src/backend/arm64/code-generate-arm64.h
         src/backend/x64/instruction-codes-x64.h
         src/backend/x64/code-generate-x64.cc
         src/backend/x64/code-generate-x64.h
@@ -266,7 +268,7 @@ add_executable(yalx-test
         src/runtime/heap/ygc-mark-test.cc
         src/runtime/root-handles-test.cc
         src/backend/x64/lower-posix-x64-test.cc
-        src/backend/x64/code-generate-x64-test.cc)
+        src/backend/x64/code-generate-x64-test.cc src/backend/arm64/lower-posix-arm64-test.cc)
 
 
 target_link_libraries(yalx-test compiler runtime pthread unwind m)
