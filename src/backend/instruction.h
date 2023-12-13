@@ -726,6 +726,13 @@ struct AllocatedOpdOperator {
     }
 };
 
+struct FrameScopeHint {
+    static inline int GetStackMaxSize(Instruction *instr) {
+        DCHECK(instr->op() == ArchFrameEnter || instr->op() == ArchFrameExit);
+        return instr->TempAt(0)->AsImmediate()->word32_value();
+    }
+};
+
 struct PrepareCallHint {
     static inline int GetAdjustStackSize(Instruction *instr) {
         DCHECK(instr->op() == ArchAfterCall || instr->op() == ArchBeforeCall);

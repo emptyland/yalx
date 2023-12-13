@@ -6,9 +6,7 @@
 #include "base/base.h"
 #include <vector>
 
-namespace yalx {
-
-namespace backend {
+namespace yalx::backend {
 
 class RegistersConfiguration final {
 public:
@@ -100,8 +98,6 @@ private:
     std::vector<bool> allocatable_fp_bitmap_;
 }; // class RegistersConfiguration
 
-} // namespace backend
-
-} // namespace yalx
+} // namespace yalx::backend
 
 #endif // YALX_BACKEND_REGISTER_CONFIGURATION_H_

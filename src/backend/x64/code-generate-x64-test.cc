@@ -39,7 +39,7 @@ public:
         std::string buf;
         auto file = base::NewMemoryWritableFile(&buf);
         base::PrintingWriter printer{file, true};
-        X64CodeGenerator gen(funs, root, &const_pool_, &linkage_, &printer);
+        X64CodeGenerator gen(funs, RegistersConfiguration::OfPosixX64(), root, &const_pool_, &linkage_, &printer);
         gen.EmitFunction(fun);
         return buf;
     }

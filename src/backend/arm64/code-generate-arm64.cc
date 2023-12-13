@@ -1,4 +1,5 @@
 #include "backend/arm64/code-generate-arm64.h"
+#include "backend/registers-configuration.h"
 #include "backend/linkage-symbols.h"
 #include "backend/constants-pool.h"
 #include "backend/instruction.h"
@@ -9,7 +10,6 @@
 #include "arm64/asm-arm64.h"
 #include "base/io.h"
 #include <inttypes.h>
-#include <set>
 
 namespace yalx::backend {
 
@@ -74,6 +74,44 @@ static const char *RegisterName(MachineRepresentation rep, int id) {
     }
 }
 
+static const char *SelectLoadInstr(MachineRepresentation rep, bool negative) {
+    switch (rep) {
+        case MachineRepresentation::kWord8:
+            return negative ? "ldurb" : "ldrb";
+        case MachineRepresentation::kWord16:
+            return negative ? "ldurh" : "ldrh";
+        case MachineRepresentation::kWord32:
+        case MachineRepresentation::kWord64:
+        case MachineRepresentation::kFloat32:
+        case MachineRepresentation::kFloat64:
+        case MachineRepresentation::kPointer:
+        case MachineRepresentation::kReference:
+            return negative ? "ldur" : "ldr";
+        default:
+            UNREACHABLE();
+            return nullptr;
+    }
+}
+
+static const char *SelectStoreInstr(MachineRepresentation rep, bool negative) {
+    switch (rep) {
+        case MachineRepresentation::kWord8:
+            return negative ? "sturb" : "strb";
+        case MachineRepresentation::kWord16:
+            return negative ? "sturh" : "strh";
+        case MachineRepresentation::kWord32:
+        case MachineRepresentation::kWord64:
+        case MachineRepresentation::kFloat32:
+        case MachineRepresentation::kFloat64:
+        case MachineRepresentation::kPointer:
+        case MachineRepresentation::kReference:
+            return negative ? "stur" : "str";
+        default:
+            UNREACHABLE();
+            return nullptr;
+    }
+}
+
 class Arm64CodeGenerator::FunctionGenerator {
 public:
     enum RelocationStyle {
@@ -96,7 +134,9 @@ public:
         for (auto ib : fun_->blocks()) {
             printer()->Println("Lblk%d:", ib->label());
             for (auto instr : ib->instructions()) {
+                EmitParallelMove(instr->parallel_move(Instruction::kStart));
                 Emit(instr);
+                EmitParallelMove(instr->parallel_move(Instruction::kEnd));
                 position_++;
             }
         }
@@ -105,11 +145,17 @@ public:
 
 private:
     void Emit(Instruction *instr);
+    void EmitParallelMove(const ParallelMove *moving);
+    void EmitMove(InstructionOperand *dest, InstructionOperand *src);
     void EmitOperand(InstructionOperand *operand, RelocationStyle style = kDefault);
     void EmitOperands(InstructionOperand *opd0, InstructionOperand *opd1, RelocationStyle style = kDefault);
     void EmitOperands(InstructionOperand *opd0, InstructionOperand *opd1, InstructionOperand *opd2,
                       RelocationStyle style = kDefault);
     void EmitOperands(InstructionOperand *opd0, InstructionOperand *opd1, InstructionOperand *opd2, const char *cond);
+
+    AllocatedOperand Scratch0Operand(MachineRepresentation rep) const {
+        return AllocatedOperand::Register(rep, owns_->profile()->scratch0());
+    }
     
     base::PrintingWriter *Incoming() { return printer()->Indent(1); }
     base::PrintingWriter *printer() { return owns_->printer_; }
@@ -125,24 +171,24 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
     
     switch (instr->op()) {
         case ArchNop:
-            printer()->Indent(1)->Writeln("nop");
+            Incoming()->Writeln("nop");
             break;
             
         case ArchDebugBreak:
         case ArchUnreachable:
-            printer()->Indent(1)->Writeln("brk #0x3c");
+            Incoming()->Writeln("brk #0x3c");
             break;
             
         case ArchRet:
-            printer()->Indent(1)->Writeln("ret");
+            Incoming()->Writeln("ret");
             break;
             
         case ArchCall:
             if (instr->InputAt(0)->IsReloaction()) {
-                printer()->Indent(1)->Write("bl ");
+                Incoming()->Write("bl ");
             } else {
                 DCHECK(AllocatedOpdOperator::IsRegister(instr->InputAt(0)));
-                printer()->Indent(1)->Write("blr ");
+                Incoming()->Write("blr ");
             }
             EmitOperand(instr->InputAt(0));
             printer()->Writeln();
@@ -152,211 +198,193 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
 //            stp fp, lr, [sp, #64]
 //            add fp, sp, #64
         case ArchFrameEnter:
-            printer()->Indent(1)->Write("sub sp, sp, ");
-            EmitOperand(instr->InputAt(0));
-            printer()->Writeln();
-            
-            printer()->Indent(1)->Write("stp ");
-            EmitOperand(instr->OutputAt(0));
-            printer()->Write(", lr, ");
-            EmitOperand(instr->InputAt(1));
-            printer()->Writeln();
-            
-            printer()->Indent(1)->Write("add ");
-            EmitOperand(instr->OutputAt(0));
-            printer()->Println(", sp, #%d", AllocatedOpdOperator::AsLocation(instr->InputAt(1))->index());
-            
-            printer()->Indent(1)->Writeln(".cfi_def_cfa fp, 16");
-            printer()->Indent(1)->Writeln(".cfi_offset lr, -8");
-            printer()->Indent(1)->Writeln(".cfi_offset fp, -16");
+            Incoming()->Println("sub sp, sp, #%d", FrameScopeHint::GetStackMaxSize(instr) + 16);
+            Incoming()->Println("stp fp, lr, [sp, #%d]", FrameScopeHint::GetStackMaxSize(instr));
+            Incoming()->Println("add fp, sp, #%d", FrameScopeHint::GetStackMaxSize(instr));
+
+            Incoming()->Writeln(".cfi_def_cfa fp, 16");
+            Incoming()->Writeln(".cfi_offset lr, -8");
+            Incoming()->Writeln(".cfi_offset fp, -16");
         break;
             
 //            ldp fp, lr, [sp, #64]
 //            add sp, sp, #80
 //            ret
         case ArchFrameExit:
-            printer()->Indent(1)->Write("ldp ");
-            EmitOperand(instr->OutputAt(0));
-            printer()->Write(", lr, ");
-            EmitOperand(instr->InputAt(1));
-            printer()->Writeln();
-            
-            printer()->Indent(1)->Write("add sp, sp, ");
-            EmitOperand(instr->InputAt(0));
-            printer()->Writeln();
-            
-            printer()->Indent(1)->Writeln("ret");
+            Incoming()->Println("ldp fp, lr, [sp, #%d]", FrameScopeHint::GetStackMaxSize(instr));
+            Incoming()->Println("add sp, sp, #%d", FrameScopeHint::GetStackMaxSize(instr) + 16);
+            Incoming()->Writeln("ret");
             break;
             
         case ArchJmp:
-            printer()->Indent(1)->Write("b ");
+            Incoming()->Write("b ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_al:
-            printer()->Indent(1)->Write("b.al ");
+            Incoming()->Write("b.al ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_cc:
-            printer()->Indent(1)->Write("b.cc ");
+            Incoming()->Write("b.cc ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_cs:
-            printer()->Indent(1)->Write("b.cs ");
+            Incoming()->Write("b.cs ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_eq:
-            printer()->Indent(1)->Write("b.eq ");
+            Incoming()->Write("b.eq ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_ge:
-            printer()->Indent(1)->Write("b.ge ");
+            Incoming()->Write("b.ge ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_gt:
-            printer()->Indent(1)->Write("b.gt ");
+            Incoming()->Write("b.gt ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_hi:
-            printer()->Indent(1)->Write("b.hi ");
+            Incoming()->Write("b.hi ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_le:
-            printer()->Indent(1)->Write("b.le ");
+            Incoming()->Write("b.le ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_ls:
-            printer()->Indent(1)->Write("b.ls ");
+            Incoming()->Write("b.ls ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_lt:
-            printer()->Indent(1)->Write("b.lt ");
+            Incoming()->Write("b.lt ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_vs:
-            printer()->Indent(1)->Write("b.vs ");
+            Incoming()->Write("b.vs ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_mi:
-            printer()->Indent(1)->Write("b.mi ");
+            Incoming()->Write("b.mi ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_ne:
-            printer()->Indent(1)->Write("b.ne ");
+            Incoming()->Write("b.ne ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_nv:
-            printer()->Indent(1)->Write("b.nv ");
+            Incoming()->Write("b.nv ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_pl:
-            printer()->Indent(1)->Write("b.pl ");
+            Incoming()->Write("b.pl ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_vc:
-            printer()->Indent(1)->Write("b.vc ");
+            Incoming()->Write("b.vc ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64Select_al:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "AL");
             break;
             
         case Arm64Select_cc:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "CC");
             break;
             
         case Arm64Select_cs:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "CS");
             break;
             
         case Arm64Select_eq:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "EQ");
             break;
             
         case Arm64Select_ge:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "GE");
             break;
             
         case Arm64Select_gt:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "GT");
             break;
             
         case Arm64Select_hi:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "HI");
             break;
             
         case Arm64Select_le:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "LE");
             break;
             
         case Arm64Select_ls:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "LS");
             break;
             
         case Arm64Select_lt:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "LT");
             break;
             
         case Arm64Select_vs:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "VS");
             break;
             
         case Arm64Select_mi:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "MI");
             break;
             
         case Arm64Select_ne:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "NE");
             break;
             
         case Arm64Select_nv:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "NV");
             break;
             
@@ -366,7 +394,7 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             break;
             
         case Arm64Select_vc:
-            printer()->Indent(1)->Write("csel ");
+            Incoming()->Write("csel ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), "VC");
             break;
 
@@ -374,18 +402,18 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
         case Arm64LdrS:
         case Arm64LdrD:
             if (DCHECK_NOTNULL(AllocatedOpdOperator::AsLocation(instr->InputAt(0)))->index() < 0) {
-                printer()->Indent(1)->Write("ldur ");
+                Incoming()->Write("ldur ");
             } else {
-                printer()->Indent(1)->Write("ldr ");
+                Incoming()->Write("ldr ");
             }
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case Arm64Ldrb:
             if (DCHECK_NOTNULL(AllocatedOpdOperator::AsLocation(instr->InputAt(0)))->index() < 0) {
-                printer()->Indent(1)->Write("ldurb ");
+                Incoming()->Write("ldurb ");
             } else {
-                printer()->Indent(1)->Write("ldrb ");
+                Incoming()->Write("ldrb ");
             }
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
@@ -401,24 +429,24 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             
         case Arm64LdrW:
             if (DCHECK_NOTNULL(AllocatedOpdOperator::AsLocation(instr->InputAt(0)))->index() < 0) {
-                printer()->Indent(1)->Write("ldurh ");
+                Incoming()->Write("ldurh ");
             } else {
-                printer()->Indent(1)->Write("ldrh ");
+                Incoming()->Write("ldrh ");
             }
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case Arm64Ldrsw:
             if (DCHECK_NOTNULL(AllocatedOpdOperator::AsLocation(instr->InputAt(0)))->index() < 0) {
-                printer()->Indent(1)->Write("ldursw ");
+                Incoming()->Write("ldursw ");
             } else {
-                printer()->Indent(1)->Write("ldrsw ");
+                Incoming()->Write("ldrsw ");
             }
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case Arm64Ldp:
-            printer()->Indent(1)->Write("ldp ");
+            Incoming()->Write("ldp ");
             EmitOperands(instr->OutputAt(0), instr->OutputAt(1), instr->InputAt(0));
             break;
             
@@ -426,86 +454,86 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
         case Arm64StrS:
         case Arm64StrD:
             if (DCHECK_NOTNULL(AllocatedOpdOperator::AsLocation(instr->OutputAt(0)))->index() < 0) {
-                printer()->Indent(1)->Write("stur ");
+                Incoming()->Write("stur ");
             } else {
-                printer()->Indent(1)->Write("str ");
+                Incoming()->Write("str ");
             }
             EmitOperands(instr->InputAt(0), instr->OutputAt(0));
             break;
             
         case Arm64Strb:
             if (DCHECK_NOTNULL(AllocatedOpdOperator::AsLocation(instr->OutputAt(0)))->index() < 0) {
-                printer()->Indent(1)->Write("sturb ");
+                Incoming()->Write("sturb ");
             } else {
-                printer()->Indent(1)->Write("strb ");
+                Incoming()->Write("strb ");
             }
             EmitOperands(instr->InputAt(0), instr->OutputAt(0));
             break;
             
         case Arm64Strh:
             if (DCHECK_NOTNULL(AllocatedOpdOperator::AsLocation(instr->OutputAt(0)))->index() < 0) {
-                printer()->Indent(1)->Write("sturh ");
+                Incoming()->Write("sturh ");
             } else {
-                printer()->Indent(1)->Write("strh ");
+                Incoming()->Write("strh ");
             }
             EmitOperands(instr->InputAt(0), instr->OutputAt(0));
             break;
             
         case Arm64StrW:
             if (DCHECK_NOTNULL(AllocatedOpdOperator::AsLocation(instr->OutputAt(0)))->index() < 0) {
-                printer()->Indent(1)->Write("stur ");
+                Incoming()->Write("stur ");
             } else {
-                printer()->Indent(1)->Write("str ");
+                Incoming()->Write("str ");
             }
             EmitOperands(instr->InputAt(0), instr->OutputAt(0));
             break;
             
         case Arm64Stp:
-            printer()->Indent(1)->Write("stp ");
+            Incoming()->Write("stp ");
             EmitOperands(instr->InputAt(0), instr->InputAt(1), instr->OutputAt(0));
             break;
             
         case Arm64Mov:
         case Arm64Mov32:
-            printer()->Indent(1)->Write("mov ");
+            Incoming()->Write("mov ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case Arm64FMov:
-            printer()->Indent(1)->Write("fmov ");
+            Incoming()->Write("fmov ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case Arm64Adr:
-            printer()->Indent(1)->Write("adr ");
+            Incoming()->Write("adr ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
         
         case Arm64Adrp:
-            printer()->Indent(1)->Write("adrp ");
+            Incoming()->Write("adrp ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), kPage);
             break;
             
         case Arm64AddOff:
-            printer()->Indent(1)->Write("add ");
+            Incoming()->Write("add ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1), kPageOff);
             break;
             
         case Arm64Cmp32:
         case Arm64Cmp:
-            printer()->Indent(1)->Write("cmp ");
+            Incoming()->Write("cmp ");
             EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
             
         case Arm64Float32Cmp:
         case Arm64Float64Cmp:
-            printer()->Indent(1)->Write("fcmp ");
+            Incoming()->Write("fcmp ");
             EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
             
         case Arm64Add:
         case Arm64Add32:
-            printer()->Indent(1)->Write("add ");
+            Incoming()->Write("add ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
             break;
             
@@ -514,43 +542,43 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             break;
             
         case Arm64Sub:
-            printer()->Indent(1)->Write("sub ");
+            Incoming()->Write("sub ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
             break;
             
         case Arm64Sub32:
-            printer()->Indent(1)->Write("sub ");
+            Incoming()->Write("sub ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
             break;
             
         case Arm64And32:
         case Arm64And:
-            printer()->Indent(1)->Write("and ");
+            Incoming()->Write("and ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0), instr->InputAt(1));
             break;
             
         case Arm64Uxtb:
-            printer()->Indent(1)->Write("uxtb ");
+            Incoming()->Write("uxtb ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case Arm64Uxth:
-            printer()->Indent(1)->Write("uxth ");
+            Incoming()->Write("uxth ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case Arm64Sxtb32:
-            printer()->Indent(1)->Write("sxtb ");
+            Incoming()->Write("sxtb ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case Arm64Sxth32:
-            printer()->Indent(1)->Write("sxth ");
+            Incoming()->Write("sxth ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case Arm64Sxtw32:
-            printer()->Indent(1)->Write("sxtw ");
+            Incoming()->Write("sxtw ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
 
@@ -685,13 +713,105 @@ void Arm64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *oper
     }
 }
 
+void Arm64CodeGenerator::FunctionGenerator::EmitParallelMove(const ParallelMove *moving) {
+    if (!moving) {
+        return; // Dont need emit moving
+    }
+
+    for (auto pair : moving->moves()) {
+        if (pair->should_load_address()) {
+            Incoming()->Write("leaq ");
+            EmitOperands(pair->mutable_dest(), pair->mutable_src());
+        } else {
+            EmitMove(pair->mutable_dest(), pair->mutable_src());
+        }
+    }
+}
+
+void Arm64CodeGenerator::FunctionGenerator::EmitMove(InstructionOperand *dest, InstructionOperand *src) {
+    switch (dest->kind()) {
+        case InstructionOperand::kReloaction: {
+            switch (src->kind()) {
+                case InstructionOperand::kConstant: {
+                    UNREACHABLE();
+                } break;
+                case InstructionOperand::kImmediate: {
+                    UNREACHABLE();
+                } break;
+                case InstructionOperand::kReloaction:
+                case InstructionOperand::kAllocated:
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+        case InstructionOperand::kAllocated: {
+            auto out = dest->AsAllocated();
+
+            switch (src->kind()) {
+                case InstructionOperand::kImmediate: {
+                    auto in = src->AsImmediate();
+                    if (out->IsRegisterLocation()) { // reg <- imm
+                        Incoming()->Write("mov ");
+                        EmitOperands(out, in);
+                    } else { // mem <- imm
+                        Incoming()->Print("mov ");
+                        auto scratch0 = Scratch0Operand(in->machine_representation());
+                        EmitOperands(&scratch0, in);
+
+                        auto instr = SelectStoreInstr(out->machine_representation(), out->index() < 0);
+                        Incoming()->Print("%s ", instr);
+                        EmitOperands(&scratch0, out);
+                    }
+                } break;
+                case InstructionOperand::kAllocated: {
+                    auto in = src->AsAllocated();
+                    if (in->IsRegisterLocation()) {
+                        if (out->IsRegisterLocation()) { // reg <- reg
+                            Incoming()->Write("mov ");
+                            EmitOperands(out, in);
+                        } else { // mem <- reg
+                            auto instr = SelectStoreInstr(out->machine_representation(), out->index() < 0);
+                            Incoming()->Print("%s ", instr);
+                            EmitOperands(in, out);
+                        }
+                    } else { // xx <- mem
+                        if (out->IsRegisterLocation()) { // reg <- mem
+                            auto instr = SelectLoadInstr(in->machine_representation(), in->index() < 0);
+                            Incoming()->Print("%s ", instr);
+                            EmitOperands(in, out);
+                        } else { // mem <- mem
+                            auto scratch0 = Scratch0Operand(in->machine_representation());
+                            auto load = SelectLoadInstr(in->machine_representation(), in->index() < 0);
+                            Incoming()->Print("%s ", load);
+                            EmitOperands(&scratch0, in);
+
+                            auto store = SelectStoreInstr(out->machine_representation(), out->index() < 0);
+                            Incoming()->Print("%s ", store);
+                            EmitOperands(&scratch0, out);
+                        }
+                    }
+                } break;
+                case InstructionOperand::kConstant:
+                case InstructionOperand::kReloaction:
+                default:
+                    UNREACHABLE();
+                    break;
+            }
+        } break;
+        default:
+            UNREACHABLE();
+            break;
+    }
+}
 
 Arm64CodeGenerator::Arm64CodeGenerator(const base::ArenaMap<std::string_view, InstructionFunction *> &funs,
+                                       const RegistersConfiguration *profile,
                                        ir::Module *module,
                                        ConstantsPool *const_pool,
                                        Linkage *symbols,
                                        base::PrintingWriter *printer)
-: GnuAsmGenerator(funs, module, const_pool, symbols, printer) {
+: GnuAsmGenerator(funs, profile, module, const_pool, symbols, printer) {
     set_comment(";");
     set_text_p2align("2");
 }

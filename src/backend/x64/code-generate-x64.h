@@ -16,6 +16,7 @@ public:
     class FunctionGenerator;
     
     X64CodeGenerator(const base::ArenaMap<std::string_view, InstructionFunction *> &funs,
+                     const RegistersConfiguration *profile,
                      ir::Module *module,
                      ConstantsPool *const_pool,
                      Linkage *symbols,

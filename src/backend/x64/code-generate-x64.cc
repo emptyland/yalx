@@ -130,10 +130,8 @@ private:
     void EmitOperand(InstructionOperand *operand, X64RelocationStyle style = kDefault);
     void EmitOperands(InstructionOperand *io, InstructionOperand *input, X64RelocationStyle style = kDefault);
 
-    static const char *Scratch(MachineRepresentation rep) {
-        auto inst = RegistersConfiguration::OfPosixX64();
-        DCHECK(inst->scratch0() >= 0);
-        return RegisterName(rep, inst->scratch0());
+    const char *Scratch(MachineRepresentation rep) {
+        return RegisterName(rep, owns_->profile()->scratch0());
     }
     
     base::PrintingWriter *Incoming() { return printer()->Indent(1); }
@@ -150,38 +148,38 @@ void X64CodeGenerator::FunctionGenerator::Emit(InstructionBlock *ib, Instruction
     
     switch (instr->op()) {
         case ArchNop:
-            printer()->Indent(1)->Writeln("nop");
+            Incoming()->Writeln("nop");
             break;
             
         case ArchDebugBreak:
         case ArchUnreachable:
-            printer()->Indent(1)->Writeln("int3");
+            Incoming()->Writeln("int3");
             break;
             
         case ArchRet:
-            printer()->Indent(1)->Writeln("retq");
+            Incoming()->Writeln("retq");
             break;
             
         case ArchCall:
-            printer()->Indent(1)->Write("callq ");
+            Incoming()->Write("callq ");
             EmitOperand(instr->TempAt(0), kIndirectly);
             printer()->Writeln();
             break;
 
         case ArchCallNative:
-            printer()->Indent(1)->Write("callq ");
+            Incoming()->Write("callq ");
             EmitOperand(instr->InputAt(0), kIndirectly);
             printer()->Writeln();
             break;
 
         case ArchBeforeCall: {
             for (int i = 0; i < instr->inputs_count(); i++) {
-                printer()->Indent(1)->Write("pushq ");
+                Incoming()->Write("pushq ");
                 EmitOperand(instr->InputAt(i));
                 printer()->Writeln();
             }
             if (instr->temps_count() > 2 && PrepareCallHint::GetAdjustStackSize(instr) > 0) {
-                printer()->Indent(1)->Write("addq ");
+                Incoming()->Write("addq ");
                 EmitOperand(instr->TempAt(0));
                 printer()->Writeln(", %rsp");
             }
@@ -189,12 +187,12 @@ void X64CodeGenerator::FunctionGenerator::Emit(InstructionBlock *ib, Instruction
 
         case ArchAfterCall:
             if (instr->temps_count() > 2 && PrepareCallHint::GetAdjustStackSize(instr) > 0) {
-                printer()->Indent(1)->Write("subq ");
+                Incoming()->Write("subq ");
                 EmitOperand(instr->TempAt(0));
                 printer()->Writeln(", %rsp");
             }
             for (int i = instr->inputs_count() - 1; i >= 0; i--) {
-                printer()->Indent(1)->Write("pushq ");
+                Incoming()->Write("pushq ");
                 EmitOperand(instr->InputAt(i));
                 printer()->Writeln();
             }
@@ -205,31 +203,29 @@ void X64CodeGenerator::FunctionGenerator::Emit(InstructionBlock *ib, Instruction
             break;
             
         case ArchFrameEnter:
-            printer()->Indent(1)->Println("pushq %rbp");
+            Incoming()->Println("pushq %rbp");
             
-            printer()->Indent(1)->Writeln(".cfi_def_cfa_offset 16");
-            printer()->Indent(1)->Writeln(".cfi_offset %rbp, -16");
-            printer()->Indent(1)->Writeln("movq %rsp, %rbp");
-            printer()->Indent(1)->Writeln(".cfi_def_cfa_register %rbp");
+            Incoming()->Writeln(".cfi_def_cfa_offset 16");
+            Incoming()->Writeln(".cfi_offset %rbp, -16");
+            Incoming()->Writeln("movq %rsp, %rbp");
+            Incoming()->Writeln(".cfi_def_cfa_register %rbp");
 
-            if (auto size = instr->TempAt(0)->AsImmediate()->word32_value(); size > 0) {
-                printer()->Indent(1)->Println("subq $%d, %%rsp", size);
+            if (auto size = FrameScopeHint::GetStackMaxSize(instr); size > 0) {
+                Incoming()->Println("subq $%d, %%rsp", size);
             }
             break;
             
         case ArchFrameExit: {
-            int has_adjust = 0;
-            if (auto size = instr->TempAt(0)->AsImmediate()->word32_value(); size > 0) {
-                printer()->Indent(1)->Println("addq $%d, %%rsp", size);
-                has_adjust = 1;
+            if (auto size = FrameScopeHint::GetStackMaxSize(instr); size > 0) {
+                Incoming()->Println("addq $%d, %%rsp", size);
             }
-            printer()->Indent(1)->Writeln("popq %rbp");
+            Incoming()->Writeln("popq %rbp");
 
-            printer()->Indent(1)->Writeln("retq");
+            Incoming()->Writeln("retq");
         } break;
             
         case ArchJmp:
-            printer()->Indent(1)->Write("jmp ");
+            Incoming()->Write("jmp ");
             EmitOperand(instr->OutputAt(0), kIndirectly);
             printer()->Writeln("");
             break;
@@ -239,307 +235,307 @@ void X64CodeGenerator::FunctionGenerator::Emit(InstructionBlock *ib, Instruction
             auto slot = instr->InputAt(0)->AsAllocated();
             auto offset = slot->index() + field_offset;
             auto rep = instr->OutputAt(0)->AsAllocated()->machine_representation();
-            printer()->Indent(1)->Print("%s %d(%rbp), ", SelectMoveInstr(rep), offset);
+            Incoming()->Print("%s %d(%rbp), ", SelectMoveInstr(rep), offset);
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
         } break;
             
         case X64Add8:
-            printer()->Indent(1)->Write("addb ");
+            Incoming()->Write("addb ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Add16:
-            printer()->Indent(1)->Write("addw ");
+            Incoming()->Write("addw ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Add32:
-            printer()->Indent(1)->Write("addl ");
+            Incoming()->Write("addl ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Add:
-            printer()->Indent(1)->Write("addq ");
+            Incoming()->Write("addq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Sub8:
-            printer()->Indent(1)->Write("subb ");
+            Incoming()->Write("subb ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Sub16:
-            printer()->Indent(1)->Write("subw ");
+            Incoming()->Write("subw ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Sub32:
-            printer()->Indent(1)->Write("subl ");
+            Incoming()->Write("subl ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Sub:
-            printer()->Indent(1)->Write("subq ");
+            Incoming()->Write("subq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64And32:
-            printer()->Indent(1)->Write("andl ");
+            Incoming()->Write("andl ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64And:
-            printer()->Indent(1)->Write("andq ");
+            Incoming()->Write("andq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Test:
-            printer()->Indent(1)->Write("testq ");
+            Incoming()->Write("testq ");
             EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
 
         case X64Movb:
-            printer()->Indent(1)->Write("movb ");
+            Incoming()->Write("movb ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movw:
-            printer()->Indent(1)->Write("movw ");
+            Incoming()->Write("movw ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movl:
-            printer()->Indent(1)->Write("movl ");
+            Incoming()->Write("movl ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movq:
-            printer()->Indent(1)->Write("movq ");
+            Incoming()->Write("movq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movsxbw:
-            printer()->Indent(1)->Write("movsbw ");
+            Incoming()->Write("movsbw ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movzxbw:
-            printer()->Indent(1)->Write("movzbw ");
+            Incoming()->Write("movzbw ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movsxbl:
-            printer()->Indent(1)->Write("movsbl ");
+            Incoming()->Write("movsbl ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movzxbl:
-            printer()->Indent(1)->Write("movzbl ");
+            Incoming()->Write("movzbl ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movsxbq:
-            printer()->Indent(1)->Write("movsbl ");
+            Incoming()->Write("movsbl ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movzxbq:
-            printer()->Indent(1)->Write("movzbl ");
+            Incoming()->Write("movzbl ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movsxlq:
-            printer()->Indent(1)->Write("movslq ");
+            Incoming()->Write("movslq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movsxwb:
-            printer()->Indent(1)->Write("movswb ");
+            Incoming()->Write("movswb ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movsxwl:
-            printer()->Indent(1)->Write("movswl ");
+            Incoming()->Write("movswl ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movsxwq:
-            printer()->Indent(1)->Write("movswq ");
+            Incoming()->Write("movswq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movzxwb:
-            printer()->Indent(1)->Write("movzwb ");
+            Incoming()->Write("movzwb ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movzxwl:
-            printer()->Indent(1)->Write("movzwl ");
+            Incoming()->Write("movzwl ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movzxwq:
-            printer()->Indent(1)->Write("movzwq ");
+            Incoming()->Write("movzwq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Movss:
-            printer()->Indent(1)->Write("movss ");
+            Incoming()->Write("movss ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
 
         case X64Movsd:
-            printer()->Indent(1)->Write("movsd ");
+            Incoming()->Write("movsd ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Lea32:
-            printer()->Indent(1)->Write("leal ");
+            Incoming()->Write("leal ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Lea:
-            printer()->Indent(1)->Write("leaq ");
+            Incoming()->Write("leaq ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case X64Push:
-            printer()->Indent(1)->Write("pushq ");
+            Incoming()->Write("pushq ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Pop:
-            printer()->Indent(1)->Write("popq ");
+            Incoming()->Write("popq ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Cmp8:
-            printer()->Indent(1)->Write("cmpb ");
+            Incoming()->Write("cmpb ");
             EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
             
         case X64Cmp16:
-            printer()->Indent(1)->Write("cmpw ");
+            Incoming()->Write("cmpw ");
             EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
             
         case X64Cmp32:
-            printer()->Indent(1)->Write("cmpl ");
+            Incoming()->Write("cmpl ");
             EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
             
         case X64Cmp:
-            printer()->Indent(1)->Write("cmpq ");
+            Incoming()->Write("cmpq ");
             EmitOperands(instr->InputAt(0), instr->InputAt(1));
             break;
             
         case X64Ja:
-            printer()->Indent(1)->Write("ja ");
+            Incoming()->Write("ja ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jae:
-            printer()->Indent(1)->Write("jae ");
+            Incoming()->Write("jae ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jb:
-            printer()->Indent(1)->Write("jb ");
+            Incoming()->Write("jb ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jbe:
-            printer()->Indent(1)->Write("jbe ");
+            Incoming()->Write("jbe ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jl:
-            printer()->Indent(1)->Write("jl ");
+            Incoming()->Write("jl ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jle:
-            printer()->Indent(1)->Write("jle ");
+            Incoming()->Write("jle ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jg:
-            printer()->Indent(1)->Write("jg ");
+            Incoming()->Write("jg ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jge:
-            printer()->Indent(1)->Write("jge ");
+            Incoming()->Write("jge ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Je:
-            printer()->Indent(1)->Write("je ");
+            Incoming()->Write("je ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jne:
-            printer()->Indent(1)->Write("jne ");
+            Incoming()->Write("jne ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jp:
-            printer()->Indent(1)->Write("jp ");
+            Incoming()->Write("jp ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jpe:
-            printer()->Indent(1)->Write("jpe ");
+            Incoming()->Write("jpe ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jpo:
-            printer()->Indent(1)->Write("jpo ");
+            Incoming()->Write("jpo ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jc:
-            printer()->Indent(1)->Write("jc ");
+            Incoming()->Write("jc ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jo:
-            printer()->Indent(1)->Write("jo ");
+            Incoming()->Write("jo ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Js:
-            printer()->Indent(1)->Write("js ");
+            Incoming()->Write("js ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Jz:
-            printer()->Indent(1)->Write("jz ");
+            Incoming()->Write("jz ");
             EmitOperand(instr->InputAt(0), kIndirectly);
             printer()->Writeln("");
             break;
         
         case X64Jnz:
-            printer()->Indent(1)->Write("jnz ");
+            Incoming()->Write("jnz ");
             EmitOperand(instr->InputAt(0));
             printer()->Writeln("");
             break;
@@ -560,103 +556,103 @@ void X64CodeGenerator::FunctionGenerator::Emit(InstructionBlock *ib, Instruction
             break;
             
         case X64Seta:
-            printer()->Indent(1)->Write("seta ");
+            Incoming()->Write("seta ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setae:
-            printer()->Indent(1)->Write("setae ");
+            Incoming()->Write("setae ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setb:
-            printer()->Indent(1)->Write("setb ");
+            Incoming()->Write("setb ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setbe:
-            printer()->Indent(1)->Write("setbe ");
+            Incoming()->Write("setbe ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setl:
-            printer()->Indent(1)->Write("setl ");
+            Incoming()->Write("setl ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setle:
-            printer()->Indent(1)->Write("setle ");
+            Incoming()->Write("setle ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setg:
-            printer()->Indent(1)->Write("setg ");
+            Incoming()->Write("setg ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setge:
-            printer()->Indent(1)->Write("setge ");
+            Incoming()->Write("setge ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Sete:
-            printer()->Indent(1)->Write("sete ");
+            Incoming()->Write("sete ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setne:
-            printer()->Indent(1)->Write("setne ");
+            Incoming()->Write("setne ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setp:
-            printer()->Indent(1)->Write("setp ");
+            Incoming()->Write("setp ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setpe:
-            printer()->Indent(1)->Write("setpe ");
+            Incoming()->Write("setpe ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setpo:
-            printer()->Indent(1)->Write("setpo ");
+            Incoming()->Write("setpo ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setc:
-            printer()->Indent(1)->Write("setc ");
+            Incoming()->Write("setc ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Seto:
-            printer()->Indent(1)->Write("seto ");
+            Incoming()->Write("seto ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Sets:
-            printer()->Indent(1)->Write("sets ");
+            Incoming()->Write("sets ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
             
         case X64Setz:
-            printer()->Indent(1)->Write("setz ");
+            Incoming()->Write("setz ");
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln("");
             break;
@@ -681,22 +677,22 @@ void X64CodeGenerator::FunctionGenerator::Emit(InstructionBlock *ib, Instruction
             // SSE:
             
         case SSEFloat32Cmp:
-            printer()->Indent(1)->Write("ucomiss ");
+            Incoming()->Write("ucomiss ");
             EmitOperands(instr->InputAt(1), instr->InputAt(0));
             break;
             
         case SSEFloat64Cmp:
-            printer()->Indent(1)->Write("ucomisd ");
+            Incoming()->Write("ucomisd ");
             EmitOperands(instr->InputAt(1), instr->InputAt(0));
             break;
             
         case SSEFloat32Add:
-            printer()->Indent(1)->Write("addss ");
+            Incoming()->Write("addss ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
         case SSEFloat64Add:
-            printer()->Indent(1)->Write("addsd ");
+            Incoming()->Write("addsd ");
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
             
@@ -739,7 +735,7 @@ void X64CodeGenerator::FunctionGenerator::EmitParallelMove(const ParallelMove *m
 
     for (auto pair : moving->moves()) {
         if (pair->should_load_address()) {
-            printer()->Indent(1)->Write("leaq ");
+            Incoming()->Write("leaq ");
             EmitOperands(pair->mutable_dest(), pair->mutable_src());
         } else {
             EmitMove(pair->mutable_dest(), pair->mutable_src());
@@ -753,11 +749,11 @@ void X64CodeGenerator::FunctionGenerator::EmitMove(InstructionOperand *dest, Ins
         case InstructionOperand::kReloaction: {
             switch (src->kind()) {
                 case InstructionOperand::kConstant: {
-                    printer()->Indent(1)->Write("movq ");
+                    Incoming()->Write("movq ");
                     EmitOperand(src);
                     printer()->Println(", %%%s", Scratch(MachineRepresentation::kWord64));
 
-                    printer()->Indent(1)->Write("movq ");
+                    Incoming()->Write("movq ");
                     printer()->Print("%%%s, ", Scratch(MachineRepresentation::kWord64));
                     EmitOperand(dest);
                     printer()->Writeln();
@@ -765,7 +761,7 @@ void X64CodeGenerator::FunctionGenerator::EmitMove(InstructionOperand *dest, Ins
                 case InstructionOperand::kImmediate: {
                     auto in = src->AsImmediate();
                     auto instr = SelectMoveInstr(in->machine_representation());
-                    printer()->Indent(1)->Print("%s ", instr);
+                    Incoming()->Print("%s ", instr);
                     EmitOperands(dest, src);
                 } break;
                 case InstructionOperand::kReloaction:
@@ -780,27 +776,27 @@ void X64CodeGenerator::FunctionGenerator::EmitMove(InstructionOperand *dest, Ins
             auto instr = SelectMoveInstr(out->machine_representation());
 
             if (out->IsRegisterLocation()) {
-                printer()->Indent(1)->Print("%s ", instr);
+                Incoming()->Print("%s ", instr);
                 EmitOperands(dest, src);
                 break;
             }
             DCHECK(out->IsMemoryLocation());
             switch (src->kind()) {
                 case InstructionOperand::kImmediate: { // mem <- imm
-                    printer()->Indent(1)->Print("%s ", instr);
+                    Incoming()->Print("%s ", instr);
                     EmitOperands(dest, src);
                 } break;
                 case InstructionOperand::kAllocated: {
                     auto in = src->AsAllocated();
                     if (in->IsRegisterLocation()) { // mem <- reg
-                        printer()->Indent(1)->Print("%s ", instr);
+                        Incoming()->Print("%s ", instr);
                         EmitOperands(dest, src);
                     } else { // mem <- mem
-                        printer()->Indent(1)->Print("%s ", instr);
+                        Incoming()->Print("%s ", instr);
                         EmitOperand(src);
                         printer()->Println(", %%%s", Scratch(out->machine_representation()));
 
-                        printer()->Indent(1)->Print("%s ", instr);
+                        Incoming()->Print("%s ", instr);
                         printer()->Print("%%%s, ", Scratch(out->machine_representation()));
                         EmitOperand(dest);
                         printer()->Writeln();
@@ -995,16 +991,17 @@ void X64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *operan
 }
 
 X64CodeGenerator::X64CodeGenerator(const base::ArenaMap<std::string_view, InstructionFunction *> &funs,
+                                   const RegistersConfiguration *profile,
                                    ir::Module *module,
                                    ConstantsPool *const_pool,
                                    Linkage *symbols,
                                    base::PrintingWriter *printer)
-: GnuAsmGenerator(funs, module, const_pool, symbols, printer) {
+: GnuAsmGenerator(funs, profile, module, const_pool, symbols, printer) {
     set_comment("#");
     set_text_p2align("4, 0x90");
 }
 
-X64CodeGenerator::~X64CodeGenerator() {}
+X64CodeGenerator::~X64CodeGenerator() = default;
 
 void X64CodeGenerator::EmitFunction(InstructionFunction *fun) {
     FunctionGenerator gen(this, fun);

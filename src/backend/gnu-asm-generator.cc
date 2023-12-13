@@ -14,11 +14,13 @@
 namespace yalx::backend {
 
 GnuAsmGenerator::GnuAsmGenerator(const base::ArenaMap<std::string_view, InstructionFunction *> &funs,
+                                 const RegistersConfiguration *profile,
                                  ir::Module *module,
                                  ConstantsPool *const_pool,
                                  Linkage *symbols,
                                  base::PrintingWriter *printer)
 : funs_(funs)
+, profile_(profile)
 , module_(module)
 , const_pool_(const_pool)
 , symbols_(symbols)
@@ -26,7 +28,7 @@ GnuAsmGenerator::GnuAsmGenerator(const base::ArenaMap<std::string_view, Instruct
     
 }
 
-GnuAsmGenerator::~GnuAsmGenerator() {}
+GnuAsmGenerator::~GnuAsmGenerator() = default;
 
 void GnuAsmGenerator::EmitAll() {
     printer_->Println(".section %s", kTextSegmentName);

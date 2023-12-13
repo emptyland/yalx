@@ -12,13 +12,14 @@ public:
     class FunctionGenerator;
     
     Arm64CodeGenerator(const base::ArenaMap<std::string_view, InstructionFunction *> &funs,
+                       const RegistersConfiguration *profile,
                        ir::Module *module,
                        ConstantsPool *const_pool,
                        Linkage *symbols,
                        base::PrintingWriter *printer);
     ~Arm64CodeGenerator() override;
 
-    
+    friend class Arm64CodeGeneratorTest;
     DISALLOW_IMPLICIT_CONSTRUCTORS(Arm64CodeGenerator);
 private:
     void EmitFunction(InstructionFunction *fun) override;

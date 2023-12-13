@@ -268,7 +268,8 @@ add_executable(yalx-test
         src/runtime/heap/ygc-mark-test.cc
         src/runtime/root-handles-test.cc
         src/backend/x64/lower-posix-x64-test.cc
-        src/backend/x64/code-generate-x64-test.cc src/backend/arm64/lower-posix-arm64-test.cc)
+        src/backend/x64/code-generate-x64-test.cc
+        src/backend/arm64/lower-posix-arm64-test.cc src/backend/arm64/code-generate-arm64-test.cc)
 
 
 target_link_libraries(yalx-test compiler runtime pthread unwind m)

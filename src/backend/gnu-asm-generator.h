@@ -19,6 +19,7 @@ namespace backend {
 class ConstantsPool;
 class Linkage;
 class InstructionFunction;
+class RegistersConfiguration;
 
 
 class GnuAsmGenerator {
@@ -29,6 +30,7 @@ public:
     static constexpr const char kDataSegmentName[] = "__DATA,__data";
     
     GnuAsmGenerator(const base::ArenaMap<std::string_view, InstructionFunction *> &funs,
+                    const RegistersConfiguration *profile,
                     ir::Module *module,
                     ConstantsPool *const_pool,
                     Linkage *symbols,
@@ -37,6 +39,7 @@ public:
     
     DEF_PTR_SETTER(const char, comment);
     DEF_PTR_SETTER(const char, text_p2align);
+    DEF_PTR_GETTER(const RegistersConfiguration, profile);
     
     void EmitAll();
     
@@ -55,6 +58,7 @@ protected:
     const char *text_p2align_ = "";
     
     const base::ArenaMap<std::string_view, InstructionFunction *> &funs_;
+    const RegistersConfiguration *const profile_;
     ir::Module *const module_;
     ConstantsPool *const const_pool_;
     Linkage *const symbols_;
