@@ -58,7 +58,7 @@ public:
     virtual void VisitCondBr(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitAddOrSub(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitICmp(ir::Value *instr) {UNREACHABLE();}
-    virtual void VisitLoadAddress(ir::Value *instr) {UNREACHABLE();}
+    virtual void VisitLoadAddress(ir::Value *instr);
     virtual void VisitLoadInlineField(ir::Value *instr);
     virtual Instruction *EmitLoadAddress(InstructionOperand output, InstructionOperand input) {return nullptr;}
     virtual InstructionOperand TryUseAsConstantOrImmediate(ir::Value *value) {UNREACHABLE();}

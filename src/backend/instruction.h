@@ -328,8 +328,7 @@ public:
     bool is_label() const { return bundle()->label_or_symbol; }
     
     const InstructionBlock *label() const {
-        DCHECK(is_label());
-        return bundle()->label;
+        return is_label() ? bundle()->label : nullptr;
     }
 
     const String *symbol_name() const {

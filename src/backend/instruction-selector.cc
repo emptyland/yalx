@@ -229,6 +229,12 @@ void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<Instruc
     }
 }
 
+void InstructionSelector::VisitLoadAddress(ir::Value *ir) {
+    auto input = UseAsSlot(ir->InputValue(0));
+    auto output = DefineAsRegister(ir);
+    Emit(ArchLoadEffectAddress, output, input);
+}
+
 void InstructionSelector::VisitLoadInlineField(ir::Value *ir) {
     auto output = DefineAsRegister(ir);
     auto handle = ir::OperatorWith<const ir::Handle *>::Data(ir);

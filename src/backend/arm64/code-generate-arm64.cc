@@ -184,14 +184,37 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             break;
             
         case ArchCall:
-            if (instr->InputAt(0)->IsReloaction()) {
-                Incoming()->Write("bl ");
-            } else {
-                DCHECK(AllocatedOpdOperator::IsRegister(instr->InputAt(0)));
-                Incoming()->Write("blr ");
-            }
-            EmitOperand(instr->InputAt(0));
+            Incoming()->Write("bl ");
+            EmitOperand(instr->TempAt(0));
             printer()->Writeln();
+            break;
+
+        case ArchBeforeCall: {
+            for (int i = 0; i < instr->inputs_count(); i++) {
+//                Incoming()->Write("pushq ");
+//                EmitOperand(instr->InputAt(i));
+//                printer()->Writeln();
+                UNREACHABLE();
+            }
+            if (instr->temps_count() > 2 && PrepareCallHint::GetAdjustStackSize(instr) > 0) {
+                Incoming()->Write("add sp, sp, ");
+                EmitOperand(instr->TempAt(0));
+                printer()->Writeln();
+            }
+        } break;
+
+        case ArchAfterCall:
+            if (instr->temps_count() > 2 && PrepareCallHint::GetAdjustStackSize(instr) > 0) {
+                Incoming()->Write("sub sp, sp, ");
+                EmitOperand(instr->TempAt(0));
+                printer()->Writeln();
+            }
+            for (int i = instr->inputs_count() - 1; i >= 0; i--) {
+//                Incoming()->Write("pushq ");
+//                EmitOperand(instr->InputAt(i));
+//                printer()->Writeln();
+                UNREACHABLE();
+            }
             break;
             
 //            sub sp, sp, #80
@@ -221,6 +244,18 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperand(instr->OutputAt(0));
             printer()->Writeln();
             break;
+
+        case ArchLoadEffectAddress: {
+            auto location = AllocatedOpdOperator::AsLocation(instr->InputAt(0));
+            if (location->index() >= 0) {
+                Incoming()->Write("add ");
+            } else {
+                Incoming()->Write("sub ");
+            }
+            EmitOperand(instr->OutputAt(0));
+            printer()->Print(", %s, ", RegisterName(MachineRepresentation::kPointer, location->register_id()));
+            printer()->Println("#%d", std::abs(location->index()));
+        } break;
             
         case Arm64B_al:
             Incoming()->Write("b.al ");

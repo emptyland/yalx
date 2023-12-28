@@ -124,4 +124,84 @@ Lblk0:
     ASSERT_EQ(z, expected) << expected;
 }
 
+// issue03_returning_two
+TEST_F(Arm64CodeGeneratorTest, ReturningTwo) {
+    auto expected = GenTo("main:main", "issue03_returning_two");
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue03_returning_two
+main_Zomain_Zdissue03_returning_two:
+.cfi_startproc
+Lblk0:
+    sub sp, sp, #16
+    stp fp, lr, [sp, #0]
+    add fp, sp, #0
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    mov w19, #2
+    str w19, [fp, #24]
+    mov w19, #1
+    str w19, [fp, #28]
+    ldp fp, lr, [sp, #0]
+    add sp, sp, #16
+    ret
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
+}
+
+TEST_F(Arm64CodeGeneratorTest, SimpleArgs2) {
+    auto expected = GenTo("main:main", "issue04_simple_args");
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue04_simple_args
+main_Zomain_Zdissue04_simple_args:
+.cfi_startproc
+Lblk0:
+    sub sp, sp, #32
+    stp fp, lr, [sp, #16]
+    add fp, sp, #16
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stur w0, [fp, #-4]
+    stur w1, [fp, #-8]
+    ldur w19, [fp, #-4]
+    str w19, [fp, #24]
+    ldur w19, [fp, #-8]
+    str w19, [fp, #28]
+    ldp fp, lr, [sp, #16]
+    add sp, sp, #32
+    ret
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
+}
+
+TEST_F(Arm64CodeGeneratorTest, CallNonArgsFun) {
+    auto expected = GenTo("main:main", "issue07_call_non_args_fun");
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue07_call_non_args_fun
+main_Zomain_Zdissue07_call_non_args_fun:
+.cfi_startproc
+Lblk0:
+    sub sp, sp, #48
+    stp fp, lr, [sp, #32]
+    add fp, sp, #32
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    add sp, sp, #16
+    bl main_Zomain_Zdissue01_returning_one
+    sub sp, sp, #16
+    mov w1, #1
+    ldur [fp, #-4], w2
+    add w0, w1, w2
+    stur w0, [fp, #-20]
+    ldur w19, [fp, #-20]
+    str w19, [fp, #28]
+    ldp fp, lr, [sp, #32]
+    add sp, sp, #48
+    ret
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
+}
+
 } // namespace yalx::backend
