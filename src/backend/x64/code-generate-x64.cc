@@ -697,7 +697,8 @@ void X64CodeGenerator::FunctionGenerator::Emit(InstructionBlock *ib, Instruction
             break;
             
         default:
-            UNREACHABLE();
+            DCHECK(instr->op() < kMaxInstructionCodes);
+            DCHECK(0).Hint("Unexpected instruction code: %s", kInstrCodeNames[instr->op()]);
             break;
     }
 

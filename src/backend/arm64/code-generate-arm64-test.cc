@@ -204,4 +204,65 @@ Lblk0:
     ASSERT_EQ(z, expected) << expected;
 }
 
+TEST_F(Arm64CodeGeneratorTest, CallTwoArgsFun) {
+    auto expected = GenTo("main:main", "issue08_call_two_args_fun");
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue08_call_two_args_fun
+main_Zomain_Zdissue08_call_two_args_fun:
+.cfi_startproc
+Lblk0:
+    sub sp, sp, #48
+    stp fp, lr, [sp, #32]
+    add fp, sp, #32
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    add sp, sp, #16
+    mov w0, #1
+    mov w1, #2
+    bl main_Zomain_Zdissue04_simple_args
+    sub sp, sp, #16
+    ldur [fp, #-4], w1
+    ldur [fp, #-8], w2
+    add w0, w1, w2
+    stur w0, [fp, #-20]
+    ldur w19, [fp, #-20]
+    str w19, [fp, #28]
+    ldp fp, lr, [sp, #32]
+    add sp, sp, #48
+    ret
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
+}
+
+TEST_F(Arm64CodeGeneratorTest, CallValArgsFun) {
+    auto expected = GenTo("main:main", "issue09_call_val_args_fun");
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue09_call_val_args_fun
+main_Zomain_Zdissue09_call_val_args_fun:
+.cfi_startproc
+Lblk0:
+    sub sp, sp, #80
+    stp fp, lr, [sp, #64]
+    add fp, sp, #64
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    sub x0, fp, #24
+    stur x0, [fp, #-32]
+    add sp, sp, #32
+    mov w1, #1
+    mov w2, #2
+    ldur [fp, #-32], x0
+    bl main_Zomain_ZdVertx2_ZdVertx2_Z4constructor
+    sub sp, sp, #32
+    leaq x0, [fp, #-24]
+    bl main_Zomain_Zdissue06_returning_val
+    ldp fp, lr, [sp, #64]
+    add sp, sp, #80
+    ret
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
+}
+
 } // namespace yalx::backend

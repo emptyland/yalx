@@ -56,6 +56,8 @@ static const char *RegisterName(MachineRepresentation rep, int id) {
             }
             return kRegisterWord32Names[id];
         case MachineRepresentation::kWord64:
+        case MachineRepresentation::kPointer:
+        case MachineRepresentation::kNone:
             if (id == 29) {
                 return "fp";
             } else if (id == 30) {
@@ -69,6 +71,7 @@ static const char *RegisterName(MachineRepresentation rep, int id) {
         case MachineRepresentation::kFloat64:
             return kRegisterFloat64Names[id];
         default:
+            DCHECK(0).Hint("Unexpected Machine Representation: %d", rep);
             UNREACHABLE();
             break;
     }
@@ -256,6 +259,10 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             printer()->Print(", %s, ", RegisterName(MachineRepresentation::kPointer, location->register_id()));
             printer()->Println("#%d", std::abs(location->index()));
         } break;
+
+        case ArchStackAlloc:
+            // Ignore
+            break;
             
         case Arm64B_al:
             Incoming()->Write("b.al ");
@@ -618,7 +625,8 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             break;
 
         default:
-            UNREACHABLE();
+            DCHECK(instr->op() < kMaxInstructionCodes);
+            DCHECK(0).Hint("Unexpected instruction code: %s", kInstrCodeNames[instr->op()]);
             break;
     }
 }
