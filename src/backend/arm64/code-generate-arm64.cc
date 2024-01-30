@@ -260,6 +260,20 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             printer()->Println("#%d", std::abs(location->index()));
         } break;
 
+        case ArchStackLoad: {
+            auto field_offset = instr->InputAt(1)->AsImmediate()->word32_value();
+            auto slot = instr->InputAt(0)->AsAllocated();
+            auto offset = slot->index() + field_offset;
+            if (offset < 0) {
+                Incoming()->Print("ldur ");
+            } else {
+                Incoming()->Print("ldr ");
+            }
+            EmitOperand(instr->OutputAt(0));
+            printer()->Print(", [fp, #%d]", offset);
+            printer()->Writeln();
+        } break;
+
         case ArchStackAlloc:
             // Ignore
             break;
@@ -822,7 +836,7 @@ void Arm64CodeGenerator::FunctionGenerator::EmitMove(InstructionOperand *dest, I
                         if (out->IsRegisterLocation()) { // reg <- mem
                             auto instr = SelectLoadInstr(in->machine_representation(), in->index() < 0);
                             Incoming()->Print("%s ", instr);
-                            EmitOperands(in, out);
+                            EmitOperands(out, in);
                         } else { // mem <- mem
                             auto scratch0 = Scratch0Operand(in->machine_representation());
                             auto load = SelectLoadInstr(in->machine_representation(), in->index() < 0);

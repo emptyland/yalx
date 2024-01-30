@@ -282,4 +282,41 @@ L0:
     EXPECT_EQ(z, expected) << expected;
 }
 
+TEST_F(Arm64PosixLowerTest, GetValFields) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue10_get_fields");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    //puts(PrintTo(ir_fun).c_str());
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue10_get_fields:
+L0:
+    ArchFrameEnter (#48)
+    {ptr fp-24} = ArchStackAlloc #24
+    {ptr $0} = ArchLoadEffectAddress {none fp-24}
+    Move {ptr fp-32} <- {ptr $0}
+    ArchBeforeCall (#16, #0, #32)
+    Move {dword $1} <- #2
+    Move {dword $2} <- #3
+    Move {ptr $0} <- {ptr fp-32}
+    ArchCall {ptr $0}, {dword $1}, {dword $2}(<main_Zomain_ZdVertx2_ZdVertx2_Z4constructor>, #0)
+    ArchAfterCall (#16, #0, #32)
+    {dword $0} = ArchStackLoad {none fp-24}, #16
+    Move {dword fp-36} <- {dword $0}
+    {dword $0} = ArchStackLoad {none fp-24}, #20
+    Move {dword fp-40} <- {dword $0}
+    Move {dword $1} <- {dword fp-36}
+    Move {dword $2} <- {dword fp-40}
+    {dword $0} = Arm64Add {dword $1}, {dword $2}
+    Move {dword fp-44} <- {dword $0}
+    Move {dword fp+28} <- {dword fp-44}
+    ArchFrameExit {dword fp-44}(#48)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
 } // namespace yalx::backend

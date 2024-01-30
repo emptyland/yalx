@@ -191,7 +191,7 @@ Lblk0:
     bl main_Zomain_Zdissue01_returning_one
     sub sp, sp, #16
     mov w1, #1
-    ldur [fp, #-4], w2
+    ldur w2, [fp, #-4]
     add w0, w1, w2
     stur w0, [fp, #-20]
     ldur w19, [fp, #-20]
@@ -221,8 +221,8 @@ Lblk0:
     mov w1, #2
     bl main_Zomain_Zdissue04_simple_args
     sub sp, sp, #16
-    ldur [fp, #-4], w1
-    ldur [fp, #-8], w2
+    ldur w1, [fp, #-4]
+    ldur w2, [fp, #-8]
     add w0, w1, w2
     stur w0, [fp, #-20]
     ldur w19, [fp, #-20]
@@ -252,13 +252,51 @@ Lblk0:
     add sp, sp, #32
     mov w1, #1
     mov w2, #2
-    ldur [fp, #-32], x0
+    ldur x0, [fp, #-32]
     bl main_Zomain_ZdVertx2_ZdVertx2_Z4constructor
     sub sp, sp, #32
     leaq x0, [fp, #-24]
     bl main_Zomain_Zdissue06_returning_val
     ldp fp, lr, [sp, #64]
     add sp, sp, #80
+    ret
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
+}
+
+TEST_F(Arm64CodeGeneratorTest, GetValFields) {
+    auto expected = GenTo("main:main", "issue10_get_fields");
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue10_get_fields
+main_Zomain_Zdissue10_get_fields:
+.cfi_startproc
+Lblk0:
+    sub sp, sp, #64
+    stp fp, lr, [sp, #48]
+    add fp, sp, #48
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    sub x0, fp, #24
+    stur x0, [fp, #-32]
+    add sp, sp, #16
+    mov w1, #2
+    mov w2, #3
+    ldur x0, [fp, #-32]
+    bl main_Zomain_ZdVertx2_ZdVertx2_Z4constructor
+    sub sp, sp, #16
+    ldur w0, [fp, #-8]
+    stur w0, [fp, #-36]
+    ldur w0, [fp, #-4]
+    stur w0, [fp, #-40]
+    ldur w1, [fp, #-36]
+    ldur w2, [fp, #-40]
+    add w0, w1, w2
+    stur w0, [fp, #-44]
+    ldur w19, [fp, #-44]
+    str w19, [fp, #28]
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
     ret
 .cfi_endproc
 )";
