@@ -479,12 +479,12 @@ public:
     bool is_call() const { return is_call_; }
     
     Operand *InputAt(size_t i) {
-        DCHECK(i < inputs_count());
+        DCHECK(i < inputs_count()).Hint("%s %zd vs %zd", kInstrCodeNames[op()], i, inputs_count());
         return &operands_[input_offset() + i];
     }
     
     Operand *OutputAt(size_t i) {
-        DCHECK(i < outputs_count());
+        DCHECK(i < outputs_count()).Hint("%s %zd vs %zd", kInstrCodeNames[op()], i, output_offset());
         return &operands_[output_offset() + i];
     }
     

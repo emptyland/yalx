@@ -29,7 +29,9 @@ enum class MachineRepresentation : uint8_t {
 #undef DEFINE_ENUM
 }; // enum class MachineRepresentation
 
-MachineRepresentation ToMachineRepresentation(const ir::Type ty);
+MachineRepresentation ToMachineRepresentation(ir::Type ty);
+
+size_t MachineRepresentationInBytes(MachineRepresentation rep);
 
 const char *GetMachineRepresentationName(MachineRepresentation rep);
 const char *GetMachineRepresentationAlias(MachineRepresentation rep);

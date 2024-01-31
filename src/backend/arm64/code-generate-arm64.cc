@@ -3,6 +3,7 @@
 #include "backend/linkage-symbols.h"
 #include "backend/constants-pool.h"
 #include "backend/instruction.h"
+#include "backend/frame.h"
 #include "ir/metadata.h"
 #include "ir/node.h"
 #include "ir/type.h"
@@ -57,6 +58,7 @@ static const char *RegisterName(MachineRepresentation rep, int id) {
             return kRegisterWord32Names[id];
         case MachineRepresentation::kWord64:
         case MachineRepresentation::kPointer:
+        case MachineRepresentation::kReference:
         case MachineRepresentation::kNone:
             if (id == 29) {
                 return "fp";
@@ -138,7 +140,7 @@ public:
             printer()->Println("Lblk%d:", ib->label());
             for (auto instr : ib->instructions()) {
                 EmitParallelMove(instr->parallel_move(Instruction::kStart));
-                Emit(instr);
+                Emit(ib, instr);
                 EmitParallelMove(instr->parallel_move(Instruction::kEnd));
                 position_++;
             }
@@ -147,7 +149,7 @@ public:
     }
 
 private:
-    void Emit(Instruction *instr);
+    void Emit(InstructionBlock *ib, Instruction *instr);
     void EmitParallelMove(const ParallelMove *moving);
     void EmitMove(InstructionOperand *dest, InstructionOperand *src);
     void EmitOperand(InstructionOperand *operand, RelocationStyle style = kDefault);
@@ -156,7 +158,10 @@ private:
                       RelocationStyle style = kDefault);
     void EmitOperands(InstructionOperand *opd0, InstructionOperand *opd1, InstructionOperand *opd2, const char *cond);
 
-    AllocatedOperand Scratch0Operand(MachineRepresentation rep) const {
+    void Push(InstructionOperand *regs, size_t n);
+    void Pop(InstructionOperand *regs, size_t n);
+
+    [[nodiscard]] AllocatedOperand Scratch0Operand(MachineRepresentation rep) const {
         return AllocatedOperand::Register(rep, owns_->profile()->scratch0());
     }
     
@@ -169,7 +174,7 @@ private:
     int position_ = 0;
 }; // class Arm64CodeGenerator::FunctionGenerator
 
-void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
+void Arm64CodeGenerator::FunctionGenerator::Emit(InstructionBlock *ib, Instruction *instr) {
     //printer()->Indent(1); // Print a indent first
     
     switch (instr->op()) {
@@ -193,11 +198,8 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             break;
 
         case ArchBeforeCall: {
-            for (int i = 0; i < instr->inputs_count(); i++) {
-//                Incoming()->Write("pushq ");
-//                EmitOperand(instr->InputAt(i));
-//                printer()->Writeln();
-                UNREACHABLE();
+            if (instr->inputs_count() > 0) {
+                Push(instr->InputAt(0), instr->inputs_count());
             }
             if (instr->temps_count() > 2 && PrepareCallHint::GetAdjustStackSize(instr) > 0) {
                 Incoming()->Write("add sp, sp, ");
@@ -212,11 +214,8 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
                 EmitOperand(instr->TempAt(0));
                 printer()->Writeln();
             }
-            for (int i = instr->inputs_count() - 1; i >= 0; i--) {
-//                Incoming()->Write("pushq ");
-//                EmitOperand(instr->InputAt(i));
-//                printer()->Writeln();
-                UNREACHABLE();
+            if (instr->inputs_count() > 0) {
+                Pop(instr->InputAt(0), instr->inputs_count());
             }
             break;
             
@@ -240,6 +239,12 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             Incoming()->Println("ldp fp, lr, [sp, #%d]", FrameScopeHint::GetStackMaxSize(instr));
             Incoming()->Println("add sp, sp, #%d", FrameScopeHint::GetStackMaxSize(instr) + 16);
             Incoming()->Writeln("ret");
+            break;
+
+        case ArchCallNative:
+            Incoming()->Write("bl ");
+            EmitOperand(instr->InputAt(0));
+            printer()->Writeln();
             break;
             
         case ArchJmp:
@@ -280,97 +285,97 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             
         case Arm64B_al:
             Incoming()->Write("b.al ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_cc:
             Incoming()->Write("b.cc ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_cs:
             Incoming()->Write("b.cs ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_eq:
             Incoming()->Write("b.eq ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_ge:
             Incoming()->Write("b.ge ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_gt:
             Incoming()->Write("b.gt ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_hi:
             Incoming()->Write("b.hi ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_le:
             Incoming()->Write("b.le ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_ls:
             Incoming()->Write("b.ls ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_lt:
             Incoming()->Write("b.lt ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_vs:
             Incoming()->Write("b.vs ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_mi:
             Incoming()->Write("b.mi ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_ne:
             Incoming()->Write("b.ne ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_nv:
             Incoming()->Write("b.nv ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_pl:
             Incoming()->Write("b.pl ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
         case Arm64B_vc:
             Incoming()->Write("b.vc ");
-            EmitOperand(instr->OutputAt(0));
+            EmitOperand(instr->InputAt(0));
             printer()->Writeln();
             break;
             
@@ -638,10 +643,19 @@ void Arm64CodeGenerator::FunctionGenerator::Emit(Instruction *instr) {
             EmitOperands(instr->OutputAt(0), instr->InputAt(0));
             break;
 
+        case Arm64Tst:
+            Incoming()->Write("tst ");
+            EmitOperands(instr->InputAt(0), instr->InputAt(1));
+            break;
+
         default:
             DCHECK(instr->op() < kMaxInstructionCodes);
             DCHECK(0).Hint("Unexpected instruction code: %s", kInstrCodeNames[instr->op()]);
             break;
+    }
+
+    if (instr->is_jumping_dest()) {
+        printer()->Println("Jpt_%d:", ib->JumpingPosition(instr).value());
     }
 }
 
@@ -730,7 +744,7 @@ void Arm64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *oper
                     break;
             }
         } break;
-            
+
         case InstructionOperand::kReloaction: {
             auto opd = operand->AsReloaction();
             if (opd->label()) {
@@ -768,6 +782,49 @@ void Arm64CodeGenerator::FunctionGenerator::EmitOperand(InstructionOperand *oper
             UNREACHABLE();
             break;
     }
+}
+
+inline static size_t StackPlacementSizeInBytes(InstructionOperand *regs, size_t n) {
+    size_t total_in_bytes = 0;
+    for (size_t i = 0; i < n; i++) {
+        auto reg = regs[i].AsAllocated();
+        DCHECK(reg->IsRegisterLocation());
+        auto size_in_bytes = MachineRepresentationInBytes(reg->machine_representation());
+        total_in_bytes = RoundUp(total_in_bytes, static_cast<intptr_t>(size_in_bytes)) + size_in_bytes;
+    }
+    return RoundUp(total_in_bytes, Frame::kStackAlignmentSize);
+}
+
+void Arm64CodeGenerator::FunctionGenerator::Push(InstructionOperand *regs, size_t n) {
+    const size_t total_in_bytes = StackPlacementSizeInBytes(regs, n);
+    Incoming()->Println("sub sp, sp, #%zd", total_in_bytes);
+
+    size_t offset = 0;
+    for (size_t i = 0; i < n; i++) {
+        auto reg = regs[i].AsAllocated();
+        DCHECK(reg->IsRegisterLocation());
+        auto size_in_bytes = MachineRepresentationInBytes(reg->machine_representation());
+        Incoming()->Write("str ");
+        EmitOperand(reg);
+        printer()->Println(", [sp, #%zd]", offset);
+        offset = RoundUp(offset, static_cast<intptr_t>(size_in_bytes)) + size_in_bytes;
+    }
+}
+
+void Arm64CodeGenerator::FunctionGenerator::Pop(InstructionOperand *regs, size_t n) {
+    size_t offset = 0;
+    for (size_t i = 0; i < n; i++) {
+        auto reg = regs[i].AsAllocated();
+        DCHECK(reg->IsRegisterLocation());
+        auto size_in_bytes = MachineRepresentationInBytes(reg->machine_representation());
+        Incoming()->Write("ldr ");
+        EmitOperand(reg);
+        printer()->Println(", [sp, #%zd]", offset);
+        offset = RoundUp(offset, static_cast<intptr_t>(size_in_bytes)) + size_in_bytes;
+    }
+
+    const size_t total_in_bytes = StackPlacementSizeInBytes(regs, n);
+    Incoming()->Println("add sp, sp, #%zd", total_in_bytes);
 }
 
 void Arm64CodeGenerator::FunctionGenerator::EmitParallelMove(const ParallelMove *moving) {
@@ -849,7 +906,26 @@ void Arm64CodeGenerator::FunctionGenerator::EmitMove(InstructionOperand *dest, I
                         }
                     }
                 } break;
-                case InstructionOperand::kConstant:
+                case InstructionOperand::kConstant: {
+                    auto in = src->AsConstant();
+                    Incoming()->Write("adrp ");
+                    auto scratch0 = Scratch0Operand(MachineRepresentation::kPointer);
+                    EmitOperands(&scratch0, in, kPage);
+
+                    Incoming()->Write("add ");
+                    EmitOperands(&scratch0, &scratch0, in, kPageOff);
+
+                    auto mem = AllocatedOperand::Location(out->machine_representation(),
+                                                          scratch0.register_id(), 0);
+                    if (out->IsRegisterLocation()) { // reg <- mem(const)
+                        Incoming()->Write("ldr ");
+                        EmitOperands(out, &mem);
+                    } else { // mem <- mem(const)
+                        Incoming()->Write("ldr ");
+                        EmitOperands(&scratch0, &mem);
+                        UNREACHABLE();
+                    }
+                } break;
                 case InstructionOperand::kReloaction:
                 default:
                     UNREACHABLE();

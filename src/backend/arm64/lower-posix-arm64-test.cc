@@ -319,4 +319,115 @@ L0:
     EXPECT_EQ(z, expected) << expected;
 }
 
+TEST_F(Arm64PosixLowerTest, OverflowArgsFun) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue11_overflow_args");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue11_overflow_args:
+L0:
+    {dword $0}, {dword $1}, {dword $2}, {dword $3}, {dword $4}, {dword $5}, {dword $6}, {dword $7}, {dword fp+20} = ArchFrameEnter (#48)
+    Move {dword fp-4} <- {dword $0}
+    Move {dword fp-8} <- {dword $1}
+    Move {dword fp-12} <- {dword $2}
+    Move {dword fp-16} <- {dword $3}
+    Move {dword fp-20} <- {dword $4}
+    Move {dword fp-24} <- {dword $5}
+    Move {dword fp-28} <- {dword $6}
+    Move {dword fp-32} <- {dword $7}
+    Move {dword $1} <- {dword fp-4}
+    Move {dword $2} <- {dword fp-8}
+    {dword $0} = Arm64Add {dword $1}, {dword $2}
+    Move {dword fp-36} <- {dword $0}
+    Move {dword $1} <- {dword fp-32}
+    Move {dword $2} <- {dword fp+20}
+    {dword $0} = Arm64Add {dword $1}, {dword $2}
+    Move {dword fp-40} <- {dword $0}
+    Move {dword fp+24} <- {dword fp-40}
+    Move {dword fp+28} <- {dword fp-36}
+    ArchFrameExit {dword fp-36}, {dword fp-40}(#48)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
+TEST_F(Arm64PosixLowerTest, CallOverflowArgsFun) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue12_call_overflow_args_fun");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue12_call_overflow_args_fun:
+L0:
+    ArchFrameEnter (#32)
+    ArchBeforeCall (#16, #4, #0)
+    Move {dword $0} <- #1
+    Move {dword $1} <- #2
+    Move {dword $2} <- #3
+    Move {dword $3} <- #4
+    Move {dword $4} <- #5
+    Move {dword $5} <- #6
+    Move {dword $6} <- #7
+    Move {dword $7} <- #8
+    Move {dword fp-12} <- #9
+    {dword fp-4}, {dword fp-8} = ArchCall {dword $0}, {dword $1}, {dword $2}, {dword $3}, {dword $4}, {dword $5}, {dword $6}, {dword $7}, {dword fp-12}(<main_Zomain_Zdissue11_overflow_args>, #12)
+    ArchAfterCall (#16, #4, #0)
+    Move {dword $1} <- {dword fp-4}
+    Move {dword $2} <- {dword fp-8}
+    {dword $0} = Arm64Add {dword $1}, {dword $2}
+    Move {dword fp-20} <- {dword $0}
+    Move {dword fp+28} <- {dword fp-20}
+    ArchFrameExit {dword fp-20}(#32)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
+TEST_F(Arm64PosixLowerTest, SimpleLoadBarrier) {
+    auto ir_fun = FindModuleOrNull("main:main")->FindFunOrNull("issue13_simple_load_barrier");
+    ASSERT_TRUE(ir_fun != nullptr);
+
+    auto lo_fun = IRLowing(ir_fun);
+    ASSERT_TRUE(lo_fun != nullptr);
+
+    CodeSlotAllocating(lo_fun);
+    static constexpr char z[] = R"(main_Zomain_Zdissue13_simple_load_barrier:
+L0:
+    ArchFrameEnter (#64)
+    {ptr fp-32} = ArchStackAlloc #32
+    {ptr $0} = ArchLoadEffectAddress {none fp-32}
+    Move {ptr fp-40} <- {ptr $0}
+    ArchBeforeCall (#16, #0, #40)
+    Move {ref $1} <- <literals:0>
+    Move {ref $2} <- <literals:1>
+    Move {dword $3} <- #0
+    Move {ptr $0} <- {ptr fp-40}
+    ArchCall {ptr $0}, {ref $1}, {ref $2}, {dword $3}(<main_Zomain_ZdIdent2_ZdIdent2_Z4constructor>, #0)
+    ArchAfterCall (#16, #0, #40)
+    {ref $0} = ArchStackLoad {none fp-32}, #16
+    Move {ref fp-56} <- {ref $0}
+    {qword $19} = Arm64Adrp <YGC_ADDRESS_BAD_MASK>
+    {qword $19} = Arm64AddOff {qword $19}, <YGC_ADDRESS_BAD_MASK>
+    {qword $19} = Arm64Ldr {qword $19+0}
+    Move {ref $0} <- {ref fp-56}
+    {qword $19} = Arm64Tst {ref $0}
+    Arm64B_eq <Jpt_0>
+    ArchBeforeCall {qword $0}, {qword $0}, {qword $1}, {qword $26}
+    {ptr $0} = ArchLoadEffectAddress {none fp-32}, #16
+    {ref $0} = ArchCallNative <ygc_barrier_load_on_field>, {ptr $0}
+    Move {ref fp-56} <- {ref $0}
+    ArchAfterCall {qword $0}, {qword $0}, {qword $1}, {qword $26}
+Jpt_0:
+    Move {ref fp+24} <- {ref fp-56}
+    ArchFrameExit {ref fp-56}(#64)
+)";
+    auto expected = PrintTo(lo_fun);
+    EXPECT_EQ(z, expected) << expected;
+}
+
 } // namespace yalx::backend

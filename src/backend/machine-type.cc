@@ -4,7 +4,7 @@
 
 namespace yalx::backend {
 
-MachineRepresentation ToMachineRepresentation(const ir::Type ty) {
+MachineRepresentation ToMachineRepresentation(ir::Type ty) {
     switch (ty.kind()) {
         case ir::Type::kWord8:
         case ir::Type::kInt8:
@@ -39,6 +39,25 @@ MachineRepresentation ToMachineRepresentation(const ir::Type ty) {
             return MachineRepresentation::kNone;
         default:
             return MachineRepresentation::kNone;
+    }
+}
+
+size_t MachineRepresentationInBytes(MachineRepresentation rep) {
+    switch (rep) {
+        case MachineRepresentation::kBit:
+        case MachineRepresentation::kWord8:
+            return 1;
+        case MachineRepresentation::kWord16:
+            return 2;
+        case MachineRepresentation::kWord32:
+        case MachineRepresentation::kFloat32:
+            return 4;
+        case MachineRepresentation::kWord64:
+        case MachineRepresentation::kPointer:
+        case MachineRepresentation::kReference:
+        case MachineRepresentation::kFloat64:
+        case MachineRepresentation::kNone:
+            return 8;
     }
 }
 

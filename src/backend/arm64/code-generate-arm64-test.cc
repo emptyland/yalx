@@ -303,4 +303,143 @@ Lblk0:
     ASSERT_EQ(z, expected) << expected;
 }
 
+// issue11_overflow_args
+TEST_F(Arm64CodeGeneratorTest, OverflowArgsFun) {
+    auto expected = GenTo("main:main", "issue11_overflow_args");
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue11_overflow_args
+main_Zomain_Zdissue11_overflow_args:
+.cfi_startproc
+Lblk0:
+    sub sp, sp, #64
+    stp fp, lr, [sp, #48]
+    add fp, sp, #48
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    stur w0, [fp, #-4]
+    stur w1, [fp, #-8]
+    stur w2, [fp, #-12]
+    stur w3, [fp, #-16]
+    stur w4, [fp, #-20]
+    stur w5, [fp, #-24]
+    stur w6, [fp, #-28]
+    stur w7, [fp, #-32]
+    ldur w1, [fp, #-4]
+    ldur w2, [fp, #-8]
+    add w0, w1, w2
+    stur w0, [fp, #-36]
+    ldur w1, [fp, #-32]
+    ldr w2, [fp, #20]
+    add w0, w1, w2
+    stur w0, [fp, #-40]
+    ldur w19, [fp, #-40]
+    str w19, [fp, #24]
+    ldur w19, [fp, #-36]
+    str w19, [fp, #28]
+    ldp fp, lr, [sp, #48]
+    add sp, sp, #64
+    ret
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
+}
+
+// issue12_call_overflow_args_fun
+TEST_F(Arm64CodeGeneratorTest, CallOverflowArgsFun) {
+    auto expected = GenTo("main:main", "issue12_call_overflow_args_fun");
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue12_call_overflow_args_fun
+main_Zomain_Zdissue12_call_overflow_args_fun:
+.cfi_startproc
+Lblk0:
+    sub sp, sp, #48
+    stp fp, lr, [sp, #32]
+    add fp, sp, #32
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    add sp, sp, #16
+    mov w0, #1
+    mov w1, #2
+    mov w2, #3
+    mov w3, #4
+    mov w4, #5
+    mov w5, #6
+    mov w6, #7
+    mov w7, #8
+    mov w19, #9
+    stur w19, [fp, #-12]
+    bl main_Zomain_Zdissue11_overflow_args
+    sub sp, sp, #16
+    ldur w1, [fp, #-4]
+    ldur w2, [fp, #-8]
+    add w0, w1, w2
+    stur w0, [fp, #-20]
+    ldur w19, [fp, #-20]
+    str w19, [fp, #28]
+    ldp fp, lr, [sp, #32]
+    add sp, sp, #48
+    ret
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
+}
+
+// issue13_simple_load_barrier
+TEST_F(Arm64CodeGeneratorTest, SimpleLoadBarrier) {
+    auto expected = GenTo("main:main", "issue13_simple_load_barrier");
+    static constexpr char z[] = R"(.global main_Zomain_Zdissue13_simple_load_barrier
+main_Zomain_Zdissue13_simple_load_barrier:
+.cfi_startproc
+Lblk0:
+    sub sp, sp, #80
+    stp fp, lr, [sp, #64]
+    add fp, sp, #64
+    .cfi_def_cfa fp, 16
+    .cfi_offset lr, -8
+    .cfi_offset fp, -16
+    sub x0, fp, #32
+    stur x0, [fp, #-40]
+    add sp, sp, #16
+    adrp x19, Kstr.0@PAGE
+    add x19, x19, Kstr.0@PAGEOFF
+    ldr x1, [x19, #0]
+    adrp x19, Kstr.1@PAGE
+    add x19, x19, Kstr.1@PAGEOFF
+    ldr x2, [x19, #0]
+    mov w3, #0
+    ldur x0, [fp, #-40]
+    bl main_Zomain_ZdIdent2_ZdIdent2_Z4constructor
+    sub sp, sp, #16
+    ldur x0, [fp, #-16]
+    stur x0, [fp, #-56]
+    adrp x19, YGC_ADDRESS_BAD_MASK@PAGE
+    add x19, x19, YGC_ADDRESS_BAD_MASK@PAGEOFF
+    ldr x19, [x19, #0]
+    ldur x0, [fp, #-56]
+    tst x19, x0
+    b.eq Jpt_0
+    sub sp, sp, #32
+    str x0, [sp, #0]
+    str x0, [sp, #8]
+    str x1, [sp, #16]
+    str x26, [sp, #24]
+    sub x0, fp, #32
+    bl ygc_barrier_load_on_field
+    stur x0, [fp, #-56]
+    ldr x0, [sp, #0]
+    ldr x0, [sp, #8]
+    ldr x1, [sp, #16]
+    ldr x26, [sp, #24]
+    add sp, sp, #32
+Jpt_0:
+    ldur x19, [fp, #-56]
+    str x19, [fp, #24]
+    ldp fp, lr, [sp, #64]
+    add sp, sp, #80
+    ret
+.cfi_endproc
+)";
+    ASSERT_EQ(z, expected) << expected;
+}
+
 } // namespace yalx::backend

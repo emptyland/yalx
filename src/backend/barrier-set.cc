@@ -92,9 +92,9 @@ public:
         selector->Emit(Arm64AddOff, bad_mask, bad_mask, bad_mask_symbol);
         auto bad_mask_addr = AllocatedOperand::Location(MachineRepresentation::kWord64, profile->scratch0(), 0);
         selector->Emit(Arm64Ldr, bad_mask, bad_mask_addr);
-        selector->Emit(Arm64Tst, bad_mask, selector->UseAsRegister(ir));
+        selector->Emit(Arm64Tst, InstructionSelector::NoOutput(), bad_mask, selector->UseAsRegister(ir));
         auto label = selector->Emit(Arm64B_eq, InstructionSelector::NoOutput(),
-                                    InstructionSelector::NoOutput()); // Good if ZF = 0
+                                               InstructionSelector::NoOutput()); // Good if ZF = 0
 
         InstructionOperand saved_regs[] = {
                 AllocatedOperand::Register(MachineRepresentation::kWord64, profile->returning0_register()),
