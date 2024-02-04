@@ -10,7 +10,7 @@ enum Optional<T> {
     }
 
 //    fun unwarp(): T {
-//        when (thie) {
+//        when (this) {
 //            None -> throw OptionalNoneValueException("None value")
 //            Some(value) -> return value
 //        }

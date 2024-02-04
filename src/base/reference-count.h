@@ -13,14 +13,14 @@ class intrusive_ptr final {
 public:
     intrusive_ptr() : intrusive_ptr(nullptr) {}
     
-    intrusive_ptr(T *naked)
+    explicit intrusive_ptr(T *naked)
         : naked_(naked) {
         if (naked_) { naked_->AddRef(); }
     }
     
     intrusive_ptr(const intrusive_ptr &other) : intrusive_ptr(other.naked_) {}
     
-    intrusive_ptr(intrusive_ptr &&other)
+    intrusive_ptr(intrusive_ptr &&other) noexcept
         : naked_(other.naked_) {
         other.naked_ = nullptr;
     }
@@ -47,7 +47,7 @@ public:
     
     T *get() const { return naked_; }
     
-    bool is_null() const { return naked_ == nullptr; }
+    [[nodiscard]] bool is_null() const { return naked_ == nullptr; }
     
     template<class S>
     static intrusive_ptr Make(S *naked) { return intrusive_ptr<T>(naked); }
@@ -65,7 +65,7 @@ class atomic_intrusive_ptr final {
 public:
     atomic_intrusive_ptr() : atomic_intrusive_ptr(nullptr) {}
     
-    atomic_intrusive_ptr(T *naked)
+    explicit atomic_intrusive_ptr(T *naked)
         : naked_(naked) {
         if (naked) { naked->AddRef(); }
     }
@@ -74,7 +74,7 @@ public:
         reset(other.naked_);
     }
     
-    atomic_intrusive_ptr(atomic_intrusive_ptr &&other) {
+    atomic_intrusive_ptr(atomic_intrusive_ptr &&other) noexcept {
         reset(other.naked_);
         other.naked_.store(nullptr, std::memory_order_relaxed);
     }
@@ -87,16 +87,11 @@ public:
     
     T &operator * () const { return *get(); }
     
-    bool is_null() const { return get() == nullptr; }
+    [[nodiscard]] bool is_null() const { return get() == nullptr; }
     
     T *get() const { return naked_.load(std::memory_order_acquire); }
     
     void operator = (const atomic_intrusive_ptr &other) { reset(other.naked_); }
-    
-//    void operator = (atomic_intrusive_ptr &&other) {
-//        reset(other.naked_);
-//        other.naked_.store(nullptr, std::memory_order_release);
-//    }
     
     void reset(T *naked) {
         auto old_val = get();
@@ -139,7 +134,7 @@ inline atomic_intrusive_ptr<T> MakeAtomicRef(T *naked) {
 class ReferenceCountable {
 public:
     ReferenceCountable() : ref_count_(0) {}
-    virtual ~ReferenceCountable() {}
+    virtual ~ReferenceCountable() = default;
     
     void AddRef() const {
         ref_count_.fetch_add(1, std::memory_order_acq_rel);
@@ -164,7 +159,7 @@ template<class T>
 class ReferenceCounted {
 public:
     ReferenceCounted() : ref_count_(0) {}
-    ~ReferenceCounted() {}
+    ~ReferenceCounted() = default;
     
     void AddRef() const {
         ref_count_.fetch_add(1, std::memory_order_acq_rel);
@@ -184,7 +179,7 @@ private:
     mutable std::atomic<int> ref_count_;
 }; // class ReferenceCounted
     
-} // namespace yalx
+} // namespace yalx::base
 
 
 #endif // YALX_BASE_REFERENCE_COUNT_H_

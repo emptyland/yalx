@@ -44,6 +44,31 @@ std::string Status::ToString() const {
     return s;
 }
 
+Status &Status::operator = (const Status &other) {
+    if (&other == this) {
+        return *this;
+    }
+    file_name_ = other.file_name_;
+    line_ = other.line_;
+    delete [] state_;
+    if (state_) {
+        state_ = MakeState(code(), std::string_view(state_ + 8, *reinterpret_cast<const int *>(state_)));
+    } else {
+        state_ = nullptr;
+    }
+    return *this;
+}
+
+Status &Status::operator = (Status &&other) noexcept {
+    file_name_ = other.file_name_;
+    line_ = other.line_;
+    state_ = other.state_;
+
+    other.file_name_ = nullptr;
+    other.line_ = 0;
+    other.state_ = nullptr;
+}
+
 #if defined(YALX_OS_POSIX)
 
 Status Status::PError(const char *file_name, int line, std::string_view message) {

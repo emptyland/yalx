@@ -33,7 +33,6 @@ public:
     void VisitParameters(InstructionBlock *entry);
     void VisitBlock(InstructionBlock *block);
     void VisitInstruction(Instruction *instr);
-    void VisitStackAlloc(Instruction *instr);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(ZeroSlotAllocator);
 private:

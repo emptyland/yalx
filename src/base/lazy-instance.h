@@ -58,7 +58,7 @@ private:
     T *Instance() { return reinterpret_cast<T*>(inst_.load(std::memory_order_relaxed)); }
 
     std::atomic<uintptr_t> inst_;
-    char body_[sizeof(T)];
+    char body_[sizeof(T){};
 }; // class LazyInstance
 
 } // namespace yalx

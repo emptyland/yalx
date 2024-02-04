@@ -203,9 +203,9 @@ inline T* ArenaAllocator<T>::allocate(size_t n, const void* hint) {
 class ArenaObject {
 public:
     void *operator new (size_t n, Arena *arena) { return arena->Allocate(n); }
-    void operator delete(void *, Arena *arena) {};
+    void operator delete(void *, Arena */*arena*/) {};
 }; // class ArenaObject
     
-} // namespace yalx
+} // namespace yalx::base
 
 #endif // YALX_BASE_ARENA_H_
