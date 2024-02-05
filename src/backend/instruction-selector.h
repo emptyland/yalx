@@ -32,18 +32,19 @@ class InstructionBlock;
 class InstructionSelector {
 public:
     InstructionSelector(base::Arena *arena,
-                        const RegistersConfiguration *config,
+                        const RegistersConfiguration *registers,
                         Linkage *linkage,
                         ConstantsPool *const_pool,
-                        BarrierSet *const barrier_set);
+                        BarrierSet *barrier_set);
     
-    DEF_PTR_GETTER(const RegistersConfiguration, config);
+    DEF_PTR_GETTER(const RegistersConfiguration, registers);
     DEF_PTR_GETTER(Linkage, linkage);
     DEF_PTR_GETTER(Frame, frame);
     DEF_PTR_GETTER(base::Arena, arena);
     DEF_PTR_GETTER(ConstantsPool, const_pool);
     
     InstructionFunction *VisitFunction(ir::Function *fun);
+    InstructionFunction *BuildFunction(ir::Function *fun);
     
     void VisitBasicBlock(ir::BasicBlock *block);
     void Select(ir::Value *instr);
@@ -54,7 +55,6 @@ public:
     void VisitStackAlloc(ir::Value *value);
     void VisitHeapAlloc(ir::Value *value);
 
-    //virtual
     virtual void VisitCondBr(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitAddOrSub(ir::Value *instr) {UNREACHABLE();}
     virtual void VisitICmp(ir::Value *instr) {UNREACHABLE();}
@@ -128,6 +128,7 @@ public:
     size_t ReturningValSizeInBytes(const ir::PrototypeModel *proto) const;
     size_t ParametersSizeInBytes(const ir::Function *fun) const;
     size_t OverflowParametersSizeInBytes(const ir::Function *fun) const;
+    size_t YalxHandleStackSizeInBytes(const ir::Function *fun) const;
 
     void UpdateRenames(Instruction *instr);
     void TryRename(InstructionOperand *opd);
@@ -141,14 +142,38 @@ public:
         current_block_->PutJumpingPosition(id);
         return id;
     }
+
+    class SecondaryStubSelectable {
+    public:
+        SecondaryStubSelectable(InstructionSelector *owns, ir::Function *fun);
+        virtual ~SecondaryStubSelectable();
+
+        [[nodiscard]] const RegistersConfiguration *registers() const { return owns_->registers(); }
+
+        InstructionFunction *Build(std::string_view name);
+        virtual void SetUp() = 0;
+        virtual void Call() = 0;
+        virtual void TearDown() = 0;
+
+        DISALLOW_IMPLICIT_CONSTRUCTORS(SecondaryStubSelectable);
+    protected:
+        InstructionSelector *const owns_;
+        ir::Function *const fun_;
+        const String *stub_name_ = nullptr;
+    }; // class SecondaryStubSelectable
+
+    virtual SecondaryStubSelectable *NewYalxHandleSelector(ir::Function *fun) {UNREACHABLE();}
+    virtual SecondaryStubSelectable *NewNativeStubSelector(ir::Function *fun) {UNREACHABLE();}
+
     friend class BarrierSet;
+protected:
+    InstructionBlock *current_block_ = nullptr;
 private:
     base::Arena *const arena_;
-    const RegistersConfiguration *const config_;
+    const RegistersConfiguration *const registers_;
     Linkage *const linkage_;
     ConstantsPool *const const_pool_;
     BarrierSet *const barrier_set_;
-    InstructionBlock *current_block_ = nullptr;
     Frame *frame_ = nullptr;
     base::ArenaVector<char> defined_;
     base::ArenaVector<char> used_;

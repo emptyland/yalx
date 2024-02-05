@@ -1,6 +1,7 @@
 #include "backend/x64/lower-posix-x64.h"
 #include "backend/registers-configuration.h"
 #include "backend/constants-pool.h"
+#include "backend/linkage-symbols.h"
 #include "ir/metadata.h"
 #include "ir/utils.h"
 #include "ir/node.h"
@@ -168,5 +169,121 @@ InstructionOperand X64PosixLower::TryUseAsConstantOrImmediate(ir::Value *value) 
 
     return {};
 }
+
+static const InstructionCode machine_representation_move[] = {
+    kMaxInstructionCodes, // None
+    X64Movb,              // Bit
+    X64Movb,              // Word8
+    X64Movw,              // Word16
+    X64Movl,              // Word32
+    X64Movq,              // Word64
+    X64Movq,              // Pointer
+    X64Movq,              // Reference
+    X64Movss,             // Float32
+    X64Movsd,             // Float64
+};
+
+class X64PosixLower::YalxHandleSelector final : public InstructionSelector::SecondaryStubSelectable {
+public:
+    YalxHandleSelector(InstructionSelector *owns, ir::Function *fun)
+        : SecondaryStubSelectable(owns, fun)
+        , stack_size_in_bytes_(owns->YalxHandleStackSizeInBytes(fun)) {}
+    ~YalxHandleSelector() override = default;
+
+    void SetUp() override {
+        InstructionOperand temps[1];
+        temps[0] = ImmediateOperand{static_cast<int>(stack_size_in_bytes_)}; // stack size
+        std::vector<InstructionOperand> parameters;
+        int gp_idx = 0, fp_idx = 0;
+        for (auto arg : fun_->paramaters()) {
+            auto rep = ToMachineRepresentation(arg->type());
+            if (arg->type().IsFloating()) {
+                parameters.push_back(AllocatedOperand::Register(rep, registers()->argument_fp_register(fp_idx++)));
+            } else {
+                parameters.push_back(AllocatedOperand::Register(rep, registers()->argument_gp_register(gp_idx++)));
+            }
+            DCHECK(fp_idx <= registers()->number_of_argument_fp_registers());
+            DCHECK(gp_idx <= registers()->number_of_argument_gp_registers());
+        }
+        owns_->Emit(ArchFrameEnter,
+             static_cast<int>(parameters.size()), &parameters.front(),
+             0, nullptr,
+             arraysize(temps), temps);
+        int stack_offset = 0;
+        for (int i = 0; i < registers()->number_of_callee_save_gp_registers(); i++) {
+            stack_offset += kPointerSize;
+            auto slot = AllocatedOperand::Slot(MachineRepresentation::kWord64, registers()->fp(), -stack_offset);
+            auto gp = AllocatedOperand::Register(MachineRepresentation::kWord64, registers()->callee_save_gp_register(i));
+            owns_->Emit(X64Movq, slot, gp);
+        }
+        for (int i = 0; i < registers()->number_of_callee_save_fp_registers(); i++) {
+            stack_offset += kPointerSize;
+            auto slot = AllocatedOperand::Slot(MachineRepresentation::kWord64, registers()->fp(), -stack_offset);
+            auto fp = AllocatedOperand::Register(MachineRepresentation::kWord64, registers()->callee_save_fp_register(i));
+            owns_->Emit(X64Movsd, slot, fp);
+        }
+    }
+    void Call() override {
+        int stack_offset = (registers()->number_of_argument_gp_registers() << kPointerShift)
+                         + (registers()->number_of_argument_fp_registers() << kPointerShift);
+        std::vector<AllocatedOperand> slots;
+        std::vector<AllocatedOperand> args;
+        int gp_idx = 0, fp_idx = 0;
+        for (auto arg : fun_->paramaters()) {
+            auto rep = ToMachineRepresentation(arg->type());
+            stack_offset = RoundUp(stack_offset, arg->type().AlignmentSizeInBytes()) + arg->type().ReferenceSizeInBytes();
+            auto slot = AllocatedOperand::Slot(MachineRepresentation::kWord64, registers()->fp(), -stack_offset);
+            auto reg = AllocatedOperand::Register(MachineRepresentation::kNone, -1);
+            if (arg->type().IsFloating()) {
+                reg = AllocatedOperand::Register(rep, registers()->argument_fp_register(fp_idx++));
+            } else {
+                reg = AllocatedOperand::Register(rep, registers()->argument_gp_register(gp_idx++));
+            }
+            DCHECK(fp_idx <= registers()->number_of_argument_fp_registers());
+            DCHECK(gp_idx <= registers()->number_of_argument_gp_registers());
+
+            owns_->Emit(machine_representation_move[static_cast<int>(rep)], slot, reg);
+            slots.push_back(slot);
+            args.push_back(reg);
+        }
+
+        auto rt_current_root = InstructionSelector::UseAsExternalCFunction(kRt_current_root);
+        auto rs = AllocatedOperand::Register(MachineRepresentation::kPointer, registers()->returning0_register());
+        owns_->Emit(ArchCallNative, rs, rt_current_root);
+        auto root = AllocatedOperand::Register(MachineRepresentation::kPointer, registers()->root());
+        owns_->Emit(X64Movq, root, rs);
+
+        for (size_t i = 0; i < args.size(); i++) {
+            auto code = machine_representation_move[static_cast<int>(args[i].machine_representation())];
+            DCHECK(code != kMaxInstructionCodes);
+            owns_->Emit(code, args[i], slots[i]);
+        }
+
+        InstructionOperand symbol[2] = {
+            InstructionSelector::UseAsExternalCFunction(stub_name_),
+            ImmediateOperand{0}
+        };
+        // TODO:
+//        owns_->Emit(AndBits(ArchCall, CallDescriptorField::Encode(kCallDirectly)),
+//                    static_cast<int>(outputs.size()), &outputs[0],
+//                    static_cast<int>(args.size()), &args[0],
+//                    arraysize(symbol), symbol);
+    }
+    void TearDown() override {
+
+    }
+
+private:
+    const size_t stack_size_in_bytes_ = 0;
+}; // class X64PosixLower::YalxHandleSelector
+
+InstructionSelector::SecondaryStubSelectable *X64PosixLower::NewYalxHandleSelector(ir::Function *fun) {
+    return new YalxHandleSelector(this, fun);
+}
+
+InstructionSelector::SecondaryStubSelectable *X64PosixLower::NewNativeStubSelector(ir::Function *fun) {
+    UNREACHABLE();
+}
+
 
 } // namespace yalx::backend

@@ -10,6 +10,7 @@
 #include "ir/type.h"
 #include "base/utils.h"
 #include "base/io.h"
+#include <memory>
 
 
 namespace yalx::backend {
@@ -20,7 +21,7 @@ InstructionSelector::InstructionSelector(base::Arena *arena,
                                          ConstantsPool *const_pool,
                                          BarrierSet *barrier_set)
 : arena_(arena)
-, config_(config)
+, registers_(config)
 , linkage_(linkage)
 , const_pool_(const_pool)
 , barrier_set_(barrier_set)
@@ -30,18 +31,41 @@ InstructionSelector::InstructionSelector(base::Arena *arena,
 }
 
 InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
+    InstructionFunction *instr_fun = nullptr;
+    switch (fun->decoration()) {
+        case ir::Function::kDefault:
+        case ir::Function::kOverride:
+            instr_fun = BuildFunction(fun);
+            break;
+        case ir::Function::kNative:
+            // TODO:
+        default:
+            UNREACHABLE();
+            break;
+    }
+
+    if (fun->is_native_handle()) {
+        std::unique_ptr<SecondaryStubSelectable> selector(NewYalxHandleSelector(fun));
+        std::string buf;
+        Linkage::BuildNativeHandle(&buf, fun->full_name()->ToSlice());
+        instr_fun->set_native_handle(selector->Build(buf));
+    }
+    return instr_fun;
+}
+
+InstructionFunction *InstructionSelector::BuildFunction(ir::Function *fun) {
     frame_ = new (arena_) Frame(arena_, fun);
     auto instr_fun = new (arena_) InstructionFunction(arena_, linkage()->Mangle(fun->full_name()), frame_);
-    
+
     std::vector<InstructionOperand> parameters;
     VisitParameters(fun, &parameters);
-    
+
     for (auto basic_block : fun->blocks()) {
         block_mapping_[basic_block] = instr_fun->NewBlock(linkage()->NextBlockLabel());
     }
-    
+
     instr_fun->set_entry(block_mapping_[fun->entry()]);
-    
+
     for (auto basic_block : fun->blocks()) {
         auto instr_block = block_mapping_[basic_block];
 
@@ -51,9 +75,9 @@ InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
         for (auto successor : basic_block->outputs()) {
             instr_block->AddSuccessor(block_mapping_[successor]);
         }
-        
+
         current_block_ = instr_block;
-        
+
         if (basic_block == fun->entry()) {
             InstructionOperand temps[1];
             temps[0] = ImmediateOperand{-1};
@@ -64,11 +88,10 @@ InstructionFunction *InstructionSelector::VisitFunction(ir::Function *fun) {
                  nullptr,
                  arraysize(temps), temps);
         }
-        
+
         VisitBasicBlock(basic_block);
         current_block_ = nullptr;
     }
-    
     block_mapping_.clear();
     return instr_fun;
 }
@@ -195,8 +218,8 @@ void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<Instruc
                                                 static_cast<intptr_t>(param->type().AlignmentSizeInBytes()));
 
         if (param->type().IsFloating()) {
-            if (fp_index < config_->number_of_argument_fp_registers()) {
-                parameters->push_back(DefineAsFixedFPRegister(param, config_->argument_fp_register(fp_index++)));
+            if (fp_index < registers_->number_of_argument_fp_registers()) {
+                parameters->push_back(DefineAsFixedFPRegister(param, registers_->argument_fp_register(fp_index++)));
             } else {
                 DCHECK(param_placement_in_bytes < overflow_args_offset);
                 overflow_args_offset -= param_placement_in_bytes;
@@ -216,8 +239,8 @@ void InstructionSelector::VisitParameters(ir::Function *fun, std::vector<Instruc
                 case ir::Type::kReference:
                 default:
                 pass_gp_register:
-                    if (gp_index < config_->number_of_argument_gp_registers()) {
-                        parameters->push_back(DefineAsFixedRegister(param, config_->argument_gp_register(gp_index++)));
+                    if (gp_index < registers_->number_of_argument_gp_registers()) {
+                        parameters->push_back(DefineAsFixedRegister(param, registers_->argument_gp_register(gp_index++)));
                     } else {
                         DCHECK(param_placement_in_bytes < overflow_args_offset);
                         overflow_args_offset -= param_placement_in_bytes;
@@ -285,8 +308,8 @@ void InstructionSelector::VisitCallDirectly(ir::Value *ir) {
         const auto size = RoundUp(arg->type().ReferenceSizeInBytes(),
                                                static_cast<intptr_t>(arg->type().AlignmentSizeInBytes()));
         if (arg->type().IsFloating()) {
-            if (fp_index < config()->number_of_argument_fp_registers()) {
-                auto opd = UseAsFixedFPRegister(arg, config()->argument_fp_register(fp_index++));
+            if (fp_index < registers()->number_of_argument_fp_registers()) {
+                auto opd = UseAsFixedFPRegister(arg, registers()->argument_fp_register(fp_index++));
                 if (auto imm = TryUseAsConstantOrImmediate(arg); !imm.IsInvalid()) {
                     moving.emplace_back(opd, imm);
                 }
@@ -303,8 +326,8 @@ void InstructionSelector::VisitCallDirectly(ir::Value *ir) {
                 inputs.push_back(opd);
             }
         } else {
-            if (gp_index < config()->number_of_argument_gp_registers()) {
-                auto opd = UseAsFixedRegister(arg, config()->argument_gp_register(gp_index++));
+            if (gp_index < registers()->number_of_argument_gp_registers()) {
+                auto opd = UseAsFixedRegister(arg, registers()->argument_gp_register(gp_index++));
                 if (auto imm = TryUseAsConstantOrImmediate(arg); !imm.IsInvalid()) {
                     moving.emplace_back(opd, imm);
                 }
@@ -416,12 +439,12 @@ void InstructionSelector::VisitHeapAlloc(ir::Value *value) {
     
     ReloactionOperand klass = UseAsExternalClassName(model->full_name());
     UnallocatedOperand arg0(UnallocatedOperand::kFixedRegister,
-                            config()->argument_gp_register(0),
+                            registers()->argument_gp_register(0),
                             frame()->NextVirtualRegister());
     Emit(AndBits(ArchLoadEffectAddress, CallDescriptorField::Encode(kCallNative)), arg0, klass);
     
     ReloactionOperand heap_alloc = UseAsExternalCFunction(kRt_heap_alloc);
-    Emit(ArchCallNative, DefineAsFixedRegister(value, config()->returning0_register()), heap_alloc, arg0);
+    Emit(ArchCallNative, DefineAsFixedRegister(value, registers()->returning0_register()), heap_alloc, arg0);
     
     Emit(AndBits(ArchAfterCall, CallDescriptorField::Encode(kCallNative)), NoOutput());
 }
@@ -712,8 +735,8 @@ bool InstructionSelector::IsAnyConstant(ir::Value *value) {
 
 size_t InstructionSelector::OverflowParametersSizeInBytes(const ir::Function *fun) const {
     size_t size_in_bytes = 0;
-    int float_count = config()->number_of_argument_fp_registers();
-    int general_count = config()->number_of_argument_gp_registers();
+    int float_count = registers()->number_of_argument_fp_registers();
+    int general_count = registers()->number_of_argument_gp_registers();
 
     for (auto param : fun->paramaters()) {
         if (param->type().IsFloating()) {
@@ -731,6 +754,20 @@ size_t InstructionSelector::OverflowParametersSizeInBytes(const ir::Function *fu
         }
     }
     return size_in_bytes;
+}
+
+size_t InstructionSelector::YalxHandleStackSizeInBytes(const ir::Function *fun) const {
+    size_t size_in_bytes = 0;
+    for (auto param : fun->paramaters()) {
+        auto size = RoundUp(param->type().ReferenceSizeInBytes(),
+                            static_cast<intptr_t>(param->type().AlignmentSizeInBytes()));
+        size_in_bytes += size;
+    }
+
+    size_in_bytes += (registers()->number_of_callee_save_gp_registers() << kPointerShift);
+    size_in_bytes += (registers()->number_of_callee_save_fp_registers() << kPointerShift);
+
+    return RoundUp(size_in_bytes, Frame::kStackAlignmentSize);
 }
 
 size_t InstructionSelector::ReturningValSizeInBytes(const ir::PrototypeModel *proto) const {
@@ -786,4 +823,26 @@ InstructionBlock *InstructionSelector::GetBlock(ir::BasicBlock *key) const {
     return iter->second;
 }
 
-} // namespace yalx
+InstructionSelector::SecondaryStubSelectable::SecondaryStubSelectable(InstructionSelector *owns, ir::Function *fun)
+: owns_(DCHECK_NOTNULL(owns))
+, fun_(DCHECK_NOTNULL(fun)) {
+}
+
+InstructionSelector::SecondaryStubSelectable::~SecondaryStubSelectable() {
+    DCHECK(owns_->current_block_ == nullptr);
+}
+
+InstructionFunction *InstructionSelector::SecondaryStubSelectable::Build(std::string_view name) {
+    DCHECK(stub_name_ == nullptr).Hint("stub_name exists: %p", stub_name_);
+
+    stub_name_ = String::New(owns_->arena(), name);
+    auto handle = new (owns_->arena()) InstructionFunction(owns_->arena(), stub_name_, owns_->frame());
+    owns_->current_block_ = handle->NewBlock(owns_->linkage()->NextBlockLabel());
+    SetUp();
+    Call();
+    TearDown();
+    owns_->current_block_ = nullptr;
+    return handle;
+}
+
+} // namespace yalx::backend

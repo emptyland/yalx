@@ -86,9 +86,9 @@ public:
     DEF_ARENA_VECTOR_GETTER(Value *, paramater);
     DEF_ARENA_VECTOR_GETTER(BasicBlock *, block);
     
-    bool is_never_return() const { return properties_ & kNeverReturnBit; }
-    bool is_native_handle() const { return properties_ & kNativeHandleBit; }
-    bool should_unwind_handle() const { return properties_ & kUnwindHandleBit; }
+    [[nodiscard]] bool is_never_return() const { return properties_ & kNeverReturnBit; }
+    [[nodiscard]] bool is_native_handle() const { return properties_ & kNativeHandleBit; }
+    [[nodiscard]] bool should_unwind_handle() const { return properties_ & kUnwindHandleBit; }
     
     void AddPropertiesBits(uint32_t bits) { properties_ |= bits; }
     
@@ -120,7 +120,7 @@ public:
     void PrintTo(PrintingContext *ctx, base::PrintingWriter *printer, Model *owns = nullptr) const;
     friend class Module;
 private:
-    Function(base::Arena *arena, const Decoration decoration, const String *name, const String *full_name, Module *owns,
+    Function(base::Arena *arena, Decoration decoration, const String *name, const String *full_name, Module *owns,
              PrototypeModel *prototype);
     
     const String *const name_;

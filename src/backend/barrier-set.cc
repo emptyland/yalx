@@ -24,7 +24,7 @@ public:
     ~X64PosixYGCBarrierSet() override = default;
 
     void PostLoad(InstructionSelector *selector, ir::Value *ir) override {
-        auto profile = selector->config();
+        auto profile = selector->registers();
         auto bad_mask = AllocatedOperand::Register(MachineRepresentation::kWord64, profile->scratch0());
         auto bad_mask_symbol = ReloactionOperand{kRt_YGC_ADDRESS_BAD_MASK};
         selector->Emit(X64Movq, bad_mask, bad_mask_symbol);
@@ -84,7 +84,7 @@ public:
     ~Arm64PosixYGCBarrierSet() override = default;
 
     void PostLoad(InstructionSelector *selector, ir::Value *ir) override {
-        auto profile = selector->config();
+        auto profile = selector->registers();
         auto bad_mask = AllocatedOperand::Register(MachineRepresentation::kWord64,
                                                    profile->scratch0());
         auto bad_mask_symbol = ReloactionOperand{kRt_YGC_ADDRESS_BAD_MASK};

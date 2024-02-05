@@ -12,6 +12,11 @@ public:
                   ConstantsPool *const_pool, BarrierSet *barrier_set);
 
 private:
+    class YalxHandleSelector;
+
+    SecondaryStubSelectable *NewYalxHandleSelector(ir::Function *fun) override;
+    SecondaryStubSelectable *NewNativeStubSelector(ir::Function *fun) override;
+
     void VisitCondBr(ir::Value *instr) override;
     void VisitAddOrSub(ir::Value *ir) override;
     void VisitICmp(ir::Value *instr) override;
